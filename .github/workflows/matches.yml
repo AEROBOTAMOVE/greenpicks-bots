@@ -1,7 +1,7 @@
 name: matches-bot
 on:
   schedule:
-    - cron: '5 5 * * *'     # 08:05 BG сутрин (лято UTC+3)
+    - cron: '30 5 * * *'    # 08:30 BG (лято UTC+3) — СЛЕД новинарския рън в 08:00
   workflow_dispatch: {}
 
 permissions:
