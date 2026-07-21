@@ -1,35 +1,42 @@
 # -*- coding: utf-8 -*-
 """
 GREEN PICKS — БОТ №1 „НОВИНАРЯТ" 📰
-Чете RSS от спортни сайтове, класифицира новините ПО СПОРТ и праща всяка
-в НЕЙНАТА стая на групата (⚽🏀🏓🏐), а общите — в 📰 Новини. 3x дневно (8/15/22).
-Помни пратеното в sent_news.json. Без важни новини -> НЕ праща нищо.
+Чете RSS от спортни сайтове, избира най-важните новини, праща карта в Telegram.
+Пуска се от GitHub Actions 3x дневно. Помни пратеното в sent_news.json (комитва се обратно).
+Без важни новини -> НЕ праща нищо (тишината е злато).
 """
+import html
 import json
 import os
 import re
 import sys
 import hashlib
+import urllib.error
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+SOFIA = ZoneInfo("Europe/Sofia")
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")            # id на групата (-100...)
 NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID")  # id на темата 📰 (число)
 
 # 🎯 УМНИЯТ РАЗПРЕДЕЛИТЕЛ: всяка новина отива в СВОЯТА стая.
-# Номерата са тема-id-тата в групата (създадени на 21.07).
+# РЕДЪТ Е ВАЖЕН: специфичните спортове ПРЕДИ футбола (волейболният ЦСКА
+# съдържа „волейбол" -> хваща се преди клубното име във football-шаблона).
+# \b = граница на дума (без 'nba' в 'fanbase').
 SPORT_ROOMS = {
-    "football":    {"thread": os.environ.get("FOOTBALL_THREAD_ID", "5"),  "title": "⚽ ФУТБОЛ — новини",
-                    "pat": r"футбол|цска|левски|лудогорец|champions league|premier league|la liga|serie a|bundesliga|uefa|fifa|world cup|голмайстор|penalty|дузп|offside|засада|football|soccer|мондиал"},
-    "basketball":  {"thread": os.environ.get("BASKET_THREAD_ID", "6"),    "title": "🏀 БАСКЕТБОЛ — новини",
-                    "pat": r"баскет|basketball|nba|wnba|евролига|euroleague|triple-double|леброн|lebron|йокич|jokic|дончич|doncic"},
     "tabletennis": {"thread": os.environ.get("TT_THREAD_ID", "7"),        "title": "🏓 ТЕНИС НА МАСА — новини",
                     "pat": r"тенис на маса|table tennis|ping pong|пинг понг"},
     "volleyball":  {"thread": os.environ.get("VOLLEY_THREAD_ID", "8"),    "title": "🏐 ВОЛЕЙБОЛ — новини",
-                    "pat": r"волейбол|volleyball|vnl|nations league volley|казийски|николов"},
+                    "pat": r"волейбол|volleyball|\bvnl\b|казийски"},
+    "basketball":  {"thread": os.environ.get("BASKET_THREAD_ID", "6"),    "title": "🏀 БАСКЕТБОЛ — новини",
+                    "pat": r"баскет|basketball|\bnba\b|\bwnba\b|евролига|euroleague|\bfiba\b|triple-double|леброн|lebron|йокич|jokic|дончич|doncic"},
+    "football":    {"thread": os.environ.get("FOOTBALL_THREAD_ID", "5"),  "title": "⚽ ФУТБОЛ — новини",
+                    "pat": r"футбол|цска|левски|лудогорец|champions league|premier league|la liga|serie a|bundesliga|\buefa\b|\bfifa\b|world cup|голмайстор|дузп|football|soccer|мондиал"},
 }
 
 def classify(title):
@@ -53,12 +60,12 @@ FEEDS = [
     ("ESPN",      "https://www.espn.com/espn/rss/news"),
 ]
 
-# Ключови думи -> точки (важност)
+# Ключови думи -> точки (важност). Regex с \b = начало на дума (без "гол" в "голям").
 KEYWORDS = {
-    5: ["трансфер", "transfer", "уволн", "sacked", "fired", "оставка", "почина", "died", "скандал", "scandal", "дисквалиф", "banned"],
-    4: ["контузия", "injury", "injured", "аут за", "ruled out", "финал", "final", "титла", "title", "шампион", "champion"],
-    3: ["дерби", "derby", "рекорд", "record", "класик", "clasico", "връща се", "return", "дебют", "debut"],
-    2: ["победа", "загуба", "равенство", "гол", "goal", "win", "loss", "draw"],
+    5: [r"\bтрансфер", r"\btransfer", r"\bуволн", r"\bsacked", r"\bfired", r"\bоставк", r"\bпочина", r"\bdied", r"\bскандал", r"\bscandal", r"\bдисквалиф", r"\bbanned"],
+    4: [r"\bконтузи", r"\binjur", r"\bаут за", r"\bruled out", r"\bфинал", r"\bfinal", r"\bтитла", r"\btitle", r"\bшампион", r"\bchampion"],
+    3: [r"\bдерби", r"\bderby", r"\bрекорд", r"\brecord", r"\bкласик", r"\bclasico", r"връща се", r"\breturn\b", r"\bдебют", r"\bdebut"],
+    2: [r"\bпобеда", r"\bзагуба", r"\bравенство", r"\bгол\b", r"\bголове", r"\bгола\b", r"\bgoal", r"\bwin\b", r"\bloss\b", r"\bdraw\b"],
 }
 
 SPORT_EMOJI = [("футбол|football|soccer|уефа|уеша|fifa|uefa", "⚽"), ("баскет|basket|nba", "🏀"),
@@ -98,7 +105,7 @@ def score_item(title, all_titles):
     t = title.lower()
     score = 0
     for pts, words in KEYWORDS.items():
-        if any(w in t for w in words):
+        if any(re.search(w, t) for w in words):
             score = max(score, pts)
     # буст: подобно заглавие в друг източник (обща дума 6+ букви)
     big_words = {w for w in re.findall(r"[а-яa-z]{6,}", t)}
@@ -125,17 +132,28 @@ def h(s):
 
 
 def tg_send(text, thread_id=None):
+    """Праща карта. Връща True/False — една счупена стая НЕ спира другите."""
     api = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML",
                "disable_web_page_preview": True}
-    tid = thread_id if thread_id is not None else NEWS_THREAD_ID
-    if tid:
-        payload["message_thread_id"] = int(tid)
-    data = urllib.parse.urlencode(payload).encode()
-    resp = json.loads(fetch_post(api, data))
-    if not resp.get("ok"):
-        print("TG ERROR:", resp)
-        sys.exit(1)
+    try:
+        tid = str(thread_id if thread_id is not None else (NEWS_THREAD_ID or "")).strip()
+        if tid.isdigit() and int(tid) > 1:   # General (1) НЕ се подава като thread
+            payload["message_thread_id"] = int(tid)
+        elif tid:
+            print(f"WARN: невалиден thread id {tid!r} — пращам в General.")
+        data = urllib.parse.urlencode(payload).encode()
+        resp = json.loads(fetch_post(api, data))
+        if not resp.get("ok"):
+            print("TG ERROR:", resp)
+            return False
+        return True
+    except urllib.error.HTTPError as e:
+        print("TG HTTP", e.code, e.read().decode("utf-8", "replace")[:300])
+        return False
+    except Exception as e:
+        print("TG SEND FAIL:", e)
+        return False
 
 
 def fetch_post(url, data, timeout=20):
@@ -151,8 +169,14 @@ def main():
 
     sent = []
     if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, encoding="utf-8") as f:
-            sent = json.load(f)
+        try:
+            with open(STATE_FILE, encoding="utf-8-sig") as f:
+                sent = json.load(f)
+            if not isinstance(sent, list):
+                sent = []
+        except (json.JSONDecodeError, OSError):
+            print("WARN: повреден state — започвам начисто.")
+            sent = []
     sent_set = set(sent)
 
     collected = []
@@ -192,15 +216,20 @@ def main():
                 break
         return out
 
-    now = datetime.now(timezone.utc).astimezone().strftime("%H:%M")
+    now = datetime.now(SOFIA).strftime("%H:%M")
     medals = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
     sent_now = []
 
     def make_card(title_line, items):
-        lines = [f"<b>{title_line}</b> · {now}", ""]
+        lines = [f"<b>{html.escape(title_line)}</b> · {now}", ""]
         for i, c in enumerate(items):
             fire = "🔥" if c["score"] >= 5 else ("⚡" if c["score"] >= 4 else sport_emoji(c["title"]))
-            lines.append(f'{medals[i]} {fire} <a href="{c["link"]}">{c["title"]}</a> <i>({c["source"]})</i>')
+            safe_t = html.escape(c["title"])
+            if re.match(r"https?://\S+$", c["link"]):
+                safe_l = html.escape(c["link"], quote=True)
+                lines.append(f'{medals[i]} {fire} <a href="{safe_l}">{safe_t}</a> <i>({html.escape(c["source"])})</i>')
+            else:   # гнил линк -> заглавие без линк, картата ОЦЕЛЯВА
+                lines.append(f'{medals[i]} {fire} {safe_t} <i>({html.escape(c["source"])})</i>')
         lines += ["", "🦖 GREEN PICKS"]
         return "\n".join(lines)
 
@@ -209,16 +238,16 @@ def main():
         mine = dedup([c for c in fresh if c["room"] == room_key], 3)
         if not mine:
             continue
-        tg_send(make_card(room["title"], mine), thread_id=room["thread"])
-        sent_now += mine
-        print(f"{room['title']}: {len(mine)} новини.")
+        if tg_send(make_card(room["title"], mine), thread_id=room["thread"]):
+            sent_now += mine
+            print(f"{room['title']}: {len(mine)} новини.")
 
     # 2) Общата стая 📰 — топ новините без спортна стая
     general = dedup([c for c in fresh if c["room"] is None], MAX_ITEMS)
     if general:
-        tg_send(make_card("📰 ТОП НОВИНИ", general))
-        sent_now += general
-        print(f"📰 Новини: {len(general)}.")
+        if tg_send(make_card("📰 ТОП НОВИНИ", general)):
+            sent_now += general
+            print(f"📰 Новини: {len(general)}.")
 
     if not sent_now:
         print("Нищо важно — мълчим.")
