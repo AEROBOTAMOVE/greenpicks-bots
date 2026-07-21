@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 GREEN PICKS — БОТ №2 „АНАЛИЗАТОРЪТ" 📅
-Всяка сутрин: взима днешните мачове (всички спортове, футболът последен!), избира топ 5,
+Всяка сутрин: взима днешните мачове (футбол + баскетбол), избира топ 3-4,
 за всеки вади: ⚔️ H2H (как са завършили срещите им), 📈 форма (последни 5),
-🎯 остри маркери и 📰 има ли свежа новина около отборите. Праща карта в темата 📅.
-Данни: football-data.org (с ключ) / TheSportsDB (без). Пуска се от GitHub Actions.
+📰 има ли свежа новина около отборите. Праща карта в темата 📅.
+Данни: TheSportsDB (безплатен ключ). Пуска се от GitHub Actions.
 """
 import html
 import json
@@ -179,6 +179,7 @@ def run_football_data():
 
     lines.append("🎯 Пикът на деня — в канала. 🦖 GREEN PICKS")
     return lines
+
 
 def today_str():
     return datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
@@ -381,6 +382,9 @@ def main():
     all_events = []
     for sport, emo, prio in SPORTS:
         for e in get_todays_events(sport):
+            # ⚽ КАЧЕСТВО: футбол влиза САМО от познатите топ-лиги (без третодивизионни)
+            if sport == "Soccer" and e.get("strLeague") not in LEAGUE_WEIGHT:
+                continue
             e["_emoji"] = emo
             e["_prio"] = prio
             all_events.append(e)
