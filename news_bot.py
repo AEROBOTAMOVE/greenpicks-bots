@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 GREEN PICKS — БОТ №1 „НОВИНАРЯТ" 📰
-Чете RSS от спортни сайтове, избира най-важните новини, праща карта в Telegram.
-Пуска се от GitHub Actions 3x дневно. Помни пратеното в sent_news.json (комитва се обратно).
-Без важни новини -> НЕ праща нищо (тишината е злато).
+Чете RSS от спортни сайтове, класифицира новините ПО СПОРТ и праща всяка
+в НЕЙНАТА стая на групата (⚽🏀🏓🏐), а общите — в 📰 Новини. 3x дневно (8/15/22).
+Помни пратеното в sent_news.json. Без важни новини -> НЕ праща нищо.
 """
 import json
 import os
@@ -18,6 +18,26 @@ from datetime import datetime, timezone
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")            # id на групата (-100...)
 NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID")  # id на темата 📰 (число)
+
+# 🎯 УМНИЯТ РАЗПРЕДЕЛИТЕЛ: всяка новина отива в СВОЯТА стая.
+# Номерата са тема-id-тата в групата (създадени на 21.07).
+SPORT_ROOMS = {
+    "football":    {"thread": os.environ.get("FOOTBALL_THREAD_ID", "5"),  "title": "⚽ ФУТБОЛ — новини",
+                    "pat": r"футбол|цска|левски|лудогорец|champions league|premier league|la liga|serie a|bundesliga|uefa|fifa|world cup|голмайстор|penalty|дузп|offside|засада|football|soccer|мондиал"},
+    "basketball":  {"thread": os.environ.get("BASKET_THREAD_ID", "6"),    "title": "🏀 БАСКЕТБОЛ — новини",
+                    "pat": r"баскет|basketball|nba|wnba|евролига|euroleague|triple-double|леброн|lebron|йокич|jokic|дончич|doncic"},
+    "tabletennis": {"thread": os.environ.get("TT_THREAD_ID", "7"),        "title": "🏓 ТЕНИС НА МАСА — новини",
+                    "pat": r"тенис на маса|table tennis|ping pong|пинг понг"},
+    "volleyball":  {"thread": os.environ.get("VOLLEY_THREAD_ID", "8"),    "title": "🏐 ВОЛЕЙБОЛ — новини",
+                    "pat": r"волейбол|volleyball|vnl|nations league volley|казийски|николов"},
+}
+
+def classify(title):
+    t = title.lower()
+    for key, room in SPORT_ROOMS.items():
+        if re.search(room["pat"], t):
+            return key
+    return None   # обща новина -> стая 📰
 
 STATE_FILE = "sent_news.json"
 MAX_ITEMS = 5          # максимум новини на пускане
@@ -104,12 +124,13 @@ def h(s):
     return hashlib.sha1(s.encode("utf-8")).hexdigest()[:16]
 
 
-def tg_send(text):
+def tg_send(text, thread_id=None):
     api = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML",
                "disable_web_page_preview": True}
-    if NEWS_THREAD_ID:
-        payload["message_thread_id"] = int(NEWS_THREAD_ID)
+    tid = thread_id if thread_id is not None else NEWS_THREAD_ID
+    if tid:
+        payload["message_thread_id"] = int(tid)
     data = urllib.parse.urlencode(payload).encode()
     resp = json.loads(fetch_post(api, data))
     if not resp.get("ok"):
@@ -152,37 +173,61 @@ def main():
             continue
         c["score"] = score_item(c["title"], all_titles)
         c["key"] = key
-        if c["score"] >= MIN_SCORE:
+        c["room"] = classify(c["title"])
+        # спортна стая = пускаме и по-леки новини (нишата е ценна); обща = само важното
+        need = 1 if c["room"] else MIN_SCORE
+        if c["score"] >= need:
             fresh.append(c)
 
     fresh.sort(key=lambda x: -x["score"])
-    # една история = една карта (изрязваме близнаци от други сайтове)
-    top = []
-    for c in fresh:
-        cw = {w for w in re.findall(r"[а-яa-z]{6,}", c["title"].lower())}
-        if any(len(cw & {w for w in re.findall(r'[а-яa-z]{6,}', t["title"].lower())}) >= 2 for t in top):
-            continue
-        top.append(c)
-        if len(top) == MAX_ITEMS:
-            break
 
-    if not top:
+    def dedup(items, limit):
+        out = []
+        for c in items:
+            cw = {w for w in re.findall(r"[а-яa-z]{6,}", c["title"].lower())}
+            if any(len(cw & {w for w in re.findall(r'[а-яa-z]{6,}', t["title"].lower())}) >= 2 for t in out):
+                continue
+            out.append(c)
+            if len(out) == limit:
+                break
+        return out
+
+    now = datetime.now(timezone.utc).astimezone().strftime("%H:%M")
+    medals = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
+    sent_now = []
+
+    def make_card(title_line, items):
+        lines = [f"<b>{title_line}</b> · {now}", ""]
+        for i, c in enumerate(items):
+            fire = "🔥" if c["score"] >= 5 else ("⚡" if c["score"] >= 4 else sport_emoji(c["title"]))
+            lines.append(f'{medals[i]} {fire} <a href="{c["link"]}">{c["title"]}</a> <i>({c["source"]})</i>')
+        lines += ["", "🦖 GREEN PICKS"]
+        return "\n".join(lines)
+
+    # 1) Спортните стаи — всяка си получава СВОИТЕ новини
+    for room_key, room in SPORT_ROOMS.items():
+        mine = dedup([c for c in fresh if c["room"] == room_key], 3)
+        if not mine:
+            continue
+        tg_send(make_card(room["title"], mine), thread_id=room["thread"])
+        sent_now += mine
+        print(f"{room['title']}: {len(mine)} новини.")
+
+    # 2) Общата стая 📰 — топ новините без спортна стая
+    general = dedup([c for c in fresh if c["room"] is None], MAX_ITEMS)
+    if general:
+        tg_send(make_card("📰 ТОП НОВИНИ", general))
+        sent_now += general
+        print(f"📰 Новини: {len(general)}.")
+
+    if not sent_now:
         print("Нищо важно — мълчим.")
         return
 
-    now = datetime.now(timezone.utc).astimezone().strftime("%H:%M")
-    lines = [f"📰 <b>ТОП НОВИНИ</b> · {now}", ""]
-    medals = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
-    for i, c in enumerate(top):
-        fire = "🔥" if c["score"] >= 5 else ("⚡" if c["score"] >= 4 else sport_emoji(c["title"]))
-        lines.append(f'{medals[i]} {fire} <a href="{c["link"]}">{c["title"]}</a> <i>({c["source"]})</i>')
-    lines += ["", "🦖 GREEN PICKS"]
-    tg_send("\n".join(lines))
-
-    sent = ([c["key"] for c in top] + sent)[:STATE_KEEP]
+    sent = ([c["key"] for c in sent_now] + sent)[:STATE_KEEP]
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(sent, f)
-    print(f"Пратени {len(top)} новини.")
+    print(f"Общо пратени {len(sent_now)} новини.")
 
 
 if __name__ == "__main__":
