@@ -26,6 +26,8 @@ STATE_FILE = "router_state.json"
 
 # стаите по спорт (тема-id в групата)
 ROOM_PICKS = int(os.environ.get("PICKS_THREAD_ID", "4"))
+ROOM_RESULTS = int(os.environ.get("RESULTS_THREAD_ID", "9"))   # ✅ Резултати
+ROOM_WINS = int(os.environ.get("WINS_THREAD_ID", "10"))        # 🏆 Печеливши фишове
 SPORT_ROOMS = [
     (int(os.environ.get("FOOTBALL_THREAD_ID", "5")),
      r"#футбол|футбол|цска|левски|лудогорец|champions league|premier league|la liga|serie a|bundesliga|голмайстор|football|soccer"),
@@ -36,6 +38,11 @@ SPORT_ROOMS = [
     (int(os.environ.get("VOLLEY_THREAD_ID", "8")),
      r"#волейбол|#волей|волейбол|volleyball"),
 ]
+
+# маркери за РЕЗУЛТАТ (не прогноза!): ✅❌, уцелен/паднал, отчет...
+RESULT_PAT = r"✅|❌|уцели|уцелен|паднал|спечелихме|загубихме|не мина|отчет|равносметка|#резултат"
+# маркери за ПЕЧЕЛИВШ ФИШ
+WIN_PAT = r"✅|спечелихме|печеливш|ударихме|зелен[оа]|\+\s?\d+([.,]\d+)?\s?(ед|лв|unit)|#печеливш"
 
 
 def api(method, **params):
@@ -58,14 +65,25 @@ def api(method, **params):
     return resp["result"]
 
 
-def pick_room(text):
-    """Връща thread_id на стаята според текста на поста."""
+def pick_rooms(text):
+    """Връща СПИСЪК от стаи — един пост може да отиде в 2-3 стаи!
+    Пример: губещ футболен фиш -> ⚽ + ✅ Резултати;
+            печеливш баскет фиш -> 🏀 + ✅ + 🏆."""
     t = (text or "").lower()
-    # РЕДЪТ: специфичните спортове преди футбола (както в Новинаря)
+    rooms = []
+    # 1) всички разпознати спортове (комбо-фиш с 2 спорта -> 2 стаи)
     for tid, pat in [SPORT_ROOMS[2], SPORT_ROOMS[3], SPORT_ROOMS[1], SPORT_ROOMS[0]]:
-        if re.search(pat, t):
-            return tid
-    return ROOM_PICKS   # без разпознат спорт -> 🎯 Пикове на деня
+        if re.search(pat, t) and tid not in rooms:
+            rooms.append(tid)
+    # 2) резултат/отчет -> и в ✅
+    if re.search(RESULT_PAT, t) and ROOM_RESULTS not in rooms:
+        rooms.append(ROOM_RESULTS)
+    # 3) печеливш фиш -> и в 🏆
+    if re.search(WIN_PAT, t) and ROOM_WINS not in rooms:
+        rooms.append(ROOM_WINS)
+    if not rooms:
+        rooms = [ROOM_PICKS]   # без нищо разпознато -> 🎯 Пикове на деня
+    return rooms[:3]           # максимум 3 стаи, без спам
 
 
 def main():
@@ -101,16 +119,16 @@ def main():
         if str(chat.get("id")) != str(CHANNEL_ID):
             continue   # не е нашият канал
         text = post.get("text") or post.get("caption") or ""
-        room = pick_room(text)
-        res = api("copyMessage", chat_id=CHAT_ID,
-                  from_chat_id=CHANNEL_ID,
-                  message_id=post.get("message_id"),
-                  message_thread_id=room)
-        if res is not None:
-            routed += 1
-            print(f"Пост {post.get('message_id')} -> стая {room}")
-        else:
-            print(f"Пост {post.get('message_id')} НЕ мина (стая {room}).")
+        for room in pick_rooms(text):
+            res = api("copyMessage", chat_id=CHAT_ID,
+                      from_chat_id=CHANNEL_ID,
+                      message_id=post.get("message_id"),
+                      message_thread_id=room)
+            if res is not None:
+                routed += 1
+                print(f"Пост {post.get('message_id')} -> стая {room}")
+            else:
+                print(f"Пост {post.get('message_id')} НЕ мина (стая {room}).")
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump({"offset": last_id}, f)
