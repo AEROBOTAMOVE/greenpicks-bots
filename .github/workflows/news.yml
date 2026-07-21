@@ -1,0 +1,32 @@
+name: news-bot
+on:
+  schedule:
+    - cron: '30 5 * * *'    # 08:30 BG (лято UTC+3)
+    - cron: '0 11 * * *'    # 14:00 BG
+    - cron: '0 17 * * *'    # 20:00 BG
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run news bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID }}
+          NEWS_THREAD_ID: ${{ vars.NEWS_THREAD_ID }}
+        run: python news_bot.py
+      - name: Save state
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          git add sent_news.json last_news_titles.json || true
+          git diff --cached --quiet || git commit -m "news state"
+          git push
