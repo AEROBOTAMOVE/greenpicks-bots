@@ -39,6 +39,10 @@ SPORT_ROOMS = {
                     "pat": r"футбол|цска|левски|лудогорец|champions league|premier league|la liga|serie a|bundesliga|\buefa\b|\bfifa\b|world cup|голмайстор|дузп|football|soccer|мондиал"},
 }
 
+# ⚽ ФУТБОЛ = САМО НАЙ-ВИСШИТЕ ЛИГИ И ГОЛЕМИТЕ ИСТОРИИ (заповед на шефа).
+# Дребни/местни лиги НЕ минават — другите спортове са по-важни.
+TOP_FOOTBALL = r"champions league|premier league|la liga|serie a|bundesliga|ligue 1|europa league|световно|европейско|мондиал|national team|реал мадрид|барселона|байерн|ливърпул|манчестър|арсенал|челси|тотнъм|псж|ювентус|интер|милан|атлетико|\bfifa\b|\buefa\b"
+
 def classify(title):
     t = title.lower()
     for key, room in SPORT_ROOMS.items():
@@ -198,6 +202,10 @@ def main():
         c["score"] = score_item(c["title"], all_titles)
         c["key"] = key
         c["room"] = classify(c["title"])
+        # ⚽ филтър: футбол минава САМО ако е топ-лига/голяма история (или мега-новина score>=4)
+        if c["room"] == "football":
+            if c["score"] < 4 and not re.search(TOP_FOOTBALL, c["title"].lower()):
+                continue   # дребен футбол = шум, режем го
         # спортна стая = пускаме и по-леки новини (нишата е ценна); обща = само важното
         need = 1 if c["room"] else MIN_SCORE
         if c["score"] >= need:
