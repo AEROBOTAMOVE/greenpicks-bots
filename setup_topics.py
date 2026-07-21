@@ -7,6 +7,7 @@
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 import urllib.parse
 
@@ -17,8 +18,16 @@ def call(method, **params):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
     data = urllib.parse.urlencode(params).encode()
     req = urllib.request.Request(url, data=data)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        resp = json.loads(r.read())
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            resp = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        try:
+            body = json.loads(e.read())
+            print(f"{method} ERROR {e.code}:", body.get("description", body))
+        except Exception:
+            print(f"{method} HTTP ERROR:", e.code)
+        sys.exit(1)
     if not resp.get("ok"):
         print(f"{method} ERROR:", resp)
         sys.exit(1)
@@ -27,6 +36,13 @@ def call(method, **params):
 def main():
     if not BOT_TOKEN or not CHAT_ID:
         print("Missing BOT_TOKEN/CHAT_ID"); sys.exit(1)
+
+    # ИДЕМПОТЕНТНОСТ: ако стаите вече са направени, НЕ правим втори чифт
+    if os.environ.get("NEWS_THREAD_ID") and os.environ.get("MATCHES_THREAD_ID"):
+        print("Стаите вече съществуват:")
+        print("NEWS_THREAD_ID =", os.environ["NEWS_THREAD_ID"])
+        print("MATCHES_THREAD_ID =", os.environ["MATCHES_THREAD_ID"])
+        return
 
     me = call("getMe")
     print("Бот:", me.get("username"))
