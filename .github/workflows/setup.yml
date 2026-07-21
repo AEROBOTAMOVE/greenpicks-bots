@@ -17,4 +17,6 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ vars.CHAT_ID }}
+          NEWS_THREAD_ID: ${{ vars.NEWS_THREAD_ID }}
+          MATCHES_THREAD_ID: ${{ vars.MATCHES_THREAD_ID }}
         run: python setup_topics.py
