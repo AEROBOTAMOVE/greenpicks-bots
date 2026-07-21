@@ -1,0 +1,35 @@
+name: router-bot
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # на всеки 10 минути — постовете хвърчат по стаите
+  workflow_dispatch: {}
+
+concurrency:
+  group: router-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Route channel posts to topic rooms
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
+        run: python router_bot.py
+      - name: Save state
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          git add router_state.json || true
+          git diff --cached --quiet || git commit -m "router state"
+          git pull --rebase origin main || true
+          git push || (git pull --rebase origin main && git push)
