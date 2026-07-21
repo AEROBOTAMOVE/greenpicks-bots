@@ -6,6 +6,10 @@ on:
     - cron: '0 19 * * *'    # 22:00 BG
   workflow_dispatch: {}
 
+concurrency:
+  group: news-bot
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -29,4 +33,5 @@ jobs:
           git config user.email "bot@greenpicks"
           git add sent_news.json last_news_titles.json || true
           git diff --cached --quiet || git commit -m "news state"
-          git push
+          git pull --rebase origin main || true
+          git push || (git pull --rebase origin main && git push)
