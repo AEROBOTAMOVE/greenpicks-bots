@@ -6,19 +6,27 @@ GREEN PICKS — БОТ №2 „АНАЛИЗАТОРЪТ" 📅
 🎯 остри маркери и 📰 има ли свежа новина около отборите. Праща карта в темата 📅.
 Данни: football-data.org (с ключ) / TheSportsDB (без). Пуска се от GitHub Actions.
 """
+import html
 import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
+SOFIA = ZoneInfo("Europe/Sofia")
+
+def esc(x):
+    return html.escape(str(x or ""))
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")
 MATCHES_THREAD_ID = os.environ.get("MATCHES_THREAD_ID")
-SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY", "123")   # публичен тест-ключ
-FOOTBALL_DATA_KEY = os.environ.get("FOOTBALL_DATA_KEY", "")  # football-data.org (по-добрият източник)
+SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY") or "123"   # празен env = тест-ключ, не счупен URL
+FOOTBALL_DATA_KEY = (os.environ.get("FOOTBALL_DATA_KEY") or "").strip()  # football-data.org
 
 API = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_KEY}"
 FD_API = "https://api.football-data.org/v4"
@@ -55,17 +63,20 @@ SPORTS = [
 ]
 
 
+import time
+
 def fetch_json(url, timeout=20, headers=None):
     hd = {"User-Agent": "GreenPicksBot/1.0"}
     if headers:
         hd.update(headers)
+    if "thesportsdb.com" in url:
+        time.sleep(2.1)   # free ключът е ~30 заявки/мин — дишаме
     req = urllib.request.Request(url, headers=hd)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8", "replace"))
 
 
 # ---------- football-data.org (основен двигател за футбол) ----------
-import time
 
 def fd_get(path):
     time.sleep(6.5)  # free tier: 10 заявки/мин — дишаме спокойно
@@ -75,7 +86,9 @@ def fd_get(path):
 def fd_matches_today():
     d = today_str()
     data = fd_get(f"/matches?dateFrom={d}&dateTo={d}")
-    return data.get("matches") or []
+    # само предстоящи: отложен/прекратен мач НЕ е „МАЧ НА ДЕНЯ"
+    return [m for m in (data.get("matches") or [])
+            if m.get("status") in ("TIMED", "SCHEDULED")]
 
 
 def fd_h2h(match_id):
@@ -91,12 +104,15 @@ def fd_h2h(match_id):
 
 def fd_form(team_id, team_name):
     try:
-        data = fd_get(f"/teams/{team_id}/matches?limit=5&status=FINISHED")
+        data = fd_get(f"/teams/{team_id}/matches?status=FINISHED")
+        # API-то връща старо->ново; ние искаме ПОСЛЕДНИТЕ 5 (ново->старо)
+        ms = sorted(data.get("matches") or [],
+                    key=lambda m: m.get("utcDate") or "", reverse=True)[:5]
         s = ""
-        for m in (data.get("matches") or [])[:5]:
+        for m in ms:
             ft = (m.get("score") or {}).get("fullTime") or {}
             hg, ag = ft.get("home"), ft.get("away")
-            if hg is None:
+            if hg is None or ag is None:
                 continue
             is_home = (m.get("homeTeam") or {}).get("id") == team_id
             mine, theirs = (hg, ag) if is_home else (ag, hg)
@@ -117,18 +133,23 @@ def run_football_data():
     top = matches[:MAX_MATCHES]
 
     news_titles = load_recent_news_titles()
-    weekday = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][datetime.now().weekday()]
+    weekday = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][datetime.now(SOFIA).weekday()]
     lines = [f"📅 <b>МАЧОВЕТЕ ДНЕС</b> · {weekday}", ""]
 
     for i, m in enumerate(top):
-        home = (m.get("homeTeam") or {}).get("name", "?")
-        away = (m.get("awayTeam") or {}).get("name", "?")
-        comp = (m.get("competition") or {}).get("name", "")
-        t = (m.get("utcDate") or "")[11:16]
+        raw_home = (m.get("homeTeam") or {}).get("name", "?")
+        raw_away = (m.get("awayTeam") or {}).get("name", "?")
+        home, away = esc(raw_home), esc(raw_away)
+        comp = esc((m.get("competition") or {}).get("name", ""))
+        t = ""
+        try:
+            t = datetime.fromisoformat((m.get("utcDate") or "").replace("Z", "+00:00")).astimezone(SOFIA).strftime("%H:%M")
+        except ValueError:
+            pass
         title = "🔥 <b>МАЧ НА ДЕНЯ</b>\n" if i == 0 else ""
         head = f"{title}⚽ <b>{home}</b> 🆚 <b>{away}</b>"
         if t:
-            head += f" · {t} UTC"
+            head += f" · {t} ч."
         if comp:
             head += f" · {comp}"
         lines.append(head)
@@ -142,18 +163,18 @@ def run_football_data():
         if h2h_matches:
             last = h2h_matches[0]
             ft = (last.get("score") or {}).get("fullTime") or {}
-            lines.append(f"   Последно: {(last.get('homeTeam') or {}).get('shortName','?')} "
+            lines.append(f"   Последно: {esc((last.get('homeTeam') or {}).get('shortName','?'))} "
                          f"{ft.get('home','?')}:{ft.get('away','?')} "
-                         f"{(last.get('awayTeam') or {}).get('shortName','?')} ({(last.get('utcDate') or '')[:10]})")
+                         f"{esc((last.get('awayTeam') or {}).get('shortName','?'))} ({(last.get('utcDate') or '')[:10]})")
 
         hf = fd_form((m.get("homeTeam") or {}).get("id"), home)
         af = fd_form((m.get("awayTeam") or {}).get("id"), away)
         if hf != "?" or af != "?":
             lines.append(f"📈 Форма: {home} <code>{hf}</code> · {away} <code>{af}</code>")
 
-        flags = [tm for tm in (home, away) if news_flag(tm, news_titles)]
+        flags = [tm for tm in (raw_home, raw_away) if news_flag(tm, news_titles)]
         if flags:
-            lines.append(f"📰 Свежа новина около: {', '.join(flags)} — виж стая 📰!")
+            lines.append(f"📰 Свежа новина около: {esc(', '.join(flags))} — виж стая 📰!")
         lines.append("")
 
     lines.append("🎯 Пикът на деня — в канала. 🦖 GREEN PICKS")
@@ -167,7 +188,11 @@ def get_todays_events(sport):
     d = today_str()
     try:
         data = fetch_json(f"{API}/eventsday.php?d={d}&s={urllib.parse.quote(sport)}")
-        return data.get("events") or []
+        evs = data.get("events") or []
+        # отложени/прекратени НЕ влизат в картата
+        return [e for e in evs
+                if (e.get("strStatus") or "").lower() not in ("postponed", "cancelled", "canceled")
+                and (e.get("strPostponed") or "").lower() != "yes"]
     except Exception as e:
         print(f"eventsday {sport}: {e}")
         return []
@@ -178,7 +203,8 @@ def get_last_events(team_id):
     try:
         data = fetch_json(f"{API}/eventslast.php?id={team_id}")
         return data.get("results") or []
-    except Exception:
+    except Exception as e:
+        print(f"eventslast {team_id}: {e}")
         return []
 
 
@@ -190,8 +216,8 @@ def get_h2h(home, away):
         try:
             data = fetch_json(f"{API}/searchevents.php?e={q}")
             out += data.get("event") or []
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"h2h {a}/{b}: {e}")
     # само изиграни (с резултат), най-новите първи
     played = [e for e in out if e.get("intHomeScore") not in (None, "")]
     played.sort(key=lambda e: e.get("dateEvent") or "", reverse=True)
@@ -258,7 +284,8 @@ def markers(home, away, h2h, home_events, away_events):
         f = form_string(name, evs)
         if len(f) >= 3:
             if set(f[:3]) == {"W"}:
-                out.append(f"🔥 {name} лети: 3+ поредни победи")
+                streak = len(f) - len(f.lstrip("W"))
+                out.append(f"🔥 {name} лети: {streak} поредни победи")
             elif "L" not in f:
                 out.append(f"🛡 {name} без загуба в последните {len(f)}")
             elif set(f[:3]) == {"L"}:
@@ -278,34 +305,58 @@ def load_recent_news_titles():
     return titles
 
 
+GENERIC_WORDS = {"city", "united", "real", "club", "town", "sport", "sporting", "athletic", "olympic"}
+
 def news_flag(team, titles):
     t = team.lower()
-    words = [w for w in re.split(r"\s+", t) if len(w) > 3]
+    words = [w for w in re.split(r"\s+", t) if len(w) >= 5 and w not in GENERIC_WORDS]
+    if not words:
+        return False
     for title in titles:
         tl = title.lower()
-        if any(w in tl for w in words):
+        if any(re.search(r"\b" + re.escape(w), tl) for w in words):
             return True
     return False
 
 
 def tg_send(text):
+    """Праща картата. Връща True/False — грешка при пращане НЕ пуска втора карта."""
     api = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML",
                "disable_web_page_preview": True}
-    if MATCHES_THREAD_ID:
-        payload["message_thread_id"] = int(MATCHES_THREAD_ID)
-    data = urllib.parse.urlencode(payload).encode()
-    req = urllib.request.Request(api, data=data)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        resp = json.loads(r.read())
-    if not resp.get("ok"):
-        print("TG ERROR:", resp)
-        sys.exit(1)
+    try:
+        tid = str(MATCHES_THREAD_ID or "").strip()
+        if tid.isdigit() and int(tid) > 1:
+            payload["message_thread_id"] = int(tid)
+        elif tid:
+            print(f"WARN: невалиден MATCHES_THREAD_ID {tid!r} — пращам в General.")
+        data = urllib.parse.urlencode(payload).encode()
+        req = urllib.request.Request(api, data=data)
+        with urllib.request.urlopen(req, timeout=20) as r:
+            resp = json.loads(r.read())
+        if not resp.get("ok"):
+            print("TG ERROR:", resp)
+            return False
+        return True
+    except urllib.error.HTTPError as e:
+        print("TG HTTP", e.code, e.read().decode("utf-8", "replace")[:300])
+        return False
+    except Exception as e:
+        print("TG SEND FAIL:", e)
+        return False
 
 
 def fmt_time(e):
+    """UTC час от TheSportsDB -> български час."""
     t = (e.get("strTime") or "")[:5]
-    return t if t and t != "00:00" else ""
+    d = (e.get("dateEvent") or "")[:10]
+    if not t or t == "00:00":
+        return ""
+    try:
+        dt = datetime.fromisoformat(f"{d}T{t}:00+00:00").astimezone(SOFIA)
+        return dt.strftime("%H:%M")
+    except ValueError:
+        return t
 
 
 def main():
@@ -315,15 +366,17 @@ def main():
 
     # Основен двигател: football-data.org (ако има ключ)
     if FOOTBALL_DATA_KEY:
+        fd_lines = None
         try:
-            lines = run_football_data()
-            if lines:
-                tg_send("\n".join(lines))
-                print("football-data: карта пратена.")
-                return
-            print("football-data: няма топ мачове днес → пробвам TheSportsDB.")
+            fd_lines = run_football_data()
         except Exception as e:
             print("football-data пропадна:", e, "→ fallback TheSportsDB")
+        if fd_lines:
+            # пращането е ИЗВЪН try-а на данните: грешка тук НЕ пуска втора карта
+            if tg_send("\n".join(fd_lines)):
+                print("football-data: карта пратена.")
+            return
+        print("football-data: няма топ мачове днес → пробвам TheSportsDB.")
 
     all_events = []
     for sport, emo, prio in SPORTS:
@@ -340,18 +393,18 @@ def main():
     top = all_events[:MAX_MATCHES]
 
     news_titles = load_recent_news_titles()
-    weekday = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][datetime.now().weekday()]
+    weekday = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][datetime.now(SOFIA).weekday()]
     lines = [f"📅 <b>МАЧОВЕТЕ ДНЕС</b> · {weekday}", ""]
 
     for i, e in enumerate(top):
         home, away = e.get("strHomeTeam") or "", e.get("strAwayTeam") or ""
-        league = e.get("strLeague", "")
+        league = esc(e.get("strLeague", ""))
         t = fmt_time(e)
         title = "🔥 <b>СБЛЪСЪКЪТ НА ДЕНЯ</b>\n" if i == 0 else ""
         if home and away:
-            head = f'{title}{e["_emoji"]} <b>{home}</b> 🆚 <b>{away}</b>'
+            head = f'{title}{e["_emoji"]} <b>{esc(home)}</b> 🆚 <b>{esc(away)}</b>'
         else:   # събития без два отбора (дартс, ММА карти, турнири)
-            head = f'{title}{e["_emoji"]} <b>{e.get("strEvent", "?")}</b>'
+            head = f'{title}{e["_emoji"]} <b>{esc(e.get("strEvent", "?"))}</b>'
         if t:
             head += f" · {t}"
         if league:
@@ -363,27 +416,27 @@ def main():
             h2h = get_h2h(home, away)
             if h2h:
                 hw, dr, aw = h2h_summary(home, away, h2h)
-                lines.append(f"⚔️ Последни {len(h2h)}: {home} {hw} · Х {dr} · {away} {aw}")
+                lines.append(f"⚔️ Последни {len(h2h)}: {esc(home)} {hw} · Х {dr} · {esc(away)} {aw}")
                 last = h2h[0]
-                lines.append(f"   Последно: {last.get('strHomeTeam')} {last.get('intHomeScore')}:{last.get('intAwayScore')} {last.get('strAwayTeam')} ({(last.get('dateEvent') or '')[:10]})")
+                lines.append(f"   Последно: {esc(last.get('strHomeTeam'))} {last.get('intHomeScore')}:{last.get('intAwayScore')} {esc(last.get('strAwayTeam'))} ({(last.get('dateEvent') or '')[:10]})")
 
             h_ev = get_last_events(e.get("idHomeTeam")) if e.get("idHomeTeam") else []
             a_ev = get_last_events(e.get("idAwayTeam")) if e.get("idAwayTeam") else []
             hf, af = form_string(home, h_ev), form_string(away, a_ev)
             if hf != "?" or af != "?":
-                lines.append(f"📈 Форма: {home} <code>{hf}</code> · {away} <code>{af}</code>")
+                lines.append(f"📈 Форма: {esc(home)} <code>{hf}</code> · {esc(away)} <code>{af}</code>")
 
             for m in markers(home, away, h2h, h_ev, a_ev):
-                lines.append(m)
+                lines.append(esc(m))
 
         flags = [tm for tm in (home, away) if tm and news_flag(tm, news_titles)]
         if flags:
-            lines.append(f"📰 Свежа новина около: {', '.join(flags)} — виж стая 📰!")
+            lines.append(f"📰 Свежа новина около: {esc(', '.join(flags))} — виж стая 📰!")
         lines.append("")
 
     lines.append("🎯 Пикът на деня — в канала. 🦖 GREEN PICKS")
-    tg_send("\n".join(lines))
-    print(f"Пратени {len(top)} мача.")
+    if tg_send("\n".join(lines)):
+        print(f"Пратени {len(top)} мача.")
 
 
 if __name__ == "__main__":
