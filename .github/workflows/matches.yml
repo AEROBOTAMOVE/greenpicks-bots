@@ -1,0 +1,25 @@
+name: matches-bot
+on:
+  schedule:
+    - cron: '5 5 * * *'     # 08:05 BG сутрин (лято UTC+3)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run matches bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID }}
+          MATCHES_THREAD_ID: ${{ vars.MATCHES_THREAD_ID }}
+          SPORTSDB_KEY: ${{ vars.SPORTSDB_KEY }}
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: python matches_bot.py
