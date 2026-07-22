@@ -21,14 +21,14 @@ from zoneinfo import ZoneInfo
 SOFIA = ZoneInfo("Europe/Sofia")
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-CHAT_ID = os.environ.get("CHAT_ID", "")            # id на групата (-100...)
-NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID")  # id на темата 📰 (число)
+CHAT_ID = os.environ.get("CHAT_ID", "")
+NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID")
 
 SPORT_ROOMS = {
     "tabletennis": {"thread": os.environ.get("TT_THREAD_ID", "7"),        "title": "🏓 ТЕНИС НА МАСА — новини",
-                    "pat": r"тенис на маса|table tennis|ping pong|пинг понг"},
+                    "pat": r"тенис на маса|table tennis|ping pong|пинг понг|\bwtt\b|\bittf\b"},
     "volleyball":  {"thread": os.environ.get("VOLLEY_THREAD_ID", "8"),    "title": "🏐 ВОЛЕЙБОЛ — новини",
-                    "pat": r"волейбол|volleyball|\bvnl\b|казийски"},
+                    "pat": r"волейбол|volleyball|\bvnl\b|\bcev\b|plusliga|superlega|николов|соколов|казийски|лига на нациите"},
     "basketball":  {"thread": os.environ.get("BASKET_THREAD_ID", "6"),    "title": "🏀 БАСКЕТБОЛ — новини",
                     "pat": r"баскет|basketball|\bnba\b|\bwnba\b|евролига|euroleague|\bfiba\b|triple-double|леброн|lebron|йокич|jokic|дончич|doncic"},
     "football":    {"thread": os.environ.get("FOOTBALL_THREAD_ID", "5"),  "title": "⚽ ФУТБОЛ — новини",
@@ -52,6 +52,7 @@ STATE_KEEP = 400
 FEEDS = [
     ("Gong",      "https://gong.bg/rss"),
     ("Sportal",   "https://www.sportal.bg/rss"),
+    ("Dsport",    "https://dsport.bg/rss"),
     ("BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml"),
     ("Sky Sports","https://www.skysports.com/rss/12040"),
     ("ESPN",      "https://www.espn.com/espn/rss/news"),
