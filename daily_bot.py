@@ -2,9 +2,9 @@
 """
 GREEN PICKS — ДНЕВНИЯТ РИТЪМ 🦖 (чист, автоматичен, GitHub Actions)
 Режими (DAILY_MODE):
-  topnews   08:00 и 20:00 — ЕДНА най-важна новина на деня в КАНАЛА (различна всеки път)
-  overview  21:00          — ОБЗОРЪТ НА БОТА: числата за деня (готин, честен)
-  results   вечер          — резултати от горещите първенства в КАНАЛА + стая ✅
+  topnews   08:00 — 4 новини в КАНАЛА (по 1 за всеки спорт: ТТ/волей/баскет/футбол)
+  overview  21:00 — ОБЗОРЪТ НА БОТА: числата за деня (готин, честен)
+  results   23:00 — резултати от горещите първенства в КАНАЛА + стая ✅
 Данни: RSS (през news_bot) + TheSportsDB eventsday. Всичко = прогноза от статистика.
 """
 import json, os, sys, time, urllib.request, urllib.parse, html
@@ -61,31 +61,33 @@ def run_topnews(now):
         except Exception as e: print("skip", src, str(e)[:50])
     if not collected:
         print("няма новини"); return
+    import re
     titles = [c["title"] for c in collected]
     seen = load_tn()
-    # ПРИОРИТЕТ на 4-те спорта на шефа (футболът ПОСЛЕДЕН); не-4-спорт = най-накрая
-    PRIO = {"tabletennis": 0, "volleyball": 1, "basketball": 2, "football": 3}
-    def keyf(c):
-        room = nb.classify(c["title"])
-        return (PRIO.get(room, 5), -nb.score_item(c["title"], titles))
-    ranked = sorted(collected, key=keyf)
-    best = None
-    for c in ranked:
-        key = nb.h(c["title"])
-        if key in seen: continue
-        best = c; best["key"] = key; break
-    if not best:
-        print("всичко вече пратено"); return
-    evening = now.hour >= 15
-    head = "🌙 <b>ТОП НОВИНА · вечерно издание</b>" if evening else "☀️ <b>ТОП НОВИНА НА ДЕНЯ</b>"
-    body = f"{head} · {date_bg(now)}\n\n🔥 {esc(best['title'])}"
-    import re
-    if re.match(r"https?://\S+$", best["link"]):
-        body += f"\n\n<a href=\"{esc(best['link'])}\">Прочети в {esc(best['source'])} →</a>"
-    body += "\n\n🟢 GREEN PICKS · следим за теб цял ден"
-    if post_channel(body, preview=True):
-        seen.add(best["key"]); save_tn(seen)
-        print(f"Топ новина ({'вечер' if evening else 'сутрин'}): пратена.")
+    # 4 НОВИНИ В КАНАЛА — по ЕДНА за всеки спорт (ред на шефа: ТТ, волей, баскет, футбол)
+    SPORTS_ORDER = [("tabletennis", "🏓 ТЕНИС НА МАСА"), ("volleyball", "🏐 ВОЛЕЙБОЛ"),
+                    ("basketball", "🏀 БАСКЕТБОЛ"), ("football", "⚽ ФУТБОЛ")]
+    sent = 0
+    for room_key, label in SPORTS_ORDER:
+        cands = [c for c in collected if nb.classify(c["title"]) == room_key]
+        cands.sort(key=lambda c: -nb.score_item(c["title"], titles))
+        for c in cands:
+            key = nb.h(c["title"])
+            if key in seen:
+                continue
+            if room_key == "football":
+                if nb.score_item(c["title"], titles) < 4 and not re.search(nb.TOP_FOOTBALL, c["title"].lower()):
+                    continue
+            body = f"{label} · <b>Новина на деня</b> · {date_bg(now)}\n\n🔥 {esc(c['title'])}"
+            if re.match(r"https?://\S+$", c["link"]):
+                body += f"\n\n<a href=\"{esc(c['link'])}\">Прочети в {esc(c['source'])} →</a>"
+            body += "\n\n🟢 GREEN PICKS · прогноза от статистика"
+            if post_channel(body, preview=True):
+                seen.add(key); sent += 1
+                time.sleep(1.2)
+            break
+    save_tn(seen)
+    print(f"Спорт-новини в канала: {sent} (по 1 на спорт).")
 
 def run_results(now):
     d = now.strftime("%Y-%m-%d")
