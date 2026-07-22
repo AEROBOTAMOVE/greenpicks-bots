@@ -63,7 +63,12 @@ def run_topnews(now):
         print("няма новини"); return
     titles = [c["title"] for c in collected]
     seen = load_tn()
-    ranked = sorted(collected, key=lambda c: -nb.score_item(c["title"], titles))
+    # ПРИОРИТЕТ на 4-те спорта на шефа (футболът ПОСЛЕДЕН); не-4-спорт = най-накрая
+    PRIO = {"tabletennis": 0, "volleyball": 1, "basketball": 2, "football": 3}
+    def keyf(c):
+        room = nb.classify(c["title"])
+        return (PRIO.get(room, 5), -nb.score_item(c["title"], titles))
+    ranked = sorted(collected, key=keyf)
     best = None
     for c in ranked:
         key = nb.h(c["title"])
