@@ -1,0 +1,26 @@
+name: hub (витрина канал+стаи)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'hub / rooms / all'
+        default: 'all'
+        type: choice
+        options: [hub, rooms, all]
+permissions:
+  contents: read
+jobs:
+  hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: HUB setup
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
+          HUB_MODE: ${{ github.event.inputs.mode }}
+        run: python setup_hub.py
