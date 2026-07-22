@@ -1,21 +1,20 @@
 name: daily-rhythm (дневен ритъм)
 on:
   schedule:
-    - cron: '0 5 * * *'     # 08:00 BG — Добро утро
-    - cron: '15 5 * * *'    # 08:15 BG — Обзор на деня
-    - cron: '0 11 * * *'    # 14:00 BG — Какво следва
-    - cron: '0 19 * * *'    # 22:00 BG — Нощна смяна
-    - cron: '30 19 * * *'   # 22:30 BG — Чао до утре
+    - cron: '0 5 * * *'     # 08:00 BG — топ новина
+    - cron: '0 17 * * *'    # 20:00 BG — втора топ новина
+    - cron: '0 18 * * *'    # 21:00 BG — обзор на бота
+    - cron: '0 20 * * *'    # 23:00 BG — резултати
   workflow_dispatch:
     inputs:
       mode:
-        description: 'режим (за ръчно пускане)'
+        description: 'topnews / overview / results'
         default: 'overview'
         type: choice
-        options: [morning, overview, midday, night, goodnight]
+        options: [topnews, overview, results]
 
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: daily-bot
   cancel-in-progress: false
@@ -28,20 +27,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Шрифтове + Pillow
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-liberation
-          pip install --quiet pillow
       - name: Определи режима
         id: m
         run: |
           case "${{ github.event.schedule }}" in
-            "0 5 * * *")   echo "mode=morning"   >> $GITHUB_OUTPUT ;;
-            "15 5 * * *")  echo "mode=overview"  >> $GITHUB_OUTPUT ;;
-            "0 11 * * *")  echo "mode=midday"    >> $GITHUB_OUTPUT ;;
-            "0 19 * * *")  echo "mode=night"     >> $GITHUB_OUTPUT ;;
-            "30 19 * * *") echo "mode=goodnight" >> $GITHUB_OUTPUT ;;
-            *)             echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT ;;
+            "0 5 * * *")  echo "mode=topnews"  >> $GITHUB_OUTPUT ;;
+            "0 17 * * *") echo "mode=topnews"  >> $GITHUB_OUTPUT ;;
+            "0 18 * * *") echo "mode=overview" >> $GITHUB_OUTPUT ;;
+            "0 20 * * *") echo "mode=results"  >> $GITHUB_OUTPUT ;;
+            *)            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT ;;
           esac
       - name: Пусни дневния бот
         env:
@@ -50,3 +44,14 @@ jobs:
           CHANNEL_ID: ${{ vars.CHANNEL_ID }}
           DAILY_MODE: ${{ steps.m.outputs.mode }}
         run: python daily_bot.py
+      - name: Запази topnews state
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add topnews_state.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            for i in 1 2 3 4 5; do
+              git commit -m "topnews state" && git pull --rebase && git push && break
+              sleep $((RANDOM % 5 + 2))
+            done
+          fi
