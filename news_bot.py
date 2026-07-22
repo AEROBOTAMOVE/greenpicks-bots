@@ -24,10 +24,6 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")            # id на групата (-100...)
 NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID")  # id на темата 📰 (число)
 
-# 🎯 УМНИЯТ РАЗПРЕДЕЛИТЕЛ: всяка новина отива в СВОЯТА стая.
-# РЕДЪТ Е ВАЖЕН: специфичните спортове ПРЕДИ футбола (волейболният ЦСКА
-# съдържа „волейбол" -> хваща се преди клубното име във football-шаблона).
-# \b = граница на дума (без 'nba' в 'fanbase').
 SPORT_ROOMS = {
     "tabletennis": {"thread": os.environ.get("TT_THREAD_ID", "7"),        "title": "🏓 ТЕНИС НА МАСА — новини",
                     "pat": r"тенис на маса|table tennis|ping pong|пинг понг"},
@@ -39,8 +35,6 @@ SPORT_ROOMS = {
                     "pat": r"футбол|цска|левски|лудогорец|champions league|premier league|la liga|serie a|bundesliga|\buefa\b|\bfifa\b|world cup|голмайстор|дузп|football|soccer|мондиал"},
 }
 
-# ⚽ ФУТБОЛ = САМО НАЙ-ВИСШИТЕ ЛИГИ И ГОЛЕМИТЕ ИСТОРИИ (заповед на шефа).
-# Дребни/местни лиги НЕ минават — другите спортове са по-важни.
 TOP_FOOTBALL = r"champions league|premier league|la liga|serie a|bundesliga|ligue 1|europa league|световно|европейско|мондиал|national team|реал мадрид|барселона|байерн|ливърпул|манчестър|арсенал|челси|тотнъм|псж|ювентус|интер|милан|атлетико|\bfifa\b|\buefa\b"
 
 def classify(title):
@@ -48,14 +42,13 @@ def classify(title):
     for key, room in SPORT_ROOMS.items():
         if re.search(room["pat"], t):
             return key
-    return None   # обща новина -> стая 📰
+    return None
 
 STATE_FILE = "sent_news.json"
-MAX_ITEMS = 5          # максимум новини на пускане
-MIN_SCORE = 3          # под този скор не пращаме
-STATE_KEEP = 400       # колко хеша помним
+MAX_ITEMS = 5
+MIN_SCORE = 3
+STATE_KEEP = 400
 
-# RSS източници (проверени формати; ако някой умре, ботът просто го прескача)
 FEEDS = [
     ("Gong",      "https://gong.bg/rss"),
     ("Sportal",   "https://www.sportal.bg/rss"),
@@ -64,7 +57,6 @@ FEEDS = [
     ("ESPN",      "https://www.espn.com/espn/rss/news"),
 ]
 
-# Ключови думи -> точки (важност). Regex с \b = начало на дума (без "гол" в "голям").
 KEYWORDS = {
     5: [r"\bтрансфер", r"\btransfer", r"\bуволн", r"\bsacked", r"\bfired", r"\bоставк", r"\bпочина", r"\bdied", r"\bскандал", r"\bscandal", r"\bдисквалиф", r"\bbanned"],
     4: [r"\bконтузи", r"\binjur", r"\bаут за", r"\bruled out", r"\bфинал", r"\bfinal", r"\bтитла", r"\btitle", r"\bшампион", r"\bchampion"],
@@ -93,7 +85,6 @@ def parse_rss(source, raw):
         link = (item.findtext("link") or "").strip()
         if title and link:
             items.append({"source": source, "title": title, "link": link})
-    # Atom fallback
     if not items:
         ns = "{http://www.w3.org/2005/Atom}"
         for e in root.iter(ns + "entry"):
@@ -111,7 +102,6 @@ def score_item(title, all_titles):
     for pts, words in KEYWORDS.items():
         if any(re.search(w, t) for w in words):
             score = max(score, pts)
-    # буст: подобно заглавие в друг източник (обща дума 6+ букви)
     big_words = {w for w in re.findall(r"[а-яa-z]{6,}", t)}
     for other in all_titles:
         if other is title:
@@ -135,14 +125,13 @@ def h(s):
     return hashlib.sha1(s.encode("utf-8")).hexdigest()[:16]
 
 
-def tg_send(text, thread_id=None):
-    """Праща карта. Връща True/False — една счупена стая НЕ спира другите."""
+def tg_send(text, thread_id=None, preview=False):
     api = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML",
-               "disable_web_page_preview": True}
+               "disable_web_page_preview": (not preview)}
     try:
         tid = str(thread_id if thread_id is not None else (NEWS_THREAD_ID or "")).strip()
-        if tid.isdigit() and int(tid) > 1:   # General (1) НЕ се подава като thread
+        if tid.isdigit() and int(tid) > 1:
             payload["message_thread_id"] = int(tid)
         elif tid:
             print(f"WARN: невалиден thread id {tid!r} — пращам в General.")
@@ -191,7 +180,6 @@ def main():
             print(f"skip {source}: {e}")
 
     all_titles = [c["title"] for c in collected]
-    # мост към Анализатора: последните заглавия (за 📰 флаг при мачовете)
     with open("last_news_titles.json", "w", encoding="utf-8") as f:
         json.dump(all_titles[:120], f, ensure_ascii=False)
     fresh = []
@@ -202,11 +190,9 @@ def main():
         c["score"] = score_item(c["title"], all_titles)
         c["key"] = key
         c["room"] = classify(c["title"])
-        # ⚽ филтър: футбол минава САМО ако е топ-лига/голяма история (или мега-новина score>=4)
         if c["room"] == "football":
             if c["score"] < 4 and not re.search(TOP_FOOTBALL, c["title"].lower()):
-                continue   # дребен футбол = шум, режем го
-        # спортна стая = пускаме и по-леки новини (нишата е ценна); обща = само важното
+                continue
         need = 1 if c["room"] else MIN_SCORE
         if c["score"] >= need:
             fresh.append(c)
@@ -225,37 +211,34 @@ def main():
         return out
 
     now = datetime.now(SOFIA).strftime("%H:%M")
-    medals = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣"]
     sent_now = []
 
-    def make_card(title_line, items):
-        lines = [f"<b>{html.escape(title_line)}</b> · {now}", ""]
-        for i, c in enumerate(items):
-            fire = "🔥" if c["score"] >= 5 else ("⚡" if c["score"] >= 4 else sport_emoji(c["title"]))
-            safe_t = html.escape(c["title"])
-            if re.match(r"https?://\S+$", c["link"]):
-                safe_l = html.escape(c["link"], quote=True)
-                lines.append(f'{medals[i]} {fire} <a href="{safe_l}">{safe_t}</a> <i>({html.escape(c["source"])})</i>')
-            else:   # гнил линк -> заглавие без линк, картата ОЦЕЛЯВА
-                lines.append(f'{medals[i]} {fire} {safe_t} <i>({html.escape(c["source"])})</i>')
-        lines += ["", "🦖 GREEN PICKS"]
-        return "\n".join(lines)
+    def make_single(c, label):
+        fire = "🔥" if c["score"] >= 5 else ("⚡" if c["score"] >= 4 else sport_emoji(c["title"]))
+        safe_t = html.escape(c["title"])
+        head = f'{fire} <b>{html.escape(label)}</b> · {now}\n\n{safe_t}'
+        if re.match(r"https?://\S+$", c["link"]):
+            safe_l = html.escape(c["link"], quote=True)
+            head += f'\n\n<a href="{safe_l}">Прочети в {html.escape(c["source"])} →</a>'
+        else:
+            head += f'\n\n<i>{html.escape(c["source"])}</i>'
+        head += "\n\n🦖 GREEN PICKS"
+        return head
 
-    # 1) Спортните стаи — всяка си получава СВОИТЕ новини
     for room_key, room in SPORT_ROOMS.items():
-        mine = dedup([c for c in fresh if c["room"] == room_key], 3)
-        if not mine:
-            continue
-        if tg_send(make_card(room["title"], mine), thread_id=room["thread"]):
-            sent_now += mine
-            print(f"{room['title']}: {len(mine)} новини.")
+        mine = dedup([c for c in fresh if c["room"] == room_key], 2)
+        for c in mine:
+            if tg_send(make_single(c, room["title"]), thread_id=room["thread"], preview=True):
+                sent_now.append(c)
+        if mine:
+            print(f"{room['title']}: {len(mine)} новини (с превю).")
 
-    # 2) Общата стая 📰 — топ новините без спортна стая
-    general = dedup([c for c in fresh if c["room"] is None], MAX_ITEMS)
+    general = dedup([c for c in fresh if c["room"] is None], 3)
+    for c in general:
+        if tg_send(make_single(c, "📰 НОВИНА"), preview=True):
+            sent_now.append(c)
     if general:
-        if tg_send(make_card("📰 ТОП НОВИНИ", general)):
-            sent_now += general
-            print(f"📰 Новини: {len(general)}.")
+        print(f"📰 Новини: {len(general)} (с превю).")
 
     if not sent_now:
         print("Нищо важно — мълчим.")
