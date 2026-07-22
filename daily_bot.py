@@ -1,46 +1,32 @@
 # -*- coding: utf-8 -*-
 """
-GREEN PICKS — ДНЕВНИЯТ РИТЪМ 🦖 (напълно автоматичен, GitHub Actions)
-Режими (DAILY_MODE): morning · overview · midday · night · goodnight
-  08:00 morning   — Добро утро от GREEN PICKS + колко мача днес
-  08:15 overview  — ОБЗОР НА ДЕНЯ: акценти по спортове + топ новини
-  14:00 midday    — КАКВО СЛЕДВА: вечерните мачове
-  22:00 night     — НОЩНА СМЯНА: баскетбол/късни мачове
-  22:30 goodnight — Чао до утре + какво предстои утре
-Данни: TheSportsDB eventsday (всички спортове) + новини от last_news_titles.json.
-Постове в КАНАЛА (лицето на GREEN PICKS).
+GREEN PICKS — ДНЕВНИЯТ РИТЪМ 🦖 (чист, автоматичен, GitHub Actions)
+Режими (DAILY_MODE):
+  topnews   08:00 и 20:00 — ЕДНА най-важна новина на деня в КАНАЛА (различна всеки път)
+  overview  21:00          — ОБЗОРЪТ НА БОТА: числата за деня (готин, честен)
+  results   вечер          — резултати от горещите първенства в КАНАЛА + стая ✅
+Данни: RSS (през news_bot) + TheSportsDB eventsday. Всичко = прогноза от статистика.
 """
-import json, os, sys, time, urllib.request, urllib.parse, urllib.error
-from datetime import datetime, timedelta, timezone
+import json, os, sys, time, urllib.request, urllib.parse, html
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import poster
+import news_bot as nb
 
 SOFIA = ZoneInfo("Europe/Sofia")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "-1004403334702")
 CHAT_ID = os.environ.get("CHAT_ID", "")
+RESULTS_THREAD = os.environ.get("RESULTS_THREAD_ID", "9")
 MODE = (os.environ.get("DAILY_MODE") or (sys.argv[1] if len(sys.argv) > 1 else "overview")).strip()
 SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY") or "123"
 API = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_KEY}"
+TN_STATE = "topnews_state.json"
 
-SPORTS = [
-    ("Soccer", "⚽", "Футбол"), ("Basketball", "🏀", "Баскетбол"),
-    ("Tennis", "🎾", "Тенис"), ("Volleyball", "🏐", "Волейбол"),
-    ("Table Tennis", "🏓", "Тенис на маса"), ("Ice Hockey", "🏒", "Хокей"),
-    ("Handball", "🤾", "Хандбал"), ("Baseball", "⚾", "Бейзбол"),
-    ("American Football", "🏈", "Ам. футбол"), ("Rugby", "🏉", "Ръгби"),
-    ("Fighting", "🥊", "Бойни спортове"), ("Motorsport", "🏎️", "Мотоспорт"),
-    ("Cricket", "🏏", "Крикет"), ("Darts", "🎯", "Дартс"),
-]
-import re
-BIG = ["Champions League","Premier League","La Liga","Serie A","Bundesliga","Ligue 1","Europa League",
-       "Euroleague","Nations League","World Cup","Grand Slam","Wimbledon","Roland Garros",
-       "US Open","Australian Open","Stanley Cup","Super Bowl","UEFA"]
-BIG_WORD = re.compile(r"\b(NBA|WNBA|NHL|MLB|NFL|ATP|WTA|VNL|WTT|FIFA)\b")
-def is_big(e):
-    lg = (e.get("strLeague") or "")
-    return any(b.lower() in lg.lower() for b in BIG) or bool(BIG_WORD.search(lg))
+BIG_LEAGUES = ["Premier League","La Liga","Serie A","Bundesliga","Ligue 1","Champions League",
+               "Europa League","NBA","Euroleague","Nations League","WTA","ATP"]
 
+def esc(x): return html.escape(str(x or ""))
 
 def fetch_json(url, timeout=20):
     try:
@@ -50,163 +36,119 @@ def fetch_json(url, timeout=20):
     except Exception as e:
         print("fetch:", str(e)[:80]); return {}
 
+def post_channel(text, preview=False):
+    return poster.send_message(CHANNEL_ID, text, preview=preview)
 
-def events_for(date_str, sports=None):
-    out = {}
-    for skey, emo, bg in (sports or SPORTS):
-        data = fetch_json(f"{API}/eventsday.php?d={date_str}&s={urllib.parse.quote(skey)}")
-        evs = data.get("events") or []
-        evs = [e for e in evs if (e.get("strStatus") or "").lower() not in ("postponed","cancelled","canceled")]
-        if evs:
-            out[skey] = evs
-        time.sleep(2.1)
-    return out
+def sofia_now():
+    return datetime.now(SOFIA)
 
+def date_bg(now):
+    wd = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][now.weekday()]
+    return f"{wd}, {now.day}.{now.month:02d}"
 
-def ev_time(e):
-    t = (e.get("strTime") or "")[:5]; d = (e.get("dateEvent") or "")[:10]
-    if not t or t == "00:00":
-        return None
-    try:
-        return datetime.fromisoformat(f"{d}T{t}:00+00:00").astimezone(SOFIA)
-    except ValueError:
-        return None
+def load_tn():
+    try: return set(json.load(open(TN_STATE, encoding="utf-8-sig")))
+    except Exception: return set()
 
+def save_tn(keys):
+    with open(TN_STATE, "w", encoding="utf-8") as f:
+        json.dump(list(keys)[:40], f, ensure_ascii=False)
 
-def esc(x):
-    import html
-    return html.escape(str(x or ""))
+def run_topnews(now):
+    collected = []
+    for src, url in nb.FEEDS:
+        try: collected += nb.parse_rss(src, nb.fetch(url))[:25]
+        except Exception as e: print("skip", src, str(e)[:50])
+    if not collected:
+        print("няма новини"); return
+    titles = [c["title"] for c in collected]
+    seen = load_tn()
+    ranked = sorted(collected, key=lambda c: -nb.score_item(c["title"], titles))
+    best = None
+    for c in ranked:
+        key = nb.h(c["title"])
+        if key in seen: continue
+        best = c; best["key"] = key; break
+    if not best:
+        print("всичко вече пратено"); return
+    evening = now.hour >= 15
+    head = "🌙 <b>ТОП НОВИНА · вечерно издание</b>" if evening else "☀️ <b>ТОП НОВИНА НА ДЕНЯ</b>"
+    body = f"{head} · {date_bg(now)}\n\n🔥 {esc(best['title'])}"
+    import re
+    if re.match(r"https?://\S+$", best["link"]):
+        body += f"\n\n<a href=\"{esc(best['link'])}\">Прочети в {esc(best['source'])} →</a>"
+    body += "\n\n🟢 GREEN PICKS · следим за теб цял ден"
+    if post_channel(body, preview=True):
+        seen.add(best["key"]); save_tn(seen)
+        print(f"Топ новина ({'вечер' if evening else 'сутрин'}): пратена.")
 
-
-def highlights(evmap, when_filter=None, limit=8):
+def run_results(now):
+    d = now.strftime("%Y-%m-%d")
     rows = []
-    for skey, evs in evmap.items():
-        emo = next((e for s,e,b in SPORTS if s == skey), "•")
+    for sport in ["Soccer", "Basketball"]:
+        data = fetch_json(f"{API}/eventsday.php?d={d}&s={urllib.parse.quote(sport)}")
+        for e in (data.get("events") or []):
+            lg = e.get("strLeague", "")
+            if not any(b.lower() in lg.lower() for b in BIG_LEAGUES): continue
+            hs, as_ = e.get("intHomeScore"), e.get("intAwayScore")
+            if hs in (None, "") or as_ in (None, ""): continue
+            emo = "⚽" if sport == "Soccer" else "🏀"
+            rows.append(f"{emo} {esc(e.get('strHomeTeam'))} {hs}–{as_} {esc(e.get('strAwayTeam'))} <i>· {esc(lg)}</i>")
+        time.sleep(2.1)
+    if not rows:
+        print("няма резултати от топ първенства"); return
+    body = f"✅ <b>РЕЗУЛТАТИ · горещите първенства</b> · {date_bg(now)}\n\n" + "\n".join(rows[:12]) + "\n\n🟢 GREEN PICKS"
+    post_channel(body)
+    if CHAT_ID:
+        poster.send_message(CHAT_ID, body, thread_id=RESULTS_THREAD)
+    print(f"Резултати: {len(rows)} мача.")
+
+def run_overview(now):
+    today = now.strftime("%Y-%m-%d")
+    tmr = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+    sports = [("Soccer","⚽"),("Basketball","🏀"),("Tennis","🎾"),("Volleyball","🏐"),
+              ("Ice Hockey","🏒"),("Table Tennis","🏓"),("Handball","🤾"),("Baseball","⚾")]
+    total = 0; nsports = 0; hot = None
+    for skey, emo in sports:
+        data = fetch_json(f"{API}/eventsday.php?d={today}&s={urllib.parse.quote(skey)}")
+        evs = data.get("events") or []
+        if evs: nsports += 1
+        total += len(evs)
         for e in evs:
-            t = ev_time(e)
-            if when_filter and not when_filter(t):
-                continue
-            h, a = e.get("strHomeTeam"), e.get("strAwayTeam")
-            name = f"{esc(h)} — {esc(a)}" if h and a else esc(e.get("strEvent", "?"))
-            lg = esc(e.get("strLeague", ""))
-            rows.append((is_big(e), t or datetime.max.replace(tzinfo=SOFIA), emo, name, lg))
-    rows.sort(key=lambda r: (not r[0], r[1]))
-    lines = []
-    for big, t, emo, name, lg in rows[:limit]:
-        ts = t.strftime("%H:%M") if t != datetime.max.replace(tzinfo=SOFIA) else "—"
-        star = "🔥 " if big else ""
-        lines.append(f"{emo} {star}<b>{name}</b> · {ts}" + (f" · {lg}" if lg else ""))
-    return lines
-
-
-def load_news(n=5):
-    try:
-        titles = json.load(open("last_news_titles.json", encoding="utf-8"))
-        return [esc(t) for t in titles[:n]]
-    except Exception:
-        return []
-
-
-def counts(evmap):
-    total = sum(len(v) for v in evmap.values())
-    per = sorted(((skey, len(v)) for skey, v in evmap.items()), key=lambda x: -x[1])
-    return total, per
-
-
-def sport_bg(skey):
-    return next((b for s,e,b in SPORTS if s == skey), skey)
-def sport_emo(skey):
-    return next((e for s,e,b in SPORTS if s == skey), "•")
-
-
-def post(text, image=None):
-    if image:
-        return poster.send_photo(CHANNEL_ID, image, text)
-    return poster.send_message(CHANNEL_ID, text)
-
+            lg = e.get("strLeague", "")
+            hs = e.get("intHomeScore")
+            if hs not in (None, "") and any(b.lower() in lg.lower() for b in BIG_LEAGUES) and not hot:
+                hot = f"{emo} {esc(e.get('strHomeTeam'))} {hs}–{e.get('intAwayScore')} {esc(e.get('strAwayTeam'))}"
+        time.sleep(2.1)
+    tomorrow_big = None
+    for skey, emo in [("Soccer","⚽"),("Basketball","🏀")]:
+        data = fetch_json(f"{API}/eventsday.php?d={tmr}&s={urllib.parse.quote(skey)}")
+        for e in (data.get("events") or []):
+            if any(b.lower() in (e.get("strLeague") or "").lower() for b in BIG_LEAGUES):
+                t = (e.get("strTime") or "")[:5]
+                tomorrow_big = f"{emo} {esc(e.get('strHomeTeam'))} — {esc(e.get('strAwayTeam'))}" + (f" ({t})" if t and t!='00:00' else "")
+                break
+        if tomorrow_big: break
+        time.sleep(2.1)
+    parts = [f"📊 <b>ОБЗОРЪТ НА БОТА</b> · {date_bg(now)}\n",
+             f"Днес следихме <b>{total}</b> мача в <b>{nsports}</b> спорта. 📡"]
+    if hot: parts.append(f"✅ Горещ резултат: {hot}")
+    if tomorrow_big: parts.append(f"🔜 Утре голямо: {tomorrow_big}")
+    parts.append("\nЧестно за деня: не гоним бройка — стойност само там, където числата я дадоха.")
+    parts.append("⚠️ 18+ · прогноза от статистика, не гаранция")
+    parts.append("\n😴 Лека вечер. Утре в 08:00 пак сме тук. 🟢 GREEN PICKS")
+    post_channel("\n".join(parts))
+    print("Обзор: пратен.")
 
 def main():
     if not BOT_TOKEN:
         print("Missing BOT_TOKEN"); sys.exit(1)
-    os.makedirs("cards_samples", exist_ok=True)
-    now = datetime.now(SOFIA)
-    today = now.strftime("%Y-%m-%d")
-    wd = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][now.weekday()]
-    date_bg = f"{wd}, {now.day}.{now.month:02d}"
-
-    if MODE == "morning":
-        ev = events_for(today)
-        total, per = counts(ev)
-        top3 = " · ".join(f"{sport_emo(s)}{n}" for s, n in per[:4]) if per else "—"
-        txt = (f"☀️ <b>Добро утро от GREEN PICKS!</b> 🦖\n"
-               f"<i>{date_bg}</i>\n\n"
-               f"Днес на масата: <b>{total}</b> мача в <b>{len(per)}</b> спорта.\n"
-               f"{top3}\n\n"
-               f"Кафето е горещо, следим пазара за теб. 📊\n"
-               f"В 08:15 — обзор на деня.")
-        try:
-            import cards
-            img = cards.morning_card(date_bg, total, len(per), "cards_samples/_morning.png")
-            post(txt, img)
-        except Exception as e:
-            print("morning card:", e); post(txt)
-
-    elif MODE == "overview":
-        ev = events_for(today)
-        hl = highlights(ev, limit=8)
-        news = load_news(4)
-        parts = [f"📋 <b>ОБЗОР НА ДЕНЯ</b> · {date_bg}\n"]
-        if hl:
-            parts.append("<b>🎯 Мачове за гледане:</b>")
-            parts += hl
-        if news:
-            parts.append("\n<b>📰 Топ новини:</b>")
-            parts += [f"• {t}" for t in news]
-        parts.append("\n🦖 GREEN PICKS · следим целия ден")
-        post("\n".join(parts))
-
-    elif MODE == "midday":
-        ev = events_for(today)
-        def evening(t): return t is None or t.hour >= 17
-        hl = highlights(ev, when_filter=evening, limit=8)
-        parts = [f"⏭️ <b>КАКВО СЛЕДВА</b> · тази вечер\n"]
-        if hl:
-            parts += hl
-        else:
-            parts.append("Спокойна вечер — малко мачове.")
-        parts.append("\n🦖 GREEN PICKS")
-        post("\n".join(parts))
-
-    elif MODE == "night":
-        ev = events_for(today, sports=[("Basketball","🏀","Баскетбол"),("Ice Hockey","🏒","Хокей"),
-                                        ("American Football","🏈","Ам. футбол"),("Baseball","⚾","Бейзбол")])
-        def late(t): return t is None or t.hour >= 21 or t.hour <= 6
-        hl = highlights(ev, when_filter=late, limit=7)
-        parts = [f"🌙 <b>НОЩНА СМЯНА</b> · отвъд океана\n"]
-        if hl:
-            parts.append("Докато BG спи, топката се върти:")
-            parts += hl
-        else:
-            parts.append("Тиха нощ — без големи нощни мачове.")
-        parts.append("\n🦖 GREEN PICKS")
-        post("\n".join(parts))
-
-    elif MODE == "goodnight":
-        tmr = (now + timedelta(days=1)).strftime("%Y-%m-%d")
-        ev = events_for(tmr, sports=[s for s in SPORTS if s[0] in ("Soccer","Basketball","Tennis","Volleyball")])
-        hl = highlights(ev, limit=4)
-        parts = [f"🌙 <b>Чао до утре!</b> 🦖\n",
-                 "Днешните резултати са в стаите. Утре пак сме на линия.\n"]
-        if hl:
-            parts.append("<b>Утре ни очаква:</b>")
-            parts += hl
-        parts.append("\nЛека нощ. 💚 GREEN PICKS")
-        post("\n".join(parts))
-
-    else:
-        print("Непознат режим:", MODE); sys.exit(1)
-    print(f"Режим {MODE} — пратено.")
-
+    now = sofia_now()
+    if MODE == "topnews": run_topnews(now)
+    elif MODE == "results": run_results(now)
+    elif MODE == "overview": run_overview(now)
+    else: print("Непознат режим:", MODE); sys.exit(1)
+    print(f"Режим {MODE} — край.")
 
 if __name__ == "__main__":
     main()
