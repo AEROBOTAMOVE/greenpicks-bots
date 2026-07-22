@@ -73,9 +73,13 @@ def main():
         else:
             print("== GROUP wipe (keep topic containers) ==")
             if wipe(H.CHAT_ID, KEEP_IDS):
+                # role text in every sport/section room ...
                 for thread, text in H.ROOM_PINS.items():
                     H.send_pin(H.CHAT_ID, text, thread)
-                    time.sleep(1.1)
+                    time.sleep(2.5)   # spacing avoids the pinChatMessage 429 flood
+                # ... plus the support text in the help room (thread 11), which
+                # setup_hub keeps out of ROOM_PINS and posts separately.
+                H.send_pin(H.CHAT_ID, H.SUPPORT_POST, 11)
                 print("  room pins done")
             else:
                 print("  GROUP pins skipped (wipe aborted)")
