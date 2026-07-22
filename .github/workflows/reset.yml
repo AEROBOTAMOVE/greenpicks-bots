@@ -1,0 +1,28 @@
+name: reset (clean slate)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'channel / group / all'
+        default: 'all'
+        type: choice
+        options: [all, channel, group]
+
+permissions:
+  contents: read
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Clean slate
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
+          RESET_MODE: ${{ github.event.inputs.mode }}
+        run: python reset.py
