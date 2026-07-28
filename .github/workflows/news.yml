@@ -1,10 +1,17 @@
 name: news-bot
+
 on:
   schedule:
-    - cron: '0 5 * * *'     # 08:00 BG (лято UTC+3)
-    - cron: '0 12 * * *'    # 15:00 BG
-    - cron: '0 19 * * *'    # 22:00 BG
-  workflow_dispatch: {}
+    # GitHub cron е ВИНАГИ UTC. Долу е ЛЯТНОТО време (BG = UTC+3); зимата всеки ред пада с един час български.
+    - cron: '0 5 * * *'     # 08:00 BG (лято)
+    - cron: '0 12 * * *'    # 15:00 BG (лято)
+    - cron: '0 19 * * *'    # 22:00 BG (лято)
+  workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: 'Първо пълнене: колко дни назад да се вземат новини (празно = нормален прозорец)'
+        required: false
+        default: ''
 
 concurrency:
   group: news-bot
@@ -16,22 +23,52 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Пълна история, за да може rebase-ът долу да работи спокойно.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Run news bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ vars.CHAT_ID }}
-          NEWS_THREAD_ID: ${{ vars.NEWS_THREAD_ID }}
+          # Резервните стойности НЕ са излишни: незададена променлива в GitHub
+          # идва като празен низ и празният низ бие подразбиращото се в скрипта.
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          NEWS_THREAD_ID: ${{ vars.NEWS_THREAD_ID || '26' }}
+          # Само при ръчно пускане с попълнено поле — кроновете идват празни.
+          NEWS_BACKFILL_DAYS: ${{ github.event.inputs.backfill_days }}
         run: python news_bot.py
-      - name: Save state
+      # Ботът пише ТОЧНО тези два файла (STATE_FILE/TITLES_FILE в news_bot.py):
+      # sent_news.json (памет срещу дублирани карти) и last_news_titles.json
+      # (мостът към matches_bot). Загубен push = дублирани новини на следващия рън.
+      - name: Запази news state
+        if: always()
         run: |
           git config user.name "greenpicks-bot"
           git config user.email "bot@greenpicks"
-          git add sent_news.json last_news_titles.json || true
-          git diff --cached --quiet || git commit -m "news state"
-          git pull --rebase origin main || true
-          git push || (git pull --rebase origin main && git push)
+          git add sent_news.json last_news_titles.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Състоянието е без промяна — няма какво да се връща."
+            exit 0
+          fi
+          git commit -m "news state"
+          pushed=0
+          for i in 1 2 3 4 5; do
+            if git push; then
+              pushed=1
+              break
+            fi
+            echo "Push-ът не мина (опит $i) — дърпам и опитвам пак."
+            git pull --rebase --autostash || git rebase --abort || true
+            sleep $((RANDOM % 6 + 3))
+          done
+          if [ "$pushed" != "1" ]; then
+            echo "ЧЕРВЕНО: състоянието НЕ се върна в repo-то."
+            echo "Следващото пускане ще повтори днешните новини — оправи ръчно."
+            exit 1
+          fi
+          echo "Състоянието е запазено."
