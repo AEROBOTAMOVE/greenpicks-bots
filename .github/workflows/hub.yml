@@ -1,26 +1,54 @@
-name: hub (витрина канал+стаи)
+name: hub (подреждане на канала и стаите)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Пуска setup_hub.py — той НЕ трие нищо. Само пише наново закачените постове.
+#
+#   hub    → един закачен пост в КАНАЛА: какво тече тук и накъде да върви човек
+#   rooms  → закачен пост във ВСЯКА стая (откачва стария, закача новия),
+#            включително 328 „Бойни спортове", плюс съпорт-поста в стая 11
+#   all    → и двете
+#
+# Това е инструментът за „искам всички стаи организирани". За разлика от
+# reset.yml тук нищо не се изтрива — само пиновете се пренаписват.
+#
+# ЗАЩО ИМА РЕЗЕРВНИ НОМЕРА ПО-ДОЛУ
+# Незададена променлива в GitHub идва като ПРАЗЕН НИЗ, а празният низ бие
+# подразбиращата се стойност в скрипта. Без резервата тук режимът rooms
+# минаваше мълчаливо и не подреждаше нито една стая — тихият провал е
+# по-лош от шумния.
+# ─────────────────────────────────────────────────────────────────────────────
+
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'hub / rooms / all'
-        default: 'all'
+        description: 'Какво да подредя'
+        default: 'rooms'
         type: choice
-        options: [hub, rooms, all]
+        options: [rooms, hub, all]
+
 permissions:
   contents: read
+
+concurrency:
+  group: hub-setup
+  cancel-in-progress: false
+
 jobs:
   hub:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: HUB setup
+
+      - name: Подреди
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ vars.CHAT_ID }}
-          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
           HUB_MODE: ${{ github.event.inputs.mode }}
         run: python setup_hub.py
