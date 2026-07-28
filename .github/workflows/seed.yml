@@ -1,20 +1,96 @@
-name: seed-news (еднократно зареждане на канала)
-on:
-  workflow_dispatch: {}
+name: seed (напълни стаите и канала)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# САМО НА РЪКА. Няма разписание и няма да има — това е зареждане на съдържание,
+# не дневен ритъм. Пуска се веднъж, гледа се резултатът, после се спи спокойно.
+#
+#   rooms   -> seed_rooms.py    — стаите на групата (без 4 „Фишове на деня"
+#                                 и без 26 „Новини"; те си имат стопани)
+#   channel -> channel_seed.py  — витрината, тоест самият канал
+#   both    -> първо стаите, после канала
+#
+# Съвет: първият път пусни със „сухо пускане" отметнато и виж лога.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Къде сеем: rooms / channel / both'
+        default: 'rooms'
+        type: choice
+        options: [rooms, channel, both]
+      dry_run:
+        description: 'Сухо пускане — всичко се печата в лога, нищо не заминава'
+        type: boolean
+        default: false
+      only:
+        description: 'Филтър (по избор). Стаи: 5,6,27 · Канал: имена на постове. Празно = всичко.'
+        required: false
+        default: ''
+      delay:
+        description: 'Секунди между постовете — важи САМО за стаите'
+        required: false
+        default: '2.0'
+
+# contents: write — НЕ е разкош. Паметта на канала (channel_seed_state.json) се
+# пише във файл вътре в работната папка на рънъра. Без записване обратно в
+# хранилището тя умира заедно с рънъра и всяко ново ръчно пускане праща
+# постовете ПАК. Точно от това се оплака собственикът. Стъпката „Запомни
+# паметта" долу я връща.
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: seed-bot
+  cancel-in-progress: false
 
 jobs:
-  run:
+  seed:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Seed channel with recent news
+
+      - name: Стаите на групата
+        if: ${{ github.event.inputs.target == 'rooms' || github.event.inputs.target == 'both' }}
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
-        run: python seed_news.py
+          # Резервните стойности НЕ са излишни: незададена променлива в GitHub
+          # идва като празен низ и празният низ бие подразбиращото се в скрипта.
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
+          SUPPORT: ${{ vars.SUPPORT || '@green_picks_info_bot' }}
+          GROUP_LINK: "${{ vars.GROUP_LINK || 'https://t.me/+_oYsaYaVKU80Yjc0' }}"
+          SEED_ROOMS: ${{ github.event.inputs.target == 'rooms' && github.event.inputs.only || '' }}
+          SEED_DELAY: ${{ github.event.inputs.delay }}
+          SEED_DRY: ${{ github.event.inputs.dry_run }}
+        run: python seed_rooms.py
+
+      - name: Канала (витрината)
+        if: ${{ github.event.inputs.target == 'channel' || github.event.inputs.target == 'both' }}
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
+          SUPPORT: ${{ vars.SUPPORT || '@green_picks_info_bot' }}
+          GROUP_LINK: "${{ vars.GROUP_LINK || 'https://t.me/+_oYsaYaVKU80Yjc0' }}"
+          CHANNEL_SEED_ONLY: ${{ github.event.inputs.target == 'channel' && github.event.inputs.only || '' }}
+          CHANNEL_SEED_DRY: ${{ github.event.inputs.dry_run }}
+        run: python channel_seed.py
+
+      # Паметта се връща в хранилището, иначе следващото пускане дублира всичко.
+      # always() — дори когато сеитбата е паднала по средата: постовете, които
+      # ВЕЧЕ са заминали, трябва да са записани, за да не тръгнат втори път.
+      - name: Запомни паметта (иначе следващият рън дублира)
+        if: always()
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          git add channel_seed_state.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "seed state"
+          git pull --rebase origin main || true
+          git push || (git pull --rebase origin main && git push)
