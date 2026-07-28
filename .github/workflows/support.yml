@@ -1,0 +1,133 @@
+name: support (ПОДКРЕПА 🆘)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Пощата на @greenpicks_support_bot. В закачените постове от месеци пише
+# "Пиши на екипа ... отговаряме до 24ч." — този workflow прави обещанието вярно.
+#
+# КАК: на всеки 15 минути ботът чете getUpdates, отговаря МИГНОВЕНО на честите
+# въпроси (те са в самия support_bot.py) и предава новите на екипа в стая 11.
+#
+# КЪДЕ ПИШЕ И КЪДЕ НЕ: съпортът има ЕДНА стая — SUPPORT_THREAD_ID (по подразбиране
+# 11 "Въпроси и Помощ"). Стаи 4, 5, 6, 7, 8, 26 и 27 са забранени поименно вътре
+# в support_bot.py и НЕ могат да се отключат от тук: сложиш ли 4 в променливата,
+# ботът печата WARN и пада обратно на 11. Стая 4 "Фишове на деня" е на човека.
+# Пазачът е в самата send() — преди сухия режим и преди мрежата, така че и
+# "dry" пускане не може да сложи нищо в чужда стая.
+#
+# ЧЕСТНО ЗА ЗАБАВЯНЕТО: GitHub cron НЕ е точен. Минимумът е 5 минути, но при
+# натоварване рънът закъснява 10-30 мин, а понякога се ПРОПУСКА. Затова:
+#   - честите въпроси НЕ минават през този крон — те се отговарят от бутоните
+#     и командите, които клиентът на Telegram рисува сам, мигновено;
+#   - потвърждението към човека обещава "до 24 часа", никога минути.
+# Искаш ли истински мигновено — това е webhook (Cloudflare Worker) и тогава
+# ТОЗИ workflow трябва да се изключи: setWebhook и getUpdates не съжителстват.
+#
+# ВАЖНО ЗА ДУБЛИРАНЕТО: support_bot.py потвърждава offset-а и СЪРВЪРНО в края
+# на всеки рън. Затова дори загубен git push НЕ води до втори отговор на същия
+# човек. support_state.json държи тавана "5 въпроса на човек на ден" и номерата
+# на въпросите — загуби ли се, губим само броячите, не и дисциплината.
+#
+# ЗА 60-те ДНИ: GitHub спира разписанията след 60 дни без активност в хранилището.
+# Постоянните комити на паметта го държат будно, но ако Actions някога млъкнат,
+# опашката на Telegram пази въпросите само 24 часа — след това изчезват безследно.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'      # на всеки 15 мин (реално: когато GitHub благоволи)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'poll = чети пощата · setup = ЕДНОКРАТНО описание и меню · dry = само печата · selftest = само проверки'
+        type: choice
+        default: 'poll'
+        options: [poll, setup, dry, selftest]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: support-bot
+  cancel-in-progress: false     # никога не убивай рън по средата на отговор
+
+jobs:
+  support:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Определи режима
+        id: m
+        run: echo "mode=${{ github.event.inputs.mode || 'poll' }}" >> $GITHUB_OUTPUT
+
+      # Портиерът. Ако пазачът на стаите, разпознаването на въпроси, отказът за
+      # залози или екранирането на HTML са счупени, спираме ТУК — по-добре
+      # мълчание, отколкото бот, който пише в чужда стая или отговаря грешно
+      # на живи хора. Самопроверката хвърля всяка от забранените стаи 4, 5, 6,
+      # 7, 8, 26 и 27 срещу изхода и мокро, и сухо.
+      - name: Самопроверка на съпорта
+        run: python support_bot.py selftest
+
+      # ЕДНОКРАТНО, на ръка. Слага описанието, което човекът чете ПРЕДИ да
+      # натисне START, списъка с команди и бутона "Помощ" до полето за писане.
+      # Всичко това го рисува клиентът на Telegram — работи и когато ботът спи.
+      - name: Еднократна настройка на бота
+        if: ${{ steps.m.outputs.mode == 'setup' }}
+        env:
+          SUPPORT_BOT_TOKEN: ${{ secrets.SUPPORT_BOT_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          SUPPORT_FAQ_URL: ${{ vars.SUPPORT_FAQ_URL }}
+        run: python support_bot.py setup
+
+      - name: Прочети пощата
+        if: ${{ steps.m.outputs.mode != 'setup' && steps.m.outputs.mode != 'selftest' }}
+        env:
+          # ЗАДЪЛЖИТЕЛНО ОТДЕЛЕН токен от BOT_TOKEN. Ботът сам спира, ако са
+          # един и същ: два полъра на един токен трият чужди ъпдейти безшумно.
+          SUPPORT_BOT_TOKEN: ${{ secrets.SUPPORT_BOT_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          # Резервните стойности НЕ са излишни: незададена променлива в GitHub
+          # идва като празен низ, а празният низ бие подразбиращото се в скрипта.
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          # Стаята на съпорта. Валидира се В СКРИПТА срещу белия списък: забранена
+          # или безсмислена стойност пада на 11 с WARN, никога не отваря стая 4.
+          # HELP_THREAD_ID е старото име и още работи, ако някъде е останало.
+          SUPPORT_THREAD_ID: ${{ vars.SUPPORT_THREAD_ID || '11' }}
+          HELP_THREAD_ID: ${{ vars.HELP_THREAD_ID || '11' }}
+          # По избор: лична админ-група. Зададена ли е, въпросите отиват ТАМ,
+          # а не в публичната стая 11 — по-добре за личните въпроси.
+          ADMIN_CHAT_ID: ${{ vars.ADMIN_CHAT_ID }}
+          # Числовите id-та, на които е позволено да отговарят. БЕЗ тях релето
+          # е изключено — това е нарочно, за да не отговаря случаен човек от името на екипа.
+          SUPPORT_ADMIN_IDS: ${{ vars.SUPPORT_ADMIN_IDS }}
+          SUPPORT: ${{ vars.SUPPORT || '@greenpicks_support_bot' }}
+          SUPPORT_FAQ_URL: ${{ vars.SUPPORT_FAQ_URL }}
+          SUPPORT_MAX_FORWARDS: ${{ vars.SUPPORT_MAX_FORWARDS }}
+          SUPPORT_MAX_PER_USER: ${{ vars.SUPPORT_MAX_PER_USER }}
+          SUPPORT_DRY_RUN: ${{ steps.m.outputs.mode == 'dry' && '1' || '0' }}
+        run: python support_bot.py
+
+      # Паметта се връща в хранилището. При "dry" няма какво да се пази.
+      - name: Запази паметта на съпорта
+        if: ${{ always() && steps.m.outputs.mode == 'poll' }}
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          git add support_state.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "support state"
+            ok=0
+            for i in 1 2 3 4 5; do
+              git pull --rebase && git push && ok=1 && break
+              sleep $((RANDOM % 7 + 3))
+            done
+            if [ "$ok" != "1" ]; then
+              echo "::warning::Паметта на съпорта НЕ се запази. Отговорите пак няма да се дублират (offset-ът се потвърждава и от Telegram), но дневните броячи се нулират."
+            fi
+          else
+            echo "Нищо ново в паметта."
+          fi
