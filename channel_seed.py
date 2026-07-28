@@ -108,6 +108,7 @@ if not MODE:
     print("WARN: непознат режим „" + _raw_mode + "“ — карам с „one“.")
     MODE = "one"
 ONLY = (os.environ.get("CHANNEL_SEED_ONLY") or "").strip()
+
 for _arg in sys.argv[1:]:
     _a = _arg.strip().lower()
     if not _a:
@@ -347,6 +348,7 @@ def is_gone(res):
 
 def is_same(res):
     return "message is not modified" in errtext(res)
+
 
 def clip(text):
     if len(text) <= TG_HARD:
