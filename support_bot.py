@@ -1,11 +1,45 @@
 # -*- coding: utf-8 -*-
 """
-THE GREEN ROOM — БОТ „ПОДКРЕПА" 🆘   (@greenpicks_support_bot)
+THE GREEN ROOM — БОТ „ПОДКРЕПА" 🆘
 
 ЗАЩО СЪЩЕСТВУВА: в закачените постове (setup_hub.py, seed_rooms.py, channel_seed.py)
-пише „Пиши на екипа: @greenpicks_support_bot ... Отговаряме до 24ч." — а насреща
-нямаше НИКОЙ. Всеки, който последва собствената ни инструкция, получаваше тишина.
-Този файл затваря обещанието.
+пише „Пиши на екипа" — а насреща нямаше НИКОЙ. Всеки, който последва собствената
+ни инструкция, получаваше тишина. Този файл затваря обещанието.
+
+КОЙ БОТ ОТГОВАРЯ — ИЗБОРЪТ НА ТОКЕН, В ТОЗИ РЕД:
+  1. SUPPORT_BOT_TOKEN — отделният бот (@greenpicks_support_bot). Идеалното:
+     своя поща, свой offset, никой не му се меси.
+  2. BOT_TOKEN — главният бот (@green_picks_info_bot). Той ВЕЧЕ работи и е админ
+     в групата и в канала, значи съпортът тръгва ВЕДНАГА, без да се чака нищо.
+     Хората му пишат лично точно както на всеки друг бот.
+  3. Няма нито един — спираме с ясно съобщение и нулев изход.
+  В лога влиза САМО името на променливата. Стойност на токен не се печата никога.
+
+⚠️ НАЙ-ОПАСНОТО МЯСТО ВЪВ ФАЙЛА: ДВА ПОЛЪРА НА ЕДИН ТОКЕН
+  router_bot.py чете getUpdates със същия BOT_TOKEN на всеки 10 минути. Опашката
+  на Telegram е ЕДНА за бот, а потвърждаването е ГЛОБАЛНО: getUpdates с offset=N
+  трие ВСИЧКИ ъпдейти под N — независимо чии са и независимо какво пише в
+  allowed_updates. Два безгрижни полъра на един токен си изяждат пощата
+  безшумно: нито грешка в лога, нито следа. Затова:
+
+  а) ЕДИН РЕЧНИК. При споделен токен и двата скрипта искат ЕДИН И СЪЩ съюз
+     allowed_updates (message, callback_query, channel_post). Различни списъци
+     се презаписват взаимно и Telegram спира да създава ъпдейтите на другия.
+     Само при СВОЙ токен съпортът стеснява списъка до message и callback_query.
+  б) ЧУЖДОТО НЕ СЕ МАРКИРА. Съпортът спира на ПЪРВИЯ чужд ъпдейт (channel_post)
+     и НЕ мести offset-а нататък — оставя го жив за рутера. Понеже offset-ът
+     е монотонен, „прескочи, но не маркирай" е физически невъзможно: затова
+     спираме, а не прескачаме. Рутерът прави огледалното (спира на първото
+     message). Така никой не потвърждава чужда поща.
+  в) ОСТАВАЩАТА ОПАСНОСТ, честно: двамата се изчакват. Спре ли рутерът да се
+     пуска, един channel_post запушва съпорта, докато Telegram сам не изхвърли
+     ъпдейта (24 часа). Обратното също: спре ли съпортът, едно лично съобщение
+     запушва рутера. Затова и двата крона са често и разминати във времето
+     (рутер :00/:10/:20..., съпорт :07/:22/:37/:52). Ако някой ден се появи
+     webhook, ТОВА обхождане се изключва с SUPPORT_POLLING=0 — тогава файлът
+     минава само selftest и setup и не пипа опашката.
+  г) 409 Conflict = двата рънъра са се засекли в една и съща секунда. Не е
+     страшно: пропускаме минаването, offset-ът не мърда, след 15 минути пак.
 
 КАК РАБОТИ (три части):
   1. ЧЕСТИТЕ ВЪПРОСИ — отговарят се МИГНОВЕНО, без човек и без хостинг.
@@ -35,24 +69,28 @@ THE GREEN ROOM — БОТ „ПОДКРЕПА" 🆘   (@greenpicks_support_bot)
     5-8 са чистите списъци със срещи, 26 е на новините, 27 е на Предсказателя.
     Номерът на стаята НИКОГА не се взима от ъпдейта: човек, който напише /o в
     стая 4, не може да завлече отговора на екипа там.
-  - SUPPORT_BOT_TOKEN трябва да е РАЗЛИЧЕН от BOT_TOKEN. Съвпаднат ли, спираме.
-    Причина: getUpdates мести offset-а на токена и ТРИЕ ъпдейти, които не сме поискали.
-    Два полъра на един токен = изчезнали въпроси, без грешка в лога.
+  - СПОДЕЛЕНИЯТ ТОКЕН се разпознава сам и включва съвместното обхождане (горе).
+    Не е грешка и не е повод за спиране — просто повече дисциплина с offset-а.
+  - setup() ПРЕПИСВА описанието, менюто и командите на бота. Върху главния бот
+    това чупи чужда витрина, затова при споделен токен се отказва.
   - offset се потвърждава и СЪРВЪРНО (getUpdates с offset=last+1 накрая), така че
     загубен git push не води до повторени отговори. Това е дублирането, от което
     собственикът се оплаква на други места.
   - support_state.json се самолекува при повреден JSON и се пише атомарно.
   - 429 → четем parameters.retry_after и чакаме. HTML се екранира. Дължините се режат.
-
 ENV:
-  SUPPORT_BOT_TOKEN   — токенът на @greenpicks_support_bot (ЗАДЪЛЖИТЕЛЕН, отделен)
+  SUPPORT_BOT_TOKEN   — токенът на отделния съпорт-бот (по избор; липсва ли,
+                        работим с BOT_TOKEN и включваме съвместното обхождане)
+  BOT_TOKEN           — токенът на главния бот: резервата, която работи ВЕДНАГА
+  SUPPORT_POLLING     — 0 = не пипай опашката (за webhook или при авария)
   CHAT_ID             — групата (-100...)
   SUPPORT_THREAD_ID (11) — стая „🆘 Въпроси и Помощ"; проверява се срещу белия
                       списък и при забранена или безсмислена стойност пада на 11
                       с печатан WARN. HELP_THREAD_ID е старото име и още работи.
   ADMIN_CHAT_ID       — по избор: лична админ-група за въпросите (по-дискретно)
   SUPPORT_ADMIN_IDS   — id-та през запетая, на които е позволено /o
-  BOT_TOKEN           — само за проверката „не е ли същият токен"
+  SUPPORT             — контактът, който показваме на хората; празно = сам го
+                        сглобява според това кой бот всъщност отговаря
   SUPPORT_DRY_RUN     — 1 = само печата, не праща
   SUPPORT_MAX_FORWARDS (25) / SUPPORT_MAX_PER_USER (5) — таван срещу спам
 
@@ -64,10 +102,14 @@ ENV:
 Бележка за деплой: файлът е писан БЕЗ обратни наклонени черти (нов ред = NL),
 без обратни апострофи и без долар-скоба — минава през редактора на GitHub.
 """
+import contextlib
 import html
+import io
 import json
 import os
+import shutil
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -104,11 +146,47 @@ def _env_int(name, default):
         return default
 
 
-SUPPORT_TOKEN = _env("SUPPORT_BOT_TOKEN")
+def same_bot(a, b):
+    """Един и същ бот ли са двата токена? Пред числото преди двоеточието е
+    bot id-то — то е публично и не е тайна; самите низове не се печатат."""
+    a = (a or "").strip()
+    b = (b or "").strip()
+    if not a or not b:
+        return False
+    return a == b or a.split(":")[0] == b.split(":")[0]
+
+
+# Историческото име. Остава, защото самопроверката и хората го знаят така.
+token_conflict = same_bot
+
+OWN_HANDLE = "@greenpicks_support_bot"      # отделният бот, ако някога тръгне
+MAIN_HANDLE = "@green_picks_info_bot"       # главният бот — той работи ДНЕС
+
+
+def pick_token(support, main):
+    """Чиста функция: (токен, име на променливата, споделен ли е).
+    Ред: SUPPORT_BOT_TOKEN -> BOT_TOKEN -> нищо. Никога не връща и не печата
+    самата стойност навън — връща я само на извикващия."""
+    support = (support or "").strip()
+    main = (main or "").strip()
+    if support:
+        return support, "SUPPORT_BOT_TOKEN", same_bot(support, main)
+    if main:
+        return main, "BOT_TOKEN (главния бот)", True
+    return "", "", False
+
+
 MAIN_TOKEN = _env("BOT_TOKEN")
+TOKEN, TOKEN_NAME, SHARED_TOKEN = pick_token(_env("SUPPORT_BOT_TOKEN"), MAIN_TOKEN)
+# Стар псевдоним: другаде във файла и в главите на хората токенът е „SUPPORT_TOKEN".
+SUPPORT_TOKEN = TOKEN
+POLLING_ON = _env("SUPPORT_POLLING", "1") != "0"
+
 CHAT_ID = _env("CHAT_ID")
 ADMIN_CHAT_ID = _env("ADMIN_CHAT_ID")
-SUPPORT_HANDLE = _env("SUPPORT", "@greenpicks_support_bot")
+# Контактът, който показваме на хората. Празна променлива = казваме истината:
+# кой бот наистина стои насреща в този момент.
+SUPPORT_HANDLE = _env("SUPPORT") or (MAIN_HANDLE if SHARED_TOKEN else OWN_HANDLE)
 STATE_FILE = _env("SUPPORT_STATE", "support_state.json")
 DRY_RUN = _env("SUPPORT_DRY_RUN", "0") == "1"
 MAX_FORWARDS = max(1, _env_int("SUPPORT_MAX_FORWARDS", 25))   # 0 би задръстил пощата
@@ -311,13 +389,13 @@ FAQ = {
         NL.join([
             "🙋 <b>Как стигаш до жив човек</b>",
             "",
-            "Просто напиши въпроса си <b>тук, в този чат</b> — стига до екипа",
-            "и отговаряме до 24 часа.",
+            "Просто напиши въпроса си <b>тук, в този чат</b> — стига до екипа.",
             "",
             "Или го задай публично в стая <b>🆘 Въпроси и Помощ</b> — така отговорът",
             "остава видим за всички, които се чудят същото.",
             "",
-            "Не сме кол-център. Един-двама души сме и отговаряме сами.",
+            "Не сме кол-център. Един-двама души сме и отговаряме сами,",
+            "затова понякога отнема. Въпросът не се губи.",
         ])),
 }
 
@@ -442,10 +520,10 @@ def is_bait(text):
 # ---------------------------------------------------------------- ТЕЛЕГРАМ
 def api(method, **params):
     """Едно извикване с уважение към 429 (чете parameters.retry_after)."""
-    if not SUPPORT_TOKEN:
-        print("НЯМА SUPPORT_BOT_TOKEN — " + method + " пропуснат.")
+    if not TOKEN:
+        print("НЯМА токен — " + method + " пропуснат.")
         return None
-    url = API_ROOT + SUPPORT_TOKEN + "/" + method
+    url = API_ROOT + TOKEN + "/" + method
     payload = {}
     for k, v in params.items():
         if v is None:
@@ -474,6 +552,12 @@ def api(method, **params):
                 print("429 — чакам " + str(wait + 1) + " сек и пробвам пак")
                 time.sleep(wait + 1)
                 continue
+            if e.code == 409:
+                # Друг процес чете същата опашка в същата секунда (рутерът).
+                # Не повтаряме: offset-ът не е мръднал, след 15 минути пак.
+                print("409 Conflict при " + method + " — рутерът чете опашката в")
+                print("същия миг. Пропускам минаването, нищо не е загубено.")
+                return None
             print(method + " HTTP " + str(e.code) + ": " + raw[:200])
             return None
         except Exception as ex:
@@ -606,7 +690,7 @@ def ack_text(public):
             "Получихме въпроса ти 💚",
             "",
             "Предадох го в стая <b>🆘 Въпроси и Помощ</b> — там екипът отговаря",
-            "<b>пред всички</b>, за да е от полза и на другите. До 24 часа.",
+            "<b>пред всички</b>, за да е от полза и на другите.",
             "",
             "Ако въпросът ти е личен, кажи го и ще внимаваме какво публикуваме.",
             "Междувременно — бутоните долу отговарят веднага. 👇",
@@ -614,7 +698,7 @@ def ack_text(public):
     return NL.join([
         "Получихме въпроса ти 💚",
         "",
-        "Стигна до екипа и отговаряме <b>до 24 часа</b>.",
+        "Стигна до екипа. Отговорът идва тук, в този чат.",
         "Междувременно — бутоните долу отговарят веднага. 👇",
     ])
 
@@ -817,14 +901,25 @@ def handle_callback(cb):
 
 # ---------------------------------------------------------------- ЕДНОКРАТНА НАСТРОЙКА
 def setup():
-    """Клиентските повърхности на Telegram — рендират се МИГНОВЕНО, без наш процес."""
+    """Клиентските повърхности на Telegram — рендират се МИГНОВЕНО, без наш процес.
+
+    ОТКАЗВА СЕ ВЪРХУ СПОДЕЛЕН ТОКЕН. Тези извиквания ПРЕПИСВАТ описанието, менюто
+    и списъка команди на бота. Върху главния бот това би изтрило витрината, която
+    хората виждат преди СТАРТ — заради помощно меню. Съпортът работи и без нея:
+    бутоните под всеки отговор са в самото съобщение."""
+    if SHARED_TOKEN and _env("SUPPORT_SETUP_FORCE") != "1":
+        print("ОТКАЗ: setup работи само със СВОЙ токен (SUPPORT_BOT_TOKEN).")
+        print("Сега сме на " + TOKEN_NAME + " и това би преписало описанието,")
+        print("менюто и командите на главния бот. Съпортът си работи и без тях.")
+        print("Ако наистина го искаш: SUPPORT_SETUP_FORCE=1.")
+        return True
     short = ("Помощ за The Green Room 🟢 Отговарям на честите въпроси веднага, "
              "останалото предавам на екипа.")
     long = NL.join([
         "🟢 THE GREEN ROOM — помощ",
         "",
         "Питай ме каквото искаш за канала и групата.",
-        "Честите въпроси получаваш веднага, останалото стига до екипа (до 24ч).",
+        "Честите въпроси получаваш веднага, останалото стига до екипа.",
         "",
         "📊 Прогнозата е вероятност, изчислена от статистика.",
         "🔒 Нищо не трием — и загубите остават видими.",
@@ -863,45 +958,63 @@ def setup():
 
 
 # ---------------------------------------------------------------- ГЛАВНОТО
-def token_conflict(support, main):
-    """True = двата токена са един и същ бот. Тогава НЕ пускаме нищо."""
-    a = (support or "").strip()
-    b = (main or "").strip()
-    if not a or not b:
-        return False
-    if a == b:
-        return True
-    return a.split(":")[0] == b.split(":")[0]      # един и същ bot id, друг таен низ
+# Речникът на опашката. При споделен токен той е СЪЮЗ с този на router_bot.py:
+# различни списъци на един бот се презаписват взаимно и Telegram спира да
+# създава ъпдейтите на другия. channel_post е тук, за да СЪЩЕСТВУВА за рутера —
+# съпортът не го обработва, само спира пред него.
+SHARED_UPDATES = ["message", "callback_query", "channel_post"]
+OWN_UPDATES = ["message", "callback_query"]
+
+
+def allowed_updates():
+    return SHARED_UPDATES if SHARED_TOKEN else OWN_UPDATES
+
+
+def foreign_kind(update):
+    """Празен низ = ъпдейтът е наш (message или callback_query).
+    Иначе името на чуждия вид — за лога и за решението да спрем."""
+    u = update or {}
+    if "message" in u or "callback_query" in u:
+        return ""
+    for key in u:
+        if key != "update_id":
+            return key
+    return "празен ъпдейт"
 
 
 def guard():
     """Спира преди да е станала беля. Връща True ако може да продължим."""
-    if not SUPPORT_TOKEN:
-        print("НЯМА SUPPORT_BOT_TOKEN — съпорт-ботът спи. (Това не е грешка:")
-        print("добави тайната в GitHub > Settings > Secrets и ще се събуди.)")
+    if not TOKEN:
+        print("НЯМА нито SUPPORT_BOT_TOKEN, нито BOT_TOKEN — съпортът няма с какво")
+        print("да говори. Сложи поне BOT_TOKEN в тайните на хранилището.")
         return False
-    if token_conflict(SUPPORT_TOKEN, MAIN_TOKEN):
-        print("СТОП: SUPPORT_BOT_TOKEN е СЪЩИЯТ бот като BOT_TOKEN.")
-        print("Два полъра на един токен трият чужди ъпдейти безшумно.")
-        print("Направи отделен бот при @BotFather и сложи неговия токен.")
-        return False
+    print("Токен: ползвам " + TOKEN_NAME + ".")
+    if SHARED_TOKEN:
+        print("СПОДЕЛЕН ТОКЕН с router_bot.py — включено съвместно обхождане:")
+        print("чуждият channel_post спира offset-а и остава жив за рутера.")
     if not CHAT_ID and not ADMIN_CHAT_ID:
         print("ВНИМАНИЕ: няма CHAT_ID и няма ADMIN_CHAT_ID — новите въпроси")
         print("нямат къде да отидат. Честите въпроси пак ще се отговарят.")
     print("Стая на съпорта: " + SUPPORT_THREAD + " (" +
           ROOMS.get(SUPPORT_THREAD, "нова стая") + "). Забранени: " +
           ", ".join(sorted(FORBIDDEN_THREADS, key=int)) + ".")
+    # Контактът в закачените постове трябва да сочи ТОЧНО този бот.
+    print("Контакт за хората: " + SUPPORT_HANDLE + ".")
     return True
 
 
 def main():
     if not guard():
         return 0
+    if not POLLING_ON:
+        print("SUPPORT_POLLING=0 — не пипам опашката на Telegram. (Така се")
+        print("изключва обхождането, ако някога дойде webhook.)")
+        return 0
 
     state = load_state()
     offset = int(state.get("offset") or 0)
     updates = api("getUpdates", offset=offset + 1, timeout=0, limit=50,
-                  allowed_updates=jd(["message", "callback_query"]))
+                  allowed_updates=jd(allowed_updates()))
     if updates is None:
         print("getUpdates не отговори — оставям offset-а както е.")
         return 1
@@ -920,6 +1033,23 @@ def main():
         uid = int(u.get("update_id") or 0)
         if stop:
             break
+
+        # ЧУЖДОТО НЕ СЕ МАРКИРА. offset-ът е монотонен: потвърдя ли ъпдейт 105,
+        # Telegram трие и 104, и 103 — включително чужд channel_post, който
+        # рутерът още не е разнесъл по стаите. „Прескочи, но не маркирай" не
+        # съществува в този API, затова СПИРАМ пред първия чужд ъпдейт и го
+        # оставям жив. Рутерът ще го вземе след минути и опашката тръгва пак.
+        kind = foreign_kind(u)
+        if kind:
+            if SHARED_TOKEN:
+                print("Ъпдейт " + str(uid) + " е " + kind + " — чужд е (на рутера).")
+                print("Спирам ТУК, за да не му го изтрия. Offset остава " +
+                      str(last_id) + ".")
+                stop = True
+                break
+            last_id = max(last_id, uid)     # свой токен: няма чий да е, минаваме
+            continue
+
         cb = u.get("callback_query")
         if cb:
             handle_callback(cb)
@@ -968,7 +1098,8 @@ def main():
         # загуби git push-ът, следващият рън няма да отговори втори път на
         # същия човек. Това е коланът; файлът е тирантите.
         if last_id > offset:
-            api("getUpdates", offset=last_id + 1, timeout=0, limit=1)
+            api("getUpdates", offset=last_id + 1, timeout=0, limit=1,
+                allowed_updates=jd(allowed_updates()))
         save_state(state)
 
     print("Готово: " + str(len(updates)) + " ъпдейта, " + str(forwarded) +
@@ -986,7 +1117,6 @@ def selftest():
         print(("  ✔ " if cond else "  ✘ ") + name)
         if not cond:
             fails.append(name)
-
     print("САМОПРОВЕРКА НА СЪПОРТ-БОТА")
     check("седем теми в менюто", len(FAQ_ORDER) == 7 and all(k in FAQ for k in FAQ_ORDER))
     check("/start дава добре дошъл", match_intent("/start") == "start")
@@ -1106,7 +1236,6 @@ def selftest():
           send(g["CHAT_ID"], "тест", "4") is None and
           send(g["CHAT_ID"], "тест", "27") is None and not calls)
     g["ALLOWED_THREADS"] = old["ALLOWED_THREADS"]
-
     for room in ["4", "5", "6", "7", "8", "26", "27"]:
         check("SUPPORT_THREAD_ID=" + room + " пада на 11",
               resolve_support_thread(room) == "11")
@@ -1166,10 +1295,131 @@ def selftest():
     for k in old:
         g[k] = old[k]
 
-    check("еднакви токени = стоп", token_conflict("777:aaa", "777:aaa"))
-    check("един bot id, друг низ = пак стоп", token_conflict("777:aaa", "777:bbb"))
-    check("различни ботове минават", token_conflict("777:aaa", "888:bbb") is False)
-    check("липсващ токен не вдига фалшива тревога", token_conflict("", "888:bbb") is False)
+    check("еднакви токени = един и същ бот", same_bot("777:aaa", "777:aaa"))
+    check("един bot id, друг низ = пак един бот", same_bot("777:aaa", "777:bbb"))
+    check("различни ботове са различни", same_bot("777:aaa", "888:bbb") is False)
+    check("липсващ токен не вдига фалшива тревога", same_bot("", "888:bbb") is False)
+    check("старото име token_conflict още сочи натам", token_conflict is same_bot)
+
+    # ---------------------------------------------------------- ИЗБОРЪТ НА ТОКЕН
+    # Ред: SUPPORT_BOT_TOKEN -> BOT_TOKEN -> нищо.
+    check("SUPPORT_BOT_TOKEN бие BOT_TOKEN",
+          pick_token("111:aaa", "222:bbb")[0] == "111:aaa")
+    check("отделният токен се обявява по име",
+          pick_token("111:aaa", "222:bbb")[1] == "SUPPORT_BOT_TOKEN")
+    check("отделният токен НЕ е споделен",
+          pick_token("111:aaa", "222:bbb")[2] is False)
+    check("без SUPPORT_BOT_TOKEN падаме на BOT_TOKEN",
+          pick_token("", "222:bbb")[0] == "222:bbb")
+    check("резервата се обявява като главния бот",
+          "BOT_TOKEN" in pick_token("", "222:bbb")[1] and pick_token("", "222:bbb")[2])
+    check("без никакъв токен няма избор", pick_token("", "") == ("", "", False))
+    check("същият бот в двете тайни = споделен режим",
+          pick_token("222:bbb", "222:bbb")[2] and pick_token("222:ccc", "222:bbb")[2])
+    check("празните места не правят токен", pick_token("   ", "")[0] == "")
+
+    g2 = globals()
+    keep = {k: g2[k] for k in ("TOKEN", "TOKEN_NAME", "SHARED_TOKEN", "POLLING_ON",
+                               "STATE_FILE", "CHAT_ID", "ADMIN_CHAT_ID", "ADMINS",
+                               "api", "DRY_RUN")}
+    # ⚠️ ТОКЕН В ЛОГА = ТОКЕН В ЧУЖДИ РЪЦЕ. Логът на GitHub Actions се чете от
+    # всеки с достъп до хранилището, а маскирането важи само за тайните, минали
+    # през secrets. Пазим го с проверка, не с добри намерения.
+    secret = "5551234567:AAtaenNizKojtoNeBivaDaSePechata"
+    g2["TOKEN"] = secret
+    g2["TOKEN_NAME"] = "BOT_TOKEN (главния бот)"
+    g2["SHARED_TOKEN"] = True
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        started = guard()
+    log = buf.getvalue()
+    check("със споделен токен съпортът тръгва", started is True)
+    check("логът казва КОЙ токен ползваме", "BOT_TOKEN" in log)
+    check("логът НЕ издава стойността на токена",
+          secret not in log and "AAtaenNiz" not in log and "5551234567" not in log)
+    check("логът обявява съвместното обхождане", "СПОДЕЛЕН" in log)
+
+    # ---------------------------------------------------------- РЕЧНИКЪТ НА ОПАШКАТА
+    check("споделеният токен ползва СЪЮЗА с рутера",
+          allowed_updates() == ["message", "callback_query", "channel_post"])
+    check("съюзът пуска channel_post да съществува за рутера",
+          "channel_post" in allowed_updates())
+    g2["SHARED_TOKEN"] = False
+    check("своят токен стеснява речника",
+          allowed_updates() == ["message", "callback_query"])
+    check("личното съобщение е наше", foreign_kind({"update_id": 1, "message": {}}) == "")
+    check("бутонът е наш", foreign_kind({"update_id": 1, "callback_query": {}}) == "")
+    check("постът в канала е чужд",
+          foreign_kind({"update_id": 1, "channel_post": {}}) == "channel_post")
+    check("редакцията в канала също е чужда",
+          foreign_kind({"update_id": 1, "edited_channel_post": {}}) == "edited_channel_post")
+
+    # ------------------------------------------------- СЪВМЕСТНОТО ОБХОЖДАНЕ С РУТЕРА
+    # Сърцевината. Опашка: наше 101, ЧУЖДО 102 (channel_post), наше 103.
+    # Споделен токен: спираме на 102 и потвърждаваме най-много до 102 —
+    #   постът на типстъра остава жив, рутерът ще го разнесе по стаите.
+    # Свой токен: няма чий да е — минаваме нататък и стигаме до 103.
+    tmpdir = tempfile.mkdtemp(prefix="support-selftest-")
+    g2["TOKEN"] = "1:test"
+    g2["POLLING_ON"] = True
+    g2["CHAT_ID"] = "-1004426592150"
+    g2["ADMIN_CHAT_ID"] = ""
+    g2["ADMINS"] = set()
+    g2["DRY_RUN"] = False
+    g2["STATE_FILE"] = os.path.join(tmpdir, "state.json")
+    batch = [
+        {"update_id": 101, "message": {"chat": {"id": 771, "type": "private"},
+                                       "from": {"id": 771, "first_name": "Ана"},
+                                       "text": "/start"}},
+        {"update_id": 102, "channel_post": {"chat": {"id": -1004403334702},
+                                            "text": "фиш на типстъра"}},
+        {"update_id": 103, "message": {"chat": {"id": 772, "type": "private"},
+                                       "from": {"id": 772, "first_name": "Боян"},
+                                       "text": "/start"}},
+    ]
+    asked = []
+
+    def poll_api(method, **params):
+        if method == "getUpdates":
+            off = int(params.get("offset") or 0)
+            asked.append(off)
+            return [u for u in batch if int(u["update_id"]) >= off]
+        return {"message_id": 1}
+
+    g2["api"] = poll_api
+    try:
+        for shared, label, want in ((True, "споделен", 101), (False, "свой", 103)):
+            g2["SHARED_TOKEN"] = shared
+            asked[:] = []
+            if os.path.exists(g2["STATE_FILE"]):
+                os.remove(g2["STATE_FILE"])
+            with contextlib.redirect_stdout(io.StringIO()):
+                main()
+            with open(g2["STATE_FILE"], encoding="utf-8") as f:
+                saved = json.load(f)
+            check("offset спира на " + str(want) + " (" + label + " токен)",
+                  int(saved.get("offset") or 0) == want)
+            check("не потвърждаваме над " + str(want) + " (" + label + " токен)",
+                  max(asked) <= want + 1)
+        check("чуждият channel_post 102 НЕ се маркира при споделен токен", True)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+    # setup() преписва витрината на бота — върху главния бот това е чужда щета.
+    g2["SHARED_TOKEN"] = True
+    touched = []
+    g2["api"] = lambda method, **params: touched.append(method) or {"ok": True}
+    with contextlib.redirect_stdout(io.StringIO()):
+        setup_res = setup()
+    check("setup НЕ пипа описанието на главния бот", setup_res is True and not touched)
+    for k in keep:
+        g2[k] = keep[k]
+
+    check("контактът е бот, който наистина отговаря",
+          SUPPORT_HANDLE.startswith("@") and " " not in SUPPORT_HANDLE)
+    check("никъде не обещаваме 24 часа",
+          all("24" not in t for t in
+              [ack_text(True), ack_text(False), FAQ["chovek"][2], WELCOME]))
     check("файлът е без обратни апострофи и долар-скоба", _clean_source())
     print(RULE)
     if fails:
