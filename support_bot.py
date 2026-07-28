@@ -1097,6 +1097,7 @@ def main():
             api("getUpdates", offset=last_id + 1, timeout=0, limit=1,
                 allowed_updates=jd(allowed_updates()))
         save_state(state)
+
     print("Готово: " + str(len(updates)) + " ъпдейта, " + str(forwarded) +
           " предадени на екипа. Offset=" + str(state.get("offset")) + ".")
     return 0
