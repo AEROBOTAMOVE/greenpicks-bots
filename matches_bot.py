@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 THE GREEN ROOM — БОТ „АНАЛИЗАТОРЪТ" 📅🧠
 
@@ -37,7 +38,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import poster
@@ -69,7 +70,11 @@ FOOTBALL_DATA_KEY = (os.environ.get("FOOTBALL_DATA_KEY") or "").strip()
 API = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_KEY}"
 FD_API = "https://api.football-data.org/v4"
 
-MAX_PER_ROOM = 8      # колко срещи максимум в една спортна стая
+# Колко срещи максимум в една спортна стая. Откакто срещите идват от ESPN, а
+# не от TheSportsDB, предлагането скочи от единици на стотици (тенисът на маса
+# сам даде 403 за три дни) — таванът вече е това, което пази стаята четима.
+# Подредбата преди отрязването е по тежест на турнира, тоест остават силните.
+MAX_PER_ROOM = max(3, min(30, int((os.environ.get("MATCHES_PER_ROOM") or "8").strip())))
 ANALYSIS_MAX = 3      # колко срещи разнищваме дълбоко (всяка струва заявки)
 # Докъде напред гледа стаята на боевете. Галите са седмични — списък само за
 # „днес" би мълчал шест дни от седем, затова прозорецът е по-широк.
@@ -259,6 +264,8 @@ def get_todays_events(sport):
     except Exception as e:
         print(f"eventsday {sport}: {str(e)[:90]}")
         return []
+
+
 def get_last_events(team_id):
     """Последните изиграни мачове на отбор (форма)."""
     try:
@@ -347,6 +354,87 @@ def combat_fixtures():
             "home_id": r.get("home_id"), "away_id": r.get("away_id"),
         })
     return rows
+
+
+# ---------- 📡 СРЕЩИТЕ ОТ ESPN (за всички спортове, не само бойните) ----------
+# ЗАЩО СЪЩЕСТВУВА
+# Стаите Футбол / Баскетбол / Тенис на маса / Волейбол се пълнеха от
+# TheSportsDB. С безплатния ключ той връща ШЕПА записи — същият глад, заради
+# който предсказателят дълго мълчеше. Междувременно predictor.py вече дърпа
+# ESPN, FIVB и WTT без ключ и ги поддържа на едно място.
+#
+# Затова тук НЕ се преписва никаква логика: викаме готовите функции на
+# предсказателя и само превеждаме реда на езика на Анализатора — точно както
+# combat_fixtures прави от самото начало за бойните спортове.
+#
+# ДНИ НАПРЕД: с MATCHES_DAYS_AHEAD стаята може да се напълни с програмата за
+# няколко дни наведнъж (полезно при първо пускане, за да не е празна).
+MATCHES_DAYS = max(1, min(10, int((os.environ.get("MATCHES_DAYS_AHEAD") or "1").strip())))
+
+# bucket -> (име на функцията в predictor, вид на датата)
+#   "ymd"  = 20260729   ·  "dash" = 2026-07-29
+ESPN_SOURCES = {
+    "football":    ("football_fixtures", "ymd"),
+    "basketball":  ("basketball_fixtures", "ymd"),
+    "volleyball":  ("vol_fixtures", "dash"),
+    "tabletennis": ("tt_fixtures", "dash"),
+}
+
+
+def espn_rows(bucket):
+    """Срещите за един спорт от предсказателя, за MATCHES_DAYS дни напред."""
+    if bucket not in ESPN_SOURCES:
+        return []
+    try:
+        import predictor as P
+    except Exception as e:                       # noqa: BLE001
+        print("  " + bucket + ": predictor.py не се зареди (" + str(e)[:80] + ")")
+        return []
+
+    fname, kind = ESPN_SOURCES[bucket]
+    fn = getattr(P, fname, None)
+    if fn is None:
+        print("  " + bucket + ": " + fname + " липсва в predictor.py")
+        return []
+
+    now = datetime.now(SOFIA)
+    seen = set()
+    rows = []
+    for d in range(MATCHES_DAYS):
+        day = now + timedelta(days=d)
+        stamp = day.strftime("%Y-%m-%d") if kind == "dash" else day.strftime("%Y%m%d")
+        try:
+            raw = fn(now, stamp) or []
+        except Exception as e:                   # noqa: BLE001
+            print("  " + bucket + " " + stamp + ": източникът мълчи (" + str(e)[:70] + ")")
+            continue
+        for r in raw:
+            when = r.get("when")
+            local = when.astimezone(SOFIA) if when is not None else None
+            home = r.get("home") or ""
+            away = r.get("away") or ""
+            key = (home.lower(), away.lower(),
+                   local.strftime("%Y-%m-%d") if local else str(d))
+            if key in seen:
+                continue                          # един мач, видян в два дни
+            seen.add(key)
+            cfg = SPORTS.get(bucket) or {}
+            rows.append({
+                "bucket": bucket, "emoji": cfg.get("emoji", ""),
+                "prio": cfg.get("prio", 0),
+                "home": home, "away": away, "event": "",
+                "league": r.get("league") or "",
+                "weight": to_int(r.get("weight"), 1),
+                "time": local.strftime("%H:%M") if local else "",
+                "date": local.strftime("%d.%m") if local else "",
+                "sort": local.strftime("%Y-%m-%d %H:%M") if local else "9999",
+                "src": "espn", "fd_id": None,
+                "home_id": r.get("home_id"), "away_id": r.get("away_id"),
+            })
+    print("  " + bucket + ": " + str(len(rows)) + " срещи от ESPN за "
+          + str(MATCHES_DAYS) + " дни.")
+    return rows
+
 
 # ---------- football-data.org (основен двигател за футбола) ----------
 def fd_get(path):
@@ -670,21 +758,30 @@ def collect():
     """Всички днешни срещи, по кошници, вече прецедени и подредени."""
     buckets = {}
 
-    fd_rows = []
-    if FOOTBALL_DATA_KEY:
-        try:
-            fd_rows = fd_fixtures()
-        except Exception as e:
-            print("football-data пропадна:", str(e)[:90], "-> fallback TheSportsDB")
-    if fd_rows:
-        print(f"футбол: {len(fd_rows)} срещи от football-data.org")
-        buckets["football"] = fd_rows
-    else:
-        if FOOTBALL_DATA_KEY:
-            print("football-data: няма топ мачове днес -> пробвам TheSportsDB.")
-        buckets["football"] = sportsdb_fixtures("football")
+    # РЕДЪТ НА ИЗТОЧНИЦИТЕ (най-богатият пръв):
+    #   1. ESPN / FIVB / WTT през predictor.py — без ключ, дълбоки данни
+    #   2. football-data.org — само ако има ключ и само за футбола
+    #   3. TheSportsDB — последна резерва; безплатният ключ дава шепа записи
+    # Мереното на живо: ESPN дава десетки срещи на ден, TheSportsDB — единици.
+    # Затова ESPN е пръв, а не обратното.
+    for bucket in ("football", "tabletennis", "volleyball", "basketball"):
+        rows = espn_rows(bucket)
+        if rows:
+            buckets[bucket] = rows
+            continue
 
-    for bucket in ("tabletennis", "volleyball", "basketball"):
+        if bucket == "football" and FOOTBALL_DATA_KEY:
+            try:
+                fd_rows = fd_fixtures()
+            except Exception as e:               # noqa: BLE001
+                print("football-data пропадна:", str(e)[:90])
+                fd_rows = []
+            if fd_rows:
+                print("  футбол: " + str(len(fd_rows)) + " срещи от football-data.org")
+                buckets[bucket] = fd_rows
+                continue
+
+        print("  " + bucket + ": ESPN мълчи — падам на TheSportsDB.")
         buckets[bucket] = sportsdb_fixtures(bucket)
 
     # 🥊 Бойните спортове идват от ESPN през predictor.mma_fixtures.
