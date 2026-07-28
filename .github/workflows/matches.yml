@@ -1,25 +1,92 @@
 name: matches-bot
 on:
   schedule:
-    - cron: '30 5 * * *'    # 08:30 BG (лято UTC+3) — СЛЕД новинарския рън в 08:00
-  workflow_dispatch: {}
+    # GitHub cron е ВИНАГИ UTC. Долу е ЛЯТНОТО време (BG = UTC+3); зимата часът пада с един час български.
+    # НАРОЧНО 30 мин СЛЕД news-bot (05:00 UTC): ботът чете last_news_titles.json,
+    # който news.yml комитва обратно. ЧЕСТНО КАЗАНО: 30-те минути са буфер, НЕ
+    # гаранция — news има timeout-minutes 20, а кроновете закъсняват с 5-20 мин;
+    # при лоша сутрин checkout-ът би взел вчерашния файл. Затова долу има стъпка
+    # „Изчакай news-bot“ — тя чака, ако news още върви, и дърпа прясното. Ако news
+    # изобщо е паднал, мостът остава вчерашен: мека деградация, не счупване.
+    - cron: '30 5 * * *'    # 08:30 BG (лято) — СЛЕД новинарския рън в 08:00
+  workflow_dispatch:
+    inputs:
+      days_ahead:
+        description: 'Колко дни напред да събере (1 = само днес, до 10)'
+        type: string
+        default: '1'
+      per_room:
+        description: 'Колко срещи максимум в една стая (3-30)'
+        type: string
+        default: '8'
 
+# Ботът НЕ пише state файлове (проверено в matches_bot.py: само ЧЕТЕ
+# last_news_titles.json), затова contents: read стига и няма стъпка за commit-back.
+# actions: read е за стъпката „Изчакай news-bot“ — тя пита дали news.yml още върви.
 permissions:
   contents: read
+  actions: read
+
+concurrency:
+  group: matches-bot
+  cancel-in-progress: false
 
 jobs:
   run:
     runs-on: ubuntu-latest
+    # 25, не 15: стъпката „Изчакай news-bot“ може да чака до 10 мин.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # Мостът към news-bot. Ако news.yml още върви (или чака ред), изчакваме
+      # до 10 мин, после дърпаме прясно комитнатия last_news_titles.json.
+      # Всяка проверка е с падаща защита: не успее ли gh, броим 0 и продължаваме
+      # веднага — ботът работи и със застоял мост, само по-бледо.
+      - name: Изчакай news-bot и дръпни прясното
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            running=$(gh run list --workflow=news.yml --status=in_progress --json databaseId --jq 'length' 2>/dev/null || echo 0)
+            queued=$(gh run list --workflow=news.yml --status=queued --json databaseId --jq 'length' 2>/dev/null || echo 0)
+            if [ "$running" = "0" ] && [ "$queued" = "0" ]; then
+              echo "news-bot не върви — мостът е готов."
+              break
+            fi
+            echo "news-bot още върви (проверка $i/10) — чакам 60 сек."
+            sleep 60
+          done
+          git pull --quiet || echo "pull не мина — карам с каквото има в checkout-а."
+
+      # Тенисът на маса иде от CDN, който отговаря САМО сгъстено с brotli.
+      # Без модула цял един спорт мълчи, а стаята остава празна.
+      - name: Модул brotli (за тениса на маса)
+        run: python -m pip install --quiet --disable-pip-version-check brotli
+
+      # Портиерът: счупен ли е пазачът на стаите или тонът, спираме ТУК.
+      - name: Самопроверка
+        run: python matches_bot.py --selftest
+
       - name: Run matches bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ vars.CHAT_ID }}
-          MATCHES_THREAD_ID: ${{ vars.MATCHES_THREAD_ID }}
-          SPORTSDB_KEY: ${{ vars.SPORTSDB_KEY }}
+          # Резервните стойности НЕ са излишни: незададена променлива в GitHub
+          # идва като празен низ и празният низ бие подразбиращото се в скрипта.
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          # 🥊 Стая 328 „Бойни спортове" — предстоящите UFC/MMA карти.
+          # Празна GitHub-променлива бие подразбиращото се в скрипта, затова
+          # номерът е изписан, а vars.* може да го замени, ако стаята се смени.
+          COMBAT_THREAD_ID: ${{ vars.COMBAT_THREAD_ID || '328' }}
+          # Двете ръчки за пълнене. От 29.07.2026 срещите идват от ESPN/FIVB/WTT
+          # през predictor.py, а не от осакатения безплатен TheSportsDB —
+          # измерено същия ден: 25 футболни, 8 баскетболни, 14 волейболни и 403
+          # по тенис на маса за три дни. Оттам и нуждата от таван на стая.
+          MATCHES_DAYS_AHEAD: ${{ github.event.inputs.days_ahead || '1' }}
+          MATCHES_PER_ROOM: ${{ github.event.inputs.per_room || '8' }}
+          # Ключът може да живее и в Secrets, и във Vars — взимаме който го има.
+          SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
         run: python matches_bot.py
