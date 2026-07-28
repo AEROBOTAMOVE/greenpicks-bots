@@ -13,7 +13,9 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "-1004403334702")
 MODE = (os.environ.get("RESET_MODE") or (sys.argv[1] if len(sys.argv) > 1 else "all")).strip()
-KEEP_IDS = {1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 26, 27}
+# Forum topic containers. 328 = "Boyni sportove" (UFC/MMA/boxing) - if it is
+# missing here, the next wipe deletes the room itself. Same list as dedupe_clean.
+KEEP_IDS = {1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 26, 27, 328}
 
 def api(method, **params):
     url = "https://api.telegram.org/bot" + BOT_TOKEN + "/" + method
