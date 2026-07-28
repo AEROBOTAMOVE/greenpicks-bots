@@ -1,0 +1,436 @@
+# -*- coding: utf-8 -*-
+"""
+THE GREEN ROOM — ОЦЕНИТЕЛЯТ 📊
+
+ЗАЩО СЪЩЕСТВУВА
+Ботът пускаше прогнози и никой никога не проверяваше дали е познал. Стая 9
+„Резултати и статистика" показваше случайни резултати от чужди първенства, а
+стая 10 „Печеливши фишове" стоеше празна, защото нямаше кой да я пълни.
+Продукт, който твърди „показваме и загубите", а не показва нищо, не е продукт.
+
+КАКВО ПРАВИ
+1. Чете predict_log.json — там predictor.py записва всяко свое твърдение:
+   кой срещу кого, кого е посочил, с каква вероятност и колко звезди.
+2. За всяко неоценено твърдение пита ESPN как е свършил мачът.
+3. Пише ДВА поста:
+     стая 9  — пълният отчет: познати И сгрешени, с процент за деня и общо
+     стая 10 — само познатите, витрина
+   Ако няма нито един завършил мач — не пише нищо. Тишината е за предпочитане.
+4. Вдига „scored" на оценените, за да не се броят два пъти.
+
+ЖЕЛЕЗНИ ПРАВИЛА
+- Пише САМО в стаи 9 и 10. Всяка друга стая се отказва на изхода, преди мрежата.
+- Никакви поучения, никакви коефициенти, никакви букмейкъри. Пазач на изхода.
+- Загубите НЕ се крият и НЕ се трият. Точно те правят числото достоверно.
+- Не е сигурен резултатът → мачът остава неоценен и се пробва пак утре.
+
+ENV:
+  BOT_TOKEN, CHAT_ID
+  RESULTS_THREAD_ID (9)   ·  WINS_THREAD_ID (10)
+  SCORE_DRY_RUN (0/1)     ·  SCORE_LOG_FILE (predict_log.json)
+  SCORE_MAX_AGE_DAYS (5)  докога чакаме резултат, преди да се откажем
+
+Файлът е без обратни наклонени черти, без обратни апострофи и без долар-скоба.
+"""
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+NL = chr(10)
+SOFIA = ZoneInfo("Europe/Sofia")
+
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+CHAT_ID = (os.environ.get("CHAT_ID") or "-1004426592150").strip()
+CHANNEL_ID = (os.environ.get("CHANNEL_ID") or "-1004403334702").strip()
+
+RESULTS_THREAD = (os.environ.get("RESULTS_THREAD_ID") or "9").strip()
+WINS_THREAD = (os.environ.get("WINS_THREAD_ID") or "10").strip()
+# Единствените две стаи, в които този файл има право да пише.
+ALLOWED_THREADS = {RESULTS_THREAD, WINS_THREAD}
+
+LOG_FILE = (os.environ.get("SCORE_LOG_FILE") or "predict_log.json").strip()
+DRY_RUN = (os.environ.get("SCORE_DRY_RUN") or "").strip() in ("1", "true", "yes", "да")
+MAX_AGE = max(1, min(30, int((os.environ.get("SCORE_MAX_AGE_DAYS") or "5").strip())))
+
+UA = "Mozilla/5.0 (compatible; GreenRoomScorer/1.0)"
+ESPN = "https://site.api.espn.com/apis/site/v2/sports"
+
+# Кошница -> (спорт в адреса на ESPN, емоджи)
+SPORT_PATH = {
+    "football": ("soccer", "⚽"),
+    "basketball": ("basketball", "\U0001f3c0"),
+    "tennis": ("tennis", "\U0001f3be"),
+    "hockey": ("hockey", "\U0001f3d2"),
+    "baseball": ("baseball", "⚾"),
+    "mma": ("mma", "\U0001f94a"),
+    "volleyball": (None, "\U0001f3d0"),      # FIVB, не ESPN — виж по-долу
+    "tabletennis": (None, "\U0001f3d3"),     # WTT, не ESPN
+}
+
+# Думи, които НЕ ИЗЛИЗАТ навън. Същият пазач като в другите ботове.
+BANNED = ["18+", "залагай отговорно",
+          "коеф", "букмейкър", "odds",
+          "заложи", "финансов съвет"]
+
+
+def banned_word(text):
+    low = (text or "").lower()
+    for w in BANNED:
+        if w in low:
+            return w
+    return None
+
+
+def http_json(url, timeout=25):
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read())
+
+
+def api(method, **params):
+    """Bot API с изчакване при 429 — иначе последният пост тихо пада."""
+    url = "https://api.telegram.org/bot" + BOT_TOKEN + "/" + method
+    for attempt in range(5):
+        data = urllib.parse.urlencode(params).encode()
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, data=data), timeout=25) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")
+            if e.code == 429:
+                try:
+                    ra = int(json.loads(body).get("parameters", {}).get("retry_after", 5))
+                except Exception:
+                    ra = 5
+                print("  429 при " + method + " — чакам " + str(ra + 1) + " сек.")
+                time.sleep(ra + 1)
+                continue
+            print(method + " HTTP " + str(e.code) + ": " + body[:150])
+            return {}
+        except Exception as e:                # noqa: BLE001
+            print(method + " FAIL: " + str(e)[:120])
+            return {}
+    return {}
+
+
+def post(thread, text):
+    """ЕДИНСТВЕНИЯТ изход навън. Пазачът е ТУК, преди мрежата."""
+    tid = str(thread or "").strip()
+    if tid not in ALLOWED_THREADS:
+        print("ОТКАЗ: стая " + tid + " не е на оценителя (само "
+              + " и ".join(sorted(ALLOWED_THREADS)) + ").")
+        return False
+    bad = banned_word(text)
+    if bad:
+        print("ОТКАЗ: в текста се промъкна забранена дума (" + bad + ").")
+        return False
+    if DRY_RUN:
+        print("--- СУХО, стая " + tid + " ---")
+        print(text)
+        print("---")
+        return True
+    p = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML",
+         "disable_web_page_preview": "true"}
+    if int(tid) > 1:
+        p["message_thread_id"] = tid
+    r = api("sendMessage", **p)
+    ok = bool(r.get("ok"))
+    print(("  пратено в стая " if ok else "  НЕ мина в стая ") + tid)
+    return ok
+
+
+# ------------------------------------------------------------------ РЕЗУЛТАТИ
+def espn_result(rec):
+    """Крайният резултат на един мач от ESPN. None = още не знаем.
+
+    Връща (домакин_точки, гост_точки) или None. Търсим по деня на мача в
+    същата лига, после сверяваме по id на отборите — имената се различават
+    между източниците, id-тата не.
+    """
+    bucket = rec.get("bucket")
+    path = (SPORT_PATH.get(bucket) or (None, ""))[0]
+    slug = rec.get("slug")
+    hid, aid = str(rec.get("home_id") or ""), str(rec.get("away_id") or "")
+    if not path or not slug or not hid or not aid:
+        return None
+
+    day = (rec.get("day") or "").replace("-", "")
+    if len(day) != 8:
+        return None
+    url = ESPN + "/" + path + "/" + slug + "/scoreboard?dates=" + day
+    try:
+        j = http_json(url)
+    except Exception as e:                    # noqa: BLE001
+        print("    ESPN мълчи за " + slug + " " + day + " (" + str(e)[:50] + ")")
+        return None
+
+    for ev in (j.get("events") or []):
+        comps = ev.get("competitions") or []
+        if not comps:
+            continue
+        comp = comps[0] or {}
+        st = ((comp.get("status") or {}).get("type") or {})
+        if not st.get("completed"):
+            continue                          # още не е свършил
+        got = {}
+        for c in (comp.get("competitors") or []):
+            tid = str(((c.get("team") or {}).get("id")) or "")
+            try:
+                got[tid] = int(str(c.get("score")))
+            except Exception:                 # noqa: BLE001
+                return None
+        if hid in got and aid in got:
+            return got[hid], got[aid]
+    return None
+
+
+def name_in(name, text):
+    """Името се среща в текста КАТО ОТДЕЛНА ДУМА, не завряно вътре в друга.
+
+    ЗАЩО не просто „in": късо име се намира навсякъде. При проба „А" срещу „Б"
+    низът „а" се намери вътре в „неразпознаваемо" и оценителят отсъди победа
+    там, където изобщо не разбираше твърдението. Затова: къси имена под три
+    букви изобщо не се търсят, а по-дългите — само на граница на дума.
+    """
+    n = (name or "").strip().lower()
+    t = (text or "").lower()
+    if len(n) < 3 or not t:
+        return False
+    start = 0
+    while True:
+        i = t.find(n, start)
+        if i < 0:
+            return False
+        before_ok = (i == 0) or (not t[i - 1].isalnum())
+        end = i + len(n)
+        after_ok = (end >= len(t)) or (not t[end].isalnum())
+        if before_ok and after_ok:
+            return True
+        start = i + 1
+
+
+def verdict(rec, hs, as_):
+    """Позна ли прогнозата. Връща True / False / None (не можем да отсъдим).
+
+    None НЕ е провал — то значи „не разбирам собственото си твърдение" и
+    такъв ред просто не влиза в статистиката. По-добре празно, отколкото
+    измислен резултат.
+    """
+    pick = (rec.get("pick") or "")
+    home = (rec.get("home") or "")
+    away = (rec.get("away") or "")
+    low = pick.lower().strip()
+
+    # Първо: разбираме ли изобщо какво сме твърдели?
+    said_home = name_in(home, pick) or low[:2] in ("1 ", "1·", "1.")
+    said_away = name_in(away, pick) or low[:2] in ("2 ", "2·", "2.")
+    if said_home == said_away:
+        return None                 # или и двете, или нито едно — не съдим
+
+    if hs == as_:
+        return False                # посочили сме победител, а е равен
+    home_won = hs > as_
+    return home_won if said_home else (not home_won)
+
+# --------------------------------------------------------------------- ТЕКСТ
+def esc(s):
+    return (str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def date_bg(d):
+    dni = ["понеделник", "вторник", "сряда", "четвъртък", "петък", "събота", "неделя"]
+    return dni[d.weekday()] + ", " + d.strftime("%d.%m")
+
+
+def line(rec, hs, as_, ok):
+    emo = (SPORT_PATH.get(rec.get("bucket")) or (None, "\U0001f4cc"))[1]
+    mark = "✅" if ok else "❌"
+    return (mark + " " + emo + " <b>" + esc(rec.get("home")) + "</b> " + str(hs)
+            + ":" + str(as_) + " <b>" + esc(rec.get("away")) + "</b>" + NL
+            + "    посочихме: " + esc(rec.get("pick")))
+
+
+def results_text(now, rows, total_all, hit_all):
+    hits = [r for r in rows if r[3]]
+    pct_day = (100.0 * len(hits) / len(rows)) if rows else 0.0
+    pct_all = (100.0 * hit_all / total_all) if total_all else 0.0
+    body = NL.join(line(r[0], r[1], r[2], r[3]) for r in rows)
+    return NL.join([
+        "\U0001f4ca <b>РЕЗУЛТАТИТЕ НА БОТА</b> · " + date_bg(now),
+        "",
+        body,
+        "",
+        ("За деня: <b>" + str(len(hits)) + " от "
+         + str(len(rows)) + "</b> (" + ("%.0f" % pct_day) + "%)"),
+        ("Общо досега: <b>" + str(hit_all)
+         + " от " + str(total_all) + "</b> (" + ("%.0f" % pct_all) + "%)"),
+        "\U0001f512 Нищо не се трие. Сгрешените остават тук завинаги.",
+        "\U0001f7e2 THE GREEN ROOM",
+    ])
+
+
+def wins_text(now, rows):
+    body = NL.join(line(r[0], r[1], r[2], True) for r in rows)
+    return NL.join([
+        "\U0001f3c6 <b>ПОЗНАТИТЕ НА БОТА</b> · " + date_bg(now),
+        "",
+        body,
+        "",
+        "\U0001f4cc Пълният отчет — със сгрешените — е в ✅ Резултати и статистика.",
+        "\U0001f7e2 THE GREEN ROOM",
+    ])
+
+
+# --------------------------------------------------------------------- ГЛАВНО
+def load_log():
+    if not os.path.exists(LOG_FILE):
+        return []
+    try:
+        with open(LOG_FILE, encoding="utf-8-sig") as f:
+            rows = json.load(f)
+        return rows if isinstance(rows, list) else []
+    except Exception as e:                    # noqa: BLE001
+        print("дневникът не се чете (" + str(e)[:70] + ") — няма какво да оценя.")
+        return []
+
+
+def save_log(rows):
+    if DRY_RUN:
+        return False
+    try:
+        tmp = LOG_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, LOG_FILE)
+        return True
+    except Exception as e:                    # noqa: BLE001
+        print("дневникът не се записа (" + str(e)[:70] + ").")
+        return False
+
+
+def selftest():
+    ok, bad = 0, []
+
+    def check(name, cond):
+        nonlocal ok
+        if cond:
+            ok += 1
+        else:
+            bad.append(name)
+
+    # пазачът на стаите
+    for room in ("4", "5", "6", "7", "8", "11", "26", "27", "328"):
+        check("стая " + room + " е забранена", room not in ALLOWED_THREADS)
+    check("стая 9 е разрешена", RESULTS_THREAD in ALLOWED_THREADS)
+    check("стая 10 е разрешена", WINS_THREAD in ALLOWED_THREADS)
+
+    # отсъждането
+    r = {"home": "Куба", "away": "Египет", "pick": "1 · победа Куба"}
+    check("познат домакин", verdict(r, 3, 1) is True)
+    check("сгрешен домакин", verdict(r, 1, 3) is False)
+    r2 = {"home": "Левски", "away": "Лудогорец", "pick": "2 · победа Лудогорец"}
+    check("познат гост", verdict(r2, 0, 2) is True)
+    check("равенството е грешка", verdict(r2, 1, 1) is False)
+    r3 = {"home": "Левски", "away": "Лудогорец", "pick": "нещо неразпознаваемо"}
+    check("неясното твърдение не се съди", verdict(r3, 2, 1) is None)
+    r4 = {"home": "Милан", "away": "Интер", "pick": "1 · победа Милан"}
+    check("късото име не се лови вътре в дума", name_in("Ин", "Милан") is False)
+    check("цялото име се лови като дума", name_in("Милан", "победа Милан") is True)
+    check("името вътре в друга дума не се брои",
+          name_in("Интер", "Интернационале") is False)
+    check("познат след затягането", verdict(r4, 2, 0) is True)
+    r5 = {"home": "Милан", "away": "Интер", "pick": "1 · победа Милан и Интер"}
+    check("двусмислено твърдение не се съди", verdict(r5, 2, 0) is None)
+
+    # тонът
+    t = results_text(datetime.now(SOFIA),
+                     [({"home": "А", "away": "Б", "pick": "1", "bucket": "football"}, 2, 1, True)],
+                     10, 6)
+    check("отчетът е чист", banned_word(t) is None)
+    check("отчетът показва и общото", "Общо досега" in t)
+    w = wins_text(datetime.now(SOFIA),
+                  [({"home": "А", "away": "Б", "pick": "1", "bucket": "football"}, 2, 1, True)])
+    check("витрината е чиста", banned_word(w) is None)
+    check("витрината сочи към пълния отчет", "Резултати и статистика" in w)
+
+    print("САМОПРОВЕРКА НА ОЦЕНИТЕЛЯ: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
+    for b in bad:
+        print("   счупено: " + b)
+    return 1 if bad else 0
+
+
+def main():
+    if not BOT_TOKEN and not DRY_RUN:
+        print("Липсва BOT_TOKEN.")
+        return 1
+    rows = load_log()
+    if not rows:
+        print("Дневникът е празен — няма какво да оценя.")
+        return 0
+
+    now = datetime.now(SOFIA)
+    limit = (now - timedelta(days=MAX_AGE)).strftime("%Y-%m-%d")
+    today = now.strftime("%Y-%m-%d")
+
+    # Общата статистика се смята от ЦЕЛИЯ дневник, не само от днешното.
+    total_all = sum(1 for r in rows if r.get("scored") and r.get("hit") is not None)
+    hit_all = sum(1 for r in rows if r.get("scored") and r.get("hit") is True)
+
+    fresh = []
+    checked = 0
+    for r in rows:
+        if r.get("scored"):
+            continue
+        day = r.get("day") or ""
+        if day >= today:
+            continue                          # мачът е днес или напред — рано е
+        if day < limit:
+            r["scored"] = True                # твърде старо, отказваме се
+            r["hit"] = None
+            continue
+        checked += 1
+        res = espn_result(r)
+        time.sleep(0.4)
+        if res is None:
+            continue                          # пробваме пак утре
+        hs, as_ = res
+        ok_hit = verdict(r, hs, as_)
+        if ok_hit is None:
+            r["scored"] = True
+            r["hit"] = None
+            continue
+        r["scored"] = True
+        r["hit"] = bool(ok_hit)
+        r["score"] = str(hs) + ":" + str(as_)
+        fresh.append((r, hs, as_, bool(ok_hit)))
+
+    print("Проверени " + str(checked) + " твърдения, отсъдени " + str(len(fresh)) + ".")
+    if not fresh:
+        save_log(rows)
+        print("Няма завършили мачове за отчет — мълча.")
+        return 0
+
+    total_all += len(fresh)
+    hit_all += sum(1 for f in fresh if f[3])
+
+    post(RESULTS_THREAD, results_text(now, fresh, total_all, hit_all))
+    wins = [f for f in fresh if f[3]]
+    if wins:
+        time.sleep(2.0)
+        post(WINS_THREAD, wins_text(now, wins))
+    else:
+        print("Днес няма познати — витрината мълчи, отчетът излезе.")
+    save_log(rows)
+    return 0
+
+
+if __name__ == "__main__":
+    if "--selftest" in sys.argv or os.environ.get("SCORE_SELFTEST") == "1":
+        sys.exit(selftest())
+    sys.exit(main())
