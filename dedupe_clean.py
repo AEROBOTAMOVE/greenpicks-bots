@@ -347,6 +347,7 @@ def norm(s):
             space = True
     return "".join(out).strip()
 
+
 def content_key(msg):
     """(вид, ключ, видим_текст). None ако няма какво да се сравнява."""
     body = msg.get("text") or msg.get("caption") or ""
