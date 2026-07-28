@@ -1,0 +1,1200 @@
+# -*- coding: utf-8 -*-
+"""
+THE GREEN ROOM — БОТ „ПОДКРЕПА" 🆘   (@greenpicks_support_bot)
+
+ЗАЩО СЪЩЕСТВУВА: в закачените постове (setup_hub.py, seed_rooms.py, channel_seed.py)
+пише „Пиши на екипа: @greenpicks_support_bot ... Отговаряме до 24ч." — а насреща
+нямаше НИКОЙ. Всеки, който последва собствената ни инструкция, получаваше тишина.
+Този файл затваря обещанието.
+
+КАК РАБОТИ (три части):
+  1. ЧЕСТИТЕ ВЪПРОСИ — отговарят се МИГНОВЕНО, без човек и без хостинг.
+     /start и седем теми, с инлайн-клавиатура (бутони) и callback_query.
+     Свободен текст също се разпознава по ключови думи („какво значат звездите").
+  2. НОВИТЕ ВЪПРОСИ — отиват при екипа с готова команда за отговор.
+     По подразбиране в стая 11 „🆘 Въпроси и Помощ" на групата (CHAT_ID).
+     Ако е зададен ADMIN_CHAT_ID — отиват ЛИЧНО там (по-добре за личните въпроси)
+     и потребителят получава различно потвърждение. Кажи истината и в двата случая.
+  3. ОТГОВОРЪТ НА ЕКИПА — команда  /o <user_id> <текст>
+     Работи само от id-та в SUPPORT_ADMIN_IDS. Без списък — релето е ИЗКЛЮЧЕНО.
+
+ТОН И ЧЕРВЕНИ ЛИНИИ:
+  - Спокоен аналитичен тон. Отговаряме на въпроса и спираме дотам — не
+    поучаваме и не пишем на човека какво да прави.
+  - Не даваме съвети за залози. Не сме типстъри. Не назоваваме букмейкъри.
+    Питането за такова нещо получава кратък честен отказ (BAIT_ANSWER).
+  - Маркерът 18+ стои САМО в темата /18, която човекът изрично е поискал.
+    Пазено в самопроверката („18+ стои само в своята тема").
+
+ЗАЩИТИ:
+  - ПАЗАЧ НА СТАИТЕ (най-важният). Целият изход навън минава през ЕДНА функция
+    send(), а първото нещо в нея е проверка на стаята — ПРЕДИ сухия режим и
+    ПРЕДИ мрежата, за да не може нищо да я заобиколи. Разрешена е само стаята
+    на съпорта (SUPPORT_THREAD_ID, по подразбиране 11). Стаи 4, 5, 6, 7, 8, 26
+    и 27 се отказват поименно: 4 „Фишове на деня" е САМО на човека-типстер,
+    5-8 са чистите списъци със срещи, 26 е на новините, 27 е на Предсказателя.
+    Номерът на стаята НИКОГА не се взима от ъпдейта: човек, който напише /o в
+    стая 4, не може да завлече отговора на екипа там.
+  - SUPPORT_BOT_TOKEN трябва да е РАЗЛИЧЕН от BOT_TOKEN. Съвпаднат ли, спираме.
+    Причина: getUpdates мести offset-а на токена и ТРИЕ ъпдейти, които не сме поискали.
+    Два полъра на един токен = изчезнали въпроси, без грешка в лога.
+  - offset се потвърждава и СЪРВЪРНО (getUpdates с offset=last+1 накрая), така че
+    загубен git push не води до повторени отговори. Това е дублирането, от което
+    собственикът се оплаква на други места.
+  - support_state.json се самолекува при повреден JSON и се пише атомарно.
+  - 429 → четем parameters.retry_after и чакаме. HTML се екранира. Дължините се режат.
+
+ENV:
+  SUPPORT_BOT_TOKEN   — токенът на @greenpicks_support_bot (ЗАДЪЛЖИТЕЛЕН, отделен)
+  CHAT_ID             — групата (-100...)
+  SUPPORT_THREAD_ID (11) — стая „🆘 Въпроси и Помощ"; проверява се срещу белия
+                      списък и при забранена или безсмислена стойност пада на 11
+                      с печатан WARN. HELP_THREAD_ID е старото име и още работи.
+  ADMIN_CHAT_ID       — по избор: лична админ-група за въпросите (по-дискретно)
+  SUPPORT_ADMIN_IDS   — id-та през запетая, на които е позволено /o
+  BOT_TOKEN           — само за проверката „не е ли същият токен"
+  SUPPORT_DRY_RUN     — 1 = само печата, не праща
+  SUPPORT_MAX_FORWARDS (25) / SUPPORT_MAX_PER_USER (5) — таван срещу спам
+
+ПУСКАНЕ:
+  python support_bot.py            — едно минаване през пощата (крон на 15 мин)
+  python support_bot.py setup      — ЕДНОКРАТНО: описание, меню-бутон, списък команди
+  python support_bot.py selftest   — само логиката, без мрежа и без токен
+
+Бележка за деплой: файлът е писан БЕЗ обратни наклонени черти (нов ред = NL),
+без обратни апострофи и без долар-скоба — минава през редактора на GitHub.
+"""
+import html
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timezone
+
+try:
+    from zoneinfo import ZoneInfo
+    SOFIA = ZoneInfo("Europe/Sofia")
+except Exception:                                    # pragma: no cover
+    SOFIA = timezone.utc
+    print("WARN: няма зона Europe/Sofia — часовете са в UTC.")
+
+NL = chr(10)
+NL2 = NL + NL
+Q1 = chr(8222)       # „
+Q2 = chr(8220)       # “
+RULE = chr(9472) * 46
+
+API_ROOT = "https://api.telegram.org/bot"
+TG_LIMIT = 3900      # 4096 е таванът; режем с резерв
+ID_MARK = "🆔 "      # редът в картата, от който вадим id-то при Reply
+
+
+def _env(name, default=""):
+    return (os.environ.get(name) or default).strip()
+
+
+def _env_int(name, default):
+    raw = _env(name, "")
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+SUPPORT_TOKEN = _env("SUPPORT_BOT_TOKEN")
+MAIN_TOKEN = _env("BOT_TOKEN")
+CHAT_ID = _env("CHAT_ID")
+ADMIN_CHAT_ID = _env("ADMIN_CHAT_ID")
+SUPPORT_HANDLE = _env("SUPPORT", "@greenpicks_support_bot")
+STATE_FILE = _env("SUPPORT_STATE", "support_state.json")
+DRY_RUN = _env("SUPPORT_DRY_RUN", "0") == "1"
+MAX_FORWARDS = max(1, _env_int("SUPPORT_MAX_FORWARDS", 25))   # 0 би задръстил пощата
+MAX_PER_USER = max(1, _env_int("SUPPORT_MAX_PER_USER", 5))
+PAGES_URL = _env("SUPPORT_FAQ_URL")      # по избор: GitHub Pages с пълния FAQ
+
+
+def admin_ids():
+    out = set()
+    for chunk in _env("SUPPORT_ADMIN_IDS").replace(";", ",").split(","):
+        chunk = chunk.strip()
+        if chunk.lstrip("-").isdigit():
+            out.add(int(chunk))
+    return out
+
+
+ADMINS = admin_ids()
+
+
+# ---------------------------------------------------------------- СТАИТЕ (ПАЗАЧЪТ)
+# Картата на групата. Съпортът има ЕДНА своя стая; всичко останало е чуждо.
+ROOMS = {
+    "1": "Общ чат", "3": "Правила", "4": "Фишове на деня (САМО човек)",
+    "5": "Футбол", "6": "Баскетбол", "7": "Тенис на маса", "8": "Волейбол",
+    "9": "Резултати", "10": "Печеливши фишове", "11": "Въпроси и Помощ",
+    "26": "Новини", "27": "БОТА ПРЕДРИЧА",
+}
+
+# 🚫 ЖЕЛЯЗНО. Стая 4 е на човека-типстер — там бот НЕ пише никога. 5-8 са чистите
+# списъци със срещи, 26 е на новините, 27 е на Предсказателя. Съпорт-трафик в
+# която и да е от тях е грешка, а не решение на потребителя.
+FORBIDDEN_THREADS = {"4", "5", "6", "7", "8", "26", "27"}
+
+# Чужди, но не така опасни стаи. Пак не са дом на съпорта.
+OTHER_ROOMS = {"1", "3", "9", "10"}
+
+DEFAULT_SUPPORT_THREAD = "11"
+
+
+def resolve_support_thread(raw):
+    """Кой номер на стая приемаме от средата. Лоша стойност НИКОГА не става
+    забранена стая — пада на 11 и казва на глас защо."""
+    tid = str(raw or "").strip()
+    if not tid or tid == DEFAULT_SUPPORT_THREAD:
+        return DEFAULT_SUPPORT_THREAD
+    if tid in FORBIDDEN_THREADS:
+        print("WARN: SUPPORT_THREAD_ID=" + tid + " е ЗАБРАНЕНА стая (" +
+              ROOMS.get(tid, "чужда") + ") — падам на " + DEFAULT_SUPPORT_THREAD + ".")
+        return DEFAULT_SUPPORT_THREAD
+    if tid in OTHER_ROOMS:
+        print("WARN: SUPPORT_THREAD_ID=" + tid + " е чужда стая (" +
+              ROOMS.get(tid, "чужда") + ") — падам на " + DEFAULT_SUPPORT_THREAD + ".")
+        return DEFAULT_SUPPORT_THREAD
+    if not tid.isdigit() or int(tid) <= 1:
+        print("WARN: SUPPORT_THREAD_ID=" + tid + " не е валиден номер на стая — " +
+              "падам на " + DEFAULT_SUPPORT_THREAD + ".")
+        return DEFAULT_SUPPORT_THREAD
+    return tid                              # преместена помощ-стая: позволено
+
+
+# SUPPORT_THREAD_ID е новото име; HELP_THREAD_ID остава заради стария workflow.
+SUPPORT_THREAD = resolve_support_thread(_env("SUPPORT_THREAD_ID", "") or
+                                        _env("HELP_THREAD_ID", ""))
+ALLOWED_THREADS = {SUPPORT_THREAD}          # белият списък. Точно една стая.
+
+
+def thread_ok(chat_id, thread_id):
+    """ПАЗАЧЪТ. Връща (може ли, причина). Чиста функция — без мрежа и без сух
+    режим, така че самопроверката проверява точно това, което тича наживо."""
+    tid = str(thread_id if thread_id is not None else "").strip()
+    dest = str(chat_id or "").strip()
+    if not tid:
+        # Личен чат и админ-група нямат теми. Но форум-групата има: съобщение
+        # без стая там пада в Общия чат, а съпортът няма работа и в него.
+        if dest and CHAT_ID and dest == str(CHAT_ID).strip():
+            return False, "липсва стая към форум-групата (Общият чат не е наш)"
+        return True, ""
+    if tid in FORBIDDEN_THREADS:
+        return False, ("стая " + tid + " е ЗАБРАНЕНА (" +
+                       ROOMS.get(tid, "чужда стая") + ")")
+    if not tid.isdigit() or int(tid) <= 1:
+        return False, "невалиден номер на стая " + tid
+    if tid not in ALLOWED_THREADS:
+        return False, ("стая " + tid + " не е стаята на съпорта (" +
+                       SUPPORT_THREAD + ")")
+    return True, ""
+
+# ---------------------------------------------------------------- ДРЕБНИ ИНСТРУМЕНТИ
+def esc(x):
+    return html.escape(str(x if x is not None else ""))
+
+
+def clip(text, limit=TG_LIMIT):
+    t = text or ""
+    if len(t) <= limit:
+        return t
+    return t[:limit - 20].rstrip() + NL + "…(съкратено)"
+
+
+def now_bg():
+    return datetime.now(timezone.utc).astimezone(SOFIA)
+
+
+def today_bg():
+    return now_bg().strftime("%Y-%m-%d")
+
+
+def jd(obj):
+    """JSON за Telegram — с истинска кирилица, а не с ескейпи."""
+    return json.dumps(obj, ensure_ascii=False)
+
+
+# ---------------------------------------------------------------- СЪДЪРЖАНИЕТО (FAQ)
+# Ключ -> (команда, надпис на бутона, тяло на отговора).
+# ⭐ текстът е синхронизиран с predictor.py (footer_card) — сменяш там, сменяш и тук.
+FAQ = {
+    "prognoza": (
+        "prognoza", "📊 Какво е прогноза",
+        NL.join([
+            "📊 <b>Какво е прогноза</b>",
+            "",
+            "Вероятност, изчислена от статистика.",
+            "",
+            "Всяка карта показва три неща:",
+            "• числото (например 62%)",
+            "• извадката, от която идва (колко мача сме гледали)",
+            "• кой модел го е сметнал",
+            "",
+            "Моделите: ⚽ Поасон · 🏀 темпо и ефективност · 🏐 сет по сет · 🏓 Elo.",
+        ])),
+    "zvezdi": (
+        "zvezdi", "⭐ Какво значат звездите",
+        NL.join([
+            "⭐ <b>Звездите</b>",
+            "",
+            "• ⭐ <b>малка извадка</b>",
+            "• ⭐⭐ <b>прилична извадка</b>",
+            "• ⭐⭐⭐ <b>добра</b> за нашите източници",
+            "",
+            "Три звезди се случват <b>рядко</b> — данните ни са безплатни и на",
+            "места тънки.",
+            "",
+            "Звездите идват от РЕАЛНАТА извадка и от това колко категорични са числата.",
+        ])),
+    "tishina": (
+        "tishina", "🤐 Защо ботът мълчи",
+        NL.join([
+            "🤐 <b>Защо понякога няма прогноза</b>",
+            "",
+            "Малко данни = няма прогноза. Предпочитаме да мълчим, вместо да гадаем.",
+            "",
+            "Случва се, когато:",
+            "• сезонът е в пауза и няма достатъчно изиграни мачове",
+            "• отборът е нов и няма история",
+            "• числата не дават ясен превес на никого",
+            "",
+            "Тих ден = няма пост.",
+        ])),
+    "rezultati": (
+        "rezultati", "✅ Къде са резултатите",
+        NL.join([
+            "✅ <b>Резултатите</b>",
+            "",
+            "Стая <b>✅ Резултати и статистика</b> — там влиза всичко: и уцеленото,",
+            "и сгрешеното. Стая <b>🏆 Печеливши фишове</b> е само витрина.",
+            "",
+            "<b>Нищо не се трие.</b> И сгрешените прогнози остават да се видят завинаги.",
+        ])),
+    "stai": (
+        "stai", "🧭 Карта на стаите",
+        NL.join([
+            "🧭 <b>Къде какво има</b>",
+            "",
+            "📌 Правила и Начало — как работи всичко",
+            "🎯 Фишове на деня — <b>само човекът-типстер</b>, ботове не пишат там",
+            "⚽ 🏀 🏓 🏐 Спортните стаи — <b>само срещите</b>: час, отбори, турнир",
+            "📰 Новини — <b>всички</b> новини, подредени по спорт",
+            "🤖 БОТА ПРЕДРИЧА — прогнозите и анализите на бота",
+            "✅ Резултати и статистика · 🏆 Печеливши фишове",
+            "🆘 Въпроси и Помощ — питай пред всички, отговаряме там",
+            "",
+            "В канала: фишовете на типстъра, обзорът на бота и резултатите.",
+            "Новини в канала НЯМА.",
+        ])),
+    # ЕДИНСТВЕНОТО място, където темата се появява — и то само ако човекът
+    # изрично я поиска (/18 или бутона). Никакви лекции: възраст и телефон.
+    "18": (
+        "18", "🔞 18+",
+        NL.join([
+            "🔞 <b>18+</b>",
+            "",
+            "Съдържанието е за пълнолетни. Публикуваме анализ и вероятности.",
+            "",
+            "Ако търсиш подкрепа за проблем с хазарта:",
+            "📞 Национална линия: <b>1000</b>",
+        ])),
+    "chovek": (
+        "chovek", "🙋 Искам жив човек",
+        NL.join([
+            "🙋 <b>Как стигаш до жив човек</b>",
+            "",
+            "Просто напиши въпроса си <b>тук, в този чат</b> — стига до екипа",
+            "и отговаряме до 24 часа.",
+            "",
+            "Или го задай публично в стая <b>🆘 Въпроси и Помощ</b> — така отговорът",
+            "остава видим за всички, които се чудят същото.",
+            "",
+            "Не сме кол-център. Един-двама души сме и отговаряме сами.",
+        ])),
+}
+
+FAQ_ORDER = ["prognoza", "zvezdi", "tishina", "rezultati", "stai", "18", "chovek"]
+
+# Свободен текст -> тема. Само подниз-съвпадения, никакви регулярни изрази.
+# ВАЖНО: подсказките са НАРОЧНО тесни. Широка дума („канал", „тема") щеше да
+# отвлича истински въпроси към автоматичен отговор и те никога нямаше да стигнат
+# до човек. По-добре повече работа за екипа, отколкото глътнат въпрос.
+HINTS = {
+    "prognoza": ["какво е прогноз", "как правите прогноз", "как се прави прогноз",
+                 "как смятате", "как се смята", "какъв модел", "поасон",
+                 "прогнозите ви", "гаранция ли"],
+    "zvezdi": ["звезд", "какво значи ⭐", "колко да вярвам", "какво е увереност"],
+    "tishina": ["защо мълчи", "мълчи", "няма прогноз", "защо няма пост",
+                "нищо не пише", "защо е празно", "тих ден"],
+    "rezultati": ["къде са резултат", "къде виждам резултат", "има ли отчет",
+                  "къде е статистиката", "триете ли", "криете ли загуб"],
+    "stai": ["коя стая", "кои са стаите", "карта на стаите", "къде да пиша",
+             "къде се пише", "не намирам стая", "каква е разликата между канала"],
+    "18": ["18+", "отговорна игра", "зависим", "пристраст", "имам проблем с хазарт",
+           "възрастово", "къде да потърся помощ"],
+    "chovek": ["искам човек", "жив човек", "с човек ли", "има ли админ",
+               "кой отговаря", "истински човек"],
+    "start": ["здравей", "здрасти", "добър ден", "добро утро", "хей", "hi", "hello"],
+}
+
+# Питане за залог -> честен отказ. Пълни изрази, за да няма фалшиви попадения.
+BAIT = [
+    "на кого да заложа", "къде да заложа", "колко да заложа", "какво да заложа",
+    "дай сигурен", "сигурен мач", "сигурен фиш", "сигурни мача", "сигурни мачове",
+    "верен фиш", "верен мач", "фиксиран", "уговорен мач", "намесен мач",
+    "гарантира", "гаранция за печалба", "100% сигур", "сто процента сигур",
+    "коефициент", "букмейкър", "букмейкар", "тото", "тотализатор",
+    "типстър", "тип за днес", "дай тип", "кой ще спечели сигурно",
+]
+
+BAIT_ANSWER = NL.join([
+    "🚫 <b>Не даваме съвети за залози и не сме типстъри.</b>",
+    "",
+    "Публикуваме <b>анализ и вероятности</b> — числото и извадката зад него.",
+    "",
+    "Виж /prognoza как работим и /zvezdi какво значат звездите.",
+    "",
+    "Ако въпросът ти беше друг — напиши го с други думи и ще стигне до екипа.",
+])
+
+WELCOME = NL.join([
+    "🟢 <b>THE GREEN ROOM — Помощ</b>",
+    "",
+    "Здравей! Тук отговарям на честите въпроси <b>веднага</b>,",
+    "а всичко останало предавам на екипа.",
+    "",
+    "Избери тема от бутоните долу или просто ми напиши въпроса си. 💚",
+])
+
+NOT_TEXT = NL.join([
+    "Засега разбирам само <b>текст</b> 🙂",
+    "Напиши въпроса си с думи и ще стигне до екипа.",
+])
+
+
+def menu_markup(back=False):
+    rows = []
+    pair = []
+    for k in FAQ_ORDER:
+        pair.append({"text": FAQ[k][1], "callback_data": "faq:" + k})
+        if len(pair) == 2:
+            rows.append(pair)
+            pair = []
+    if pair:
+        rows.append(pair)
+    if back:
+        rows.append([{"text": "↩️ Начало", "callback_data": "faq:start"}])
+    if PAGES_URL.startswith("https://"):
+        rows.append([{"text": "📖 Пълна помощ", "url": PAGES_URL}])
+    return {"inline_keyboard": rows}
+
+
+def faq_answer(key):
+    """Връща (текст, показвам ли клавиатура) за дадена тема."""
+    if key == "start":
+        return WELCOME, True
+    item = FAQ.get(key)
+    if not item:
+        return WELCOME, True
+    return item[2], True
+
+
+def match_intent(text):
+    """Свободен текст -> ключ на тема, или None ако е нов въпрос за човек."""
+    t = (text or "").strip().lower()
+    if not t:
+        return None
+    if t.startswith("/"):
+        cmd = t[1:].split()[0].split("@")[0]
+        if cmd in ("start", "help", "menu"):
+            return "start"
+        for k in FAQ_ORDER:
+            if cmd == FAQ[k][0]:
+                return k
+        return None
+    if len(t) <= 24:                       # дълъг текст = истински въпрос, не поздрав
+        for hint in HINTS["start"]:
+            if hint in t:
+                return "start"
+    for key in FAQ_ORDER:
+        for hint in HINTS.get(key, []):
+            if hint in t:
+                return key
+    return None
+
+
+def is_bait(text):
+    t = (text or "").lower()
+    for phrase in BAIT:
+        if phrase in t:
+            return True
+    return False
+
+
+# ---------------------------------------------------------------- ТЕЛЕГРАМ
+def api(method, **params):
+    """Едно извикване с уважение към 429 (чете parameters.retry_after)."""
+    if not SUPPORT_TOKEN:
+        print("НЯМА SUPPORT_BOT_TOKEN — " + method + " пропуснат.")
+        return None
+    url = API_ROOT + SUPPORT_TOKEN + "/" + method
+    payload = {}
+    for k, v in params.items():
+        if v is None:
+            continue
+        payload[k] = v if isinstance(v, str) else str(v)
+    for attempt in range(4):
+        data = urllib.parse.urlencode(payload).encode()
+        try:
+            req = urllib.request.Request(url, data=data)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                resp = json.loads(r.read().decode("utf-8", "replace"))
+            if not resp.get("ok"):
+                print(method + " ERROR: " + str(resp)[:200])
+                return None
+            return resp.get("result")
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode("utf-8", "replace")
+            wait = 0
+            try:
+                body = json.loads(raw) or {}
+                wait = int((body.get("parameters") or {}).get("retry_after") or 0)
+            except Exception:
+                wait = 0
+            if e.code == 429 and attempt < 3:
+                wait = wait if wait > 0 else 5
+                print("429 — чакам " + str(wait + 1) + " сек и пробвам пак")
+                time.sleep(wait + 1)
+                continue
+            print(method + " HTTP " + str(e.code) + ": " + raw[:200])
+            return None
+        except Exception as ex:
+            print(method + " FAIL: " + str(ex)[:160])
+            if attempt < 3:
+                time.sleep(3)
+                continue
+            return None
+    return None
+
+
+def send(chat_id, text, thread_id=None, markup=None, preview=False):
+    """ЕДИНСТВЕНИЯТ изход на съпорта навън. Пазачът е ТУК — първият ред, преди
+    сухия режим и преди мрежата. Така едно „само да видя какво щеше да стане"
+    не може да прати картичка в стая 4, нито някой бъдещ повикващ да я заобиколи."""
+    ok, why = thread_ok(chat_id, thread_id)
+    if not ok:
+        print("ОТКАЗ: " + why + " — не пращам.")
+        return None
+    body = clip(text)
+    if DRY_RUN:
+        print(RULE)
+        print("-> " + str(chat_id) + (" / стая " + str(thread_id) if thread_id else ""))
+        print(body)
+        print(RULE)
+        return {"message_id": 0}
+    params = {"chat_id": str(chat_id), "text": body, "parse_mode": "HTML",
+              "disable_web_page_preview": "false" if preview else "true"}
+    tid = str(thread_id or "").strip()
+    if tid.isdigit() and int(tid) > 1:
+        params["message_thread_id"] = tid
+    if markup:
+        params["reply_markup"] = jd(markup)
+    return api("sendMessage", **params)
+
+
+def edit(chat_id, message_id, text, markup=None):
+    params = {"chat_id": str(chat_id), "message_id": str(message_id),
+              "text": clip(text), "parse_mode": "HTML",
+              "disable_web_page_preview": "true"}
+    if markup:
+        params["reply_markup"] = jd(markup)
+    if DRY_RUN:
+        print("(редакция) " + clip(text)[:120])
+        return True
+    return api("editMessageText", **params) is not None
+
+
+def ack_callback(cb_id, note=""):
+    if DRY_RUN:
+        return True
+    return api("answerCallbackQuery", callback_query_id=str(cb_id),
+               text=note[:190]) is not None
+
+
+# ---------------------------------------------------------------- ПАМЕТ
+def load_state():
+    base = {"v": 1, "offset": 0, "day": today_bg(), "per_user": {}, "seq": 0,
+            "last_run": ""}
+    try:
+        with open(STATE_FILE, encoding="utf-8-sig") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            base["offset"] = int(data.get("offset") or 0)
+            base["seq"] = int(data.get("seq") or 0)
+            base["day"] = str(data.get("day") or today_bg())
+            pu = data.get("per_user")
+            if isinstance(pu, dict):
+                base["per_user"] = {str(k): int(v) for k, v in pu.items()
+                                    if str(v).lstrip("-").isdigit()}
+    except FileNotFoundError:
+        print("Няма " + STATE_FILE + " — започвам с чиста памет.")
+    except Exception as ex:
+        print("WARN: повредена памет (" + str(ex)[:80] + ") — започвам начисто.")
+    if base["day"] != today_bg():          # нов ден = нови тавани
+        base["day"] = today_bg()
+        base["per_user"] = {}
+    return base
+
+
+def save_state(state):
+    state["last_run"] = now_bg().strftime("%Y-%m-%d %H:%M")
+    if len(state.get("per_user") or {}) > 500:
+        keep = sorted(state["per_user"].items(), key=lambda kv: -kv[1])[:500]
+        state["per_user"] = dict(keep)
+    tmp = STATE_FILE + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, STATE_FILE)        # атомарно: убит рънър не оставя счупен JSON
+    except Exception as ex:
+        print("ГРЕШКА при запис на паметта: " + str(ex)[:120])
+
+
+# ---------------------------------------------------------------- КАРТА ЗА ЕКИПА
+def who(user):
+    u = user or {}
+    name = " ".join(x for x in [u.get("first_name"), u.get("last_name")] if x).strip()
+    return name or "без име"
+
+
+def question_card(seq, user, text, tag=""):
+    uid = str((user or {}).get("id") or "0")
+    handle = (user or {}).get("username")
+    line_who = "👤 " + esc(who(user))
+    if handle:
+        line_who += " (@" + esc(handle) + ")"
+    lines = [
+        "🆘 <b>НОВ ВЪПРОС</b> №" + str(seq) + " · " + now_bg().strftime("%d.%m, %H:%M"),
+    ]
+    if tag:
+        lines.append(tag)
+    lines += [
+        "",
+        line_who,
+        ID_MARK + "<code>" + esc(uid) + "</code>",
+        "",
+        "<blockquote>" + esc(clip(text, 900)) + "</blockquote>",
+        "",
+        "✍️ <b>Отговор:</b> натисни <b>Reply</b> върху това съобщение и пиши —",
+        "стига до човека веднага. Или копирай реда и допиши текста:",
+        "<code>/o " + esc(uid) + " </code>",
+    ]
+    return NL.join(lines)
+
+
+def ack_text(public):
+    if public:
+        return NL.join([
+            "Получихме въпроса ти 💚",
+            "",
+            "Предадох го в стая <b>🆘 Въпроси и Помощ</b> — там екипът отговаря",
+            "<b>пред всички</b>, за да е от полза и на другите. До 24 часа.",
+            "",
+            "Ако въпросът ти е личен, кажи го и ще внимаваме какво публикуваме.",
+            "Междувременно — бутоните долу отговарят веднага. 👇",
+        ])
+    return NL.join([
+        "Получихме въпроса ти 💚",
+        "",
+        "Стигна до екипа и отговаряме <b>до 24 часа</b>.",
+        "Междувременно — бутоните долу отговарят веднага. 👇",
+    ])
+
+
+# ---------------------------------------------------------------- ОБРАБОТКА
+def target_from_card(reply):
+    """Изкопава user id от нашата собствена карта, на която екипът е натиснал Отговор.
+    В reply_to_message текстът идва БЕЗ HTML тагове, затова търсим реда с 🆔.
+    Само ПОЛОЖИТЕЛНО id: човек. Отрицателното е група или канал — там отговор
+    от името на екипа няма работа."""
+    r = reply or {}
+    if not (r.get("from") or {}).get("is_bot"):
+        return ""
+    body = r.get("text") or r.get("caption") or ""
+    for line in body.split(NL):
+        line = line.strip()
+        if line.startswith(ID_MARK):
+            cand = line[len(ID_MARK):].strip()
+            if cand.isdigit() and int(cand) > 0:
+                return cand
+    return ""
+
+
+def relay(chat_id, thread, sender_id, target, body):
+    """Праща отговора на екипа обратно към човека. Един път, с всички пазачи.
+    Стаята НЕ идва от ъпдейта — подава я handle_relay и минава през send()."""
+    if not ADMINS:
+        send(chat_id, NL.join([
+            "⚠️ Релето е изключено: няма зададен <code>SUPPORT_ADMIN_IDS</code>.",
+            "Сложи своето числово id в променливите на хранилището.",
+        ]), thread)
+        print("ОТКАЗ: отговор без конфигурирани админи.")
+        return False
+    if sender_id not in ADMINS:
+        print("ОТКАЗ: отговор от id " + str(sender_id) + " — не е в SUPPORT_ADMIN_IDS.")
+        return False                       # мълчим: не потвърждаваме на чужд, че сме тук
+    # Отговорът отива при ЧОВЕК. Отрицателното id е група или канал: така
+    # „/o -100... текст" щеше да изсипе отговора на екипа в чужда стая.
+    if not target.isdigit() or int(target) <= 0:
+        send(chat_id, NL.join([
+            "Първо иде <b>числово</b> id на човека, после текстът.",
+            "Id-то е положително число — с минус е чат или канал, там не пращаме.",
+        ]), thread)
+        return False
+    if not body.strip():
+        send(chat_id, "Празен отговор — не пращам нищо.", thread)
+        return False
+    out = NL.join(["💬 <b>Отговор от екипа</b>", "", esc(body.strip()), "",
+                   "Питай пак когато искаш. 💚"])
+    if send(target, out, markup=menu_markup(back=True)):
+        send(chat_id, "✅ Пратено до <code>" + esc(target) + "</code>.", thread)
+        print("Реле: отговор -> " + target)
+        return True
+    send(chat_id, "❌ Не мина до <code>" + esc(target) + "</code> — най-вероятно " +
+         "човекът е спрял бота или е изтрил чата.", thread)
+    return False
+
+
+def handle_relay(msg, state):
+    """Два начина екипът да отговори:
+       1) Reply върху картата с въпроса  (естественото движение — препоръчано)
+       2) /o <user_id> <текст>           (когато картата е далеч нагоре)"""
+    text = (msg.get("text") or "").strip()
+    sender = msg.get("from") or {}
+    sid = int(sender.get("id") or 0)
+    chat = msg.get("chat") or {}
+    chat_id = chat.get("id")
+
+    # СТАЯТА НЕ СЕ ВЗИМА ОТ ЪПДЕЙТА. Ако я четяхме от msg["message_thread_id"],
+    # едно /o, написано в стая 4 „Фишове на деня", щеше да сложи потвърждението
+    # на бота точно там — в стаята, в която бот не пише никога. В групата
+    # отговаряме само в стаята на съпорта; в личен чат тема няма.
+    in_forum = (str(chat.get("type") or "") in ("group", "supergroup")
+                and CHAT_ID and str(chat_id) == str(CHAT_ID).strip())
+    thread = SUPPORT_THREAD if in_forum else None
+
+    # Чужд човек не получава дори формата на командата: иначе всеки можеше да
+    # накара бота да проговори в стаята, в която е застанал.
+    if ADMINS and sid not in ADMINS:
+        print("ОТКАЗ: /o от id " + str(sid) + " — не е в SUPPORT_ADMIN_IDS.")
+        return False
+
+    low = text.lower()
+    if low == "/o" or low.startswith("/o ") or low.startswith("/o@"):
+        parts = text.split(None, 2)
+        if len(parts) < 3:
+            send(chat_id, NL.join([
+                "Формат: <code>/o &lt;user_id&gt; текст на отговора</code>",
+                "",
+                "Или просто натисни <b>Отговор</b> върху картата с въпроса —",
+                "тогава id-то се хваща само. 💚",
+            ]), thread)
+            return False
+        return relay(chat_id, thread, sid, parts[1].strip(), parts[2])
+
+    target = target_from_card(msg.get("reply_to_message"))
+    if target:
+        return relay(chat_id, thread, sid, target, text)
+    return False
+
+
+def handle_private(msg, state, budget):
+    """Един личен въпрос. Връща 1 ако е бил предаден на екипа."""
+    chat = msg.get("chat") or {}
+    chat_id = chat.get("id")
+    user = msg.get("from") or {}
+    uid = str(user.get("id") or chat_id)
+    text = msg.get("text") or msg.get("caption") or ""
+
+    if not text.strip():
+        send(chat_id, NOT_TEXT, markup=menu_markup())
+        return 0
+
+    # ЧЕСТНИЯТ ОТКАЗ ВЪРВИ ПРЕДИ FAQ-а. Иначе „искам човек, дай ми сигурен мач"
+    # хващаше подсказката „искам човек" и човекът получаваше бодро меню вместо
+    # ясното „не сме типстъри". Изричната команда (/zvezdi) си остава команда.
+    if is_bait(text) and not text.strip().startswith("/"):
+        send(chat_id, BAIT_ANSWER, markup=menu_markup(back=True))
+        print("Отказ за залог -> " + uid)
+        return 0
+
+    key = match_intent(text)
+    if key:
+        body, show = faq_answer(key)
+        send(chat_id, body, markup=menu_markup(back=(key != "start")) if show else None)
+        print("FAQ '" + key + "' -> " + uid)
+        return 0
+
+    if is_bait(text):
+        send(chat_id, BAIT_ANSWER, markup=menu_markup(back=True))
+        print("Отказ за залог -> " + uid)
+        return 0
+
+    used = int((state["per_user"] or {}).get(uid) or 0)
+    if used >= MAX_PER_USER:
+        send(chat_id, NL.join([
+            "Днес вече предадох " + str(used) + " твои въпроса на екипа 🙂",
+            "Изчакай отговора — пиши пак утре, ако не се обадим.",
+        ]), markup=menu_markup())
+        print("Таван за потребител " + uid)
+        return 0
+    if budget <= 0:
+        send(chat_id, NL.join([
+            "Пощата е пълна за това минаване — въпросът ти НЕ е загубен,",
+            "ще го предам след малко. 💚",
+        ]))
+        print("Таван за пускането — " + uid + " остава за следващия рън.")
+        return -1                          # сигнал: спри offset-а тук
+
+    state["seq"] = int(state.get("seq") or 0) + 1
+    # Ако ADMIN_CHAT_ID сочи същата форум-група, това е публичният път със стая,
+    # а не тиха лична група — иначе картата щеше да падне в Общия чат.
+    public = (not ADMIN_CHAT_ID) or (ADMIN_CHAT_ID == CHAT_ID)
+    target_chat = CHAT_ID if public else ADMIN_CHAT_ID
+    target_thread = SUPPORT_THREAD if public else None
+    card = question_card(state["seq"], user, text)
+
+    delivered = False
+    if target_chat:
+        delivered = bool(send(target_chat, card, target_thread))
+    else:
+        print("ГРЕШКА: няма CHAT_ID/ADMIN_CHAT_ID — въпросът няма къде да отиде.")
+
+    if delivered:
+        state["per_user"][uid] = used + 1
+        send(chat_id, ack_text(public), markup=menu_markup())
+        print("Въпрос №" + str(state["seq"]) + " от " + uid + " -> екипа.")
+        return 1
+
+    send(chat_id, NL.join([
+        "Опитах да предам въпроса ти, но нещо се счупи по пътя 😕",
+        "",
+        "Напиши го, моля те, направо в стая <b>🆘 Въпроси и Помощ</b> в групата —",
+        "там сме и отговаряме.",
+    ]), markup=menu_markup())
+    return 0
+
+
+def handle_callback(cb):
+    data = (cb.get("data") or "").strip()
+    msg = cb.get("message") or {}
+    chat = msg.get("chat") or {}
+    chat_id = chat.get("id")
+    mid = msg.get("message_id")
+    ack_callback(cb.get("id"))             # винаги гасим въртележката първо
+    if not data.startswith("faq:") or not chat_id:
+        return
+    if chat.get("type") != "private":
+        # Менюто живее в личния чат. Бутон, натиснат в група, не бива да ражда
+        # нов пост в стаята, в която е бил натиснат.
+        print("Пропускам callback извън личен чат (" + str(chat.get("type")) + ").")
+        return
+    key = data[4:]
+    body, _ = faq_answer(key)
+    markup = menu_markup(back=(key != "start"))
+    if mid and edit(chat_id, mid, body, markup):
+        return
+    send(chat_id, body, markup=markup)
+
+
+# ---------------------------------------------------------------- ЕДНОКРАТНА НАСТРОЙКА
+def setup():
+    """Клиентските повърхности на Telegram — рендират се МИГНОВЕНО, без наш процес."""
+    short = ("Помощ за The Green Room 🟢 Отговарям на честите въпроси веднага, "
+             "останалото предавам на екипа.")
+    long = NL.join([
+        "🟢 THE GREEN ROOM — помощ",
+        "",
+        "Питай ме каквото искаш за канала и групата.",
+        "Честите въпроси получаваш веднага, останалото стига до екипа (до 24ч).",
+        "",
+        "📊 Прогнозата е вероятност, изчислена от статистика.",
+        "🔒 Нищо не трием — и загубите остават видими.",
+        "",
+        "Натисни СТАРТ за менюто.",
+    ])
+    cmds = [{"command": "start", "description": "Начало и меню"}]
+    for k in FAQ_ORDER:
+        cmds.append({"command": FAQ[k][0],
+                     "description": FAQ[k][1].split(" ", 1)[-1][:64]})
+    steps = [
+        ("getMe", {}),
+        ("deleteWebhook", {"drop_pending_updates": "false"}),
+        ("setMyShortDescription", {"short_description": short[:120],
+                                   "language_code": "bg"}),
+        ("setMyDescription", {"description": long[:512], "language_code": "bg"}),
+        ("setMyCommands", {"commands": jd(cmds),
+                           "scope": jd({"type": "all_private_chats"}),
+                           "language_code": "bg"}),
+    ]
+    if PAGES_URL.startswith("https://"):
+        steps.append(("setChatMenuButton", {"menu_button": jd(
+            {"type": "web_app", "text": "Помощ",
+             "web_app": {"url": PAGES_URL}})}))
+    else:
+        steps.append(("setChatMenuButton", {"menu_button": jd({"type": "commands"})}))
+    ok = 0
+    for method, params in steps:
+        res = api(method, **params)
+        print(("  ✔ " if res is not None else "  ✘ ") + method)
+        if res is not None:
+            ok += 1
+        time.sleep(0.4)
+    print("Настройка: " + str(ok) + "/" + str(len(steps)) + " минаха.")
+    return ok == len(steps)
+
+
+# ---------------------------------------------------------------- ГЛАВНОТО
+def token_conflict(support, main):
+    """True = двата токена са един и същ бот. Тогава НЕ пускаме нищо."""
+    a = (support or "").strip()
+    b = (main or "").strip()
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    return a.split(":")[0] == b.split(":")[0]      # един и същ bot id, друг таен низ
+
+
+def guard():
+    """Спира преди да е станала беля. Връща True ако може да продължим."""
+    if not SUPPORT_TOKEN:
+        print("НЯМА SUPPORT_BOT_TOKEN — съпорт-ботът спи. (Това не е грешка:")
+        print("добави тайната в GitHub > Settings > Secrets и ще се събуди.)")
+        return False
+    if token_conflict(SUPPORT_TOKEN, MAIN_TOKEN):
+        print("СТОП: SUPPORT_BOT_TOKEN е СЪЩИЯТ бот като BOT_TOKEN.")
+        print("Два полъра на един токен трият чужди ъпдейти безшумно.")
+        print("Направи отделен бот при @BotFather и сложи неговия токен.")
+        return False
+    if not CHAT_ID and not ADMIN_CHAT_ID:
+        print("ВНИМАНИЕ: няма CHAT_ID и няма ADMIN_CHAT_ID — новите въпроси")
+        print("нямат къде да отидат. Честите въпроси пак ще се отговарят.")
+    print("Стая на съпорта: " + SUPPORT_THREAD + " (" +
+          ROOMS.get(SUPPORT_THREAD, "нова стая") + "). Забранени: " +
+          ", ".join(sorted(FORBIDDEN_THREADS, key=int)) + ".")
+    return True
+
+
+def main():
+    if not guard():
+        return 0
+
+    state = load_state()
+    offset = int(state.get("offset") or 0)
+    updates = api("getUpdates", offset=offset + 1, timeout=0, limit=50,
+                  allowed_updates=jd(["message", "callback_query"]))
+    if updates is None:
+        print("getUpdates не отговори — оставям offset-а както е.")
+        return 1
+    if not updates:
+        print("Няма нови съобщения. Offset=" + str(offset) + ".")
+        if not DRY_RUN:
+            save_state(state)
+        return 0
+
+    budget = MAX_FORWARDS
+    last_id = offset
+    forwarded = 0
+    stop = False
+
+    for u in updates:
+        uid = int(u.get("update_id") or 0)
+        if stop:
+            break
+        cb = u.get("callback_query")
+        if cb:
+            handle_callback(cb)
+            last_id = max(last_id, uid)
+            continue
+        msg = u.get("message")
+        if not msg:
+            last_id = max(last_id, uid)
+            continue
+        chat = msg.get("chat") or {}
+        text = (msg.get("text") or "").strip()
+
+        # 1) отговор на екипа. Работи и в лично, и в стая 11:
+        #    команда /o ...  ИЛИ  Reply върху нашата карта с въпроса.
+        #    (В група с включен privacy mode ботът вижда точно тези две неща.)
+        low = text.lower()
+        is_cmd = low == "/o" or low.startswith("/o ") or low.startswith("/o@")
+        if is_cmd or target_from_card(msg.get("reply_to_message")):
+            handle_relay(msg, state)
+            last_id = max(last_id, uid)
+            continue
+
+        # 2) всичко останало ни интересува само в ЛИЧЕН чат
+        if chat.get("type") != "private":
+            last_id = max(last_id, uid)
+            continue
+
+        res = handle_private(msg, state, budget)
+        if res == -1:
+            stop = True                    # таванът е стигнат: НЕ местим offset-а нататък
+            break
+        if res == 1:
+            forwarded += 1
+            budget -= 1
+        last_id = max(last_id, uid)
+        time.sleep(0.4)                    # ~2 съобщения/сек, далеч под лимита
+
+    if DRY_RUN:
+        # Сухото пускане НЕ бива да изяжда истински въпроси: нищо не се записва —
+        # нито offset-ът, нито дневните броячи. Иначе едно "само да видя какво
+        # щеше да стане" би заличило неотговорена поща безшумно.
+        print("СУХО: паметта остава непокътната (offset=" + str(offset) + ").")
+    else:
+        state["offset"] = last_id
+        # ПОТВЪРЖДЕНИЕ СЪРВЪРНО: Telegram сам забравя обработеното. Дори да се
+        # загуби git push-ът, следващият рън няма да отговори втори път на
+        # същия човек. Това е коланът; файлът е тирантите.
+        if last_id > offset:
+            api("getUpdates", offset=last_id + 1, timeout=0, limit=1)
+        save_state(state)
+
+    print("Готово: " + str(len(updates)) + " ъпдейта, " + str(forwarded) +
+          " предадени на екипа. Offset=" + str(state.get("offset")) + ".")
+    return 0
+
+
+# ---------------------------------------------------------------- САМОПРОВЕРКА
+def selftest():
+    fails = []
+    total = [0]
+
+    def check(name, cond):
+        total[0] += 1
+        print(("  ✔ " if cond else "  ✘ ") + name)
+        if not cond:
+            fails.append(name)
+
+    print("САМОПРОВЕРКА НА СЪПОРТ-БОТА")
+    check("седем теми в менюто", len(FAQ_ORDER) == 7 and all(k in FAQ for k in FAQ_ORDER))
+    check("/start дава добре дошъл", match_intent("/start") == "start")
+    check("/zvezdi отваря звездите", match_intent("/zvezdi") == "zvezdi")
+    check("команда с @име работи", match_intent("/prognoza@greenpicks_support_bot")
+          == "prognoza")
+    check("свободен текст за звезди", match_intent("какво значат звездите?") == "zvezdi")
+    check("свободен текст за тишина", match_intent("защо ботът мълчи днес") == "tishina")
+    # Истинските въпроси НЕ бива да се глътват от автоматичен отговор.
+    real = ["може ли да пусна реклама на моя канал при вас",
+            "здравейте, кога стартира новият сезон на волейбола",
+            "имам идея за нова стая в групата",
+            "не мога да вляза в групата, пише че съм банат",
+            "може ли да съм част от екипа"]
+    for q in real:
+        check("истински въпрос стига до човек: " + q[:28], match_intent(q) is None)
+    check("сигурен мач = отказ", is_bait("дай ми един сигурен мач за днес"))
+    check("коефициент = отказ", is_bait("какъв е коефициентът"))
+    check("нормален въпрос не е отказ", is_bait("кога излизат прогнозите") is False)
+    check("отказът не назовава букмейкър",
+          all(b not in BAIT_ANSWER.lower() for b in
+              ["bet365", "efbet", "winbet", "betano", "bwin", "1xbet", "палмс"]))
+    check("никъде не обещаваме печалба",
+          all(w not in (WELCOME + BAIT_ANSWER).lower()
+              for w in ["гарантир", "сигурна печалба", "верен фиш"]))
+    card = question_card(7, {"id": 12345, "first_name": "Иван <b>"}, "въпрос & тест")
+    check("картата екранира HTML", "&lt;b&gt;" in card and "&amp;" in card)
+    check("картата носи командата за отговор", "/o 12345" in card)
+    check("картата носи номер", "№7" in card)
+    check("картата подсказва Reply", "Reply" in card)
+    plain = card.replace("<code>", "").replace("</code>", "")
+    check("id-то се вади от Reply върху картата",
+          target_from_card({"from": {"is_bot": True}, "text": plain}) == "12345")
+    check("чужд Reply не дава цел",
+          target_from_card({"from": {"is_bot": False}, "text": plain}) == "")
+    check("Reply върху друго съобщение не дава цел",
+          target_from_card({"from": {"is_bot": True}, "text": "здрасти"}) == "")
+    check("дългият текст се реже", len(clip("я" * 9000)) <= TG_LIMIT)
+    check("късият текст не се пипа", clip("здрасти") == "здрасти")
+    mk = menu_markup(back=True)
+    rows = mk["inline_keyboard"]
+    check("клавиатурата е с бутони", len(rows) >= 4)
+    check("бутоните носят callback",
+          all("callback_data" in b or "url" in b for row in rows for b in row))
+    check("има бутон Начало",
+          any(b.get("callback_data") == "faq:start" for row in rows for b in row))
+    check("JSON-ът е с кирилица, не с ескейпи", "Начало" in jd(mk))
+    check("всеки FAQ отговор е непразен",
+          all(len(FAQ[k][2]) > 80 for k in FAQ_ORDER))
+    check("звездите са синхронни с predictor",
+          "малка извадка" in FAQ["zvezdi"][2] and "добра" in FAQ["zvezdi"][2])
+    check("18+ носи телефона за помощ", "1000" in FAQ["18"][2])
+    check("честният отказ сочи как работим", "/prognoza" in BAIT_ANSWER)
+    # 18+ се появява САМО в темата, която човекът изрично е поискал.
+    check("18+ стои само в своята тема",
+          [k for k in FAQ_ORDER if "18+" in FAQ[k][2]] == ["18"])
+    check("менюто и приветствието не поучават",
+          not any(w in (WELCOME + BAIT_ANSWER).lower()
+                  for w in ("отговорно", "не гаранция", "букмейкър",
+                            "коефициент", "решението е твое")))
+    check("публичното потвърждение казва че е публично",
+          "пред всички" in ack_text(True) and "пред всички" not in ack_text(False))
+    # ---------------------------------------------------------- ПАЗАЧЪТ НА СТАИТЕ
+    # Заради тази секция файлът беше пипан: релето пращаше в стаята, в която
+    # случайно е застанал пишещият — включително в стая 4 „Фишове на деня".
+    g = globals()
+    calls = []
+
+    def fake_api(method, **params):
+        calls.append((method, params.get("message_thread_id"),
+                      str(params.get("chat_id") or ""), params.get("text") or ""))
+        return {"message_id": 1}
+
+    old = {k: g[k] for k in ("api", "DRY_RUN", "ADMINS", "CHAT_ID",
+                             "ALLOWED_THREADS")}
+    g["api"] = fake_api
+    g["CHAT_ID"] = "-1004426592150"
+
+    check("забранените стаи са точно седем",
+          FORBIDDEN_THREADS == {"4", "5", "6", "7", "8", "26", "27"})
+    check("разрешената стая е една", ALLOWED_THREADS == {SUPPORT_THREAD})
+    check("стаята на съпорта по подразбиране е 11", SUPPORT_THREAD == "11")
+    check("стая 4 е описана като човешка", "човек" in ROOMS["4"].lower())
+
+    # Мокро И сухо: сухото пускане НЕ е вратичка към забранена стая.
+    for mode in (False, True):
+        g["DRY_RUN"] = mode
+        etiket = " (сухо)" if mode else ""
+        for room in ["4", "5", "6", "7", "8", "26", "27"]:
+            calls[:] = []
+            out = send(g["CHAT_ID"], "тест", room)
+            check("стая " + room + " е отказана" + etiket,
+                  out is None and not calls)
+    g["DRY_RUN"] = False
+
+    calls[:] = []
+    check("стаята на съпорта минава",
+          bool(send(g["CHAT_ID"], "тест", SUPPORT_THREAD)) and
+          [c[1] for c in calls] == [SUPPORT_THREAD])
+    calls[:] = []
+    check("личното съобщение минава без стая",
+          bool(send(12345, "тест")) and calls and calls[0][1] is None)
+    calls[:] = []
+    check("групата без стая е отказана (Общият чат не е наш)",
+          send(g["CHAT_ID"], "тест") is None and not calls)
+    calls[:] = []
+    check("непозната стая 12 е отказана", send(g["CHAT_ID"], "тест", "12") is None)
+    check("стая 0 и 1 са отказани",
+          send(g["CHAT_ID"], "тест", "0") is None and
+          send(g["CHAT_ID"], "тест", "1") is None)
+
+    # Колан и тиранти: дори някой утре да отвори бял списък със стая 4, поименната
+    # забрана стои пред него и пак не пуска. Двете проверки са нарочно излишни.
+    g["ALLOWED_THREADS"] = {"11", "4", "27"}
+    calls[:] = []
+    check("забраната бие белия списък",
+          send(g["CHAT_ID"], "тест", "4") is None and
+          send(g["CHAT_ID"], "тест", "27") is None and not calls)
+    g["ALLOWED_THREADS"] = old["ALLOWED_THREADS"]
+
+    for room in ["4", "5", "6", "7", "8", "26", "27"]:
+        check("SUPPORT_THREAD_ID=" + room + " пада на 11",
+              resolve_support_thread(room) == "11")
+    check("SUPPORT_THREAD_ID=глупост пада на 11", resolve_support_thread("абв") == "11")
+    check("празен SUPPORT_THREAD_ID пада на 11", resolve_support_thread("") == "11")
+    check("SUPPORT_THREAD_ID=1 пада на 11", resolve_support_thread("1") == "11")
+    check("чужда стая 9 пада на 11", resolve_support_thread("9") == "11")
+    check("нова помощ-стая 12 се приема", resolve_support_thread("12") == "12")
+
+    # Релето: стаята НЕ идва от ъпдейта.
+    g["ADMINS"] = {999}
+    calls[:] = []
+    handle_relay({"text": "/o 12345 здравей", "from": {"id": 999},
+                  "chat": {"id": -1004426592150, "type": "supergroup"},
+                  "message_thread_id": 4}, {})
+    stai = [c[1] for c in calls]
+    check("/o в стая 4 не праща НИЩО в стая 4", "4" not in stai)
+    check("/o в стая 4 отговаря в стаята на съпорта", SUPPORT_THREAD in stai)
+    check("/o в стая 4 пак стига до човека", any(c[2] == "12345" for c in calls))
+    for room in [5, 6, 7, 8, 26, 27]:
+        calls[:] = []
+        handle_relay({"text": "/o 12345 здравей", "from": {"id": 999},
+                      "chat": {"id": -1004426592150, "type": "supergroup"},
+                      "message_thread_id": room}, {})
+        check("/o в стая " + str(room) + " не праща там",
+              str(room) not in [c[1] for c in calls])
+    calls[:] = []
+    handle_relay({"text": "/o", "from": {"id": 12}, "chat": {"id": -1004426592150,
+                  "type": "supergroup"}, "message_thread_id": 4}, {})
+    check("чужд човек не изтръгва нито дума", not calls)
+    calls[:] = []
+    check("отговор към чат/канал (минус id) се отказва",
+          relay(-1004426592150, SUPPORT_THREAD, 999, "-1004403334702", "текст") is False
+          and not any(c[2] == "-1004403334702" for c in calls))
+    check("картата не дава отрицателна цел",
+          target_from_card({"from": {"is_bot": True},
+                            "text": ID_MARK + "-1004403334702"}) == "")
+
+    # Новият въпрос отива в стаята на съпорта, никога в 4.
+    calls[:] = []
+    handle_private({"chat": {"id": 777, "type": "private"},
+                    "from": {"id": 777, "first_name": "Иван"},
+                    "text": "имам идея за нова стая в групата"},
+                   {"seq": 0, "per_user": {}}, 10)
+    check("новият въпрос влиза в стаята на съпорта",
+          any(c[1] == SUPPORT_THREAD for c in calls) and
+          not any(c[1] in FORBIDDEN_THREADS for c in calls))
+
+    # Типстърски въпрос: честен отказ, дори когато носи и дума от FAQ-а.
+    calls[:] = []
+    handle_private({"chat": {"id": 777, "type": "private"},
+                    "from": {"id": 777, "first_name": "Иван"},
+                    "text": "искам човек, дай ми един сигурен мач за днес"},
+                   {"seq": 0, "per_user": {}}, 10)
+    check("сигурен мач + дума от FAQ = пак честен отказ",
+          len(calls) == 1 and "не сме типстъри" in calls[0][3].lower())
+    for k in old:
+        g[k] = old[k]
+
+    check("еднакви токени = стоп", token_conflict("777:aaa", "777:aaa"))
+    check("един bot id, друг низ = пак стоп", token_conflict("777:aaa", "777:bbb"))
+    check("различни ботове минават", token_conflict("777:aaa", "888:bbb") is False)
+    check("липсващ токен не вдига фалшива тревога", token_conflict("", "888:bbb") is False)
+    check("файлът е без обратни апострофи и долар-скоба", _clean_source())
+    print(RULE)
+    if fails:
+        print("ПАДНАЛИ (" + str(len(fails)) + "): " + ", ".join(fails))
+        return 1
+    print("Всички " + str(total[0]) + " проверки минаха. ✅")
+    return 0
+
+
+def _clean_source():
+    """Деплой-правилото: през редактора на GitHub не минават обратен апостроф
+    и долар-скоба. Пазим ги вън от файла, а не се надяваме."""
+    try:
+        with open(os.path.abspath(__file__), encoding="utf-8") as f:
+            src = f.read()
+    except Exception:
+        return True
+    return chr(96) not in src and (chr(36) + chr(123)) not in src
+
+
+if __name__ == "__main__":
+    arg = (sys.argv[1] if len(sys.argv) > 1 else "").strip().lower()
+    if arg == "selftest":
+        sys.exit(selftest())
+    if arg == "setup":
+        if not guard():
+            sys.exit(0)
+        sys.exit(0 if setup() else 1)
+    sys.exit(main())
