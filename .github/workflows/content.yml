@@ -1,0 +1,58 @@
+name: content (напълни стаите и канала)
+
+# САМО НА РЪКА. Зареждане на съдържание, не дневен ритъм.
+#   rooms   -> seed_rooms.py    — стаите на групата (стая 4 е забранена в скрипта)
+#   channel -> channel_seed.py  — витрината, самият канал
+#   both    -> първо стаите, после канала
+# Съвет: първият път пусни със "сухо пускане" и виж лога.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Къде сеем: rooms / channel / both'
+        default: 'channel'
+        type: choice
+        options: [channel, rooms, both]
+      dry_run:
+        description: 'Сухо пускане — всичко се печата в лога, нищо не заминава'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: content-seed
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Стаите на групата
+        if: ${{ github.event.inputs.target == 'rooms' || github.event.inputs.target == 'both' }}
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          SUPPORT: ${{ vars.SUPPORT || '@greenpicks_support_bot' }}
+          SEED_DELAY: '2.0'
+          SEED_DRY: ${{ github.event.inputs.dry_run }}
+        run: python seed_rooms.py
+
+      - name: Канала (витрината)
+        if: ${{ github.event.inputs.target == 'channel' || github.event.inputs.target == 'both' }}
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
+          SUPPORT: ${{ vars.SUPPORT || '@greenpicks_support_bot' }}
+          GROUP_LINK: "${{ vars.GROUP_LINK || 'https://t.me/+_oYsaYaVKU80Yjc0' }}"
+          CHANNEL_SEED_DELAY: '2.0'
+          CHANNEL_SEED_DRY: ${{ github.event.inputs.dry_run }}
+        run: python channel_seed.py
