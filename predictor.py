@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 THE GREEN ROOM — БОТ „ПРЕДСКАЗАТЕЛЯТ" 🧠🔢
 
@@ -267,6 +266,7 @@ def is_placeholder(name):
         return True
     return any(t == p or t.startswith(p) for p in PLACEHOLDERS)
 
+
 def norm_key(s):
     out = []
     for ch in str(s if s is not None else "").lower():
@@ -468,6 +468,7 @@ def http_bytes(url, headers=None, timeout=30):
         raw = zlib.decompress(raw)
     return raw
 
+
 def http_text(url, headers=None, timeout=30):
     key = ("t", url)
     if key in _http_cache:
@@ -588,6 +589,61 @@ def persist(state, now):
     return save_state(state, now)
 
 
+# ------------------------------------------------- ДНЕВНИКЪТ НА ПРОГНОЗИТЕ
+# ЗАЩО СЪЩЕСТВУВА
+# Тефтерът predict_state.json помни САМО че една среща е пусната — ключ и час.
+# Не помни КАКВО сме предсказали. Затова стая 9 „Резултати" и стая 10
+# „Печеливши" нямаше как да покажат дали ботът е познал: данните просто ги
+# нямаше никъде. Тук записваме самото твърдение — кой, срещу кого, кого сме
+# посочили, с каква вероятност и колко звезди — за да може scorer.py после да
+# го сравни с истинския резултат.
+#
+# Файлът е списък, не речник: един ред = едно твърдение, в реда на пускане.
+# Не се трие нищо. Сгрешените прогнози остават — това е продуктът.
+PICKLOG_FILE = (os.environ.get("PREDICT_LOG_FILE") or "predict_log.json").strip()
+PICKLOG_KEEP = env_int("PREDICT_LOG_KEEP", 400, 20, 5000)
+
+
+def log_pick(an, now):
+    """Добавя едно твърдение към дневника. Провалът тук НЕ спира картите."""
+    if DRY_RUN:
+        return False
+    fx = an.get("fx") or {}
+    when = fx_start(fx, now)
+    rec = {
+        "key": fx.get("_key"),
+        "posted": now.strftime("%Y-%m-%d %H:%M"),
+        "day": (when.astimezone(SOFIA) if when is not None else now).strftime("%Y-%m-%d"),
+        "bucket": an.get("bucket"),
+        "home": fx.get("home"), "away": fx.get("away"),
+        "home_id": fx.get("home_id"), "away_id": fx.get("away_id"),
+        "league": fx.get("league"),
+        "slug": (fx.get("extra") or {}).get("slug"),
+        "pick": an.get("pick"),
+        "p": round(float(an.get("p") or 0.0), 4),
+        "stars": an.get("stars"),
+        "sample": an.get("sample"),
+        "scored": False,          # scorer.py го вдига на True
+    }
+    try:
+        rows = []
+        if os.path.exists(PICKLOG_FILE):
+            with open(PICKLOG_FILE, encoding="utf-8-sig") as f:
+                got = json.load(f)
+            if isinstance(got, list):
+                rows = got
+        rows.append(rec)
+        rows = rows[-PICKLOG_KEEP:]
+        tmp = PICKLOG_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(rows, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, PICKLOG_FILE)     # атомарно
+        return True
+    except Exception as e:                # noqa: BLE001
+        print("дневникът на прогнозите не се записа (" + str(e)[:70] + ").")
+        return False
+
+
 # ---------------------------------------------------------------- ЕДИНСТВЕНИЯТ ИЗХОД
 def banned_word(text):
     """Връща първата забранена дума в текста или None. Пазач срещу хазартна реклама."""
@@ -596,6 +652,7 @@ def banned_word(text):
         if w in low:
             return w
     return None
+
 
 def tg_send(text, thread_id):
     """Праща с уважение към 429: чете retry_after и чака, вместо да блъска."""
@@ -728,6 +785,7 @@ def dc_tau(i, j, lh, la, rho=FOOT_RHO):
         return 1.0 - rho
     return 1.0
 
+
 def score_matrix(lam_h, lam_a, rho=FOOT_RHO, maxg=MAXG):
     """Съвместното разпределение на резултата, нормирано до сума 1."""
     ph = [poisson_pmf(i, lam_h) for i in range(maxg + 1)]
@@ -854,6 +912,7 @@ def fit_bt(rows, iters=14, step=1.1, lo=-1.6, hi=1.6):
         for t in r:
             r[t] -= m
     return r
+
 
 # --- Тегло по свежест ---------------------------------------------------------
 def decay_weight(iso_date, now, half_life_days):
@@ -985,6 +1044,7 @@ def espn_fixtures(sport, slug, ymd, bucket, weight, league_bg, now, extra=None):
             "extra": ex,
         })
     return out
+
 
 def espn_history(sport, slug, team_id, seasons, bucket):
     """Изиграните мачове на отбор за дадени сезони. ТУК резултатът е речник."""
@@ -1131,6 +1191,7 @@ def foot_domestic_index():
           + str(got) + " първенства.")
     return idx
 
+
 def merge_recs(a, b):
     """Слепва два списъка мачове без повторения (един мач = дата + съперник)."""
     out = list(a)
@@ -1262,6 +1323,7 @@ def basketball_fixtures(now, ymd):
             print("   ⚠ баскетбол " + slug + ": " + str(e)[:60])
             break
     return out
+
 
 def basketball_history(fx, side):
     tid = fx.get("home_id") if side == "home" else fx.get("away_id")
@@ -1410,6 +1472,7 @@ def tennis_form(tour, now):
     _ten_form[tour] = wl
     return wl
 
+
 def model_tennis(fx, now):
     ex = fx.get("extra") or {}
     ra, rb = ex.get("ra") or {}, ex.get("rb") or {}
@@ -1553,6 +1616,7 @@ def baseball_fixtures(now, ymd_dash):
                 "extra": {},
             })
     return out
+
 
 def baseball_history(fx, side):
     tid = fx.get("home_id") if side == "home" else fx.get("away_id")
@@ -1725,6 +1789,7 @@ def mma_fixtures(now):
                 })
     return out
 
+
 def model_mma(fx, now):
     ex = fx.get("extra") or {}
     idx = mma_index(ex.get("league") or "ufc", now)
@@ -1877,6 +1942,7 @@ def vol_ident(name):
     tk = [("st" if w == "saint" else w) for w in vol_tokens("".join(core))]
     return "".join(w for w in tk if w not in VOL_GENERIC), tag
 
+
 def vol_same_team(a, b):
     """Един и същи отбор ли са двата отпечатъка? Спонсорът се сменя всеки сезон
     („Sir Susa Vim Perugia" / „Sir Sicoma Monini Perugia"), затова приемаме и
@@ -2010,6 +2076,7 @@ def vol_fit(raw):
     for k in list(_vol_rating):
         _vol_comp[k] = find(k)
     return _vol_rating, _vol_count
+
 
 def vol_ratings(now):
     """Сила по РАЗИГРАВАНИЯ, коригирана за съперника (Брадли-Тери).
@@ -2194,6 +2261,7 @@ def tt_fixtures(now, ymd_dash):
             })
     return out
 
+
 def tt_player(ittf_id, now):
     """Бърза сводка за 18 месеца: мачове, победи, загуби. Пълната история е
     30-45 секунди на играч и не влиза в един рън — това е съзнателен избор."""
@@ -2349,6 +2417,120 @@ def over_under_line(p_over):
         return "Под 2.5 гола: <b>" + pct(1.0 - p) + "</b>"
     return ""
 
+
+# ------------------------------------------------- ТОТАЛИ ЗА ОСТАНАЛИТЕ СПОРТОВЕ
+# Футболът отдавна има ред „Над/Под 2.5 гола". Собственикът поиска същото и за
+# другите спортове: точки за баскетбола, сетове за волейбола и тениса.
+# Всеки ред тук излиза САМО ако едната страна е поне OU_MIN — иначе е шум и се
+# премълчава. По-добре три реда сигурни, отколкото пет реда пълнеж.
+
+TOTAL_MIN = OU_MIN          # един и същ праг като при головете
+
+
+def _norm_cdf(z):
+    """Стандартно нормално разпределение. math.erf стига — без numpy."""
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+
+def points_total_line(exp_total, sigma_margin, unit="точки"):
+    """Над/Под общо точки, с ЯСНО ИЗПИСАНА линия.
+
+    ЗАЩО ЛИНИЯТА НЕ Е НА ОЧАКВАНИЯ СБОР (първата ми версия беше сгрешена):
+    сложиш ли линията точно на средата, отговорът винаги е около 50% и редът
+    не казва нищо — просто мълчеше на всеки мач. Затова линията е на половин
+    отклонение ПОД средата: тогава твърдението „над X точки" носи смисъл и
+    процентът е реален, а не украсен. Линията се пише на глас, за да може
+    всеки да я провери сам.
+
+    ЗА ОТКЛОНЕНИЕТО, честно: моделът знае отклонението на РАЗЛИКАТА. Сборът
+    се колебае повече — двата отбора вдигат и свалят темпото ЗАЕДНО, а темпото
+    движи сбора. Затова тук отклонението е умишлено по-широко (1.25 пъти):
+    по-широко значи по-предпазлив процент, а не по-самоуверен.
+    """
+    if not exp_total or exp_total <= 0:
+        return ""
+    mean = float(exp_total)
+    sd = max(4.0, float(sigma_margin or 11.5) * 1.25)
+    line = math.floor(mean - 0.5 * sd) + 0.5
+    if line <= 0:
+        return ""
+    p_over = 1.0 - _norm_cdf((line - mean) / sd)
+    if p_over >= TOTAL_MIN:
+        return ("Над " + ("%.1f" % line) + " " + unit + ": <b>" + pct(p_over) + "</b>")
+    if (1.0 - p_over) >= TOTAL_MIN:
+        return ("Под " + ("%.1f" % line) + " " + unit + ": <b>" + pct(1.0 - p_over) + "</b>")
+    return ""
+
+
+def set_prob_from_match(p_match, best_of=3):
+    """Обратната сметка: от вероятността за МАЧА към вероятността за ЕДИН СЕТ.
+
+    Тенис-моделът дава само кой печели мача. Но при мач до 2 спечелени сета
+    важи P(мач) = s^2 * (3 - 2s), където s е вероятността да вземеш един сет.
+    Функцията е строго растяща, затова я обръщаме с деление наполовина —
+    двадесет и пет стъпки стигат за четвърти знак. Никакво допускане, само
+    аритметика.
+    """
+    p = clampf(float(p_match), 0.5, 0.999)     # смятаме за фаворита
+    lo, hi = 0.5, 0.999
+    for _ in range(25):
+        mid = (lo + hi) / 2.0
+        if best_of == 3:
+            got = mid * mid * (3.0 - 2.0 * mid)
+        else:                                  # до 3 спечелени сета
+            q = 1.0 - mid
+            got = mid ** 3 * (1.0 + 3.0 * q + 6.0 * q * q)
+        if got < p:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2.0
+
+
+def tennis_sets_line(p_match):
+    """Над/Под 2.5 сета при мач до два спечелени.
+
+    P(три сета) = 2 * s * (1 - s) — точно, без приближение: и двата начина да
+    се стигне до трети сет минават през „по един сет за всеки".
+    """
+    s = set_prob_from_match(p_match, 3)
+    p_three = 2.0 * s * (1.0 - s)
+    if p_three >= TOTAL_MIN:
+        return "Над 2.5 сета: <b>" + pct(p_three) + "</b>"
+    if (1.0 - p_three) >= TOTAL_MIN:
+        return "Под 2.5 сета: <b>" + pct(1.0 - p_three) + "</b>"
+    return ""
+
+
+def sets_total_line(dists, line_sets):
+    """Над/Под N.5 сета — направо от разпределението на сетовете.
+
+    Тук НЯМА никакво допускане: моделът вече е сметнал вероятността на всеки
+    точен резултат по сетове (3:0, 3:1, 3:2 и огледалните). Просто събираме
+    тези, при които сетовете са повече от линията. Затова този ред е по-твърд
+    от точковия — той е точна сметка, не приближение.
+    """
+    p_over = 0.0
+    total = 0.0
+    for dist in dists:
+        for row in (dist or []):
+            try:
+                i, j, p = int(row[0]), int(row[1]), float(row[2])
+            except Exception:                 # noqa: BLE001
+                continue
+            total += p
+            if (i + j) > line_sets:
+                p_over += p
+    if total <= 0:
+        return ""
+    p_over = p_over / total                   # нормираме, ако сборът не е точно 1
+    if p_over >= TOTAL_MIN:
+        return ("Над " + ("%.1f" % line_sets) + " сета: <b>" + pct(p_over) + "</b>")
+    if (1.0 - p_over) >= TOTAL_MIN:
+        return ("Под " + ("%.1f" % line_sets) + " сета: <b>" + pct(1.0 - p_over) + "</b>")
+    return ""
+
+
 def analyse(fx, ctx):
     """Връща (анализ, причина). Кратък изход: избор, вероятност, две причини."""
     now = ctx["now"]
@@ -2362,7 +2544,10 @@ def analyse(fx, ctx):
                           + " мача, трябват по " + str(need) + ")")
 
     home, away = esc(fx["home"]), esc(fx["away"])
-    second, why = "", []
+    # second = кратката добавка на спорта (очакван резултат / най-вероятен сет)
+    # third  = ТОТАЛЪТ: над/под голове, точки или сетове. Излиза само когато
+    #          едната страна е поне 57% — иначе е шум и се премълчава.
+    second, third, why = "", "", []
 
     if b == "football":
         m = model_football(hr, ar, ctx["lvl"], now)
@@ -2391,6 +2576,8 @@ def analyse(fx, ctx):
         strength = strength_binary(m["p_home"])
         second = ("Очакван резултат: ~" + str(int(round(m["exp_h"])))
                   + ":" + str(int(round(m["exp_a"]))))
+        third = points_total_line(m.get("total"),
+                                  (fx.get("extra") or {}).get("sigma"), "точки")
         why = [home + ": " + one(m["sh"]["gf"]) + " : " + one(m["sh"]["ga"])
                + " точки за мач (" + str(m["sh"]["n"]) + " мача)",
                away + ": " + one(m["sa"]["gf"]) + " : " + one(m["sa"]["ga"])
@@ -2412,6 +2599,8 @@ def analyse(fx, ctx):
         # Най-вероятният сетов резултат влиза в самата прогноза: „(3:1)".
         pick = (pick_win(fav_home, fx["home"], fx["away"])
                 + " (" + str(best[0]) + ":" + str(best[1]) + ")")
+        # Волейболът е до 3 спечелени сета: „над 3.5" значи мач в 4 или 5 сета.
+        third = sets_total_line([m.get("dist_h"), m.get("dist_a")], 3.5)
         rate = m["p_rally"] if fav_home else 1.0 - m["p_rally"]
         kosh = VOL_BUCKET_BG.get(m.get("vb"), m.get("vb"))
         why = [(home if fav_home else away) + " печели " + one(rate * 100.0)
@@ -2436,6 +2625,8 @@ def analyse(fx, ctx):
         dist = m["dist_h"] if fav_home else m["dist_a"]
         best = max(dist, key=lambda x: x[2])
         second = ("Най-вероятен резултат: <b>" + str(best[0]) + ":" + str(best[1]) + "</b>")
+        # Тенисът на маса е до 3 спечелени гейма: „над 4.5" = мач в 6 или 7.
+        third = sets_total_line([m.get("dist_h"), m.get("dist_a")], 4.5)
         why = [home + ": " + str(m["a"]["w"]) + "-" + str(m["a"]["l"]) + " за 18 месеца",
                away + ": " + str(m["b"]["w"]) + "-" + str(m["b"]["l"]) + " за 18 месеца"]
         n_eff = (m["a"]["w"] + m["a"]["l"] + m["b"]["w"] + m["b"]["l"]) / 2.0
@@ -2458,6 +2649,7 @@ def analyse(fx, ctx):
             if (f[0] + f[1]) >= 3:      # 0-1 не е форма, а шум — не го пишем
                 s += ", " + str(f[0]) + "-" + str(f[1]) + " в последните седмици"
             return s
+        third = tennis_sets_line(max(m["p_home"], m["p_away"]))
         why = [_pl(home, m["ra"], m["fa"]), _pl(away, m["rb"], m["fb"])]
         # Ранглистата е силен ориентир, но е ЕДИН показател, не двайсет мача.
         # Брои се за шест мача на играч, не повече — иначе картата се хвали с
@@ -2532,6 +2724,7 @@ def analyse(fx, ctx):
         return None, "числата не дават превес (" + pct(p) + ")"
 
     return {"fx": fx, "bucket": b, "pick": pick, "p": p, "second": second,
+            "third": third,
             "why": [w for w in why if w][:2], "sample": sample,
             "n_eff": float(n_eff), "strength": float(strength),
             "stars": grade(b, n_eff, strength)}, ""
@@ -2557,6 +2750,8 @@ def card(an, now):
               star_line]
     if an.get("second"):
         lines.append("↔️ " + an["second"])
+    if an.get("third"):
+        lines.append("📈 " + an["third"])
     lines.append("")
     for w in an["why"]:
         lines.append("• " + w)
@@ -2762,9 +2957,9 @@ def run():
             print("   пропускам " + name + ": " + why_not)
             continue
         cands.append(an)
+        st = an["stars"]
         print("   ✔ " + name + ": " + an["pick"] + " " + pct(an["p"])
-              + ", " + str(an["stars"]) + " звезди")
-
+              + ", " + str(st) + (" звезда" if st == 1 else " звезди"))
     seen = len(fresh)
     if not cands:
         # „Днес няма прогнози" се казва НАЙ-МНОГО ВЕДНЪЖ и не преди обяд:
@@ -2801,6 +2996,7 @@ def run():
             # Записваме СЛЕД ВСЯКА карта, не в края. Ако рънът умре на третата,
             # първите две са вече в тефтера и следващият рън не ги повтаря.
             persist(state, now)
+            log_pick(a, now)
             sent += 1
         time.sleep(SEND_GAP)
     if maybe_footer(state, now, seen, thin, weak):
