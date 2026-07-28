@@ -2,30 +2,36 @@
 """
 THE GREEN ROOM — ДНЕВНИЯТ РИТЪМ 🦖 (чист, автоматичен, GitHub Actions)
 
+🚫 КАНАЛЪТ Е САМО ЗА ЧОВЕКА. Този бот НЕ пише в канала — никога, в никой режим.
+   В канала стои ЕДИН приветствен пост (закачен) и след него публикува само човекът.
+   Функцията post_channel е оставена нарочно, но тя ОТКАЗВА и го отпечатва —
+   ако утре някой я извика по грешка, нищо не тръгва към канала.
+   Стойността не се губи, а живее в ГРУПАТА, в правилната стая.
+
 Режими (DAILY_MODE):
-  overview  21:00 — ОБЗОРЪТ НА БОТА: числата за деня, в КАНАЛА.
-                    Обзор = какво следихме, НЕ новинарска лента. Затова остава в канала.
-  results   23:00 — резултатите на деня: обобщение в КАНАЛА
-                    + ЕДИН бот-пост в стая 9 „Резултати и статистика", ясно надписан
-                    като деня на БОТА (човекът си има свой пост там).
+  overview  21:00 — ОБЗОРЪТ НА БОТА: числата за деня → стая 27 „БОТА ПРЕДРИЧА".
+                    Ботът говори за своя ден, значи мястото му е в неговата стая.
+  results   23:00 — резултатите на деня → стая 9 „Резултати и статистика".
+                    ЕДИН бот-пост на ден (пази се със състояние в daily_state.json).
+  selftest        — проверява пазачите и текстовете, без да праща нищо.
 
 Пенсиониран режим:
-  topnews         — МАХНАТ. Новините НЕ ходят в канала и НЕ ходят в спортните стаи.
-                    Всички новини живеят САМО в стая 26 „Новини", разделени по спорт,
-                    и се правят от news_bot.py. Тук не дублираме тази логика.
-                    Ако стар крон/диспач извика topnews, ботът само го казва и излиза
-                    чисто (код 0) — за да няма червен рън.
+  topnews         — МАХНАТ. Всички новини живеят САМО в стая 26 „Новини",
+                    разделени по спорт, и се правят от news_bot.py.
+                    Ако стар крон/диспач извика topnews, ботът само го казва
+                    и излиза чисто (код 0) — за да няма червен рън.
 
 Карта на стаите (потвърдена):
-   4 Фишове на деня       — САМО човекът-типстер. Бот никога.
+   КАНАЛЪТ                 — САМО човекът. Бот никога.
+   4 Фишове на деня        — САМО човекът-типстер. Бот никога.
    5/6/7/8 Футбол/Баскет/Тенис на маса/Волейбол — САМО срещите по направление.
-                             Никакви новини, никакви бот-постове оттук.
-   9 Резултати и статистика — един бот-пост на ден (пази се със състояние).
+   9 Резултати и статистика — един бот-пост на ден.
   26 Новини                — всички новини (news_bot.py).
-  27 БОТА ПРЕДРИЧА         — всички прогнози на бота.
+  27 БОТА ПРЕДРИЧА         — прогнозите и обзорът на бота.
+
+Тон: числа, извадка, кратка причина. Без поучения, без съвети, без призиви.
 
 Данни: TheSportsDB eventsday. Часовете са Europe/Sofia.
-Всичко от бота е прогноза от статистика, не гаранция. 18+
 """
 import json, os, sys, time, urllib.request, urllib.parse, html
 from datetime import datetime, timedelta
@@ -37,17 +43,30 @@ NL = chr(10)
 NL2 = chr(10) + chr(10)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
-CHANNEL_ID = os.environ.get("CHANNEL_ID", "-1004403334702")
-CHAT_ID = os.environ.get("CHAT_ID", "-1004426592150")
-RESULTS_THREAD = os.environ.get("RESULTS_THREAD_ID", "9")    # 9  Резултати и статистика
-PREDICT_THREAD = os.environ.get("PREDICT_THREAD_ID", "27")   # 27 БОТА ПРЕДРИЧА
-MODE = (os.environ.get("DAILY_MODE") or (sys.argv[1] if len(sys.argv) > 1 else "overview")).strip()
+# „or“, не default: празна GitHub-променлива да не изтрие номера и пазача с него.
+CHANNEL_ID = (os.environ.get("CHANNEL_ID") or "-1004403334702").strip()
+CHAT_ID = (os.environ.get("CHAT_ID") or "-1004426592150").strip()
+RESULTS_THREAD = (os.environ.get("RESULTS_THREAD_ID") or "9").strip()    # 9  Резултати и статистика
+PREDICT_THREAD = (os.environ.get("PREDICT_THREAD_ID") or "27").strip()   # 27 БОТА ПРЕДРИЧА
+MODE = ((os.environ.get("DAILY_MODE") or "").strip()
+        or (sys.argv[1].strip() if len(sys.argv) > 1 else "")
+        or "overview")
 SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY") or "123"
 API = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_KEY}"
-STATE_FILE = "daily_state.json"
+STATE_FILE = (os.environ.get("DAILY_STATE_FILE") or "daily_state.json").strip()
+FORCE = (os.environ.get("DAILY_FORCE", "").strip() == "1")
 
 # 🚫 ЖЕЛЯЗНО: стаите на човека и на срещите. Ботът няма работа там.
 FORBIDDEN_THREADS = {"4", "5", "6", "7", "8"}
+
+def forbidden_chats():
+    """Чатовете, в които този бот не пише. Каналът е човешки — влиза тук."""
+    out = set()
+    for x in (CHANNEL_ID, os.environ.get("CHANNEL_ID", "")):
+        s = str(x or "").strip()
+        if s:
+            out.add(s)
+    return out
 
 BIG_LEAGUES = ["Premier League","La Liga","Serie A","Bundesliga","Ligue 1","Champions League",
                "Europa League","NBA","Euroleague","Nations League","WTA","ATP"]
@@ -69,27 +88,32 @@ def date_bg(now):
     wd = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][now.weekday()]
     return f"{wd}, {now.day}.{now.month:02d}"
 
-# ---------- ПРАЩАНЕ (с пазач за забранените стаи) ----------
+# ---------- ПРАЩАНЕ (с пазачи) ----------
 def post_channel(text, preview=False):
-    return poster.send_message(CHANNEL_ID, text, preview=preview)
+    """ОТКАЗ по устройство. Каналът е на човека — този бот не пише там.
+    Оставена е нарочно, за да е ясно защо и да не се върне по невнимание."""
+    print("ОТКАЗ: каналът е само за човека. Ботът не публикува там.")
+    print("       Обзорът отива в стая 27, резултатите — в стая 9.")
+    return False
 
 def post_room(thread_id, text, preview=False):
-    """Единственият път към групата. Забранените стаи се отрязват тук, не по-нагоре."""
+    """Единственият път навън. Забранените стаи и каналът се отрязват ТУК."""
     tid = str(thread_id or "").strip()
     if tid in FORBIDDEN_THREADS:
         print(f"ОТКАЗ: стая {tid} е забранена за бота (човешки фишове / само срещи).")
         return False
     if not CHAT_ID:
         print(f"Няма CHAT_ID — пропускам стая {tid}."); return False
+    if str(CHAT_ID).strip() in forbidden_chats():
+        print("ОТКАЗ: CHAT_ID сочи към канала. Спирам, за да не пише бот в канала.")
+        return False
     return poster.send_message(CHAT_ID, text, thread_id=tid, preview=preview)
 
 def post_prediction(text, preview=False):
-    """Прогнозите на бота ходят САМО в стая 27 „БОТА ПРЕДРИЧА".
-    Днес този файл не праща прогнози (те са в matches_bot.py) — ако утре добавим,
-    минава оттук, за да не сбърка стаята."""
+    """Прогнозите и обзорът на бота ходят САМО в стая 27 „БОТА ПРЕДРИЧА"."""
     return post_room(PREDICT_THREAD, text, preview=preview)
 
-# ---------- СЪСТОЯНИЕ (един бот-пост на ден в стая 9) ----------
+# ---------- СЪСТОЯНИЕ (един бот-пост на ден) ----------
 def load_state():
     try:
         s = json.load(open(STATE_FILE, encoding="utf-8-sig"))
@@ -105,6 +129,8 @@ def save_state(state):
         print("state:", str(e)[:80])
 
 def done_today(state, day, key):
+    if FORCE:
+        return False
     return state.get("date") == day and state.get(key) is True
 
 def mark_done(state, day, key):
@@ -130,44 +156,36 @@ def collect_results(now):
         time.sleep(2.1)
     return rows
 
+def build_results_text(now, rows, limit=12):
+    """Текстът за стая 9. Числа и извадка — нищо повече."""
+    shown = rows[:limit]
+    body = NL.join(shown)
+    sample = (f"📌 Извадка: {len(shown)} от {len(rows)} завършени мача в горещите първенства."
+              if len(rows) > len(shown)
+              else f"📌 Извадка: {len(shown)} завършени мача в горещите първенства.")
+    return (f"🤖 <b>ДЕНЯТ НА БОТА · резултати</b> · {date_bg(now)}{NL2}"
+            f"{body}{NL2}"
+            f"{sample}{NL}"
+            f"🟢 THE GREEN ROOM")
+
 def run_results(now):
     day = now.strftime("%Y-%m-%d")
     state = load_state()
-    if done_today(state, day, "results_channel") and done_today(state, day, "results_room9"):
-        print("Резултатите за днес вече са пратени — мълча."); return
+    if done_today(state, day, "results_room9"):
+        print("Стая 9 вече има бот-поста за днес — мълча."); return
 
     rows = collect_results(now)
     if not rows:
         print("няма резултати от топ първенства"); return
-    body = NL.join(rows[:12])
 
-    # 1) КАНАЛЪТ — обобщението на деня
-    if done_today(state, day, "results_channel"):
-        print("Каналът вече има резултатите за днес.")
+    if post_room(RESULTS_THREAD, build_results_text(now, rows)):
+        mark_done(state, day, "results_room9")
+        print(f"Резултати → стая {RESULTS_THREAD}: {len(rows)} мача.")
     else:
-        ch = (f"✅ <b>РЕЗУЛТАТИ · горещите първенства</b> · {date_bg(now)}{NL2}"
-              f"{body}{NL2}"
-              f"🟢 THE GREEN ROOM")
-        if post_channel(ch):
-            mark_done(state, day, "results_channel")
+        print("Стая 9 не прие поста — състоянието не се маркира.")
 
-    # 2) СТАЯ 9 — ЕДИН бот-пост на ден, ясно надписан че е денят на БОТА
-    if done_today(state, day, "results_room9"):
-        print("Стая 9 вече има бот-поста за днес.")
-    else:
-        room = (f"🤖 <b>ДЕНЯТ НА БОТА · резултати</b> · {date_bg(now)}{NL2}"
-                f"{body}{NL2}"
-                f"📌 Това е бот-частта за деня — един пост дневно."
-                f"{NL}Постът на човека-типстер е отделен.{NL2}"
-                f"⚠️ 18+ · прогноза от статистика, не гаранция{NL}"
-                f"🟢 THE GREEN ROOM")
-        if post_room(RESULTS_THREAD, room):
-            mark_done(state, day, "results_room9")
-
-    print(f"Резултати: {len(rows)} мача.")
-
-# ---------- OVERVIEW (21:00, КАНАЛЪТ) ----------
-def run_overview(now):
+# ---------- OVERVIEW (21:00, стая 27) ----------
+def collect_overview(now):
     today = now.strftime("%Y-%m-%d")
     tmr = (now + timedelta(days=1)).strftime("%Y-%m-%d")
     sports = [("Soccer","⚽"),("Basketball","🏀"),("Tennis","🎾"),("Volleyball","🏐"),
@@ -184,35 +202,116 @@ def run_overview(now):
             if hs not in (None, "") and any(b.lower() in lg.lower() for b in BIG_LEAGUES) and not hot:
                 hot = f"{emo} {esc(e.get('strHomeTeam'))} {hs}–{e.get('intAwayScore')} {esc(e.get('strAwayTeam'))}"
         time.sleep(2.1)
-    # утре голямо
     tomorrow_big = None
     for skey, emo in [("Soccer","⚽"),("Basketball","🏀")]:
         data = fetch_json(f"{API}/eventsday.php?d={tmr}&s={urllib.parse.quote(skey)}")
         for e in (data.get("events") or []):
             if any(b.lower() in (e.get("strLeague") or "").lower() for b in BIG_LEAGUES):
                 t = (e.get("strTime") or "")[:5]
-                tomorrow_big = f"{emo} {esc(e.get('strHomeTeam'))} — {esc(e.get('strAwayTeam'))}" + (f" ({t})" if t and t!='00:00' else "")
+                tomorrow_big = f"{emo} {esc(e.get('strHomeTeam'))} — {esc(e.get('strAwayTeam'))}" + (f" ({t})" if t and t != "00:00" else "")
                 break
         if tomorrow_big: break
         time.sleep(2.1)
+    return {"total": total, "nsports": nsports, "hot": hot, "tomorrow": tomorrow_big}
+
+def build_overview_text(now, d):
+    """Текстът за стая 27. Числата на деня — без поучения."""
     parts = [f"📊 <b>ОБЗОРЪТ НА БОТА</b> · {date_bg(now)}{NL}",
-             f"Днес следихме <b>{total}</b> мача в <b>{nsports}</b> спорта. 📡"]
-    if hot: parts.append(f"✅ Горещ резултат: {hot}")
-    if tomorrow_big: parts.append(f"🔜 Утре голямо: {tomorrow_big}")
-    parts.append(f"{NL}Честно за деня: не гоним бройка — стойност само там, където числата я дадоха.")
-    parts.append("⚠️ 18+ · прогноза от статистика, не гаранция")
+             f"Днес следихме <b>{d.get('total', 0)}</b> мача в <b>{d.get('nsports', 0)}</b> спорта. 📡"]
+    if d.get("hot"): parts.append(f"✅ Горещ резултат: {d['hot']}")
+    if d.get("tomorrow"): parts.append(f"🔜 Утре голямо: {d['tomorrow']}")
     parts.append(f"{NL}😴 Лека вечер. Утре пак сме тук. 🟢 THE GREEN ROOM")
-    post_channel(NL.join(parts))
-    print("Обзор: пратен.")
+    return NL.join(parts)
+
+def run_overview(now):
+    day = now.strftime("%Y-%m-%d")
+    state = load_state()
+    if done_today(state, day, "overview_room27"):
+        print("Стая 27 вече има обзора за днес — мълча."); return
+    d = collect_overview(now)
+    if post_prediction(build_overview_text(now, d)):
+        mark_done(state, day, "overview_room27")
+        print(f"Обзор → стая {PREDICT_THREAD}: пратен.")
+    else:
+        print("Стая 27 не прие обзора — състоянието не се маркира.")
 
 # ---------- ПЕНСИОНИРАН РЕЖИМ ----------
 def run_retired_topnews():
     print("Режим topnews е МАХНАТ. Новините ходят само в стая 26 Новини "
           "(разделени по спорт) и се правят от news_bot.py.")
-    print("Каналът не е новинарска лента — там са човекът-типстер и обзорът.")
-    print("Оправи крона: 08:00 повикването отпада, news.yml поема новините.")
+    print("Каналът не е новинарска лента — там пише само човекът.")
+
+# ---------- SELFTEST ----------
+def run_selftest():
+    ok = 0; bad = []
+
+    def check(name, cond):
+        nonlocal ok
+        if cond: ok += 1
+        else: bad.append(name)
+
+    sent = []
+    real_send = poster.send_message
+    poster.send_message = lambda *a, **k: (sent.append((a, k)) or True)
+    try:
+        check("post_channel отказва", post_channel("тест") is False)
+        check("post_channel не праща нищо", len(sent) == 0)
+        for t in sorted(FORBIDDEN_THREADS):
+            check(f"стая {t} отказана", post_room(t, "тест") is False)
+        check("забранените стаи не пращат", len(sent) == 0)
+        check("стая 27 приема", post_prediction("тест") is True)
+        check("стая 9 приема", post_room(RESULTS_THREAD, "тест") is True)
+        check("каналът е в забранените чатове", str(CHANNEL_ID) in forbidden_chats())
+    finally:
+        poster.send_message = real_send
+
+    now = sofia_now()
+    rows = ["⚽ Отбор А 2–1 Отбор Б <i>· Premier League</i>" for _ in range(15)]
+    t_res = build_results_text(now, rows)
+    t_ovr = build_overview_text(now, {"total": 128, "nsports": 6,
+                                      "hot": "⚽ А 2–1 Б", "tomorrow": "🏀 В — Г (21:00)"})
+    banned = ["18+", "не гаранция", "не е съвет", "решението е твое", "залагай отговорно",
+              "от банката", "коефициент", "букмейкър", "заложи", "залог"]
+    for txt, label in ((t_res, "резултати"), (t_ovr, "обзор")):
+        low = txt.lower()
+        for b in banned:
+            check(f"{label}: без „{b}“", b.lower() not in low)
+    check("резултати: има извадка", "Извадка" in t_res)
+    check("резултати: 12 от 15", "12 от 15" in t_res)
+    check("обзор: има числа", "128" in t_ovr and "6" in t_ovr)
+
+    tmp = STATE_FILE + ".selftest"
+    g = {}
+    old_state_file = globals()["STATE_FILE"]
+    old_force = globals()["FORCE"]
+    globals()["STATE_FILE"] = tmp
+    globals()["FORCE"] = False        # проверяваме пазача, не насилственото пускане
+    try:
+        day = now.strftime("%Y-%m-%d")
+        check("състояние: празно в началото", done_today(g, day, "results_room9") is False)
+        mark_done(g, day, "results_room9")
+        check("състояние: пази се", done_today(load_state(), day, "results_room9") is True)
+        check("състояние: чужд ключ не се пали", done_today(load_state(), day, "overview_room27") is False)
+        globals()["FORCE"] = True
+        check("DAILY_FORCE=1 бие пазача", done_today(load_state(), day, "results_room9") is False)
+    finally:
+        globals()["STATE_FILE"] = old_state_file
+        globals()["FORCE"] = old_force
+        try: os.remove(tmp)
+        except Exception: pass
+
+    src = open(os.path.abspath(__file__), encoding="utf-8").read()
+    check("без обратна кавичка", chr(96) not in src)
+    check("без долар-скоба", (chr(36) + chr(123)) not in src)
+    check("post_channel не вика poster", "poster.send_message" not in src.split("def post_room")[0].split("def post_channel")[1])
+
+    print(f"SELFTEST: {ok} наред, {len(bad)} проблема.")
+    for b in bad: print("  ❌", b)
+    return 0 if not bad else 1
 
 def main():
+    if MODE == "selftest":
+        sys.exit(run_selftest())
     if not BOT_TOKEN:
         print("Missing BOT_TOKEN"); sys.exit(1)
     now = sofia_now()
