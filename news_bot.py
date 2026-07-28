@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-THE GREEN ROOM — БОТ №1 „НОВИНАРЯТ" 📰   (версия С КАРТИНКИ)
+THE GREEN ROOM — БОТ №1 „НОВИНАРЯТ" 📰   (версия 3: ИСТИНСКИ СИЛНИ НОВИНИ)
 
 ЖЕЛЕЗНИ ПРАВИЛА (заповед на шефа, без изключения):
   1. ВСИЧКИ новини отиват САМО в стая 26 „Новини" (env NEWS_THREAD_ID).
@@ -9,31 +9,53 @@ THE GREEN ROOM — БОТ №1 „НОВИНАРЯТ" 📰   (версия С К
   3. КАНАЛЪТ не получава новини — той е за човека-типстер.
   4. Стая 4 „Фишове на деня" е само за човека — бот не пише там.
   5. Вътре в стая 26 новините са РАЗДЕЛЕНИ ПО СПОРТ, в реда
-     🏓 Тенис на маса → 🏐 Волейбол → 🏀 Баскетбол → ⚽ Футбол → 📰 Други спортове.
-     Спорт без новини се пропуска мълчаливо.
+     🏓 Тенис на маса → 🏐 Волейбол → 🏀 Баскетбол → ⚽ Футбол → 🥊 Бойни спортове
+     → 📰 Други спортове. Спорт без новини се пропуска мълчаливо.
   6. Тих ден (нищо важно) = НЕ праща нищо. Тишината е злато.
+  7. Постът е ЗАГЛАВИЕ + ЕДИН РЕД КОНТЕКСТ + ИЗТОЧНИК + СНИМКА. Нищо друго.
+     Без поучения, без „18+", без съвети, без реклама на хазарт.
 
-НОВОТО В ТАЗИ ВЕРСИЯ (искане на шефа: „новината трябва да е с КАРТИНКА"):
-  • Всяка новина е ОТДЕЛЕН ПОСТ СЪС СНИМКА (sendPhoto), а не ред с линк.
-    Картинката се вади от самата емисия: media:content / media:thumbnail /
-    enclosure / първото <img> в описанието; ако там няма — един евтин опит за
-    og:image от страницата на статията; ако и това няма — чист текстов пост.
-    Новина НИКОГА не се изпуска заради липсваща/счупена картинка.
-  • Подписът е ТЯСЕН (Telegram таван 1024): спорт-емоджи + удебелено заглавие +
-    един ред контекст + източник и час.
-  • Преди снимките на всеки спорт върви КЪСО заглавие на секцията.
-  • ТАВАНИ, за да не става стена: NEWS_PER_SPORT (3), NEWS_MAX_GENERAL (3),
-    NEWS_MAX_TOTAL (10 снимки на пускане).
-  • ПАМЕТТА Е ЗАСИЛЕНА (шефът виждаше повторения): помни се нормализирано
-    заглавие + адрес + адреса на картинката, и се сравнява с последно пратените
-    заглавия по общи дълги думи — същата история от друг източник не минава пак.
-  • ЗАКОН: български закон забранява реклама на хазарт. Заглавие с име на
-    букмейкър се ПРОПУСКА; картинка с букмейкър в адреса не се ползва; емисии с
-    хазартен спонсор в кадъра (Дартс PDC) вървят само като текст без визитка.
+КАКВО Е НОВО В ТАЗИ ВЕРСИЯ (шефът: „новинарят да е МЕГА ДОБЪР и да дава силни новини"):
+
+  A) ПОДРЕЖДАНЕТО Е ИСТИНСКО, НЕ ПО КЛЮЧОВА ДУМА.
+     Всяка история получава РЕЙТИНГ от шест сили:
+       • СЪГЛАСИЕ НА ИЗТОЧНИЦИТЕ — една и съща история в 2+ независими издания
+         почти винаги Е новината на деня (най-тежката съставка);
+       • СВЕЖЕСТ — от преди час тежи повече от вчерашното;
+       • ВАЖНОСТ по думи (трансфер, уволнение, финал, титла, контузия…);
+       • СПОРТОВЕТЕ НА ШЕФА (футбол, баскет, тенис на маса, волейбол, бойни) — с бонус;
+       • БЪЛГАРСКА ДИРЯ (Лудогорец, Пулев, националите…) — с бонус, каналът е български;
+       • НАКАЗАНИЯ — класации „Топ 10", коментари/мнения, „гледайте видео", тестове,
+         прогнози за залози и магазинарски постове падат надолу или изобщо не тръгват.
+     Затова първата новина във всяка секция е най-голямата, а не първата намерена.
+
+  B) 🥊 БОЙНИ СПОРТОВЕ — нова, пълноправна секция (UFC/MMA/бокс/кикбокс/джудо).
+     Осем проверени емисии + разпознаване по думи. ВНИМАНИЕ КЪМ „БОКС": думата
+     тръгва само ако в заглавието НЯМА друг спорт, и никога при „Boxing Day",
+     „box-to-box", „в бокса" (пит-лейн), „бокс офис", „наказателното поле".
+
+  C) ЕДНА ИСТОРИЯ = ЕДИН ПОСТ. Записите се СГРУПИРВАТ преди избора: българското
+     заглавие и английското за същото събитие стават една история — взимаме
+     българското заглавие, НАЙ-ДОБРАТА снимка от всички източници, и пишем
+     „също: Sportal, Dsport". Групата пази и паметта: утре нито един от вариантите
+     не тръгва пак (sent_news.json помни ключовете на ВСИЧКИ участници).
+     ЧЕСТНА ГРАНИЦА: сравняват се ДУМИ. Затова българското и английското заглавие
+     за едно и също събитие („България победи Италия" / „Bulgaria stun Italy") НЕ
+     се сливат — за това трябва транслитерация на имената, а тя носи риск да
+     изяде истинска новина. Повторенията между БЪЛГАРСКИТЕ сайтове (истинският
+     проблем на шефа) се хващат напълно.
+
+  D) КОНТЕКСТЪТ Е ИСТИНСКИ РЕД. Взима се ПЪРВОТО ИЗРЕЧЕНИЕ от описанието на
+     емисията, изчистено от боклук; ако то само преразказва заглавието — не се
+     пише нищо (по-добре празно, отколкото шум).
+
+  E) КАРТИНКИТЕ остават както шефът ги хареса: sendPhoto по адрес, при отказ
+     втора снимка, при отказ чист текст. Новина не се губи заради снимка.
 
 Пуска се от GitHub Actions 3x дневно. Помни пратеното в sent_news.json (комитва се обратно).
 Бележка за деплой: файлът е писан БЕЗ обратни наклонени черти (нов ред = NL = chr(10),
 regex-границите на думи = LB/RB, кавичките в regex = chr(34)/chr(39)).
+Проверка: NEWS_MODE=selftest python news_bot.py   |   пробно: NEWS_DRY_RUN=1 python news_bot.py
 """
 import html
 import json
@@ -57,7 +79,7 @@ NL = chr(10)
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")              # групата (-100...)
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "")        # каналът — САМО за проверка, НЕ пишем в него
-NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID", "26") or "26"   # 📰 Новини — ЕДИНСТВЕНАТА стая за новини
+NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID", "26") or "26"   # 📰 Новини — ЕДИНСТВЕНАТА стая
 NEWS_ROOM_FALLBACK = "26"
 
 # 🚫 Стаи, в които новинарят НЯМА право да пише, дори да го „помолят" през env:
@@ -81,6 +103,42 @@ def wp(word):
     return LB + word
 
 
+# ============================================================ 🥊 БОЙНИ СПОРТОВЕ ==
+# Три пласта, защото „бокс" е най-опасната дума в спортната журналистика.
+#
+# СИЛНИ думи — сами по себе си значат боен спорт, няма как да са друго.
+COMBAT_STRONG = "|".join([
+    wb("ufc"), wb("mma"), wb("мма"), wb("ммa"), wb("bkfc"), wb("bellator"), wb("pfl"),
+    "октагон", "octagon", "смесени бойни", "бойни изкуства", "mixed martial",
+    "муай тай", "muay thai", "кикбокс", "kickbox", wb("oktagon"),
+    "макгрегър", "mcgregor", "нурмагомедов", wb("khabib"), "хабиб",
+    "адесаня", "adesanya", "порие", "poirier", "махачев", "makhachev",
+    wb("usyk"), "усик", "тайсън фюри", "tyson fury", "антъни джошуа", "anthony joshua",
+    wb("canelo"), "канело", wp("пулев"), "джудо", wb("judo"), "таекуондо", "taekwondo",
+    wb("карате"), wb("karate"), wb("сумо"), wb("sumo"), wb("самбо"), wb("sambo"),
+    "ju-jitsu", "джиу-джицу", "grappling", "грaплинг",
+])
+
+# МЕКИ думи — значат боен спорт САМО ако в заглавието няма друг спорт.
+# „Нокаут за Реал Мадрид" първо се хваща от футбола и никога не стига дотук.
+COMBAT_SOFT = "|".join([
+    wp("бокс"), wb("boxing"), wb("boxer"), wb("boxers"), "на ринга", "в ринга",
+    "one championship", wp("нокаут"), wb("knockout"), wb("ко"), wp("нокдаун"),
+    wb("fight night"), "боен спорт", wp("гладиатор"),
+])
+
+# КАПАНИ — тук думата „бокс/boxing" НИКОГА не значи боен спорт (проверени случаи):
+# Boxing Day (футболният кръг след Коледа), box-to-box халф, „в бокса" = пит-лейн
+# във Формула 1, „бокс офис", „наказателното поле" (penalty box).
+COMBAT_TRAP = "|".join([
+    "boxing day", "боксинг дей", "box-to-box", "box to box", "бокс-ту-бокс",
+    "box office", "бокс офис", "penalty box", "наказателното поле",
+    "в бокса", "от бокса", "към бокса", "боксовете", "пит бокс", "pit box",
+    "формула 1", "formula 1", "formula one", "формула едно", wb("f1"),
+    "ice box", "боксониера",
+])
+
+
 # 🎯 РАЗПОЗНАВАНЕТО ПО СПОРТ. РЕДЪТ Е ВАЖЕН: специфичните спортове ПРЕДИ футбола
 # (волейболният ЦСКА съдържа „волейбол" -> хваща се преди клубното име във football).
 #
@@ -88,6 +146,8 @@ def wp(word):
 # стая 26 „Новини". Новини в спортните стаи са ЗАБРАНЕНИ (правило 2). Полето стои
 # само за обратна съвместимост (news_showcase.py го чете) и умишлено е пренасочено.
 SPORT_ROOMS = {
+    "combat":      {"thread": NEWS_THREAD_ID, "title": "🥊 БОЙНИ СПОРТОВЕ — новини",
+                    "pat": COMBAT_STRONG},
     "tabletennis": {"thread": NEWS_THREAD_ID, "title": "🏓 ТЕНИС НА МАСА — новини",
                     "pat": "|".join(["тенис на маса", "table tennis", "ping pong", "пинг понг",
                                      wb("wtt"), wb("ittf"), wb("ettu"), "тенисът на маса"])},
@@ -100,7 +160,8 @@ SPORT_ROOMS = {
     "basketball":  {"thread": NEWS_THREAD_ID, "title": "🏀 БАСКЕТБОЛ — новини",
                     "pat": "|".join(["баскет", "basketball", wb("nba"), wb("wnba"), "евролига",
                                      "euroleague", wb("fiba"), "triple-double", "леброн", "lebron",
-                                     "йокич", "jokic", "дончич", "doncic", "еврокъп", "eurocup"])},
+                                     "йокич", "jokic", "дончич", "doncic", "еврокъп", "eurocup",
+                                     "везенков"])},
     "football":    {"thread": NEWS_THREAD_ID, "title": "⚽ ФУТБОЛ — новини",
                     "pat": "|".join(["футбол", "цска", "левски", "лудогорец", "champions league",
                                      "premier league", "la liga", "serie a", "bundesliga",
@@ -117,20 +178,39 @@ SPORT_ROOMS = {
 
 # ⚽ ФУТБОЛ = САМО НАЙ-ВИСШИТЕ ЛИГИ И ГОЛЕМИТЕ ИСТОРИИ (заповед на шефа).
 # Дребни/местни лиги НЕ минават — другите спортове са по-важни.
+# Българският връх Е голяма история за български канал, затова е тук.
 TOP_FOOTBALL = "|".join([
     "champions league", "premier league", "la liga", "serie a", "bundesliga", "ligue 1",
     "europa league", "световно", "европейско", "мондиал", "national team", "реал мадрид",
     "барселона", "байерн", "ливърпул", "манчестър", "арсенал", "челси", "тотнъм", "псж",
     "ювентус", "интер", "милан", "атлетико", wb("fifa"), wb("uefa"),
+    "първа лига", "лудогорец", "цска", "левски", "националния отбор", "националите",
 ])
 
 
+def is_combat(text):
+    """Боен спорт ли е? Силните думи важат винаги; меките — само без капан.
+    Не решава сам дали друг спорт е по-силен — това го прави classify()."""
+    t = (text or "").lower()
+    if re.search(COMBAT_TRAP, t):
+        return False
+    return bool(re.search(COMBAT_STRONG, t))
+
+
 def classify(title):
-    """Заглавие -> ключ на спорт или None (обща новина). Пази стария си вид."""
-    t = title.lower()
+    """Заглавие -> ключ на спорт или None (обща новина).
+    Ред: силни бойни думи → останалите спортове → меки бойни думи."""
+    t = (title or "").lower()
+    if is_combat(t):
+        return "combat"
     for key, room in SPORT_ROOMS.items():
+        if key == "combat":
+            continue
         if re.search(room["pat"], t):
             return key
+    # „бокс/ринг/нокаут" тръгват само когато НИКОЙ друг спорт не се е обадил
+    if re.search(COMBAT_SOFT, t) and not re.search(COMBAT_TRAP, t):
+        return "combat"
     return None
 
 
@@ -139,6 +219,7 @@ def classify(title):
 # (и минава през филтъра TOP_FOOTBALL), вместо да цапа „Други спортове".
 # Същият ред както горе: специфичните спортове преди футбола.
 LINK_SPORT = [
+    ("combat", "|".join([wb("ufc"), wb("mma"), "/mma", "boxing", "/fight", "kickbox", "judo"])),
     ("tabletennis", "|".join(["table-tennis", "tabletennis", "tenis-na-masa", "ping-pong", "pingpong"])),
     ("volleyball", "|".join(["volleyball", "voleybol", "volejbol", "-volley", "/volley", "pallavolo",
                              "siatkowka", "volej"])),
@@ -159,59 +240,65 @@ def classify_link(link):
 
 
 # --- подредбата на постовете в стая 26 (приоритетът на шефа) -----------------
-SECTION_ORDER = ["tabletennis", "volleyball", "basketball", "football", None]
+SECTION_ORDER = ["tabletennis", "volleyball", "basketball", "football", "combat", None]
 SECTION_HEAD = {
     "tabletennis": "🏓 ТЕНИС НА МАСА",
     "volleyball": "🏐 ВОЛЕЙБОЛ",
     "basketball": "🏀 БАСКЕТБОЛ",
     "football": "⚽ ФУТБОЛ",
+    "combat": "🥊 БОЙНИ СПОРТОВЕ",
     None: "📰 ДРУГИ СПОРТОВЕ",
 }
+# Кой спорт печели, когато една история е разпозната по два начина (по-малкото = по-силно).
+ROOM_PRIORITY = {"tabletennis": 0, "volleyball": 1, "basketball": 2, "combat": 3, "football": 4}
 
 STATE_FILE = "sent_news.json"
 TITLES_FILE = "last_news_titles.json"          # мост към Анализатора (matches_bot.py)
 MAX_ITEMS = int(os.environ.get("NEWS_MAX_GENERAL", "3"))   # таван за „Други спортове"
-PER_SPORT = int(os.environ.get("NEWS_PER_SPORT", "3"))     # таван за всеки от 4-те спорта
+PER_SPORT = int(os.environ.get("NEWS_PER_SPORT", "3"))     # таван за всеки спорт
 MAX_TOTAL = int(os.environ.get("NEWS_MAX_TOTAL", "10"))    # общ таван снимки на едно пускане
 OG_MAX = int(os.environ.get("NEWS_OG_MAX", "6"))           # най-много допълнителни заявки за og:image
 SHOW_HEADERS = os.environ.get("NEWS_SECTION_HEADERS", "1") != "0"
 VERIFY_IMG = os.environ.get("NEWS_VERIFY_IMG", "1") != "0"
-MIN_SCORE = 3          # под този скор обща новина не минава
-STATE_KEEP = 1500      # колко ключа помним
-SENT_TITLES_KEEP = 300 # колко пратени заглавия помним за сравнение „същата история"
+MIN_SCORE = 3          # СТАР праг по ключови думи — пази се за news_showcase.py
+STATE_KEEP = 2500      # колко ключа помним
+SENT_TITLES_KEEP = 400 # колко пратени заглавия помним за сравнение „същата история"
 TITLES_KEEP = 200      # колко заглавия подаваме на Анализатора
 PER_FEED = 20          # най-много записи, които четем от един източник
 MAX_AGE_H = int(os.environ.get("NEWS_MAX_AGE_H", "72"))    # по-стари от това не са „свежи"
 TG_LIMIT = 3500        # лимитът на Telegram е 4096 — държим запас за емоджита
 TG_HARD = 4000         # аварийна ножица: нито един ТЕКСТОВ пост не тръгва по-дълъг от това
 CAPTION_HARD = 1000    # таванът на подпис под снимка е 1024 — държим запас
-FETCH_WORKERS = 8      # източниците се дърпат едновременно (иначе 42 бавни адреса = 8 минути)
+FETCH_WORKERS = 8      # източниците се дърпат едновременно (иначе 50 бавни адреса = 8 минути)
 GAP_PHOTO = 2.0        # пауза между снимките (Telegram пуска ~20 съобщения в минута)
 GAP_TEXT = 1.2
 
+# Прагове по новата рейтинг-скала (виж rank_story). Пипай ги само с ясна причина.
+NEED_SPECIALIST = 1.5   # емисия само за този спорт (ETTU, WorldOfVolley, Sherdog…)
+NEED_WEAK = 4.0         # блог/форум в същия спорт — иска повече, за да не пълни картата
+NEED_TITLE = 3.0        # спортът е познат по думи в заглавието
+NEED_OTHER = float(os.environ.get("NEWS_MIN_RANK", "6.5"))   # „Други спортове" — най-строго
+FOOTBALL_BIG = 8.0      # футбол извън топ-лигите минава само с този рейтинг
+
 # 📡 ИЗТОЧНИЦИ. Трети елемент = подсказка за спорт (специализиран сайт: заглавието
 # „Poland beat Italy 3:1" няма думата „волейбол", но източникът я знае).
-# "other" = ниша, която НЕ е един от 4-те спорта -> отива в „Други спортове".
+# "other" = ниша, която НЕ е един от петте спорта -> отива в „Други спортове".
 # Мъртъв/сменен адрес не е проблем: fetch/parse го прескачат тихо (виж collect_feeds).
 #
-# ✅ Всички адреси тук са ПРОВЕРЕНИ наживо на 28.07.2026 (връщат истински записи),
-# с две изключения, оставени нарочно: ITTF (сега 403 от Cloudflare) и EuroLeague
-# (сега 429) — това са каноничните източници и адресът им е верен, просто ни спират;
-# от сървъра на GitHub може да минат.
-# Отпаднаха при проверката (404 / HTML вместо XML / виснат до таймаут и затова НЕ ги
-# слагаме): CEV, Volleyball World, PlusLiga, FIVB, volleyball.bg, bfvolleyball.bg,
-# NBA.com, BasketNews, FIBA, HoopsHype, SLAM, bgbasket, WTT, bttf.bg, UEFA, Goal,
-# Football365, DartsNews, dnes.bg, sportni.bg, nova.bg, btvsport, topsport.bg,
-# novinite.bg, vesti.bg, trud.bg, monitor.bg, standartnews, dnevnik.bg, sportuvai.bg.
+# ✅ Адресите са ПРОВЕРЕНИ наживо на 28.07.2026 (връщат истински записи), с две
+# изключения, оставени нарочно: ITTF (403 от Cloudflare) и EuroLeague (429) — това са
+# каноничните източници, адресът им е верен, просто ни спират; от GitHub може да минат.
+# Имената са едносрични отпред нарочно: първата дума = ИЗДАТЕЛЯТ (виж publisher()),
+# за да не броим „ESPN" и „ESPN NBA" за два независими източника.
 FEED_SOURCES = [
-    # --- български общи спортни сайтове (носят и волейбол/тенис на маса) ---
+    # --- български общи спортни сайтове (носят и волейбол/тенис на маса/бойни) ---
     ("Gong", "https://gong.bg/rss", None),
     ("Sportal", "https://www.sportal.bg/rss", None),
     ("Dsport", "https://dsport.bg/rss", None),
     ("Blitz Спорт", "https://blitz.bg/rss/sport", None),
     ("Sportlive", "https://sportlive.bg/rss", None),
     ("Actualno Спорт", "https://www.actualno.com/rss/sport", None),
-    ("24 часа Спорт", "https://www.24chasa.bg/rss/sport", None),
+    ("24ч Спорт", "https://www.24chasa.bg/rss/sport", None),
     ("Сега Спорт", "https://www.segabg.com/rss/sport", None),
     # --- световни общи ---
     ("BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml", None),
@@ -220,8 +307,8 @@ FEED_SOURCES = [
     ("Guardian Sport", "https://www.theguardian.com/sport/rss", None),
     # --- 🏓 тенис на маса (най-оскъдният спорт — затова и блогове) ---
     ("ETTU", "https://www.ettu.org/rss", "tabletennis"),
-    ("TT England", "https://tabletennisengland.co.uk/feed/", "tabletennis"),
-    ("Butterfly TT", "https://www.butterflyonline.com/feed/", "tabletennis"),
+    ("TTEngland", "https://tabletennisengland.co.uk/feed/", "tabletennis"),
+    ("Butterfly", "https://www.butterflyonline.com/feed/", "tabletennis"),
     ("TableTennisDaily", "https://www.tabletennisdaily.com/forum/forums/-/index.rss", "tabletennis"),
     ("ExpertTT", "https://www.experttabletennis.com/feed/", "tabletennis"),
     ("ITTF", "https://www.ittf.com/feed/", "tabletennis"),
@@ -250,9 +337,20 @@ FEED_SOURCES = [
     ("ESPN Soccer", "https://www.espn.com/espn/rss/soccer/news", "football"),
     ("Sky Футбол", "https://www.skysports.com/rss/11095", "football"),
     ("90min", "https://www.90min.com/posts.rss", "football"),
+    # --- 🥊 бойни спортове (ново; всички проверени наживо 28.07.2026) ---
+    ("UFC", "https://www.ufc.com/rss/news", "combat"),
+    ("ESPN MMA", "https://www.espn.com/espn/rss/mma/news", "combat"),
+    ("Sherdog", "https://www.sherdog.com/rss/news.xml", "combat"),
+    ("MMAWeekly", "https://www.mmaweekly.com/feed", "combat"),
+    ("BloodyElbow", "https://www.bloodyelbow.com/feed/", "combat"),
+    ("CombatPress", "https://combatpress.com/feed/", "combat"),
+    ("BoxingNewsOnline", "https://www.boxingnewsonline.net/feed/", "combat"),
+    ("BoxingNews24", "https://www.boxingnews24.com/feed/", "combat"),
+    ("BJPenn", "https://www.bjpenn.com/feed/", "combat"),
+    ("LowKickMMA", "https://www.lowkickmma.com/feed/", "combat"),
     # --- 🎯 ниши за „Други спортове" ---
-    ("Дартс PDC", "https://www.pdc.tv/rss.xml", "other"),
-    ("Тенис ESPN", "https://www.espn.com/espn/rss/tennis/news", "other"),
+    ("PDC Дартс", "https://www.pdc.tv/rss.xml", "other"),
+    ("ESPN Тенис", "https://www.espn.com/espn/rss/tennis/news", "other"),
 ]
 
 # Съвместимост: news_showcase.py прави „for source, url in nb.FEEDS".
@@ -261,24 +359,36 @@ FEED_SPORT = {name: hint for name, url, hint in FEED_SOURCES if hint}
 
 # Форуми, блогове, ревюта и училищни лиги: съдържанието им е разговорно/вечно
 # („Barefoot shoes", „How to Beat a Chopper", „When does the season start?").
-# Пускаме ги в спорта им, но искаме поне 1 точка — да не пълнят картата с
-# дрънканици, когато има истински новини.
-FEED_WEAK = {"TableTennisDaily", "Butterfly TT", "ExpertTT", "VolleyCountry",
-             "VolleyballMag", "Volleyverse", "NCAA Волейбол", "BallnEurope"}
+# Пускаме ги в спорта им, но с по-висок праг — да не пълнят картата с дрънканици.
+FEED_WEAK = {"TableTennisDaily", "Butterfly", "ExpertTT", "VolleyCountry",
+             "VolleyballMag", "Volleyverse", "NCAA Волейбол", "BallnEurope",
+             "BJPenn", "LowKickMMA", "90min"}
+
+# 🇧🇬 Български източници. Когато една история я има и на български, и на английски,
+# постът тръгва с БЪЛГАРСКОТО заглавие (читателите са български).
+FEED_BG = {"Gong", "Sportal", "Dsport", "Blitz Спорт", "Sportlive", "Actualno Спорт",
+           "24ч Спорт", "Сега Спорт"}
 
 # 🚫 ЕМИСИИ С ХАЗАРТЕН СПОНСОР В КАДЪРА. Проверено: снимките на PDC са от турнир,
 # кръстен на букмейкър — рекламни пана пълнят кадъра. Български закон забранява
 # реклама на хазарт, а ние не можем да четем текста в снимката. Затова: без снимка,
 # без визитка на линка (тя щеше да извади същата снимка) — само чист текст.
-BRAND_RISK_FEEDS = {"Дартс PDC"}
+BRAND_RISK_FEEDS = {"PDC Дартс"}
 
 # Сайтове, които връщат ПРАЗНО тяло на бот — няма смисъл да хабим заявка за og:image.
 OG_SKIP_MARKS = ["espn"]
 
 
+def publisher(source):
+    """Издателят зад името на емисията: „ESPN NBA" и „ESPN Soccer" са ЕДИН издател.
+    Това пази най-важния сигнал — съгласието между НЕЗАВИСИМИ издания."""
+    p = (source or "").strip().lower().split(" ")[0]
+    return p or "?"
+
+
 def fetch(url, timeout=12):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 GreenRoomBot/2.0",
+        "User-Agent": "Mozilla/5.0 GreenRoomBot/3.0",
         "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
     })
     with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -286,7 +396,7 @@ def fetch(url, timeout=12):
 
 
 def fetch_post(url, data, timeout=25):
-    req = urllib.request.Request(url, data=data, headers={"User-Agent": "GreenRoomBot/2.0"})
+    req = urllib.request.Request(url, data=data, headers={"User-Agent": "GreenRoomBot/3.0"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 
@@ -446,12 +556,48 @@ def image_candidates(el):
     return out
 
 
+# ============================================================ КОНТЕКСТ-РЕДЪТ ==
 BOILER = [" the post ", "continue reading", "read more", "appeared first on",
-          "виж още", "прочети още", "още по темата"]
+          "виж още", "прочети още", "още по темата", "следете ни", "абонирайте се",
+          "снимка: ", "photo: ", "the post appeared"]
+
+# Съкращения, след чиято точка изречението НЕ свършва („през 2026 г. отборът…").
+ABBREV = {"г", "бр", "стр", "др", "т", "проф", "инж", "ул", "мин", "сек", "хил",
+          "mr", "mrs", "dr", "st", "vs", "no", "inc", "co", "jr", "sr", "u", "s"}
 
 
-def item_summary(el, title):
-    """Един ред контекст изпод заглавието. Празно, ако емисията не дава смислен текст."""
+def strip_lead_source(txt, source):
+    """Много емисии започват описанието с името на сайта („WorldOfVolley Türkiye
+    won…"). Това не е контекст, а подпис — маха се."""
+    s = (txt or "").lstrip()
+    name = (source or "").strip()
+    if name and s.lower().startswith(name.lower()):
+        s = s[len(name):].lstrip(" -–—:·|,")
+    return s
+
+
+def strip_byline(txt):
+    """Маха подписа на автора отпред: „(by Steve Hopkins, photo WTT) Eugene Wang…"
+    или „By Иван Иванов — текстът…". Това не е контекст, а визитка."""
+    s = (txt or "").lstrip()
+    if s.startswith("("):
+        end = s.find(")")
+        if 0 < end < 90:
+            inner = s[1:end].lower()
+            if "by " in inner or "photo" in inner or "снимка" in inner:
+                s = s[end + 1:].lstrip(" -–—:·,")
+    low = s.lower()
+    if low.startswith("by ") or low.startswith("от "):
+        for sep in (" - ", " – ", " — ", " | "):
+            p = s.find(sep)
+            if 0 < p < 60:
+                s = s[p + len(sep):].lstrip()
+                break
+    return s
+
+
+def item_summary(el, title, source=""):
+    """Суровият описателен текст на записа. Празно, ако емисията не дава смисъл."""
     try:
         for tag in ("description", MEDIA_NS + "description", CONTENT_NS + "encoded",
                     ATOM_NS + "summary", ATOM_NS + "content"):
@@ -467,9 +613,10 @@ def item_summary(el, title):
                 if pos > 40:
                     txt = txt[:pos]
                     low = txt.lower()
-            txt = " ".join(txt.split())
+            txt = strip_byline(strip_lead_source(" ".join(txt.split()), source))
             if len(txt) < 30:
                 continue
+            low = txt.lower()
             if low.startswith((title or "").lower()[:40]):
                 txt = txt[len(title):].strip(" -–—:·")
                 if len(txt) < 30:
@@ -478,6 +625,33 @@ def item_summary(el, title):
     except Exception:
         pass
     return ""
+
+
+def first_sentence(text, low=45, high=260):
+    """ПЪРВОТО изречение — това е редът контекст под заглавието.
+    Точката след съкращение („г.", „St.") не брои за край на изречение."""
+    s = " ".join((text or "").split())
+    if not s:
+        return ""
+    i = 0
+    n = len(s)
+    while i < n:
+        pos = -1
+        for mark in (". ", "! ", "? ", "… ", "; "):
+            p = s.find(mark, i)
+            if p != -1 and (pos == -1 or p < pos):
+                pos = p
+        if pos == -1:
+            break
+        words = re.findall("[a-zа-яё0-9]+", s[:pos].lower())
+        prev = words[-1] if words else ""
+        if pos + 1 < low or prev in ABBREV or (len(prev) == 1 and not prev.isdigit()):
+            i = pos + 1
+            continue
+        return s[:pos + 1].strip()
+    if len(s) > high:
+        return s[:high]
+    return s
 
 
 def item_category(el):
@@ -524,7 +698,7 @@ def verify_image(u, timeout=8):
         return True
     try:
         req = urllib.request.Request(u, method="HEAD", headers={
-            "User-Agent": "Mozilla/5.0 GreenRoomBot/2.0", "Accept": "image/*,*/*"})
+            "User-Agent": "Mozilla/5.0 GreenRoomBot/3.0", "Accept": "image/*,*/*"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             ctype = (r.headers.get("Content-Type") or "").lower()
             raw_size = (r.headers.get("Content-Length") or "").strip()
@@ -544,8 +718,7 @@ def verify_image(u, timeout=8):
 # ============================================================== ПАРСВАНЕТО ====
 def parse_rss(source, raw):
     """RSS <item> и Atom <entry>.
-    Връща [{source, title, link, date, imgs, summary}] — новите полета са
-    добавка; старите потребители (news_showcase.py) не усещат разлика."""
+    Връща [{source, title, link, date, imgs, summary, cat}]."""
     items = []
     try:
         root = ET.fromstring(raw)
@@ -561,7 +734,7 @@ def parse_rss(source, raw):
             items.append({"source": source, "title": title, "link": link,
                           "date": parse_date(item.findtext("pubDate")),
                           "imgs": image_candidates(item),
-                          "summary": item_summary(item, title),
+                          "summary": item_summary(item, title, source),
                           "cat": item_category(item)})
     # Atom fallback
     if not items:
@@ -574,47 +747,310 @@ def parse_rss(source, raw):
                 items.append({"source": source, "title": title, "link": link,
                               "date": parse_date(e.findtext(ns + "published") or e.findtext(ns + "updated")),
                               "imgs": image_candidates(e),
-                              "summary": item_summary(e, title),
+                              "summary": item_summary(e, title, source),
                               "cat": item_category(e)})
     return items
 
 
+# =========================================== ДУМИ, ОТПЕЧАТЪК И „СЪЩАТА ИСТОРИЯ" ==
+# Празни думи + ОБЩОСПОРТНИ думи. Общата дума („футбол", „мач", „отбор") НЕ бива да
+# слепва две различни истории — затова стои тук и никога не брои за прилика.
+STOP_RAW = [
+    "който", "която", "което", "които", "след", "преди", "срещу", "заради", "между",
+    "около", "според", "въпреки", "затова", "както", "така", "този", "тази", "това",
+    "тези", "онзи", "всички", "всичко", "нещо", "няма", "има", "беше", "бяха", "може",
+    "могат", "трябва", "иска", "искат", "казва", "каза", "заяви", "обяви", "обявиха",
+    "днес", "вчера", "утре", "сега", "вече", "още", "само", "също", "много", "малко",
+    "първи", "втори", "трети", "нови", "нова", "ново", "стар", "голям", "голяма",
+    "срещата", "мачът", "мача", "мачове", "мачовете", "среща", "срещи", "двубой",
+    "двубоя", "отбор", "отбора", "отборът", "отбори", "тим", "тима", "клуб", "клуба",
+    "играч", "играча", "играчи", "звезда", "звездата", "треньор", "треньорът",
+    "сезон", "сезона", "сезонът", "кръг", "кръга", "лига", "лигата", "турнир",
+    "турнира", "шампионат", "първенство", "спорт", "спортни", "новини", "видео",
+    "снимки", "футбол", "футболист", "футболен", "баскет", "баскетбол", "волейбол",
+    "тенис", "бокс", "боксов", "спортен",
+    # етапи и трофеи: ЕТИКЕТИ, не самоличност на историята. Без тях „Бразилия…финал"
+    # и „…Final Four в Бразилия" се слепваха в една новина (истински бъг от живия рън).
+    "финал", "финала", "финални", "полуфинал", "четвъртфинал", "титла", "титлата",
+    "шампион", "медал", "злато", "сребро", "бронз", "купа", "трофей", "победител",
+    "победа", "победи", "загуба", "загуби", "класиране", "мач", "гейм", "рунд",
+    "that", "this", "with", "from", "have", "has", "will", "would", "could", "about",
+    "after", "before", "against", "their", "there", "here", "what", "when", "where",
+    "which", "while", "into", "over", "under", "more", "most", "than", "then", "they",
+    "them", "your", "you", "and", "but", "for", "not", "are", "was", "were", "been",
+    "says", "said", "team", "teams", "club", "clubs", "game", "games", "match",
+    "matches", "player", "players", "star", "coach", "season", "league", "sport",
+    "sports", "news", "video", "watch", "report", "reports", "update", "live",
+    "final", "finals", "semifinal", "quarterfinal", "title", "titles", "champion",
+    "champions", "championship", "bronze", "silver", "gold", "medal", "trophy",
+    "winner", "winners", "victory", "defeat", "round", "game", "week",
+    "ufc", "mma", "nba", "wnba", "fifa", "uefa", "wtt", "ittf", "ettu", "cev", "vnl",
+    "fiba", "espn", "euroleague", "евролига",
+]
+STOP = set(STOP_RAW) | set(w[:6] for w in STOP_RAW)
+# Къси, но носещи думи (иначе прагът „поне 4 букви" би ги изхвърлил).
+ALLOW_SHORT = {"psg", "цска", "реал", "барса", "юве", "кубрат", "усик"}
+
+
+def stem(w):
+    """Груб корен: първите 6 букви. Език-независимо и достатъчно —
+    „манчестър"/„манчестъра" и „transfer"/„transfers" стават една дума."""
+    return w[:6]
+
+
+def toks(text):
+    """Отпечатък на заглавието: множество корени на носещите думи.
+    Класът пуска и „чужди" букви (Türkiye, Håland), иначе името се чупи на парчета."""
+    out = set()
+    for w in re.findall("[a-zа-яёà-ÿğışœ0-9]+", (text or "").lower()):
+        if w in ALLOW_SHORT:
+            out.add(stem(w))
+            continue
+        if len(w) < 4 or w.isdigit():
+            continue
+        if w in STOP or stem(w) in STOP:
+            continue
+        out.add(stem(w))
+    return out
+
+
+def same_story(a, b):
+    """Два отпечатъка = една и съща история? (без корпус — по-прощаващата мярка)
+    Ползва се за ПАМЕТТА и за последното чистене, където искаме да сме строги
+    към повторенията. За СГРУПИРВАНЕТО има по-умна мярка — виж same_story_df."""
+    if not a or not b:
+        return False
+    common = len(a & b)
+    if common >= 3:
+        return True
+    if common >= 2 and common / float(min(len(a), len(b))) >= 0.5:
+        return True
+    return False
+
+
+# --- умната мярка: колко РЯДКА е общата дума -------------------------------
+# Доказано на живи емисии: „signs", „deal", „final" се срещат в десетки заглавия и
+# слепваха несвързани новини („Collin Malcolm signs…" получаваше за източници BBC и
+# Sky). Затова общите думи се теглят: рядката дума (име) тежи, честата почти не.
+def token_df(items):
+    """Колко заглавия съдържат всяка дума в ТОЗИ рън."""
+    df = {}
+    for c in items:
+        for t in (c.get("sig") or set()):
+            df[t] = df.get(t, 0) + 1
+    return df
+
+
+def tok_weight(t, df):
+    n = df.get(t, 1)
+    if n <= 3:
+        return 1.0
+    if n <= 8:
+        return 0.7
+    if n <= 20:
+        return 0.3
+    return 0.08
+
+
+def same_story_df(a, b, df):
+    """Една история ли е — с тегло на общите думи. Две редки имена стигат,
+    пет всекидневни думи не стигат."""
+    if not a or not b:
+        return False
+    common = a & b
+    if len(common) < 2:
+        return False
+    w = sum(tok_weight(t, df) for t in common)
+    if len(common) >= 3 and w >= 0.9:
+        return True
+    if len(common) == 2 and w >= 1.4 and len(common) / float(min(len(a), len(b))) >= 0.5:
+        return True
+    return False
+
+
 def big_words(text):
+    """Стар помощник (news_showcase.py го ползва) — пази се непокътнат."""
     return set(re.findall("[а-яa-z]{6,}", text.lower()))
 
 
-# Ключови думи -> точки (важност).
+def is_bg(text):
+    """Кирилица в заглавието = българска новина (за избора на представител)."""
+    return bool(re.search("[а-яА-Я]", text or ""))
+
+
+# ==================================================== РЕЙТИНГЪТ (кое е голямо) ==
+# Ключови думи -> точки (важност). Основата, върху която лягат другите сили.
 KEYWORDS = {
     5: [wp("трансфер"), wp("transfer"), wp("уволн"), wp("sacked"), wp("fired"), wp("оставк"),
-        wp("почина"), wp("died"), wp("скандал"), wp("scandal"), wp("дисквалиф"), wp("banned")],
+        wp("почина"), wp("died"), wp("скандал"), wp("scandal"), wp("дисквалиф"), wp("banned"),
+        wp("допинг"), wp("doping"), wp("подписа"), wp("signs"), wp("signed")],
     4: [wp("контузи"), wp("injur"), wp("аут за"), wp("ruled out"), wp("финал"), wp("final"),
-        wp("титла"), wp("title"), wp("шампион"), wp("champion"), wp("злато"), wp("медал")],
-    3: [wp("дерби"), wp("derby"), wp("рекорд"), wp("record"), wp("класик"), wp("clasico"),
-        "връща се", wb("return"), wp("дебют"), wp("debut"), wp("полуфинал"), wp("semifinal")],
+        wp("титла"), wp("title"), wp("шампион"), wp("champion"), wp("злато"), wp("медал"),
+        wp("рекорд"), wp("record"), wp("оттегл"), wp("retire")],
+    3: [wp("дерби"), wp("derby"), wp("класик"), wp("clasico"), "връща се", wb("return"),
+        wp("дебют"), wp("debut"), wp("полуфинал"), wp("semifinal"), wp("нокаутира"),
+        wp("новият"), wp("новата"), wb("new coach"), wp("сензац")],
     2: [wp("побед"), wp("загуб"), wp("равенство"), wb("гол"), wp("голове"), wb("гола"),
-        wp("goal"), wb("win"), wb("loss"), wb("draw"), wp("класира")],
+        wp("goal"), wb("win"), wb("beat"), wb("loss"), wb("draw"), wp("класира")],
 }
+
+# 🇧🇬 Българска диря — за български канал това е новината, която го засяга пряко.
+LOCAL_HOOKS = "|".join([
+    "българ", "лудогорец", "цска", "левски", "берое", "ботев", "черно море", "славия",
+    "националите", "националния отбор", "пулев", "григор димитров", "везенков",
+    "николов", "соколов", "казийски", "стойчев", "тервел", "кубрат",
+])
+
+# ⛔ ТВЪРДО ОТПАДА (никога не тръгва): залози, магазин, реклама, тестове.
+HARD_DROP = [
+    wb("odds"), wp("betting"), "best bets", "bet builder", wp("accumulator"), "free bet",
+    wb("tips"), wp("tipster"), wb("prediction"), wb("predictions"), wp("прогноз"),
+    wp("залож"), wp("залага"), wp("залаган"), "коефициент",
+    wb("shop"), "shop now", wp("discount"), "on sale", wp("разпродажб"), wp("промоци"),
+    wb("giveaway"), wp("sponsor"), "partner content", "advertorial", "black friday",
+    "gift guide", "buying guide", wb("coupon"), "промо код", wb("unboxing"),
+    wb("quiz"), wp("викторина"), "how well do you know", wb("crossword"), wb("puzzle"),
+    "best deals", "deal of the", wb("merch"),
+]
+
+# ⬇️ НАКАЗАНИЯ (падат надолу, но може да минат, ако историята е огромна).
+SOFT_PENALTY = [
+    (4.0, "|".join([LB + "(?:топ|top) ?[0-9]+",
+                    "[0-9]+ (?:неща|причини|факта|момента|играчи|things|reasons|players|moments|facts|best)",
+                    "power rankings", wb("ranked"), "класация на", "the best [0-9]+",
+                    "най-добрите [0-9]+", wb("xi"), "team of the week"])),
+    (3.0, "|".join([wb("opinion"), wb("column"), wb("columnist"), "мнение на", wp("коментар"),
+                    wb("editorial"), "гледна точка", "op-ed", wp("анализ:"), "why "])),
+    (3.0, "|".join([wb("watch"), "video:", "видео:", wp("гледайте"), "вижте как", "виж как",
+                    "снимки:", wp("галери"), "must-see", wb("highlights"), "хайлайти"])),
+    (3.0, "|".join(["where to watch", "how to watch", "къде да гледам", "tv schedule",
+                    "по кой канал", "start time", "startlist", "стартов лист",
+                    "по тв", "как да гледаме", "как можем да гледаме", "къде да гледаме",
+                    "пряко предаване", "директно по", "live stream"])),
+    (2.0, "|".join(["you will not believe", wb("shock"), wb("bombshell"), "ето какво",
+                    "ето защо", "ето кой", wp("шокира"), "не познахте"])),
+    (1.2, "|".join([wp("слух"), wb("rumour"), wb("rumor"), wb("reportedly"), "твърди се",
+                    "според медии", wb("gossip"), "може би"])),
+    (1.0, "|".join([wb("preview"), wp("предстои"), "какво да очакваме", wb("q&a")])),
+]
 
 SPORT_EMOJI = [("футбол|football|soccer|уефа|" + wb("fifa") + "|" + wb("uefa"), "⚽"),
                ("баскет|basket|" + wb("nba"), "🏀"),
                ("тенис на маса|table tennis|пинг понг", "🏓"),
                ("волейбол|volleyball", "🏐"),
+               (COMBAT_STRONG, "🥊"),
                ("тенис|tennis", "🎾"),
                ("дартс|darts", "🎯")]
 
 # Емоджи по секция — резерва, когато заглавието не съдържа името на спорта
 # („Полша срази Италия с 3:1" е волейбол, но думата я няма).
-ROOM_EMOJI = {"tabletennis": "🏓", "volleyball": "🏐", "basketball": "🏀", "football": "⚽"}
+ROOM_EMOJI = {"tabletennis": "🏓", "volleyball": "🏐", "basketball": "🏀",
+              "football": "⚽", "combat": "🥊"}
+
+# Трета резерва за „Други спортове": разделът в адреса или самата емисия.
+# („Григор Димитров се оттегли от турнира" няма думата тенис, но линкът е /tennis/.)
+LINK_EMOJI = [("table-tennis", "🏓"), ("tenis-na-masa", "🏓"), ("/tennis", "🎾"),
+              ("/tenis", "🎾"), ("atp-", "🎾"), ("/darts", "🎯"), ("/darts", "🎯"),
+              ("/mma", "🥊"), ("boxing", "🥊"), ("formula", "🏎"), ("/f1", "🏎"),
+              ("swimming", "🏊"), ("athletic", "🏃"), ("cycling", "🚴"), ("hockey", "🏒")]
+FEED_EMOJI = {"ESPN Тенис": "🎾", "PDC Дартс": "🎯"}
+
+# Емисии на език, който българският читател не чете (италиански). Пазим ги като
+# ИЗТОЧНИК (потвърждават чужда история), но рядко да водят поста.
+FEED_FOREIGN = {"LegaVolley", "iVolleyMagazine", "Gazzetta Волей"}
+
+
+def keyword_points(t):
+    """Най-високата стойност по ключова дума (0..5)."""
+    best = 0
+    for pts, words in KEYWORDS.items():
+        if pts > best and any(re.search(w, t) for w in words):
+            best = pts
+    return best
+
+
+def hard_drop(title):
+    """Залози, магазин, реклама, тестове — не тръгват при никакви обстоятелства."""
+    t = (title or "").lower()
+    if bookie_hit(t):
+        return True
+    return any(re.search(p, t) for p in HARD_DROP)
+
+
+def junk_penalty(t):
+    """Сборът от наказанията (класация + видео = двойно наказание)."""
+    total = 0.0
+    for pts, pat in SOFT_PENALTY:
+        if re.search(pat, t):
+            total += pts
+    return total
+
+
+def source_bonus(nsrc):
+    """НАЙ-ТЕЖКАТА СЪСТАВКА: една история в няколко НЕЗАВИСИМИ издания.
+    Това е практическото определение за „новината на деня"."""
+    if nsrc >= 4:
+        return 6.5
+    if nsrc == 3:
+        return 5.0
+    if nsrc == 2:
+        return 3.0
+    return 0.0
+
+
+def recency_bonus(age_h):
+    """Свежестта. Непозната дата = средно (не наказваме емисия без pubDate)."""
+    if age_h is None:
+        return 0.6
+    if age_h <= 2:
+        return 3.0
+    if age_h <= 6:
+        return 2.2
+    if age_h <= 12:
+        return 1.4
+    if age_h <= 24:
+        return 0.8
+    if age_h <= 48:
+        return 0.2
+    return 0.0
+
+
+def age_hours(date, now=None):
+    if date is None:
+        return None
+    now = now or datetime.now(timezone.utc)
+    return max(0.0, (now - date).total_seconds() / 3600.0)
+
+
+def rank_story(c, now=None):
+    """РЕЙТИНГЪТ на историята. По него се подрежда всяка секция —
+    затова първата новина в „ФУТБОЛ" е наистина най-голямата за деня."""
+    t = (c.get("title") or "").lower()
+    r = float(keyword_points(t))
+    r += source_bonus(c.get("nsrc") or 1)
+    r += recency_bonus(age_hours(c.get("date"), now))
+    r += 1.0 if c.get("room") in ROOM_EMOJI else -0.5
+    if re.search(LOCAL_HOOKS, t):
+        r += 1.2
+    if c.get("imgs"):
+        r += 0.4
+    r -= junk_penalty(t)
+    if c.get("source") in FEED_WEAK:
+        r -= 1.0
+    if c.get("source") in FEED_FOREIGN:
+        r -= 1.5
+    if t.rstrip().endswith("?"):
+        r -= 0.8
+    if len(c.get("title") or "") < 22:
+        r -= 0.6          # огризка от рода на „Match report" — но не наказваме късото ясно заглавие
+    return round(r, 2)
 
 
 def score_item(title, all_titles, cache=None):
-    """Важност по ключови думи + буст, ако друг източник пише за същото.
-    cache = {заглавие: множество думи} (само ускорение, поведението е същото)."""
+    """СТАРИЯТ скор по ключови думи (0..6). Пази се непокътнат, защото
+    news_showcase.py го вика; новият подбор минава през rank_story."""
     t = title.lower()
-    score = 0
-    for pts, words in KEYWORDS.items():
-        if any(re.search(w, t) for w in words):
-            score = max(score, pts)
+    score = keyword_points(t)
     mine = big_words(t)
     for other in all_titles:
         if other is title:
@@ -637,11 +1073,18 @@ def sport_emoji(title):
 
 
 def emoji_for(c):
-    """Емоджи за поста: първо от заглавието, после от секцията."""
+    """Емоджи за поста: заглавие -> секция -> адрес/емисия -> 📌."""
     e = sport_emoji(c.get("title") or "")
-    if e == "📌":
-        e = ROOM_EMOJI.get(c.get("room")) or "📌"
-    return e
+    if e != "📌":
+        return e
+    e = ROOM_EMOJI.get(c.get("room"))
+    if e:
+        return e
+    u = (c.get("link") or "").lower()
+    for mark, emo in LINK_EMOJI:
+        if mark in u:
+            return emo
+    return FEED_EMOJI.get(c.get("source")) or "📌"
 
 
 def h(s):
@@ -649,41 +1092,120 @@ def h(s):
 
 
 def route_item(item):
-    """Връща (секция, нужен_скор). Първо думите в заглавието, после специализирания източник.
-    Секцията е САМО етикет вътре в стая 26 — НЕ е Telegram thread."""
+    """Връща (секция, нужен_рейтинг). Първо думите в заглавието, после специализирания
+    източник. Секцията е САМО етикет вътре в стая 26 — НЕ е Telegram thread."""
     room = classify(item["title"]) or classify_link(item.get("link"))
     if room is None and item.get("cat"):
         room = classify(item["cat"])
     hint = FEED_SPORT.get(item["source"])
     if hint in SPORT_ROOMS:
-        # специализиран източник = нишата е ценна сама по себе си (блоговете — с 1 точка)
-        return (room or hint), (1 if item["source"] in FEED_WEAK else 0)
+        # специализиран източник = нишата е ценна сама по себе си
+        return (room or hint), (NEED_WEAK if item["source"] in FEED_WEAK else NEED_SPECIALIST)
     if room is not None:
-        return room, 1
+        return room, NEED_TITLE
     if hint == "other":
-        return None, 1
-    return None, MIN_SCORE
+        return None, NEED_TITLE
+    return None, NEED_OTHER
 
 
-def dedup(items, limit):
-    """Реже почти еднакви заглавия (2+ общи дълги думи) и връща най-много limit броя."""
-    out = []
-    for c in items:
-        cw = big_words(c["title"])
-        if any(len(cw & big_words(t["title"])) >= 2 for t in out):
+# ================================================= СГРУПИРВАНЕ (една история) ==
+def rep_key(m):
+    """Кой запис представя историята: българският, после този със снимка,
+    после силният източник, после по-дългото (по-подробно) заглавие."""
+    return (0 if is_bg(m.get("title")) else 1,
+            0 if m.get("imgs") else 1,
+            0 if m.get("source") not in FEED_WEAK else 1,
+            -len(m.get("title") or ""))
+
+
+def merge_cluster(members):
+    """Няколко записа за едно събитие -> ЕДНА история:
+    българско заглавие + най-добрата снимка отвсякъде + брой независими издания."""
+    ms = sorted(members, key=rep_key)
+    rep = dict(ms[0])
+    imgs = []
+    for m in ms:
+        for u in (m.get("imgs") or []):
+            if u not in imgs:
+                imgs.append(u)
+    rep["imgs"] = imgs[:4]
+    if not rep.get("summary"):
+        for m in ms[1:]:
+            if m.get("summary") and is_bg(m["title"]) == is_bg(rep["title"]):
+                rep["summary"] = m["summary"]
+                break
+    # най-свежата дата от групата (историята е толкова свежа, колкото най-новото ѝ съобщение)
+    dates = [m.get("date") for m in ms if m.get("date") is not None]
+    if dates:
+        rep["date"] = max(dates)
+    # независими издания + имената на другите (за реда „също: …")
+    seen_pub = {publisher(rep["source"])}
+    also = []
+    for m in ms[1:]:
+        p = publisher(m["source"])
+        if p in seen_pub:
             continue
-        out.append(c)
-        if len(out) == limit:
-            break
-    return out
+        seen_pub.add(p)
+        also.append(m["source"])
+    rep["nsrc"] = len(seen_pub)
+    rep["also"] = also[:2]
+    rep["members"] = ms
+    rep["sig"] = set()
+    for m in ms:
+        rep["sig"] |= m.get("sig") or set()
+    return rep
+
+
+def cluster_stories(items):
+    """Групира записите по отпечатък. Сравнява се със ЗАРОДИША на групата
+    (а не с растящото обединение) — иначе групите щяха да се слепват верижно."""
+    df = token_df(items)
+    clusters = []
+    for c in items:
+        placed = False
+        for cl in clusters:
+            if same_story_df(c.get("sig") or set(), cl["seed"], df):
+                cl["members"].append(c)
+                placed = True
+                break
+        if not placed:
+            clusters.append({"seed": set(c.get("sig") or set()), "members": [c]})
+    return [merge_cluster(cl["members"]) for cl in clusters]
+
+
+def story_room(story):
+    """Секцията на СГРУПИРАНАТА история — ПО ГЛАСОВЕ на участниците.
+    Гласът на представителя тежи двойно. „Общ сайт" (None) никога не бие истински
+    спорт: така „Гонг" + „WorldOfVolley" дават българско заглавие във ВОЛЕЙБОЛА,
+    а един случаен спътник не може сам да завлече новината в чужда секция."""
+    members = story.get("members") or [story]
+    rep = members[0] if members else story
+    rep_room = route_item(rep)[0]
+    votes = {}
+    needs = {}
+    for m in members:
+        room, need = route_item(m)
+        votes[room] = votes.get(room, 0) + (2 if m is rep else 1)
+        if room not in needs or need < needs[room]:
+            needs[room] = need
+    real = [r for r in votes if r is not None]
+    if not real:
+        return None, needs.get(None, NEED_OTHER)
+    best = None
+    best_key = None
+    for room in real:
+        key = (-votes[room], 0 if room == rep_room else 1, ROOM_PRIORITY.get(room, 98))
+        if best_key is None or key < best_key:
+            best, best_key = room, key
+    return best, needs.get(best, NEED_TITLE)
 
 
 # ==================================================== ПАМЕТ (без повторения) ==
-# Три ключа на новина + сравнение по думи с последно пратените заглавия.
+# Ключове на ВСИЧКИ участници в историята + сравнение по думи с пратените заглавия.
 # Точно това лекува оплакването „каналите са пълни с повтарящи се съобщения".
 def norm_title(t):
     s = (t or "").lower()
-    s = re.sub("[^0-9a-zа-яёA-ZА-Я ]+", " ", s)
+    s = re.sub("[^0-9a-zа-яё ]+", " ", s)
     return " ".join(s.split())
 
 
@@ -707,13 +1229,34 @@ def image_key(u):
     return ("i" + h(u)) if u else ""
 
 
+def story_key(sig):
+    """Отпечатък на историята като един ключ: четирите най-дълги носещи корена."""
+    if not sig:
+        return ""
+    top = sorted(sig, key=lambda w: (-len(w), w))[:4]
+    return "s" + h(" ".join(sorted(top)))
+
+
 def item_keys(c):
-    """Всички ключове, по които разпознаваме „това вече го пратихме"."""
-    out = [title_key(c["title"]), h(c["title"])]      # h(...) = старият формат на паметта
-    lk = link_key(c.get("link"))
-    if lk:
-        out.append(lk)
-    return out
+    """Всички ключове, по които разпознаваме „това вече го пратихме" —
+    включително ключовете на ДРУГИТЕ източници за същата история."""
+    out = []
+    for m in (c.get("members") or [c]):
+        out.append(title_key(m["title"]))
+        out.append(h(m["title"]))          # h(...) = старият формат на паметта
+        lk = link_key(m.get("link"))
+        if lk:
+            out.append(lk)
+    sk = story_key(c.get("sig") or toks(c.get("title") or ""))
+    if sk:
+        out.append(sk)
+    seen = set()
+    uniq = []
+    for k in out:
+        if k not in seen:
+            seen.add(k)
+            uniq.append(k)
+    return uniq
 
 
 def load_state():
@@ -739,14 +1282,20 @@ def store(posted, old_keys, sent_titles):
     """Записва паметта СЛЕД ВСЯКА пратена новина, не само накрая: ако рънърът умре
     по средата, следващото пускане НЕ повтаря вече публикуваното."""
     new_keys = []
+    new_titles = []
     for c in posted:
         new_keys += item_keys(c)
         ik = image_key(c.get("used_img") or "")
         if ik:
             new_keys.append(ik)
+        # пазим заглавията на ВСИЧКИ източници: утре и английският вариант е „вече пратен"
+        for m in (c.get("members") or [c])[:3]:
+            if m["title"] not in new_titles:
+                new_titles.append(m["title"])
     fresh = set(new_keys)
     keys = new_keys + [k for k in old_keys if k not in fresh]
-    titles = [c["title"] for c in posted] + sent_titles
+    seen = set(new_titles)
+    titles = new_titles + [t for t in sent_titles if t not in seen]
     try:
         save_state(keys[:STATE_KEEP], titles[:SENT_TITLES_KEEP])
         return True
@@ -756,7 +1305,7 @@ def store(posted, old_keys, sent_titles):
 
 
 def save_state(keys, titles):
-    data = {"v": 2, "keys": list(keys)[:STATE_KEEP], "titles": titles[:SENT_TITLES_KEEP]}
+    data = {"v": 3, "keys": list(keys)[:STATE_KEEP], "titles": list(titles)[:SENT_TITLES_KEEP]}
     tmp = STATE_FILE + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
@@ -816,7 +1365,7 @@ def tg_send(text, preview=False):
 def tg_photo(photo_url, caption):
     """Снимка по АДРЕС (Telegram я тегли сам) + подпис. В СТАЯ 26 и никъде другаде.
     Таймаутът е по-дълъг: Telegram тегли картинката, преди да отговори."""
-    if len(caption) > 1024:
+    if visible_len(caption) > 1024:
         # Аварийно: режем ЧИСТИЯ текст и чак после екранираме — сляпото рязане на
         # готов HTML може да среже таг наполовина и Telegram връща „can not parse entities".
         caption = esc(clip(clean_title(caption), 900))
@@ -826,13 +1375,19 @@ def tg_photo(photo_url, caption):
 
 
 # ------------------------------------------------------------ съставяне ----
-FOOTER = "🦖 THE GREEN ROOM · 📰 Новини"
+BRAND = "🦖 THE GREEN ROOM · 📰 Новини"
 
 
 def esc(s):
     """Видим текст: Telegram иска екранирани само & < >. Кавичките и апострофите
     остават както са — иначе на екрана излиза суровото &#x27; вместо '."""
     return html.escape(s or "", quote=False)
+
+
+def visible_len(s):
+    """Telegram брои ВИДИМИЯ текст, не HTML-а. Адресът вътре в <a href=…> не се
+    брои — иначе един дълъг линк изяждаше реда с контекста без причина."""
+    return len(re.sub("<[^>]+>", "", s or ""))
 
 
 def clip(s, n):
@@ -848,26 +1403,96 @@ def clip(s, n):
 
 
 def icon_of(c):
-    return "🔥" if c["score"] >= 5 else ("⚡" if c["score"] >= 4 else "▫️")
+    """Топлина на историята: 🔥 голяма, ⚡ силна, ▫️ обикновена."""
+    if (c.get("nsrc") or 1) >= 3 or (c.get("rank") or 0) >= 9:
+        return "🔥"
+    if (c.get("nsrc") or 1) >= 2 or (c.get("rank") or 0) >= 6.5:
+        return "⚡"
+    return "▫️"
+
+
+def adds_nothing(title, sentence):
+    """Контекстът е излишен, ако само преразказва заглавието."""
+    if not sentence:
+        return True
+    low = sentence.lower().strip()
+    tl = (title or "").lower().strip()
+    if low.startswith(tl[:40]) or tl.startswith(low[:40]):
+        return True
+    a = toks(title)
+    b = toks(sentence)
+    if not a:
+        return False
+    return (len(a & b) / float(len(a))) >= 0.75
+
+
+def looks_broken(s):
+    """Счупено изречение от самата емисия — не бива да излиза под снимката.
+    Истински случай (BoxingNewsOnline): сайтът им реже имената, вързани с линк, и
+    описанието им тръгва така: „’s performance … grudge match with , and one…".
+    Признаци: не започва с истинска дума с главна буква; висящи запетаи/скоби."""
+    t = " ".join((s or "").split())
+    if not t:
+        return True
+    for bad in (" , ", " . ", " ; ", " ) ", " ( ", " и , ", " с , "):
+        if bad in t:
+            return True
+    m = re.search("[0-9a-zа-яёà-ÿ]+", t, re.I)
+    if m is None or m.start() > 3:
+        return True
+    first = m.group(0)
+    if len(first) < 2:
+        return True
+    if first[0].islower():
+        return True
+    return False
+
+
+def context_of(c):
+    """ЕДИН ред контекст под заглавието — първото смислено изречение от емисията.
+    Ако емисията не дава нищо ново, редът остава празен (по-добре, отколкото шум)."""
+    raw = c.get("summary") or ""
+    cut = raw.find("[…")
+    if cut > 40:
+        raw = raw[:cut]
+    s = first_sentence(raw)
+    s = " ".join((s or "").split())
+    if len(s) < 35:
+        return ""
+    if hard_drop(s) or looks_broken(s):
+        return ""
+    if adds_nothing(c.get("title") or "", s):
+        return ""
+    return s
 
 
 def link_line(c, clock):
     src = esc(c["source"])
-    if is_url(c["link"]):
-        return '<a href="' + html.escape(c["link"], quote=True) + '">' + src + " →</a> · " + clock
-    return "<i>" + src + "</i> · " + clock
+    if is_url(c.get("link") or ""):
+        line = '<a href="' + html.escape(c["link"], quote=True) + '">' + src + " →</a> · " + clock
+    else:
+        line = "<i>" + src + "</i> · " + clock
+    also = c.get("also") or []
+    if also:
+        line = line + " · също: " + esc(", ".join(also[:2]))
+    return line
 
 
-def caption_for(c, clock, title_len=190, sum_len=170):
-    """Подпис под снимката. Таван 1024 — държим се под CAPTION_HARD.
-    Ред 1: спорт-емоджи + важност + заглавие. Ред 2: един ред контекст. Ред 3: източник и час."""
+def caption_for(c, clock, title_len=190, sum_len=240):
+    """Подпис под снимката: заглавие, ред контекст, източник. Нищо повече.
+    Таванът на Telegram е 1024 ВИДИМИ знака — държим се под CAPTION_HARD."""
     head = emoji_for(c) + " " + icon_of(c) + " <b>" + esc(clip(c["title"], title_len)) + "</b>"
     body = ""
-    summary = c.get("summary") or ""
-    if summary and sum_len > 0:
-        body = NL + NL + esc(clip(summary, sum_len))
+    ctx = c.get("context")
+    if ctx is None:
+        ctx = context_of(c)
+        c["context"] = ctx
+    if ctx and sum_len > 0:
+        body = NL + NL + esc(clip(ctx, sum_len))
     cap = head + body + NL + NL + link_line(c, clock)
-    if len(cap) > CAPTION_HARD:
+    if visible_len(cap) > CAPTION_HARD:
+        if sum_len > 120:
+            return caption_for(c, clock, title_len=title_len, sum_len=120)
         if sum_len > 0:
             return caption_for(c, clock, title_len=title_len, sum_len=0)
         if title_len > 90:
@@ -879,9 +1504,12 @@ def caption_for(c, clock, title_len=190, sum_len=170):
 def text_for(c, clock):
     """Резервният ЧИСТ ТЕКСТ, когато няма снимка или Telegram я отказа."""
     parts = [emoji_for(c) + " " + icon_of(c) + " <b>" + esc(clip(c["title"], 300)) + "</b>"]
-    summary = c.get("summary") or ""
-    if summary:
-        parts.append(esc(clip(summary, 300)))
+    ctx = c.get("context")
+    if ctx is None:
+        ctx = context_of(c)
+        c["context"] = ctx
+    if ctx:
+        parts.append(esc(clip(ctx, 300)))
     parts.append(link_line(c, clock))
     return (NL + NL).join(parts)
 
@@ -890,7 +1518,7 @@ def section_header(key, count, clock, first):
     word = "новина" if count == 1 else "новини"
     head = "<b>" + esc(SECTION_HEAD.get(key) or "📰 НОВИНИ") + "</b> · " + clock + " · " + str(count) + " " + word
     if first:
-        head = head + NL + FOOTER
+        head = head + NL + BRAND
     return head
 
 
@@ -939,43 +1567,65 @@ def collect_feeds():
 
 
 # -------------------------------------------------------- избор и пращане ---
+def dedup(items, limit):
+    """Пази най-много limit истории и реже последните близнаци, които са
+    оцелели след сгрупирването (различни думи, същото събитие)."""
+    out = []
+    for c in items:
+        sig = c.get("sig") or toks(c["title"])
+        if any(same_story(sig, t.get("sig") or toks(t["title"])) for t in out):
+            continue
+        out.append(c)
+        if len(out) == limit:
+            break
+    return out
+
+
 def allocate(groups):
-    """Таван за всеки спорт + ОБЩ таван, за да не става стена от снимки.
-    Реже се от най-ниския приоритет нагоре (редът на шефа: ТТ, волей, баскет, футбол, други)."""
-    sections = []
+    """Раздава MAX_TOTAL места по СИЛА, не по азбучен ред.
+    1) Всяка жива секция получава по едно място — нито един спорт не изчезва.
+    2) ОСТАНАЛИТЕ места отиват при най-високо оценените истории, в която и секция
+       да са. Иначе тенисът на маса (най-бедният на новини) изяждаше местата на
+       футбола и бойните, където са големите истории.
+    Показването си остава в РЕДА НА ШЕФА — пипаме само кой влиза, не къде стои."""
+    ready = []
     for key in SECTION_ORDER:
         cap = MAX_ITEMS if key is None else PER_SPORT
         items = dedup(groups.get(key) or [], cap)
         if items:
-            sections.append([key, items])
-    total = sum(len(items) for key, items in sections)
-    while total > MAX_TOTAL and sections:
-        cut = False
-        for entry in reversed(sections):
-            if len(entry[1]) > 1:
-                entry[1] = entry[1][:-1]
-                total -= 1
-                cut = True
-                break
-        if not cut:
-            sections = sections[:MAX_TOTAL]      # всички са по 1 — режем цели секции
-            total = len(sections)
+            ready.append([key, items])
+    if not ready:
+        return []
+    ready = ready[:MAX_TOTAL]
+    chosen = [[key, items[:1]] for key, items in ready]
+    left = MAX_TOTAL - len(chosen)
+    pool = []
+    for idx, entry in enumerate(ready):
+        for c in entry[1][1:]:
+            pool.append((c.get("rank") or 0.0, idx, c))
+    pool.sort(key=lambda p: (-p[0], p[1]))
+    for rank, idx, c in pool:
+        if left <= 0:
             break
-    return sections
+        chosen[idx][1].append(c)
+        left -= 1
+    for entry in chosen:
+        entry[1].sort(key=lambda c: -(c.get("rank") or 0.0))
+    return [e for e in chosen if e[1]]
 
 
 def strip_cross_dupes(sections):
     """dedup() чисти повторенията ВЪТРЕ в секция. Тук махаме една и съща история,
     паднала в ДВЕ различни секции (напр. „Гърция — Италия" и като волейбол, и като
-    „други"). 3+ общи дълги думи = същата история."""
+    „други")."""
     seen = []
     for entry in sections:
         keep = []
         for c in entry[1]:
-            w = big_words(c["title"])
-            if any(len(w & s) >= 3 for s in seen):
+            sig = c.get("sig") or toks(c["title"])
+            if any(same_story(sig, s) for s in seen):
                 continue
-            seen.append(w)
+            seen.append(sig)
             keep.append(c)
         entry[1] = keep
     return [e for e in sections if e[1]]
@@ -1018,7 +1668,7 @@ def pick_images(c, used_images, sent_keys):
     if c["source"] in BRAND_RISK_FEEDS:
         return []
     out = []
-    for u in (c.get("imgs") or [])[:3]:
+    for u in (c.get("imgs") or [])[:4]:
         k = image_key(u)
         if not k or k in used_images or k in sent_keys:
             continue
@@ -1035,7 +1685,8 @@ def post_item(c, clock, used_images, sent_keys, dry):
     caption = caption_for(c, clock)
     if dry:
         way = "снимка" if photos else "текст"
-        print("--- ПРОБЕН ПОСТ (" + way + ", подпис " + str(len(caption)) + " знака) ---")
+        print("--- ПРОБЕН ПОСТ (" + way + ", подпис " + str(len(caption)) + " знака, рейтинг " +
+              str(c.get("rank")) + ", източници " + str(c.get("nsrc") or 1) + ") ---")
         print(caption if photos else text_for(c, clock))
         if photos:
             print("IMG: " + photos[0])
@@ -1052,10 +1703,71 @@ def post_item(c, clock, used_images, sent_keys, dry):
         time.sleep(1)
     # Резервата: чист текст. Визитката на линка се пуска САМО ако източникът не е
     # с хазартен спонсор в кадъра (иначе визитката би извадила същата снимка).
-    preview = is_url(c["link"]) and c["source"] not in BRAND_RISK_FEEDS
+    preview = is_url(c.get("link") or "") and c["source"] not in BRAND_RISK_FEEDS
     if tg_send(text_for(c, clock), preview=preview):
         return True, "текст"
     return False, ""
+
+
+def build_stories(collected, sent_keys, sent_sigs, now):
+    """Суровите записи -> подредени истории по секции.
+    Тук се случват четирите неща, които правят новинаря добър:
+    свежест → закон/боклук → СГРУПИРВАНЕ → рейтинг и памет."""
+    cutoff = now - timedelta(hours=MAX_AGE_H)
+    recent = []
+    seen_titles = set()
+    dropped_junk = 0
+    for c in collected:
+        d = c.get("date")
+        if d is not None and d < cutoff:
+            continue
+        key = h(c["title"])
+        if key in seen_titles:
+            continue
+        seen_titles.add(key)
+        c["key"] = key
+        recent.append(c)
+
+    all_titles = [c["title"] for c in recent]
+
+    keep = []
+    for c in recent:
+        if hard_drop(c["title"]):          # залози, магазин, реклама, тестове
+            dropped_junk += 1
+            continue
+        c["sig"] = toks(c["title"])
+        keep.append(c)
+
+    # най-новите отпред: те стават зародиш на групата и дават заглавието
+    keep.sort(key=lambda c: (c.get("date") or datetime(1970, 1, 1, tzinfo=timezone.utc)), reverse=True)
+    stories = cluster_stories(keep)
+
+    skipped_repeat = 0
+    fresh = []
+    for s in stories:
+        if any(k in sent_keys for k in item_keys(s)):
+            skipped_repeat += 1
+            continue
+        if any(same_story(s["sig"], sig) for sig in sent_sigs):
+            skipped_repeat += 1
+            continue
+        room, need = story_room(s)
+        s["room"] = room
+        s["rank"] = rank_story(s, now)
+        # ⚽ футбол минава САМО ако е топ-лига/голяма история
+        if room == "football" and s["rank"] < FOOTBALL_BIG and not re.search(TOP_FOOTBALL, s["title"].lower()):
+            continue
+        if s["rank"] >= need:
+            fresh.append(s)
+
+    fresh.sort(key=lambda x: -x["rank"])
+    groups = {k: [] for k in SECTION_ORDER}
+    for c in fresh:
+        groups.setdefault(c["room"], []).append(c)
+    sections = strip_cross_dupes(allocate(groups))
+    stats = {"recent": len(recent), "stories": len(stories), "junk": dropped_junk,
+             "repeat": skipped_repeat, "fresh": len(fresh), "titles": all_titles}
+    return sections, stats
 
 
 def main():
@@ -1070,64 +1782,18 @@ def main():
 
     old_keys, sent_titles = load_state()
     sent_keys = set(old_keys)
-    sent_sigs = [big_words(t) for t in sent_titles]
+    sent_sigs = [toks(t) for t in sent_titles]
 
     collected, alive = collect_feeds()
     print("Източници: " + str(alive) + " живи от " + str(len(FEEDS)) + ", записи: " + str(len(collected)) + ".")
 
-    # свежест + махане на еднакви заглавия от различни източници
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=MAX_AGE_H)
-    recent = []
-    seen_titles = set()
-    for c in collected:
-        d = c.get("date")
-        if d is not None and d < cutoff:
-            continue
-        key = h(c["title"])
-        if key in seen_titles:
-            continue
-        seen_titles.add(key)
-        c["key"] = key
-        recent.append(c)
+    now = datetime.now(timezone.utc)
+    sections, stats = build_stories(collected, sent_keys, sent_sigs, now)
+    write_titles(stats["titles"])
+    print("Свежи записи: " + str(stats["recent"]) + " -> истории след сгрупиране: " + str(stats["stories"]) +
+          " (боклук/залози: " + str(stats["junk"]) + ", вече пращани: " + str(stats["repeat"]) +
+          ", минали прага: " + str(stats["fresh"]) + ").")
 
-    all_titles = [c["title"] for c in recent]
-    write_titles(all_titles)
-    cache = {t: big_words(t) for t in all_titles}
-
-    skipped_repeat = 0
-    skipped_law = 0
-    fresh = []
-    for c in recent:
-        # 1) ПАМЕТ: точно същото заглавие / същият адрес вече е пращано
-        if any(k in sent_keys for k in item_keys(c)):
-            skipped_repeat += 1
-            continue
-        # 2) ПАМЕТ: СЪЩАТА ИСТОРИЯ с други думи (3+ общи дълги думи с пратено заглавие)
-        mine = cache.get(c["title"]) or big_words(c["title"])
-        if any(len(mine & sig) >= 3 for sig in sent_sigs):
-            skipped_repeat += 1
-            continue
-        # 3) ЗАКОН: име на букмейкър в заглавието не се публикува
-        if bookie_hit(c["title"]):
-            skipped_law += 1
-            continue
-        c["score"] = score_item(c["title"], all_titles, cache)
-        room, need = route_item(c)
-        c["room"] = room
-        # ⚽ филтър: футбол минава САМО ако е топ-лига/голяма история (или мега-новина score>=4)
-        if room == "football" and c["score"] < 4 and not re.search(TOP_FOOTBALL, c["title"].lower()):
-            continue
-        if c["score"] >= need:
-            fresh.append(c)
-
-    fresh.sort(key=lambda x: -x["score"])
-    print("Пропуснати като повторение: " + str(skipped_repeat) + ", по закон (хазарт): " + str(skipped_law) + ".")
-
-    groups = {k: [] for k in SECTION_ORDER}
-    for c in fresh:
-        groups[c["room"]].append(c)
-
-    sections = strip_cross_dupes(allocate(groups))
     chosen = [c for key, items in sections for c in items]
     if not chosen:
         print("Тих ден — нищо важно. Мълчим.")
@@ -1135,8 +1801,9 @@ def main():
 
     got_og = fill_og_images(chosen)
     with_img = sum(1 for c in chosen if c.get("imgs"))
-    print("Избрани " + str(len(chosen)) + " новини; със снимка от емисията или og: " +
-          str(with_img) + " (og добави " + str(got_og) + ").")
+    multi = sum(1 for c in chosen if (c.get("nsrc") or 1) >= 2)
+    print("Избрани " + str(len(chosen)) + " новини; със снимка: " + str(with_img) +
+          " (og добави " + str(got_og) + "); потвърдени от 2+ издания: " + str(multi) + ".")
 
     clock = datetime.now(SOFIA).strftime("%H:%M")
     used_images = set()
@@ -1179,5 +1846,290 @@ def main():
           str(texts) + " текст), всичко в стая " + str(news_thread()) + " 📰.")
 
 
+# ================================================================ SELFTEST ====
+def make_item(title, source="Gong", link="", summary="", date=None, imgs=None):
+    return {"source": source, "title": title, "link": link, "summary": summary,
+            "cat": "", "date": date, "imgs": list(imgs or []), "sig": toks(title)}
+
+
+def run_selftest():
+    ok = 0
+    bad = []
+
+    def check(name, cond):
+        nonlocal ok
+        if cond:
+            ok += 1
+        else:
+            bad.append(name)
+
+    # --- 1. ДЕПЛОЙ-ПРАВИЛАТА НА ФАЙЛА ---
+    src = open(os.path.abspath(__file__), encoding="utf-8").read()
+    check("без обратна кавичка", chr(96) not in src)
+    check("без обратна наклонена черта", chr(92) not in src)
+    check("без долар-скоба", (chr(36) + chr(123)) not in src)
+
+    # --- 2. СТАЯТА ---
+    check("стая 26 е позволена", news_thread() == 26)
+    for t in sorted(FORBIDDEN_THREADS):
+        globals()["NEWS_THREAD_ID"] = str(t)
+        check("стая " + str(t) + " е отказана", news_thread() == 26)
+    globals()["NEWS_THREAD_ID"] = "26"
+
+    # --- 3. 🥊 БОЙНИТЕ СПОРТОВЕ И КАПАНИТЕ НА „БОКС" ---
+    combat_yes = ["UFC 320: Анкалаев срещу Гускоу", "Макгрегър обяви завръщане в октагона",
+                  "Усик защити титлата си", "Кубрат Пулев с нов съперник",
+                  "Bellator returns to Dublin", "Кикбокс турнир в София",
+                  "Boxing: Fury eyes final fight", "Джудо: злато за България"]
+    for t in combat_yes:
+        check("боен спорт: " + t[:28], classify(t) == "combat")
+    combat_no = [("Арсенал и Челси в дерби на Boxing Day", "football"),
+                 ("Box-to-box халфът на Ливърпул подписа нов договор", "football"),
+                 ("Ферари прибра болида в бокса", None),
+                 ("Нокаут за Реал Мадрид преди финала", "football"),
+                 ("НБА: Йокич с трипъл-дабъл", "basketball"),
+                 ("Волейболистите ни с победа", "volleyball")]
+    for t, want in combat_no:
+        check("НЕ е боен спорт: " + t[:28], classify(t) == want)
+
+    # --- 4. БОКЛУК И НАКАЗАНИЯ ---
+    for t in ["Прогноза за мача Реал - Барселона", "Best bets for Sunday",
+              "QUIZ: How well do you know the NBA?", "Shop now: new kits on sale",
+              "Коефициенти за финала"]:
+        check("твърдо отпада: " + t[:26], hard_drop(t) is True)
+    for t in ["Реал Мадрид продаде звездата си", "Лудогорец с нов треньор"]:
+        check("НЕ отпада: " + t[:26], hard_drop(t) is False)
+    check("класация се наказва", junk_penalty("топ 10 гола на кръга") >= 4.0)
+    check("видео се наказва", junk_penalty("гледайте видео: най-доброто") >= 3.0)
+    check("нормалното не се наказва", junk_penalty("лудогорец подписа с нападател") == 0.0)
+
+    # --- 5. „СЪЩАТА ИСТОРИЯ" ---
+    a = toks("Лудогорец подписа с бразилски нападател")
+    b = toks("Бразилски нападател подписа с Лудогорец")
+    c2 = toks("Левски загуби от Ботев Пловдив")
+    check("същата история се хваща", same_story(a, b) is True)
+    check("различните истории не се слепват", same_story(a, c2) is False)
+    check("общоспортната дума не слепва", same_story(toks("Мачът на отбора беше тежък"),
+                                                     toks("Отборът игра тежък мач")) is False)
+    check("два езика не се сливат (знаем го)",
+          same_story(toks("Волейболистите на България победиха Италия"),
+                     toks("Bulgaria stun Italy in five sets")) is False)
+
+    # --- 6. СГРУПИРВАНЕ: два източника = един пост ---
+    it1 = make_item("Реал Мадрид представи новия си нападател", source="Gong", link="https://gong.bg/1")
+    it2 = make_item("Real Madrid unveil new striker", source="BBC Sport", link="https://bbc.co.uk/2",
+                    imgs=["https://img.bbc.co.uk/a.jpg"])
+    it3 = make_item("Реал Мадрид представи новия нападател на клуба", source="Sportal",
+                    link="https://sportal.bg/3", imgs=["https://sportal.bg/x.jpg"])
+    stories = cluster_stories([it1, it2, it3])
+    bgstory = [s for s in stories if is_bg(s["title"])]
+    check("двата български записа стават един", len(stories) == 2)
+    check("представителят е български и брои 2 издания",
+          bool(bgstory) and is_bg(bgstory[0]["title"]) and bgstory[0]["nsrc"] == 2)
+    check("снимката се наследява от групата", bool(bgstory) and len(bgstory[0]["imgs"]) >= 1)
+    check("другите източници се помнят", bool(bgstory) and bgstory[0]["also"] == ["Gong"])
+    check("ключовете покриват всички варианти",
+          bool(bgstory) and title_key(it3["title"]) in item_keys(bgstory[0]))
+
+    # --- 6б. ФАЛШИВОТО СЛЕПВАНЕ (истински бъг от живия рън) ---
+    # „signs"/„deal" се срещат в десетки заглавия — не са доказателство за една история.
+    # (истинският рън е стотици заглавия — затова корпусът тук е реалистично голям:
+    #  „signs" и „deal" трябва да са ЧЕСТИ думи, за да ги обезсили тегленето)
+    names = ["Malcolm", "Everton", "Larkin", "Tenorio", "Willis", "Hunter", "Vargas",
+             "Kovacs", "Petrov", "Dimitrov", "Ivanov", "Novak", "Sanchez", "Ferreira",
+             "Okafor", "Berger", "Lindqvist", "Yilmaz", "Moretti", "Duarte", "Nowak",
+             "Hansen", "Costa", "Nagy"]
+    noise = [make_item(n + " signs a two-year deal with the champions", source="Eurohoops")
+             for n in names]
+    noisy = cluster_stories(noise)
+    check("честите думи не слепват новини", len(noisy) == len(noise))
+    twins = cluster_stories([
+        make_item("Анкалаев нокаутира Гускоу в Абу Даби", source="Gong"),
+        make_item("Анкалаев нокаутира Гускоу и защити титлата", source="Sportal")])
+    check("редките имена слепват правилно", len(twins) == 1 and twins[0]["nsrc"] == 2)
+
+    # --- 6в. СЕКЦИЯТА НЕ СЕ ОТВЛИЧА ОТ СЛУЧАЕН СПЪТНИК ---
+    vol_rep = make_item("Bulgaria beat Italy in the VNL semifinal", source="WorldOfVolley",
+                        imgs=["https://wov.com/z.jpg"])
+    tt_stray = make_item("Some other story from a blog", source="Butterfly")
+    hijack = merge_cluster([vol_rep, tt_stray])
+    check("спътникът не краде секцията", story_room(hijack)[0] == "volleyball")
+
+    # --- 7. РЕЙТИНГ: голямото бие дребното ---
+    now = datetime.now(timezone.utc)
+    big = make_item("Лудогорец уволни треньора си", source="Gong", date=now)
+    big["nsrc"] = 3
+    big["room"] = "football"
+    small = make_item("Топ 10 гола от кръга", source="90min", date=now - timedelta(hours=40))
+    small["nsrc"] = 1
+    small["room"] = "football"
+    check("голямата новина бие класацията", rank_story(big, now) > rank_story(small, now) + 5)
+    check("класацията пада под прага", rank_story(small, now) < NEED_TITLE
+          or junk_penalty(small["title"].lower()) >= 4.0)
+    fresh_i = make_item("Барселона подписа с защитник", date=now)
+    old_i = make_item("Барселона подписа с защитник", date=now - timedelta(hours=50))
+    check("свежото бие старото", rank_story(fresh_i, now) > rank_story(old_i, now))
+
+    # --- 8. КОНТЕКСТ-РЕДЪТ ---
+    check("първо изречение",
+          first_sentence("Отборът обяви новината официално в понеделник вечерта. После добави още.")
+          == "Отборът обяви новината официално в понеделник вечерта.")
+    check("късото първо изречение се допълва",
+          first_sentence("Ето какво стана. Треньорът напусна още в понеделник сутринта.")
+          .startswith("Ето какво стана. Треньорът"))
+    check("точка след съкращение не реже",
+          "и веднага смени треньора" in
+          first_sentence("Новият собственик на клуба пое управлението през 2026 г. и веднага смени треньора."))
+    check("преразказът се маха",
+          adds_nothing("Лудогорец уволни треньора си", "Лудогорец уволни треньора си след загубата") is True)
+    check("истинският контекст остава",
+          adds_nothing("Лудогорец уволни треньора си",
+                       "Решението падна след трето поредно домакинско равенство в Разград.") is False)
+    # счупеното описание на емисията (истински случай от BoxingNewsOnline)
+    broken = "’s performance against Prenga has drawn concern ahead of a match with , and one icon advised him."
+    check("счупеното изречение се хваща", looks_broken(broken) is True)
+    check("здравото изречение минава",
+          looks_broken("Решението падна след трето поредно домакинско равенство в Разград.") is False)
+    check("счупеното не влиза в поста",
+          context_of({"title": "Boxing icon pleads with Joshua", "summary": broken}) == "")
+    check("телевизионната програма се наказва",
+          junk_penalty("университатя - левски по тв: как можем да гледаме реванша") >= 3.0)
+
+    # --- 9. ПОСТЪТ: форма, таван, забранени думи ---
+    demo = make_item("Лудогорец уволни старши треньора след загубата в Разград",
+                     source="Gong", link="https://gong.bg/news/1",
+                     summary="Решението е взето след трето поредно домакинско равенство. Отборът е трети.",
+                     imgs=["https://gong.bg/a.jpg"], date=now)
+    demo["nsrc"] = 3
+    demo["also"] = ["Sportal", "Dsport"]
+    demo["room"] = "football"
+    demo["rank"] = rank_story(demo, now)
+    cap = caption_for(demo, "09:12")
+    check("подписът е под тавана", visible_len(cap) <= CAPTION_HARD)
+    check("подписът има заглавие", "Лудогорец уволни" in cap)
+    check("подписът има контекст", "трето поредно" in cap)
+    check("подписът има източник", "Gong" in cap and "09:12" in cap)
+    check("подписът има другите източници", "също: Sportal, Dsport" in cap)
+    check("голямата новина е 🔥", icon_of(demo) == "🔥")
+    banned = ["18+", "не е съвет", "решението е твое", "залагай отговорно", "от банката",
+              "коефициент", "букмейкър", "заложи", "залог", "отговорна игра"]
+    for txt, label in ((cap, "подпис"), (text_for(demo, "09:12"), "текст"),
+                       (section_header("combat", 2, "09:12", True), "заглавие на секция")):
+        low = txt.lower()
+        for b in banned:
+            check(label + ": без „" + b + "“", b not in low)
+    long_item = make_item("Т" * 400, source="Gong", link="https://gong.bg/x",
+                          summary="Д" * 900, date=now)
+    check("дългият подпис пак е под тавана",
+          visible_len(caption_for(long_item, "09:12")) <= CAPTION_HARD)
+    # дълъг адрес НЕ бива да изяжда реда с контекста (беше бъг: броеше се HTML-ът)
+    longlink = make_item("Лудогорец смени треньора си преди мача с Левски", source="Gong",
+                         link="https://www.gong.bg/futbol-bulgaria/" + ("dulga-chast-ot-adresa-" * 12),
+                         summary="Клубът обяви решението късно снощи, час след третото поредно равенство.",
+                         date=now)
+    check("дългият адрес не яде контекста", "късно снощи" in caption_for(longlink, "09:12"))
+    check("подписът с дълъг адрес е под тавана",
+          visible_len(caption_for(longlink, "09:12")) <= CAPTION_HARD)
+    check("името на сайта се маха от контекста",
+          strip_lead_source("WorldOfVolley Türkiye won the title", "WorldOfVolley")
+          == "Türkiye won the title")
+    check("тенисът получава емоджи по адреса",
+          emoji_for({"title": "Григор се оттегли от турнира", "room": None,
+                     "link": "https://www.actualno.com/tennis/x", "source": "Actualno Спорт"}) == "🎾")
+
+    # --- 10. ПАМЕТТА: една история не тръгва два пъти ---
+    tmp = STATE_FILE + ".selftest"
+    old_file = globals()["STATE_FILE"]
+    globals()["STATE_FILE"] = tmp
+    try:
+        story = merge_cluster([it1, it3])
+        story["used_img"] = "https://sportal.bg/x.jpg"
+        save_state([], [])
+        store([story], [], [])
+        keys2, titles2 = load_state()
+        sent = set(keys2)
+        check("паметта помни историята", any(k in sent for k in item_keys(story)))
+        check("паметта помни английския вариант", title_key(it3["title"]) in sent)
+        check("паметта помни заглавия", len(titles2) >= 1)
+        sigs = [toks(t) for t in titles2]
+        again = merge_cluster([make_item("Реал Мадрид представи новия си нападател")])
+        check("повторението се хваща по думи", any(same_story(again["sig"], s) for s in sigs))
+    finally:
+        globals()["STATE_FILE"] = old_file
+        for suffix in ("", ".tmp"):
+            try:
+                os.remove(tmp + suffix)
+            except Exception:
+                pass
+
+    # --- 11. СЕКЦИИТЕ ---
+    check("редът на секциите е на шефа",
+          SECTION_ORDER == ["tabletennis", "volleyball", "basketball", "football", "combat", None])
+    check("всяка секция има заглавие", all(k in SECTION_HEAD for k in SECTION_ORDER))
+    check("бойните имат емисии", len([1 for n, u, hint in FEED_SOURCES if hint == "combat"]) >= 8)
+    check("издателят е един за ESPN", publisher("ESPN NBA") == publisher("ESPN Soccer"))
+    check("два различни издателя се броят", publisher("Gong") != publisher("BBC Sport"))
+    check("таванът на общия брой", MAX_TOTAL >= 1 and PER_SPORT >= 1)
+
+    # раздаването на местата: всяка секция по едно, останалите — на най-силните
+    def ranked(title, rank, room):
+        it = make_item(title, source="Gong", date=now)
+        it["rank"] = rank
+        it["room"] = room
+        return it
+    groups_demo = {
+        "tabletennis": [ranked("ТТ новина едно", 5.0, "tabletennis"),
+                        ranked("ТТ новина две", 4.0, "tabletennis"),
+                        ranked("ТТ новина три", 3.5, "tabletennis")],
+        "football": [ranked("Футбол голяма новина", 13.0, "football"),
+                     ranked("Футбол втора новина", 11.0, "football"),
+                     ranked("Футбол трета новина", 10.0, "football")],
+    }
+    old_total = globals()["MAX_TOTAL"]
+    globals()["MAX_TOTAL"] = 4
+    try:
+        alloc = dict((k, v) for k, v in allocate(groups_demo))
+        check("всяка секция получава поне едно място", len(alloc.get("tabletennis") or []) >= 1)
+        check("силните вземат останалите места", len(alloc.get("football") or []) == 3)
+        check("общият таван се спазва", sum(len(v) for v in alloc.values()) == 4)
+        check("секцията е подредена по сила",
+              (alloc.get("football") or [{}])[0]["rank"] == 13.0)
+    finally:
+        globals()["MAX_TOTAL"] = old_total
+    check("подписът на автора се маха",
+          strip_byline("(by Steve Hopkins, photo WTT) Eugene Wang won the singles")
+          == "Eugene Wang won the singles")
+
+    # --- 12. ЦЯЛАТА ТРЪБА НА СУХО ---
+    feed_items = [
+        make_item("Волейболистите на България победиха Италия с 3:1", source="Gong",
+                  link="https://gong.bg/v1", date=now,
+                  summary="Тимът ни изостава в първия гейм, но обръща мача след смяна в разпределението. Следва Полша."),
+        make_item("България победи Италия с 3:1 във волейбола", source="Sportal",
+                  link="https://sportal.bg/v2", date=now, imgs=["https://sportal.bg/a.jpg"]),
+        make_item("Прогноза: кой ще спечели финала", source="Gong", link="https://gong.bg/p", date=now),
+        make_item("UFC 320: Анкалаев нокаутира Гускоу в първия рунд", source="Sherdog",
+                  link="https://sherdog.com/u1", date=now, imgs=["https://sherdog.com/b.jpg"],
+                  summary="Титлата остава в Дагестан след 84 секунди игра. Следващият съперник още не е обявен."),
+    ]
+    secs, st = build_stories(feed_items, set(), [], now)
+    keys_out = [k for k, items in secs]
+    check("волейболът стига до секцията си", "volleyball" in keys_out)
+    check("бойните стигат до секцията си", "combat" in keys_out)
+    check("прогнозата е изхвърлена", st["junk"] >= 1)
+    vol = [items for k, items in secs if k == "volleyball"][0]
+    check("двата волейболни записа са ЕДНА новина", len(vol) == 1)
+    check("българското заглавие печели", is_bg(vol[0]["title"]))
+    check("волейболът има 2 източника", vol[0]["nsrc"] == 2)
+    check("волейболът наследи снимката", len(vol[0]["imgs"]) >= 1)
+
+    print("SELFTEST: " + str(ok) + " наред, " + str(len(bad)) + " проблема.")
+    for b in bad:
+        print("  ❌ " + b)
+    return 0 if not bad else 1
+
+
 if __name__ == "__main__":
+    if os.environ.get("NEWS_MODE", "") == "selftest" or "--selftest" in sys.argv:
+        sys.exit(run_selftest())
     main()
