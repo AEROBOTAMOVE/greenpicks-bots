@@ -196,6 +196,7 @@ def thread_ok(chat_id, thread_id):
                        SUPPORT_THREAD + ")")
     return True, ""
 
+
 # ---------------------------------------------------------------- ДРЕБНИ ИНСТРУМЕНТИ
 def esc(x):
     return html.escape(str(x if x is not None else ""))
