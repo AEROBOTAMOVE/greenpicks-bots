@@ -1,0 +1,88 @@
+name: predictor (БОТА ПРЕДРИЧА)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ботът смята вероятности от статистика и ги пуска САМО в стая 27 "БОТА ПРЕДРИЧА".
+# Стая 4 (човекът-типстер) и стая 26 (новини) са забранени в самия predictor.py —
+# тук нищо не се пренасочва, тук само се пуска.
+#
+# ЧАСОВЕ (GitHub cron е винаги UTC; България е UTC+3 през лятото):
+#   07:00 UTC = 10:00 BG  — сутрешната карта, преди мачовете от деня
+#   14:00 UTC = 17:00 BG  — следобедната, за късните срещи
+# През зимата (UTC+2) същите крон-редове падат на 09:00 и 16:00 BG. Прието е:
+# по-рано е по-добре от по-късно, картата и без това е за целия ден.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    - cron: '0 7 * * *'     # 10:00 BG (лято UTC+3) — сутрешна карта
+    - cron: '0 14 * * *'    # 17:00 BG (лято UTC+3) — следобедна карта
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Сухо пускане — картите се печатат в лога, нищо не заминава за Telegram'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: predictor-bot
+  cancel-in-progress: false
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Портиерът. Ако математиката или стая-пазачът са счупени, спираме ТУК —
+      # по-добре мълчание, отколкото крива карта в стаята.
+      - name: Самопроверка на модела
+        env:
+          PREDICT_DRY_RUN: '1'
+          PREDICT_THREAD_ID: '27'
+        run: python predictor.py selftest
+
+      - name: Пусни предсказателя
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          # Резервните стойности НЕ са излишни: незададена променлива в GitHub
+          # идва като празен низ и празният низ бие подразбиращото се в скрипта.
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
+          PREDICT_THREAD_ID: '27'
+          # Незадължителни ключове — ако ги няма, идват празни и ботът кара
+          # с TheSportsDB тест-ключа. Нищо не се чупи.
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+          SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
+          # Настройки на модела — празна стойност = вътрешната подразбираща се.
+          MAX_PICKS: ${{ vars.MAX_PICKS }}
+          PREDICT_POOL: ${{ vars.PREDICT_POOL }}
+          PREDICT_PER_SPORT: ${{ vars.PREDICT_PER_SPORT }}
+          PREDICT_MIN_STRENGTH: ${{ vars.PREDICT_MIN_STRENGTH }}
+          # Празно при разписание, 'true' само когато човек натисне бутона.
+          PREDICT_DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: python predictor.py
+
+      # Ако predictor.py си води тефтер кой мач вече е пуснат, връщаме го в repo-то,
+      # за да не се повтори същата среща на следващия рън. Ако тефтер няма —
+      # стъпката минава тихо и не чупи нищо.
+      - name: Запази predict state
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          git add predict_state.json 2>/dev/null || true
+          git add sent_predictions.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "predict state"
+            for i in 1 2 3 4 5; do
+              git pull --rebase && git push && break
+              sleep $((RANDOM % 5 + 2))
+            done
+          fi
