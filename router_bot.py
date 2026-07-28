@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 GREEN PICKS — БОТ №3 „РУТЕРЪТ" 🚚
 СЪРЦЕТО НА СИСТЕМАТА: типстърът поства САМО в канала (@greenpicksbg),
@@ -100,6 +101,36 @@ def pick_rooms(text):
     return rooms[:3]           # максимум 3 стаи, без спам
 
 
+def support_hooks():
+    """Закача съпорта към ТАЗИ опашка. Връща (модул, състояние) или (None, None).
+
+    ЗАЩО (намерено на живо на 29.07.2026)
+    Опашката на Telegram е ЕДНА на бот и потвърждаването е ГЛОБАЛНО. Досега
+    рутерът и съпортът се пускаха поотделно със същия токен и си отстъпваха
+    учтиво: рутерът спираше пред първото лично съобщение, съпортът — пред
+    първия пост от канала. На теория се изчакват. На практика опашката ЗАПОЧВА
+    с пост от канала, значи съпортът се блъскаше в него на първата стъпка и
+    offset-ът му НИКОГА не мръдна от нула. Измерено: рутерът беше на ъпдейт
+    320389746, съпортът на 0, с нула обработени съобщения — а човек беше писал
+    „/start" още в 18:00 и не получи отговор.
+
+    Затова вече има САМО ЕДИН четец: този. Постовете от канала ги разнася сам,
+    а личните съобщения подава на съпорта и продължава — без да спира.
+    Съпортът се пуска с SUPPORT_POLLING=0 и вече не пипа опашката.
+    """
+    try:
+        import support_bot as S
+    except Exception as e:                      # noqa: BLE001
+        print("съпортът не се зареди (" + str(e)[:90] + ") — личните съобщения")
+        print("ще бъдат само маркирани, за да не задръстят опашката.")
+        return None, None
+    try:
+        return S, S.load_state()
+    except Exception as e:                      # noqa: BLE001
+        print("паметта на съпорта не се чете (" + str(e)[:70] + ").")
+        return S, None
+
+
 def main():
     if not BOT_TOKEN or not CHAT_ID:
         print("Missing BOT_TOKEN/CHAT_ID")
@@ -125,16 +156,48 @@ def main():
         return
 
     routed = 0
+    answered = 0
     last_id = offset
+    S, sup_state = support_hooks()
+    budget = getattr(S, "MAX_FORWARDS", 25) if S else 0
+
     for u in updates:
-        # ЧУЖДОТО НЕ СЕ МАРКИРА. offset-ът е монотонен: потвърдя ли ъпдейт 105,
-        # Telegram трие и 104 — включително въпрос на човек, на който съпортът
-        # още не е отговорил. „Прескочи, но не маркирай" не съществува в този
-        # API, затова СПИРАМ пред първото чуждо съобщение.
-        if "message" in u or "callback_query" in u:
-            print("Ъпдейт " + str(u.get("update_id", 0)) + " е на съпорта — спирам")
-            print("тук, за да не му го изтрия. Offset остава " + str(last_id) + ".")
-            break
+        # ЕДИН ЧЕТЕЦ ЗА ДВЕТЕ РАБОТИ. По-рано тук се СПИРАШЕ пред всяко лично
+        # съобщение, за да го остави на съпорта — и точно това го задушаваше
+        # (виж support_hooks по-горе). Сега личното се обслужва НА МЯСТО и
+        # обхождането продължава, тоест offset-ът върви и опашката не засяда.
+        cb = u.get("callback_query")
+        msg = u.get("message")
+        if cb or msg:
+            if S is None:
+                print("Ъпдейт " + str(u.get("update_id", 0)) + ": съпортът липсва —")
+                print("маркирам го, за да не запуши опашката.")
+            else:
+                try:
+                    if cb:
+                        S.handle_callback(cb)
+                        answered += 1
+                    elif sup_state is not None:
+                        text = (msg.get("text") or "").strip().lower()
+                        is_cmd = (text == "/o" or text.startswith("/o ")
+                                  or text.startswith("/o@"))
+                        if is_cmd or S.target_from_card(msg.get("reply_to_message")):
+                            S.handle_relay(msg, sup_state)      # отговор от екипа
+                        elif (msg.get("chat") or {}).get("type") == "private":
+                            if budget > 0:
+                                if S.handle_private(msg, sup_state, budget) == 1:
+                                    budget -= 1
+                                answered += 1
+                            else:
+                                print("Таванът за предаване е стигнат — спирам да")
+                                print("обслужвам, но offset-ът се мести напред.")
+                except Exception as e:          # noqa: BLE001
+                    # Едно счупено съобщение не бива да спира цялата опашка.
+                    print("съпортът се спъна в ъпдейт "
+                          + str(u.get("update_id", 0)) + ": " + str(e)[:90])
+            last_id = max(last_id, u.get("update_id", 0))
+            continue
+
         last_id = max(last_id, u.get("update_id", 0))
         post = u.get("channel_post")
         if not post:
@@ -156,7 +219,19 @@ def main():
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump({"offset": last_id}, f)
-    print(f"Разнесени {routed} поста. Offset={last_id}.")
+
+    # Паметта на съпорта (кой какво е питал, дневните тавани) — записва я той,
+    # не ние, за да остане форматът на едно място. Без този запис същият човек
+    # би получавал един и същи отговор пак и пак.
+    if S is not None and sup_state is not None:
+        try:
+            S.save_state(sup_state)
+        except Exception as e:                  # noqa: BLE001
+            print("паметта на съпорта не се записа (" + str(e)[:70] + ") —")
+            print("следващото минаване може да повтори отговор.")
+
+    print("Разнесени " + str(routed) + " поста, обслужени "
+          + str(answered) + " съобщения до бота. Offset=" + str(last_id) + ".")
 
 
 if __name__ == "__main__":
