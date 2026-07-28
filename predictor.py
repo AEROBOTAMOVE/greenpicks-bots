@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 THE GREEN ROOM — БОТ „ПРЕДСКАЗАТЕЛЯТ" 🧠🔢
 
@@ -266,7 +267,6 @@ def is_placeholder(name):
         return True
     return any(t == p or t.startswith(p) for p in PLACEHOLDERS)
 
-
 def norm_key(s):
     out = []
     for ch in str(s if s is not None else "").lower():
@@ -468,7 +468,6 @@ def http_bytes(url, headers=None, timeout=30):
         raw = zlib.decompress(raw)
     return raw
 
-
 def http_text(url, headers=None, timeout=30):
     key = ("t", url)
     if key in _http_cache:
@@ -597,7 +596,6 @@ def banned_word(text):
         if w in low:
             return w
     return None
-
 
 def tg_send(text, thread_id):
     """Праща с уважение към 429: чете retry_after и чака, вместо да блъска."""
@@ -730,7 +728,6 @@ def dc_tau(i, j, lh, la, rho=FOOT_RHO):
         return 1.0 - rho
     return 1.0
 
-
 def score_matrix(lam_h, lam_a, rho=FOOT_RHO, maxg=MAXG):
     """Съвместното разпределение на резултата, нормирано до сума 1."""
     ph = [poisson_pmf(i, lam_h) for i in range(maxg + 1)]
@@ -857,7 +854,6 @@ def fit_bt(rows, iters=14, step=1.1, lo=-1.6, hi=1.6):
         for t in r:
             r[t] -= m
     return r
-
 
 # --- Тегло по свежест ---------------------------------------------------------
 def decay_weight(iso_date, now, half_life_days):
@@ -990,7 +986,6 @@ def espn_fixtures(sport, slug, ymd, bucket, weight, league_bg, now, extra=None):
         })
     return out
 
-
 def espn_history(sport, slug, team_id, seasons, bucket):
     """Изиграните мачове на отбор за дадени сезони. ТУК резултатът е речник."""
     ck = ("h", sport, slug, str(team_id), tuple(seasons))
@@ -1032,7 +1027,20 @@ def espn_history(sport, slug, team_id, seasons, bucket):
 # ----------------------------------------------------------------- ⚽ ФУТБОЛ
 # ESPN няма българска лига (bul.1 -> 400, в справочника от 220 адреса няма BUL).
 # Затова тук няма български клубове. Това е ограничение на данните, не мързел.
+# Редът НЕ е по важност — важността е второто число. Редът пази лигите, които
+# играят ПРЕЗ ЛЯТОТО, от отреза FOOT_SLUG_MAX.
+#
+# ЗАЩО: измерено на 28.07.2026 — от 15-те европейски първенства в началото на
+# стария списък ESPN върна НУЛА мача (Европа е в отпуска до средата на август),
+# докато Бразилия даваше 8, Аржентина 8, MLS 1 и квалификациите за Шампионска
+# лига цели 14. Точно тези четири стояха на места 16-18 или изобщо липсваха и
+# падаха под отреза 14 → футболът, спорт номер едно, мълчеше цяло лято.
 FOOT_SLUGS = [
+    # Лятото: Южна Америка, MLS и европейските квалификации играят.
+    ("bra.1", 5, "Серия А, Бразилия"), ("arg.1", 5, "Примера, Аржентина"),
+    ("uefa.champions_qual", 7, "Квалификации за Шампионска лига"),
+    ("usa.1", 4, "MLS"),
+    # Основният сезон, август-май.
     ("uefa.champions", 12, "Шампионска лига"), ("uefa.europa", 9, "Лига Европа"),
     ("eng.1", 10, "Висша лига"), ("esp.1", 10, "Ла Лига"),
     ("ita.1", 9, "Серия А"), ("ger.1", 9, "Бундеслига"),
@@ -1040,10 +1048,11 @@ FOOT_SLUGS = [
     ("ned.1", 6, "Ередивизи"), ("por.1", 6, "Примейра лига"),
     ("tur.1", 6, "Супер лига, Турция"), ("gre.1", 5, "Супер лига, Гърция"),
     ("bel.1", 5, "Про лига, Белгия"), ("eng.2", 5, "Чемпиъншип"),
-    ("sco.1", 5, "Премиършип, Шотландия"), ("bra.1", 5, "Серия А, Бразилия"),
-    ("arg.1", 5, "Примера, Аржентина"), ("usa.1", 4, "MLS"),
+    ("sco.1", 5, "Премиършип, Шотландия"),
 ]
-FOOT_SLUG_MAX = env_int("PREDICT_FOOT_SLUGS", 14, 1, 18)
+# По подразбиране НЕ реже — 19 = целият списък. Една заявка на лига на ден е
+# евтино; мълчащ спорт не е.
+FOOT_SLUG_MAX = env_int("PREDICT_FOOT_SLUGS", 19, 1, 19)
 FOOT_PRIOR = 1.38       # голове на отбор на мач — типично за силна лига
 FOOT_SHRINK = 6.0
 FOOT_HOME = 1.12
@@ -1058,15 +1067,102 @@ def soccer_seasons(now):
     return [s, s - 1]
 
 
+# --------------------------------------------------- домашната лига на отбора
+# ЗАЩО СЪЩЕСТВУВА ТОВА
+# Историята на отбор се вади ПО ЛИГА. За мач от евротурнир лигата е самият
+# евротурнир — а там отборът има 6-13 мача на сезон. Резултатът, измерен на
+# живо: квалификациите за Шампионска лига се отказваха с „няма история (1 и 3
+# мача)", а за груповата фаза моделът смяташе върху шепа мачове и хвърляше
+# тридесетте от вътрешното първенство.
+#
+# Затова: ESPN дава състава на всяка лига на един адрес, а id-тата на отборите
+# са ГЛОБАЛНИ (проверено: Sturm Graz е 2790 и в австрийската листа, и в мача от
+# квалификациите). Строим веднъж речник отбор -> домашна лига и за всеки мач от
+# купа добавяме и вътрешните мачове.
+#
+# Цена: по една заявка на лига, и то ЕДВА когато има мач от купа. При мач само
+# от вътрешни първенства индексът изобщо не се строи.
+FOOT_DOMESTIC = [
+    "eng.1", "esp.1", "ita.1", "ger.1", "fra.1", "ned.1", "por.1", "tur.1",
+    "gre.1", "bel.1", "sco.1", "aut.1", "sui.1", "den.1", "nor.1", "swe.1",
+    "pol.1", "cze.1", "cro.1", "srb.1", "rou.1", "ukr.1", "isr.1", "cyp.1",
+    "irl.1", "hun.1", "slo.1", "svk.1", "bra.1", "arg.1", "usa.1", "eng.2",
+]
+# Турнирите, при които „лигата на мача" не е домашно първенство.
+FOOT_CUP_PREFIX = ("uefa.", "fifa.", "concacaf.", "conmebol.", "club.", "afc.", "caf.")
+
+_foot_dom_index = None      # id на отбор -> адрес на домашната му лига
+
+
+def foot_domestic_index():
+    """Строи се най-много веднъж на пускане. Липсваща лига се прескача тихо."""
+    global _foot_dom_index
+    if _foot_dom_index is not None:
+        return _foot_dom_index
+    idx = {}
+    got = 0
+    for slug in FOOT_DOMESTIC:
+        j = http_json(ESPN_SITE + "/soccer/" + slug + "/teams", quiet=True)
+        if not isinstance(j, dict):
+            continue
+        try:
+            teams = (((j.get("sports") or [{}])[0].get("leagues") or [{}])[0]
+                     .get("teams") or [])
+        except Exception:       # noqa: BLE001
+            teams = []
+        n = 0
+        for t in teams:
+            tid = str(((t or {}).get("team") or {}).get("id") or "")
+            if tid and tid not in idx:      # първата лига печели — не местим отбор
+                idx[tid] = slug
+                n += 1
+        if n:
+            got += 1
+    _foot_dom_index = idx
+    print("   справочник домашни лиги: " + str(len(idx)) + " отбора от "
+          + str(got) + " първенства.")
+    return idx
+
+def merge_recs(a, b):
+    """Слепва два списъка мачове без повторения (един мач = дата + съперник)."""
+    out = list(a)
+    seen = set()
+    for r in out:
+        seen.add((r.get("date"), r.get("opp")))
+    for r in b:
+        k = (r.get("date"), r.get("opp"))
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(r)
+    return out
+
+
+FOOT_FAIL_TOLERANCE = 3     # подред, не общо
+
+
 def football_fixtures(now, ymd):
+    """Обхожда лигите. Една капризна лига НЕ бива да отнася целия футбол.
+
+    Старият код спираше спорта при първата грешка. Това е вярно, когато мрежата
+    е долу, но НЕ и когато една лига е между сезони или ESPN е капнал само за
+    нея — тогава губехме и останалите осемнадесет. Затова: броим провалите
+    ПОДРЕД и спираме едва след три (мрежата наистина е долу), а един самотен
+    провал само се отбелязва и се минава нататък.
+    """
     out = []
+    fails = 0
     for slug, w, name in FOOT_SLUGS[:FOOT_SLUG_MAX]:
         try:
             out += espn_fixtures("soccer", slug, ymd, "football", w, name, now,
                                  {"seasons": soccer_seasons(now)})
+            fails = 0               # успех => броячът се нулира
         except Exception as e:      # noqa: BLE001
+            fails += 1
             print("   ⚠ футбол " + slug + ": " + str(e)[:60])
-            break                   # изчерпан лимит или мрежа долу — спираме спорта
+            if fails >= FOOT_FAIL_TOLERANCE:
+                print("   ⚠ три поредни провала — спирам футбола за това пускане.")
+                break
     return out
 
 
@@ -1077,8 +1173,19 @@ def football_history(fx, side):
     slug = (fx.get("extra") or {}).get("slug") or "eng.1"
     seasons = list((fx.get("extra") or {}).get("seasons") or [])
     recs = espn_history("soccer", slug, tid, seasons, "football")
+    # Мач от евротурнир: добавяме и вътрешното първенство на отбора, иначе
+    # моделът гледа 6-13 мача вместо 40+.
+    if slug.startswith(FOOT_CUP_PREFIX):
+        dom = foot_domestic_index().get(str(tid))
+        if dom:
+            recs = merge_recs(recs, espn_history("soccer", dom, tid, seasons, "football"))
     if len(recs) < 12 and seasons:
-        recs = espn_history("soccer", slug, tid, seasons + [seasons[-1] - 1], "football")
+        deep = seasons + [seasons[-1] - 1]
+        recs = merge_recs(recs, espn_history("soccer", slug, tid, deep, "football"))
+        if slug.startswith(FOOT_CUP_PREFIX):
+            dom = foot_domestic_index().get(str(tid))
+            if dom:
+                recs = merge_recs(recs, espn_history("soccer", dom, tid, deep, "football"))
     return recs
 
 
@@ -1147,7 +1254,6 @@ def basketball_fixtures(now, ymd):
             print("   ⚠ баскетбол " + slug + ": " + str(e)[:60])
             break
     return out
-
 
 def basketball_history(fx, side):
     tid = fx.get("home_id") if side == "home" else fx.get("away_id")
@@ -1296,7 +1402,6 @@ def tennis_form(tour, now):
     _ten_form[tour] = wl
     return wl
 
-
 def model_tennis(fx, now):
     ex = fx.get("extra") or {}
     ra, rb = ex.get("ra") or {}, ex.get("rb") or {}
@@ -1440,7 +1545,6 @@ def baseball_fixtures(now, ymd_dash):
                 "extra": {},
             })
     return out
-
 
 def baseball_history(fx, side):
     tid = fx.get("home_id") if side == "home" else fx.get("away_id")
@@ -1613,7 +1717,6 @@ def mma_fixtures(now):
                 })
     return out
 
-
 def model_mma(fx, now):
     ex = fx.get("extra") or {}
     idx = mma_index(ex.get("league") or "ufc", now)
@@ -1766,7 +1869,6 @@ def vol_ident(name):
     tk = [("st" if w == "saint" else w) for w in vol_tokens("".join(core))]
     return "".join(w for w in tk if w not in VOL_GENERIC), tag
 
-
 def vol_same_team(a, b):
     """Един и същи отбор ли са двата отпечатъка? Спонсорът се сменя всеки сезон
     („Sir Susa Vim Perugia" / „Sir Sicoma Monini Perugia"), затова приемаме и
@@ -1900,7 +2002,6 @@ def vol_fit(raw):
     for k in list(_vol_rating):
         _vol_comp[k] = find(k)
     return _vol_rating, _vol_count
-
 
 def vol_ratings(now):
     """Сила по РАЗИГРАВАНИЯ, коригирана за съперника (Брадли-Тери).
@@ -2085,7 +2186,6 @@ def tt_fixtures(now, ymd_dash):
             })
     return out
 
-
 def tt_player(ittf_id, now):
     """Бърза сводка за 18 месеца: мачове, победи, загуби. Пълната история е
     30-45 секунди на играч и не влиза в един рън — това е съзнателен избор."""
@@ -2240,7 +2340,6 @@ def over_under_line(p_over):
     if (1.0 - p) >= OU_MIN:
         return "Под 2.5 гола: <b>" + pct(1.0 - p) + "</b>"
     return ""
-
 
 def analyse(fx, ctx):
     """Връща (анализ, причина). Кратък изход: избор, вероятност, две причини."""
