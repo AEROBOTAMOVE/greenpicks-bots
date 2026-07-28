@@ -1,16 +1,17 @@
 name: daily-rhythm (дневен ритъм)
+# Каналът НЕ е новинарска лента: новините са само в стая 26 и ги прави news.yml.
+# Тук остават само обзорът (21:00) и резултатите (23:00).
 on:
   schedule:
-    - cron: '0 5 * * *'     # 08:00 BG — 4 новини (по 1 на спорт)
-    - cron: '0 18 * * *'    # 21:00 BG — обзор на бота
-    - cron: '0 20 * * *'    # 23:00 BG — резултати
+    - cron: '0 18 * * *'    # 21:00 BG — обзор на бота (в канала)
+    - cron: '0 20 * * *'    # 23:00 BG — резултати (канал + стая 9, един бот-пост)
   workflow_dispatch:
     inputs:
       mode:
-        description: 'topnews / overview / results'
-        default: 'topnews'
+        description: 'overview / results'
+        default: 'overview'
         type: choice
-        options: [topnews, overview, results]
+        options: [overview, results]
 
 permissions:
   contents: write
@@ -30,7 +31,6 @@ jobs:
         id: m
         run: |
           case "${{ github.event.schedule }}" in
-            "0 5 * * *")  echo "mode=topnews"  >> $GITHUB_OUTPUT ;;
             "0 18 * * *") echo "mode=overview" >> $GITHUB_OUTPUT ;;
             "0 20 * * *") echo "mode=results"  >> $GITHUB_OUTPUT ;;
             *)            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT ;;
@@ -40,16 +40,18 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ vars.CHAT_ID }}
           CHANNEL_ID: ${{ vars.CHANNEL_ID }}
+          RESULTS_THREAD_ID: '9'
+          PREDICT_THREAD_ID: '27'
           DAILY_MODE: ${{ steps.m.outputs.mode }}
         run: python daily_bot.py
-      - name: Запази topnews state
+      - name: Запази дневното състояние
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add topnews_state.json 2>/dev/null || true
+          git add daily_state.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             for i in 1 2 3 4 5; do
-              git commit -m "topnews state" && git pull --rebase && git push && break
+              git commit -m "daily state" && git pull --rebase && git push && break
               sleep $((RANDOM % 5 + 2))
             done
           fi
