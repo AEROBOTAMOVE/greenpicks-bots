@@ -14,22 +14,64 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Пълна история, за да може rebase-ът долу да работи спокойно.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Route channel posts to topic rooms
+      - name: Разнеси постовете И обслужи въпросите
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ vars.CHAT_ID }}
-          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
+          # Резервните стойности НЕ са излишни: незададена променлива в GitHub
+          # идва като празен низ и празният низ бие подразбиращото се в скрипта
+          # (router_bot.py:38). С празен CHANNEL_ID филтърът по канал (ред 143)
+          # не хваща НИЩО, а offset-ът върви напред — пропуснатите канал-постове
+          # се губят тихо и безвъзвратно. Това беше единственият workflow по
+          # разписание с голи vars.* — вече не е.
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
+          # ⚠️ ТОЗИ РЪН Е ЕДИНСТВЕНИЯТ ЧЕТЕЦ НА ОПАШКАТА (от 29.07.2026).
+          # Опашката на Telegram е ЕДНА на бот. Докато рутерът и съпортът се
+          # пускаха поотделно и си отстъпваха учтиво, съпортът се блъскаше в
+          # първия пост от канала и offset-ът му остана НУЛА — човек писа на
+          # бота в 18:00 и не получи отговор. Сега рутерът обслужва и личните
+          # съобщения на място, а support.yml е с SUPPORT_POLLING=0.
+          # Затова тук трябват и променливите на съпорта:
+          SUPPORT_THREAD_ID: ${{ vars.SUPPORT_THREAD_ID || '11' }}
+          ADMIN_CHAT_ID: ${{ vars.ADMIN_CHAT_ID }}
+          SUPPORT: ${{ vars.SUPPORT }}
+          SUPPORT_FAQ_URL: ${{ vars.SUPPORT_FAQ_URL }}
         run: python router_bot.py
+      # Изгубен push = изгубен offset = дублирани постове по стаите.
+      # Рънът е на всеки 10 мин и се засича с другите state-комитъри,
+      # затова push-ът е с rebase-retry цикъл, не гол опит.
       - name: Save state
+        if: always()
         run: |
           git config user.name "greenpicks-bot"
           git config user.email "bot@greenpicks"
-          git add router_state.json || true
-          git diff --cached --quiet || git commit -m "router state"
-          git pull --rebase origin main || true
-          git push || (git pull --rebase origin main && git push)
+          git add router_state.json support_state.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Състоянието е без промяна — няма какво да се връща."
+            exit 0
+          fi
+          git commit -m "router state"
+          pushed=0
+          for i in 1 2 3 4 5; do
+            if git push; then
+              pushed=1
+              break
+            fi
+            echo "Push-ът не мина (опит $i) — дърпам и опитвам пак."
+            git pull --rebase --autostash || git rebase --abort || true
+            sleep $((RANDOM % 6 + 3))
+          done
+          if [ "$pushed" != "1" ]; then
+            echo "ЧЕРВЕНО: router_state.json НЕ се върна в repo-то — възможни дубли."
+            exit 1
+          fi
+          echo "Състоянието е запазено."
