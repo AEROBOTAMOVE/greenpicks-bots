@@ -56,6 +56,7 @@ THE GREEN ROOM — БОТ №1 „НОВИНАРЯТ" 📰   (версия 3: И
 Бележка за деплой: файлът е писан БЕЗ обратни наклонени черти (нов ред = NL = chr(10),
 regex-границите на думи = LB/RB, кавичките в regex = chr(34)/chr(39)).
 Проверка: NEWS_MODE=selftest python news_bot.py   |   пробно: NEWS_DRY_RUN=1 python news_bot.py
+Първо пълнене: NEWS_BACKFILL_DAYS=7 (взима до 7 дни назад, таван 14; пак само стая 26).
 """
 import html
 import json
@@ -76,15 +77,30 @@ from zoneinfo import ZoneInfo
 SOFIA = ZoneInfo("Europe/Sofia")
 NL = chr(10)
 
+# Печатът НИКОГА не убива бота: на гол Windows (без PYTHONIOENCODING) конзолен или
+# пайпнат рън дава stdout в cp1252/cp1251 и кирилският WARN гърмеше с
+# UnicodeEncodeError по средата на selftest-а. Принудително UTF-8 (както е на
+# GitHub Actions) + errors=replace: и при най-странната конзола излиза текст, не краш.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")              # групата (-100...)
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "")        # каналът — САМО за проверка, НЕ пишем в него
 NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID", "26") or "26"   # 📰 Новини — ЕДИНСТВЕНАТА стая
 NEWS_ROOM_FALLBACK = "26"
 
-# 🚫 Стаи, в които новинарят НЯМА право да пише, дори да го „помолят" през env:
-# 4 = Фишове на деня (само човекът), 5/6/7/8 = спортните стаи (само срещи), 1 = общ чат.
-FORBIDDEN_THREADS = {1, 4, 5, 6, 7, 8}
+# ✅ БЯЛ СПИСЪК: новинарят има право на ТОЧНО ЕДНА стая — 26 „Новини".
+# Allowlist вместо blocklist: старият черен списък пускаше 9/27/3/11/328 и всяка
+# бъдеща стая, а желязното правило е „новини САМО в 26". Всичко друго пада към 26.
+ALLOWED_THREADS = {26}
+# 🚫 Известните чужди стаи — поименно, за selftest-а (всяка ТРЯБВА да бъде отказана):
+# 1 общ чат, 3 правила, 4 фишове (само човекът), 5/6/7/8 спортните стаи (само срещи),
+# 9 резултати, 11 помощ, 27 прогнозите на бота, 328 бойни спортове (само боеве).
+FORBIDDEN_THREADS = {1, 3, 4, 5, 6, 7, 8, 9, 11, 27, 328}
 
 # --- граници на дума без обратна наклонена черта -----------------------------
 # LB/RB заместват regex-границата на дума: „nba" да не се хваща в „fanbase".
@@ -266,6 +282,26 @@ SENT_TITLES_KEEP = 400 # колко пратени заглавия помним
 TITLES_KEEP = 200      # колко заглавия подаваме на Анализатора
 PER_FEED = 20          # най-много записи, които четем от един източник
 MAX_AGE_H = int(os.environ.get("NEWS_MAX_AGE_H", "72"))    # по-стари от това не са „свежи"
+
+
+def backfill_days():
+    """🕰️ BACKFILL за първото пускане: NEWS_BACKFILL_DAYS=N разширява прозореца
+    до N дни назад (таван 14), за да се напълни стая 26 с новините от последните
+    дни. Всичко останало е СЪЩОТО: дедупе-паметта, праговете, таваните, стая 26.
+    Боклук в env (не-число, минус, екзотична цифра) = 0, тоест нормален прозорец."""
+    raw = (os.environ.get("NEWS_BACKFILL_DAYS", "") or "").strip()
+    if not (raw.isascii() and raw.isdigit()):
+        return 0
+    try:
+        n = int(raw)
+    except ValueError:
+        return 0
+    return min(n, 14)
+
+
+BACKFILL_DAYS = backfill_days()
+if BACKFILL_DAYS > 0:
+    MAX_AGE_H = max(MAX_AGE_H, BACKFILL_DAYS * 24)
 TG_LIMIT = 3500        # лимитът на Telegram е 4096 — държим запас за емоджита
 TG_HARD = 4000         # аварийна ножица: нито един ТЕКСТОВ пост не тръгва по-дълъг от това
 CAPTION_HARD = 1000    # таванът на подпис под снимка е 1024 — държим запас
@@ -438,6 +474,34 @@ def parse_date(text):
 def is_url(s):
     s = (s or "").strip()
     return (s.startswith("http://") or s.startswith("https://")) and (" " not in s)
+
+
+def resolve_link(link, base=""):
+    """ФИЛТЪРЪТ НА АДРЕСИТЕ. Telegram отхвърля ЦЯЛОТО съобщение, ако в него влезе
+    a href с релативен адрес — един счупен линк убиваше цял пост.
+    Правилата: само абсолютни http/https адреси минават;
+      - релативен адрес се залепя за адреса на емисията (urljoin);
+      - schemeless (//site/x) се качва на https;
+      - чужда схема (itms-apps:, mailto:, javascript:...) = ОТРОВА -> None,
+        записът се изхвърля целият;
+      - празното си остава празно (новина без линк е безопасна: link_line не прави a href)."""
+    s = html.unescape((link or "").strip())
+    if not s:
+        return ""
+    if is_url(s):
+        return s
+    if s.startswith("//"):
+        s = "https:" + s
+        return s if is_url(s) else None
+    if re.match("[a-z][a-z0-9+.-]*:", s, re.I):
+        return None
+    if not base:
+        return None
+    try:
+        joined = urllib.parse.urljoin(base, s)
+    except Exception:
+        return None
+    return joined if is_url(joined) else None
 
 
 # =============================================================== КАРТИНКИТЕ ===
@@ -716,9 +780,11 @@ def verify_image(u, timeout=8):
 
 
 # ============================================================== ПАРСВАНЕТО ====
-def parse_rss(source, raw):
+def parse_rss(source, raw, base_url=""):
     """RSS <item> и Atom <entry>.
-    Връща [{source, title, link, date, imgs, summary, cat}]."""
+    Връща [{source, title, link, date, imgs, summary, cat}].
+    Адресите минават през resolve_link: релативните се абсолютизират срещу адреса
+    на емисията, а запис с чужда схема (itms-apps: и т.н.) отпада целият."""
     items = []
     try:
         root = ET.fromstring(raw)
@@ -730,6 +796,9 @@ def parse_rss(source, raw):
         if not is_url(link):
             guid = (item.findtext("guid") or "").strip()
             link = guid if is_url(guid) else link
+        link = resolve_link(link, base_url)
+        if link is None:
+            continue                      # отровен адрес — записът не влиза изобщо
         if title:
             items.append({"source": source, "title": title, "link": link,
                           "date": parse_date(item.findtext("pubDate")),
@@ -743,6 +812,9 @@ def parse_rss(source, raw):
             title = clean_title(text_of(e.find(ns + "title")))
             link_el = e.find(ns + "link")
             link = (link_el.get("href") or "").strip() if link_el is not None else ""
+            link = resolve_link(link, base_url)
+            if link is None:
+                continue                  # отровен адрес — записът не влиза изобщо
             if title:
                 items.append({"source": source, "title": title, "link": link,
                               "date": parse_date(e.findtext(ns + "published") or e.findtext(ns + "updated")),
@@ -1273,7 +1345,9 @@ def load_state():
             elif isinstance(data, dict):
                 keys = [s for s in (data.get("keys") or []) if isinstance(s, str)]
                 titles = [s for s in (data.get("titles") or []) if isinstance(s, str)]
-        except (json.JSONDecodeError, OSError):
+        except (ValueError, OSError):
+            # ValueError покрива и JSONDecodeError (празен/счупен JSON), и
+            # UnicodeDecodeError (бинарно повреден файл) — рънът НЕ умира.
             print("WARN: повреден state — започвам начисто.")
     return keys, titles
 
@@ -1314,11 +1388,20 @@ def save_state(keys, titles):
 
 # ---------------------------------------------------------------- пращане ---
 def news_thread():
-    """ЕДИНСТВЕНАТА позволена стая за новини. Пази и от чужда/сбъркана env-стойност:
-    стаи 1/4/5/6/7/8 са забранени за новини и падат обратно към 26."""
+    """ЕДИНСТВЕНАТА позволена стая за новини. БЯЛ СПИСЪК: минава САМО стая 26 —
+    всяка друга env-стойност (чужда стая вкл. 328 и всяка бъдеща, празно, не-число,
+    отрицателно) пада обратно към 26. Черният списък остава като втори колан.
+    isascii() пази от екзотични Unicode-цифри (² минава isdigit, но чупи int),
+    а try е коланът: int() НЯМА как да избяга нагоре и да убие пращането."""
     tid = str(NEWS_THREAD_ID or "").strip()
-    if tid.isdigit() and int(tid) > 1 and int(tid) not in FORBIDDEN_THREADS:
-        return int(tid)
+    num = 0
+    if tid.isascii() and tid.isdigit():
+        try:
+            num = int(tid)
+        except ValueError:
+            num = 0
+    if num in ALLOWED_THREADS and num not in FORBIDDEN_THREADS:
+        return num
     print("WARN: непозволен NEWS_THREAD_ID " + repr(NEWS_THREAD_ID) + " — падам към стая " + NEWS_ROOM_FALLBACK + ".")
     return int(NEWS_ROOM_FALLBACK)
 
@@ -1540,7 +1623,7 @@ def fetch_feed(pair):
     """Един източник -> (име, записи, грешка). Никога не хвърля нагоре."""
     source, url = pair
     try:
-        return source, parse_rss(source, fetch(url))[:PER_FEED], ""
+        return source, parse_rss(source, fetch(url), url)[:PER_FEED], ""
     except Exception as e:
         return source, [], str(e)[:120]
 
@@ -1780,6 +1863,10 @@ def main():
         print("СТОП: CHAT_ID сочи към КАНАЛА. Новини в канала са забранени — не пращам нищо.")
         sys.exit(1)
 
+    if BACKFILL_DAYS > 0:
+        print("BACKFILL: прозорецът е разширен до " + str(BACKFILL_DAYS) +
+              " дни назад (еднократно пълнене на стая 26; паметта и праговете важат).")
+
     old_keys, sent_titles = load_state()
     sent_keys = set(old_keys)
     sent_sigs = [toks(t) for t in sent_titles]
@@ -1871,9 +1958,15 @@ def run_selftest():
 
     # --- 2. СТАЯТА ---
     check("стая 26 е позволена", news_thread() == 26)
+    check("белият списък е точно стая 26", ALLOWED_THREADS == {26})
+    check("бял и черен списък не се допират", not (ALLOWED_THREADS & FORBIDDEN_THREADS))
+    check("328 (бойни спортове) е в черния списък", 328 in FORBIDDEN_THREADS)
     for t in sorted(FORBIDDEN_THREADS):
         globals()["NEWS_THREAD_ID"] = str(t)
         check("стая " + str(t) + " е отказана", news_thread() == 26)
+    for t in ("2", "999"):
+        globals()["NEWS_THREAD_ID"] = t
+        check("непозната стая " + t + " е отказана (allowlist)", news_thread() == 26)
     globals()["NEWS_THREAD_ID"] = "26"
 
     # --- 3. 🥊 БОЙНИТЕ СПОРТОВЕ И КАПАНИТЕ НА „БОКС" ---
@@ -2122,6 +2215,74 @@ def run_selftest():
     check("българското заглавие печели", is_bg(vol[0]["title"]))
     check("волейболът има 2 източника", vol[0]["nsrc"] == 2)
     check("волейболът наследи снимката", len(vol[0]["imgs"]) >= 1)
+
+    # --- 13. АДРЕСИТЕ: само http/https; релативните се залепят; отровата отпада ---
+    check("абсолютният адрес минава",
+          resolve_link("https://a.bg/x", "https://a.bg/rss") == "https://a.bg/x")
+    check("релативният се абсолютизира",
+          resolve_link("/bg/news/1", "https://site.bg/rss") == "https://site.bg/bg/news/1")
+    check("релативен без наклонена черта също",
+          resolve_link("news/2", "https://site.bg/rss/") == "https://site.bg/rss/news/2")
+    check("schemeless се качва на https",
+          resolve_link("//cdn.site.bg/i", "") == "https://cdn.site.bg/i")
+    check("чуждата схема е отрова", resolve_link("itms-apps://apple.com/app", "https://a.bg/rss") is None)
+    check("javascript-схемата е отрова", resolve_link("javascript:void(0)", "https://a.bg/rss") is None)
+    check("празният линк остава празен", resolve_link("", "https://a.bg/rss") == "")
+    check("релативен без база отпада", resolve_link("bg/news", "") is None)
+    rss_demo = ("<rss><channel>" +
+                "<item><title>Релативна новина</title><link>/bg/n1</link></item>" +
+                "<item><title>Отровна новина</title><link>itms-apps://x</link></item>" +
+                "<item><title>Нормална новина</title><link>https://site.bg/n3</link></item>" +
+                "</channel></rss>")
+    parsed = parse_rss("Тест", rss_demo, "https://site.bg/rss")
+    check("parse_rss абсолютизира релативния линк",
+          any(p["link"] == "https://site.bg/bg/n1" for p in parsed))
+    check("parse_rss изхвърля отровния запис изцяло",
+          all("Отровна" not in p["title"] for p in parsed) and len(parsed) == 2)
+    check("parse_rss пази нормалния запис",
+          any(p["link"] == "https://site.bg/n3" for p in parsed))
+
+    # --- 14. BACKFILL: първото пълнене на стаята ---
+    old_env = os.environ.get("NEWS_BACKFILL_DAYS")
+    try:
+        os.environ["NEWS_BACKFILL_DAYS"] = "5"
+        check("backfill чете дните", backfill_days() == 5)
+        os.environ["NEWS_BACKFILL_DAYS"] = "99"
+        check("backfill има таван 14", backfill_days() == 14)
+        os.environ["NEWS_BACKFILL_DAYS"] = "боклук"
+        check("backfill гълта боклук", backfill_days() == 0)
+        os.environ["NEWS_BACKFILL_DAYS"] = "-3"
+        check("backfill гълта минус", backfill_days() == 0)
+        os.environ["NEWS_BACKFILL_DAYS"] = ""
+        check("празният backfill = нормален прозорец", backfill_days() == 0)
+    finally:
+        if old_env is None:
+            os.environ.pop("NEWS_BACKFILL_DAYS", None)
+        else:
+            os.environ["NEWS_BACKFILL_DAYS"] = old_env
+
+    # --- 15. СЧУПЕНОТО СЪСТОЯНИЕ И ОТРОВНИЯТ THREAD ID НЕ УБИВАТ РЪНА ---
+    tmp2 = STATE_FILE + ".selftest2"
+    old_sf = globals()["STATE_FILE"]
+    globals()["STATE_FILE"] = tmp2
+    try:
+        with open(tmp2, "w", encoding="utf-8") as f:
+            f.write("{счупен json")
+        k3, t3 = load_state()
+        check("счупеният state дава чисто начало", k3 == [] and t3 == [])
+        with open(tmp2, "w", encoding="utf-8") as f:
+            f.write("")
+        k4, t4 = load_state()
+        check("празният state дава чисто начало", k4 == [] and t4 == [])
+    finally:
+        globals()["STATE_FILE"] = old_sf
+        try:
+            os.remove(tmp2)
+        except Exception:
+            pass
+    globals()["NEWS_THREAD_ID"] = chr(178)     # ² : минава isdigit, чупи int
+    check("екзотичната Unicode-цифра пада към 26", news_thread() == 26)
+    globals()["NEWS_THREAD_ID"] = "26"
 
     print("SELFTEST: " + str(ok) + " наред, " + str(len(bad)) + " проблема.")
     for b in bad:
