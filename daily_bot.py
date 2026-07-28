@@ -9,10 +9,10 @@ THE GREEN ROOM — ДНЕВНИЯТ РИТЪМ 🦖 (чист, автомати�
    Стойността не се губи, а живее в ГРУПАТА, в правилната стая.
 
 Режими (DAILY_MODE):
-  overview  21:00 — ОБЗОРЪТ НА БОТА: числата за деня → стая 27 „БОТА ПРЕДРИЧА".
-                    Ботът говори за своя ден, значи мястото му е в неговата стая.
+  overview  21:00 — ОБЗОРЪТ НА БОТА: числата за деня → стая 9 „Резултати и статистика".
+                    Обзорът е равносметка, значи мястото му е при резултатите.
   results   23:00 — резултатите на деня → стая 9 „Резултати и статистика".
-                    ЕДИН бот-пост на ден (пази се със състояние в daily_state.json).
+                    По ЕДИН бот-пост на ден за всеки режим (състояние в daily_state.json).
   selftest        — проверява пазачите и текстовете, без да праща нищо.
 
 Пенсиониран режим:
@@ -25,9 +25,9 @@ THE GREEN ROOM — ДНЕВНИЯТ РИТЪМ 🦖 (чист, автомати�
    КАНАЛЪТ                 — САМО човекът. Бот никога.
    4 Фишове на деня        — САМО човекът-типстер. Бот никога.
    5/6/7/8 Футбол/Баскет/Тенис на маса/Волейбол — САМО срещите по направление.
-   9 Резултати и статистика — един бот-пост на ден.
+   9 Резултати и статистика — обзорът (21:00) и резултатите (23:00), по един на ден.
   26 Новини                — всички новини (news_bot.py).
-  27 БОТА ПРЕДРИЧА         — прогнозите и обзорът на бота.
+  27 БОТА ПРЕДРИЧА         — прогнозите на бота (predictor.py). Този бот не пише там.
 
 Тон: числа, извадка, кратка причина. Без поучения, без съвети, без призиви.
 
@@ -47,7 +47,6 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHANNEL_ID = (os.environ.get("CHANNEL_ID") or "-1004403334702").strip()
 CHAT_ID = (os.environ.get("CHAT_ID") or "-1004426592150").strip()
 RESULTS_THREAD = (os.environ.get("RESULTS_THREAD_ID") or "9").strip()    # 9  Резултати и статистика
-PREDICT_THREAD = (os.environ.get("PREDICT_THREAD_ID") or "27").strip()   # 27 БОТА ПРЕДРИЧА
 MODE = ((os.environ.get("DAILY_MODE") or "").strip()
         or (sys.argv[1].strip() if len(sys.argv) > 1 else "")
         or "overview")
@@ -55,7 +54,6 @@ SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY") or "123"
 API = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_KEY}"
 STATE_FILE = (os.environ.get("DAILY_STATE_FILE") or "daily_state.json").strip()
 FORCE = (os.environ.get("DAILY_FORCE", "").strip() == "1")
-
 # 🚫 ЖЕЛЯЗНО: стаите на човека и на срещите. Ботът няма работа там.
 FORBIDDEN_THREADS = {"4", "5", "6", "7", "8"}
 
@@ -93,7 +91,7 @@ def post_channel(text, preview=False):
     """ОТКАЗ по устройство. Каналът е на човека — този бот не пише там.
     Оставена е нарочно, за да е ясно защо и да не се върне по невнимание."""
     print("ОТКАЗ: каналът е само за човека. Ботът не публикува там.")
-    print("       Обзорът отива в стая 27, резултатите — в стая 9.")
+    print("       Обзорът и резултатите отиват в стая 9.")
     return False
 
 def post_room(thread_id, text, preview=False):
@@ -109,10 +107,9 @@ def post_room(thread_id, text, preview=False):
         return False
     return poster.send_message(CHAT_ID, text, thread_id=tid, preview=preview)
 
-def post_prediction(text, preview=False):
-    """Прогнозите и обзорът на бота ходят САМО в стая 27 „БОТА ПРЕДРИЧА"."""
-    return post_room(PREDICT_THREAD, text, preview=preview)
-
+def post_results_room(text, preview=False):
+    """Всичко от този бот (обзор + резултати) ходи САМО в стая 9 „Резултати"."""
+    return post_room(RESULTS_THREAD, text, preview=preview)
 # ---------- СЪСТОЯНИЕ (един бот-пост на ден) ----------
 def load_state():
     try:
@@ -183,8 +180,7 @@ def run_results(now):
         print(f"Резултати → стая {RESULTS_THREAD}: {len(rows)} мача.")
     else:
         print("Стая 9 не прие поста — състоянието не се маркира.")
-
-# ---------- OVERVIEW (21:00, стая 27) ----------
+# ---------- OVERVIEW (21:00, стая 9) ----------
 def collect_overview(now):
     today = now.strftime("%Y-%m-%d")
     tmr = (now + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -215,7 +211,7 @@ def collect_overview(now):
     return {"total": total, "nsports": nsports, "hot": hot, "tomorrow": tomorrow_big}
 
 def build_overview_text(now, d):
-    """Текстът за стая 27. Числата на деня — без поучения."""
+    """Текстът за стая 9. Числата на деня — без поучения."""
     parts = [f"📊 <b>ОБЗОРЪТ НА БОТА</b> · {date_bg(now)}{NL}",
              f"Днес следихме <b>{d.get('total', 0)}</b> мача в <b>{d.get('nsports', 0)}</b> спорта. 📡"]
     if d.get("hot"): parts.append(f"✅ Горещ резултат: {d['hot']}")
@@ -226,21 +222,20 @@ def build_overview_text(now, d):
 def run_overview(now):
     day = now.strftime("%Y-%m-%d")
     state = load_state()
-    if done_today(state, day, "overview_room27"):
-        print("Стая 27 вече има обзора за днес — мълча."); return
+    if done_today(state, day, "overview_room9"):
+        print("Обзорът за днес вече е в стая 9 — мълча."); return
     d = collect_overview(now)
-    if post_prediction(build_overview_text(now, d)):
-        mark_done(state, day, "overview_room27")
-        print(f"Обзор → стая {PREDICT_THREAD}: пратен.")
+    if post_results_room(build_overview_text(now, d)):
+        mark_done(state, day, "overview_room9")
+        print(f"Обзор → стая {RESULTS_THREAD}: пратен.")
     else:
-        print("Стая 27 не прие обзора — състоянието не се маркира.")
+        print("Стая 9 не прие обзора — състоянието не се маркира.")
 
 # ---------- ПЕНСИОНИРАН РЕЖИМ ----------
 def run_retired_topnews():
     print("Режим topnews е МАХНАТ. Новините ходят само в стая 26 Новини "
           "(разделени по спорт) и се правят от news_bot.py.")
     print("Каналът не е новинарска лента — там пише само човекът.")
-
 # ---------- SELFTEST ----------
 def run_selftest():
     ok = 0; bad = []
@@ -259,7 +254,7 @@ def run_selftest():
         for t in sorted(FORBIDDEN_THREADS):
             check(f"стая {t} отказана", post_room(t, "тест") is False)
         check("забранените стаи не пращат", len(sent) == 0)
-        check("стая 27 приема", post_prediction("тест") is True)
+        check("стая 9 приема обзора", post_results_room("тест") is True)
         check("стая 9 приема", post_room(RESULTS_THREAD, "тест") is True)
         check("каналът е в забранените чатове", str(CHANNEL_ID) in forbidden_chats())
     finally:
@@ -270,8 +265,9 @@ def run_selftest():
     t_res = build_results_text(now, rows)
     t_ovr = build_overview_text(now, {"total": 128, "nsports": 6,
                                       "hot": "⚽ А 2–1 Б", "tomorrow": "🏀 В — Г (21:00)"})
-    banned = ["18+", "не гаранция", "не е съвет", "решението е твое", "залагай отговорно",
-              "от банката", "коефициент", "букмейкър", "заложи", "залог"]
+    banned = ["18+", "не гаранция", "не е съвет", "финансов съвет", "решението е твое",
+              "залагай отговорно", "коеф", "банка", "единица", "букмейкър",
+              "заложи", "залог"]
     for txt, label in ((t_res, "резултати"), (t_ovr, "обзор")):
         low = txt.lower()
         for b in banned:
@@ -291,7 +287,7 @@ def run_selftest():
         check("състояние: празно в началото", done_today(g, day, "results_room9") is False)
         mark_done(g, day, "results_room9")
         check("състояние: пази се", done_today(load_state(), day, "results_room9") is True)
-        check("състояние: чужд ключ не се пали", done_today(load_state(), day, "overview_room27") is False)
+        check("състояние: чужд ключ не се пали", done_today(load_state(), day, "overview_room9") is False)
         globals()["FORCE"] = True
         check("DAILY_FORCE=1 бие пазача", done_today(load_state(), day, "results_room9") is False)
     finally:
