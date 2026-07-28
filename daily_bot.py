@@ -54,6 +54,7 @@ SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY") or "123"
 API = f"https://www.thesportsdb.com/api/v1/json/{SPORTSDB_KEY}"
 STATE_FILE = (os.environ.get("DAILY_STATE_FILE") or "daily_state.json").strip()
 FORCE = (os.environ.get("DAILY_FORCE", "").strip() == "1")
+
 # 🚫 ЖЕЛЯЗНО: стаите на човека и на срещите. Ботът няма работа там.
 FORBIDDEN_THREADS = {"4", "5", "6", "7", "8"}
 
@@ -110,6 +111,7 @@ def post_room(thread_id, text, preview=False):
 def post_results_room(text, preview=False):
     """Всичко от този бот (обзор + резултати) ходи САМО в стая 9 „Резултати"."""
     return post_room(RESULTS_THREAD, text, preview=preview)
+
 # ---------- СЪСТОЯНИЕ (един бот-пост на ден) ----------
 def load_state():
     try:
@@ -165,7 +167,25 @@ def build_results_text(now, rows, limit=12):
             f"{sample}{NL}"
             f"🟢 THE GREEN ROOM")
 
-def run_results(now):
+def run_retired_results():
+    """ПЕНСИОНИРАН на 29.07.2026 — режимът пращаше в стая 9 крайните резултати
+    на ЧУЖДИ мачове от горещите първенства. Това не е нито отчет за човека
+    типстер, нито отчет за бота — просто списък с чужди срещи, тоест шум точно
+    в стаята, която трябва да носи истината за нашите прогнози.
+
+    Днес работата я върши scorer.py: чете дневника на предсказателя, проверява
+    как е свършил ВСЕКИ НАШ мач и пише пълния отчет (познати и сгрешени) в
+    стая 9, а само познатите — в стая 10.
+
+    Функцията остава, за да не почервенее daily.yml, ако някой я извика по
+    навик. Не праща нищо."""
+    print("Режим results е МАХНАТ. Резултатите на бота ги прави scorer.py:")
+    print("той сравнява НАШИТЕ прогнози с истинския резултат и пише в стая 9")
+    print("пълния отчет, а в стая 10 — само познатите. Нищо не е пратено.")
+    return 0
+
+
+def _old_run_results(now):
     day = now.strftime("%Y-%m-%d")
     state = load_state()
     if done_today(state, day, "results_room9"):
@@ -180,6 +200,7 @@ def run_results(now):
         print(f"Резултати → стая {RESULTS_THREAD}: {len(rows)} мача.")
     else:
         print("Стая 9 не прие поста — състоянието не се маркира.")
+
 # ---------- OVERVIEW (21:00, стая 9) ----------
 def collect_overview(now):
     today = now.strftime("%Y-%m-%d")
@@ -236,6 +257,7 @@ def run_retired_topnews():
     print("Режим topnews е МАХНАТ. Новините ходят само в стая 26 Новини "
           "(разделени по спорт) и се правят от news_bot.py.")
     print("Каналът не е новинарска лента — там пише само човекът.")
+
 # ---------- SELFTEST ----------
 def run_selftest():
     ok = 0; bad = []
@@ -311,7 +333,8 @@ def main():
     if not BOT_TOKEN:
         print("Missing BOT_TOKEN"); sys.exit(1)
     now = sofia_now()
-    if MODE == "results": run_results(now)
+    if MODE == "results":
+        run_retired_results()          # работата я върши scorer.py
     elif MODE == "overview": run_overview(now)
     elif MODE in ("topnews", "news"):
         run_retired_topnews()          # излизаме чисто, без червен рън
