@@ -259,8 +259,6 @@ def get_todays_events(sport):
     except Exception as e:
         print(f"eventsday {sport}: {str(e)[:90]}")
         return []
-
-
 def get_last_events(team_id):
     """Последните изиграни мачове на отбор (форма)."""
     try:
@@ -350,7 +348,6 @@ def combat_fixtures():
         })
     return rows
 
-
 # ---------- football-data.org (основен двигател за футбола) ----------
 def fd_get(path):
     time.sleep(6.5)   # free tier: 10 заявки/мин — дишаме спокойно
@@ -392,22 +389,28 @@ def fd_h2h(match_id):
         return {}, []
 
 
+def fd_letters(ms, team_id):
+    """W/L/D букви от football-data мачове (ново->старо).
+    Мач без резултат (fullTime с None — бъдещ/прекъснат) се прескача, не крашва."""
+    s = ""
+    for m in ms:
+        ft = (m.get("score") or {}).get("fullTime") or {}
+        hg, ag = ft.get("home"), ft.get("away")
+        if hg is None or ag is None:
+            continue
+        is_home = (m.get("homeTeam") or {}).get("id") == team_id
+        mine, theirs = (hg, ag) if is_home else (ag, hg)
+        s += "W" if mine > theirs else ("L" if mine < theirs else "D")
+    return s or "?"
+
+
 def fd_form(team_id):
     try:
         data = fd_get(f"/teams/{team_id}/matches?status=FINISHED")
         # API-то връща старо->ново; ние искаме ПОСЛЕДНИТЕ 5 (ново->старо)
         ms = sorted(data.get("matches") or [],
                     key=lambda m: m.get("utcDate") or "", reverse=True)[:5]
-        s = ""
-        for m in ms:
-            ft = (m.get("score") or {}).get("fullTime") or {}
-            hg, ag = ft.get("home"), ft.get("away")
-            if hg is None or ag is None:
-                continue
-            is_home = (m.get("homeTeam") or {}).get("id") == team_id
-            mine, theirs = (hg, ag) if is_home else (ag, hg)
-            s += "W" if mine > theirs else ("L" if mine < theirs else "D")
-        return s or "?"
+        return fd_letters(ms, team_id)
     except Exception as e:
         print("fd_form:", str(e)[:90])
         return "?"
@@ -544,8 +547,8 @@ def numbers_say(home, away, st):
     if n < 4:
         return ["🎲 Числата: извадката е твърде малка за оценка. Не гадаем."]
     if abs(edge) < 0.10:
-        return [f"🎲 Числата: равностойно ({n} мача извадка) — няма превес, който да оправдае залог.",
-                "   Пас също е решение."]
+        return [f"🎲 Числата: равностойно ({n} мача извадка) — ясен превес няма.",
+                "   Такава среща оставяме без прогноза."]
     p = 50.0 + min(15.0, abs(edge) * 30.0)
     side = home if edge > 0 else away
     return [f"🎲 Числата: лек превес за <b>{esc(side)}</b> — около {p:.0f}% срещу {100 - p:.0f}%.",
@@ -654,8 +657,8 @@ def predict_card(picks, now, news_titles):
             parts += numbers_say(fx["home"], fx["away"], st)
         parts.append("")
 
-    parts.append("Как се чете това: числата дават вероятност и стойност, не сигурност.")
-    parts.append(f"Малка извадка = малко доверие. {Q1}Няма залог{Q2} също е решение.")
+    parts.append("Как се чете това: числата дават вероятност, не сигурност.")
+    parts.append("Малка извадка = малко доверие — тогава прогноза не даваме.")
     parts.append("📅 Пълните списъци със срещи са в стаите по спорт.")
     parts.append("⚠️ прогноза от статистика, не гаранция")
     parts.append("🟢 THE GREEN ROOM")
@@ -747,5 +750,108 @@ def main():
     print(f"Готово: {sent_rooms} спортни стаи, {total} срещи общо.")
 
 
+# ---------- SELFTEST (без мрежа, без реални пращания) ----------
+def selftest():
+    results = []
+
+    def check(name, ok):
+        results.append((name, bool(ok)))
+        print(("PASS " if ok else "FAIL ") + name)
+
+    # 1) Форма с None резултат — прескача се, не крашва, буквите не се губят
+    evs = [
+        {"intHomeScore": None, "intAwayScore": 2, "strHomeTeam": "Алфа", "strAwayTeam": "Бета"},
+        {"intHomeScore": "3", "intAwayScore": "1", "strHomeTeam": "Алфа", "strAwayTeam": "Бета"},
+        {"intHomeScore": "0", "intAwayScore": "0", "strHomeTeam": "Гама", "strAwayTeam": "Алфа"},
+    ]
+    check("форма прескача None", form_string("Алфа", evs) == "WD")
+    check("форма само None дава ?", form_string("Алфа", [{"intHomeScore": None, "intAwayScore": None}]) == "?")
+    check("h2h прескача None", h2h_summary("Алфа", "Бета", evs) == (1, 1, 0))
+
+    ms = [
+        {"utcDate": "2026-07-20T18:00:00Z", "score": {"fullTime": {"home": None, "away": None}},
+         "homeTeam": {"id": 7}, "awayTeam": {"id": 8}},
+        {"utcDate": "2026-07-15T18:00:00Z", "score": {"fullTime": {"home": 2, "away": 0}},
+         "homeTeam": {"id": 7}, "awayTeam": {"id": 8}},
+        {"utcDate": "2026-07-10T18:00:00Z", "score": {"fullTime": {"home": 1, "away": 3}},
+         "homeTeam": {"id": 9}, "awayTeam": {"id": 7}},
+    ]
+    check("FD форма пази None", fd_letters(ms, 7) == "WW")
+    ms2 = sorted(ms, key=lambda m: m.get("utcDate") or "", reverse=True)
+    check("FD сортиране ново към старо", ms2[0]["utcDate"].startswith("2026-07-20"))
+
+    # 2) Thread валидация — пазачите на стаите
+    check("забранените не са в разрешените", not (FORBIDDEN_THREADS & ALLOWED_THREADS))
+    sent = []
+    real_send = poster.send_message
+
+    def fake_send(chat_id, text, thread_id=None, preview=False):
+        sent.append(str(thread_id))
+        return True
+
+    poster.send_message = fake_send
+    try:
+        check("стая 4 (фишове) отказана", post_room("4", "тест") is False)
+        check("стая 26 (новини) отказана", post_room("26", "тест") is False)
+        check("чужда стая отказана", post_room("999", "тест") is False)
+        check("празен thread отказан", post_room("", "тест") is False)
+        ALLOWED_THREADS.add("0x")
+        check("нечислов thread отказан без краш", post_room("0x", "тест") is False)
+        ALLOWED_THREADS.discard("0x")
+        ok_pass = post_room(FOOTBALL_THREAD, "тест")
+        check("разрешена стая минава", ok_pass is True and sent == [FOOTBALL_THREAD])
+    finally:
+        poster.send_message = real_send
+
+    # 3) Часове: UTC -> Европа/София (лятото е UTC+3)
+    check("SDB час в български", fmt_time_sdb({"strTime": "18:00:00", "dateEvent": "2026-07-28"}) == "21:00")
+    check("FD час в български", iso_to_sofia("2026-07-28T18:00:00Z") == "21:00")
+    check("clip реже дългото", len(clip("х" * 5000)) < 4096)
+
+    # 4) Картите: стайна + прогнозна
+    now = datetime.now(SOFIA)
+    fx = {"bucket": "football", "emoji": "⚽", "prio": 10,
+          "home": "Левски", "away": "Атлетик", "event": "", "league": "Тест лига",
+          "weight": 5, "time": "21:00", "src": "sdb", "fd_id": None,
+          "home_id": None, "away_id": None}
+    card1 = room_card("football", [fx], now)
+    check("стайна карта носи отборите", "Левски" in card1 and "Атлетик" in card1)
+    fx2 = dict(fx)
+    fx2["stats"] = {"hw": 3, "dr": 1, "aw": 1, "tot": 5, "last": "Левски 2:1 Атлетик (2026-01-01)",
+                    "hf": "WWWLW", "af": "LLDWL", "goals": [3, 4, 2, 5, 1]}
+    card2 = predict_card([fx2], now, ["Левски с нов треньор от днес"])
+    check("прогнозата носи формата", "WWWLW" in card2)
+    check("новина-флаг в анализа", "Свежа новина" in card2)
+    check("фалшив новина-флаг мълчи",
+          news_flag("Манчестър Сити", ["стадионът вдига капацитета си"]) is False
+          and news_flag("Manchester City", ["stadium capacity increased"]) is False)
+
+    # 5) Стрелките
+    mk = markers("Левски", "Атлетик", fx2["stats"])
+    check("стрелка за серия победи", any("поредни победи" in m for m in mk))
+    st_shield = {"hw": 0, "dr": 0, "aw": 0, "tot": 0, "last": "", "hf": "WDWWD", "af": "?", "goals": []}
+    mk2 = markers("Тим", "Друг", st_shield)
+    check("стрелка без загуба", any("без загуба" in m for m in mk2))
+
+    # 6) Числата + тон-пазач (железните правила)
+    st_small = {"hw": 0, "dr": 0, "aw": 0, "tot": 0, "last": "", "hf": "?", "af": "?", "goals": []}
+    ns_small = numbers_say("А", "Б", st_small)
+    check("малка извадка = не гадаем", "Не гадаем" in ns_small[0])
+    st_even = {"hw": 2, "dr": 0, "aw": 2, "tot": 4, "last": "", "hf": "?", "af": "?", "goals": []}
+    ns_even = numbers_say("А", "Б", st_even)
+    check("равностойно = без прогноза", "без прогноза" in " ".join(ns_even))
+    bad_words = ["18+", "залагай", "не е съвет", "коеф", "букмейк", "банка", "залог", "единица"]
+    all_out = (card1 + " " + card2 + " " + " ".join(ns_small) + " " + " ".join(ns_even)).lower()
+    check("тонът е чист", not any(b in all_out for b in bad_words))
+
+    fails = [n for n, ok in results if not ok]
+    print(f"SELFTEST: {len(results) - len(fails)}/{len(results)} PASS")
+    if fails:
+        print("Провалени: " + ", ".join(fails))
+    return 0 if not fails else 1
+
+
 if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        sys.exit(selftest())
     main()
