@@ -1,17 +1,25 @@
 name: daily-rhythm (дневен ритъм)
-# Каналът НЕ е новинарска лента: новините са само в стая 26 и ги прави news.yml.
-# Тук остават само обзорът (21:00) и резултатите (23:00).
+
+# 🚫 КАНАЛЪТ Е САМО ЗА ЧОВЕКА. Този ритъм НЕ пипа канала.
+#    21:00 обзорът отива в стая 27 „БОТА ПРЕДРИЧА".
+#    23:00 резултатите отиват в стая 9 „Резултати и статистика" (един пост на ден).
+#    Новините са само в стая 26 и се правят от news.yml — затова тук няма 08:00 крон.
+
 on:
   schedule:
-    - cron: '0 18 * * *'    # 21:00 BG — обзор на бота (в канала)
-    - cron: '0 20 * * *'    # 23:00 BG — резултати (канал + стая 9, един бот-пост)
+    - cron: '0 18 * * *'    # 21:00 BG — обзор на бота → стая 27
+    - cron: '0 20 * * *'    # 23:00 BG — резултати  → стая 9
   workflow_dispatch:
     inputs:
       mode:
-        description: 'overview / results'
+        description: 'overview (стая 27) / results (стая 9) / selftest / topnews (пенсиониран)'
         default: 'overview'
         type: choice
-        options: [overview, results]
+        options: [overview, results, selftest, topnews]
+      force:
+        description: 'Пусни пак дори ако състоянието казва, че днес вече е пратено'
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -27,6 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Определи режима
         id: m
         run: |
@@ -35,16 +44,23 @@ jobs:
             "0 20 * * *") echo "mode=results"  >> $GITHUB_OUTPUT ;;
             *)            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT ;;
           esac
+      # Пазачите (канал + стаи 4-8) се проверяват ПРЕДИ да тръгне каквото и да е.
+      - name: Самопроверка
+        run: python daily_bot.py selftest
+
       - name: Пусни дневния бот
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHAT_ID: ${{ vars.CHAT_ID }}
-          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
-          RESULTS_THREAD_ID: '9'
-          PREDICT_THREAD_ID: '27'
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
           DAILY_MODE: ${{ steps.m.outputs.mode }}
+          DAILY_FORCE: ${{ github.event.inputs.force == 'true' && '1' || '0' }}
         run: python daily_bot.py
-      - name: Запази дневното състояние
+
+      # ⚠️ ТУК БЕШЕ БЪГЪТ: комитваше се topnews_state.json — файл, който никой не пише.
+      #    Затова състоянието никога не оставаше и постовете можеха да се повторят.
+      #    Ботът пише daily_state.json — него комитваме.
+      - name: Запази състоянието (daily_state.json)
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
@@ -54,4 +70,6 @@ jobs:
               git commit -m "daily state" && git pull --rebase && git push && break
               sleep $((RANDOM % 5 + 2))
             done
+          else
+            echo "daily_state.json не се е променил — няма какво да пазя."
           fi
