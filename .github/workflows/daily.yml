@@ -44,6 +44,7 @@ jobs:
             "0 20 * * *") echo "mode=results"  >> $GITHUB_OUTPUT ;;
             *)            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT ;;
           esac
+
       # Пазачите (канал + стаи 4-8) се проверяват ПРЕДИ да тръгне каквото и да е.
       - name: Самопроверка
         run: python daily_bot.py selftest
