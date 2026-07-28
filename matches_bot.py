@@ -9,6 +9,7 @@ THE GREEN ROOM — БОТ „АНАЛИЗАТОРЪТ" 📅🧠
        🏀 Баскетбол     стая 6   (BASKET_THREAD_ID)
        🏓 Тенис на маса стая 7   (TT_THREAD_ID)
        🏐 Волейбол      стая 8   (VOLLEY_THREAD_ID)
+       🥊 Бойни спортове стая 328 (COMBAT_THREAD_ID) — предстоящите боеве и карти
      Там влиза САМО чистият списък със срещи: час, отбори, турнир.
      Никакви новини, никакви прогнози, никакви разсъждения.
 
@@ -22,10 +23,12 @@ THE GREEN ROOM — БОТ „АНАЛИЗАТОРЪТ" 📅🧠
   КАНАЛЪТ            — този файл няма функция, която да праща в канал.
 
 Двигатели: TheSportsDB (всички спортове) + football-data.org за футбола,
-ако има ключ. Лимитите се пазят: 2.1 сек между заявки към TheSportsDB,
+ако има ключ. Бойните спортове идват от ESPN (mma/ufc и mma/pfl, без ключ) —
+логиката НЕ е преписана тук, а се взима наготово от predictor.mma_fixtures.
+Лимитите се пазят: 2.1 сек между заявки към TheSportsDB,
 6.5 сек към football-data. Часовете са Europe/Sofia.
 Само сериозни турнири — дребните лиги не влизат никъде.
-Всяка прогноза е вероятност от статистика, не гаранция. 18+
+Всяка прогноза е вероятност от статистика, не гаранция.
 """
 import html
 import json
@@ -52,11 +55,13 @@ FOOTBALL_THREAD = (os.environ.get("FOOTBALL_THREAD_ID") or "5").strip()
 BASKET_THREAD = (os.environ.get("BASKET_THREAD_ID") or "6").strip()
 TT_THREAD = (os.environ.get("TT_THREAD_ID") or "7").strip()
 VOLLEY_THREAD = (os.environ.get("VOLLEY_THREAD_ID") or "8").strip()
+COMBAT_THREAD = (os.environ.get("COMBAT_THREAD_ID") or "328").strip()
 PREDICT_THREAD = (os.environ.get("PREDICT_THREAD_ID") or "27").strip()
 
 # 🚫 Стаята на човека и стаята на новините. Ботът няма работа там.
 FORBIDDEN_THREADS = {"4", "26"}
-ALLOWED_THREADS = {FOOTBALL_THREAD, BASKET_THREAD, TT_THREAD, VOLLEY_THREAD, PREDICT_THREAD}
+ALLOWED_THREADS = {FOOTBALL_THREAD, BASKET_THREAD, TT_THREAD, VOLLEY_THREAD,
+                   COMBAT_THREAD, PREDICT_THREAD}
 
 SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY") or "123"   # празен env = тест-ключ, не счупен URL
 FOOTBALL_DATA_KEY = (os.environ.get("FOOTBALL_DATA_KEY") or "").strip()
@@ -66,9 +71,19 @@ FD_API = "https://api.football-data.org/v4"
 
 MAX_PER_ROOM = 8      # колко срещи максимум в една спортна стая
 ANALYSIS_MAX = 3      # колко срещи разнищваме дълбоко (всяка струва заявки)
+# Докъде напред гледа стаята на боевете. Галите са седмични — списък само за
+# „днес" би мълчал шест дни от седем, затова прозорецът е по-широк.
+try:
+    COMBAT_DAYS = max(1, min(21, int((os.environ.get("COMBAT_DAYS_AHEAD") or "7").strip())))
+except ValueError:
+    COMBAT_DAYS = 7
 
 # ПРИОРИТЕТ НА СПОРТОВЕТЕ (заповед на шефа: футболът е ПОСЛЕДЕН)
 SPORTS = {
+    "combat":      {"thread": COMBAT_THREAD, "emoji": "🥊", "title": "БОЙНИ СПОРТОВЕ",
+                    "api": "Fighting", "prio": 95,
+                    "head": "предстоящите боеве",
+                    "only": "предстоящите боеве и картите"},
     "tabletennis": {"thread": TT_THREAD, "emoji": "🏓", "title": "ТЕНИС НА МАСА",
                     "api": "Table Tennis", "prio": 100},
     "volleyball":  {"thread": VOLLEY_THREAD, "emoji": "🏐", "title": "ВОЛЕЙБОЛ",
@@ -78,7 +93,7 @@ SPORTS = {
     "football":    {"thread": FOOTBALL_THREAD, "emoji": "⚽", "title": "ФУТБОЛ",
                     "api": "Soccer", "prio": 10},
 }
-SPORT_ORDER = ["tabletennis", "volleyball", "basketball", "football"]
+SPORT_ORDER = ["combat", "tabletennis", "volleyball", "basketball", "football"]
 
 # Тежест на лигите по точно име (TheSportsDB ги пише така).
 LEAGUE_WEIGHT = {
@@ -285,6 +300,53 @@ def sportsdb_fixtures(bucket):
             "event": e.get("strEvent") or "", "league": e.get("strLeague") or "",
             "weight": w, "time": fmt_time_sdb(e), "src": "sdb",
             "fd_id": None, "home_id": e.get("idHomeTeam"), "away_id": e.get("idAwayTeam"),
+        })
+    return rows
+
+
+# ---------- 🥊 БОЙНИ СПОРТОВЕ (UFC / MMA) ----------
+# Логиката НЕ се преписва тук. predictor.py вече дърпа ESPN (без ключ):
+#   https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard
+#   https://site.api.espn.com/apis/site/v2/sports/mma/pfl/scoreboard
+# и я поддържа на едно място (mma_fixtures). Ние само превеждаме реда му
+# на езика на Анализатора и го пращаме в стая 328.
+def combat_fixtures():
+    """Предстоящите боеве от ESPN през predictor.mma_fixtures.
+
+    Вносът е ВЪТРЕ във функцията нарочно: predictor.py на свой ред внася
+    matches_bot, а внос на върха би завъртял кръг при зареждане."""
+    try:
+        import predictor as P
+    except Exception as e:                       # noqa: BLE001
+        print("бойни спортове: predictor.py не се зареди (" + str(e)[:90]
+              + ") — стаята мълчи.")
+        return []
+
+    now = datetime.now(SOFIA)
+    old_window = getattr(P, "MMA_DAYS_AHEAD", COMBAT_DAYS)
+    try:
+        P.MMA_DAYS_AHEAD = COMBAT_DAYS
+        raw = P.mma_fixtures(now) or []
+    except Exception as e:                       # noqa: BLE001
+        print("бойни спортове: ESPN мълчи (" + str(e)[:90] + ").")
+        return []
+    finally:
+        P.MMA_DAYS_AHEAD = old_window
+
+    rows = []
+    for r in raw:
+        when = r.get("when")
+        local = when.astimezone(SOFIA) if when is not None else None
+        rows.append({
+            "bucket": "combat", "emoji": "🥊", "prio": SPORTS["combat"]["prio"],
+            "home": r.get("home") or "", "away": r.get("away") or "",
+            "event": "", "league": r.get("league") or "",
+            "weight": to_int(r.get("weight"), 1),
+            "time": local.strftime("%H:%M") if local else "",
+            "date": local.strftime("%d.%m") if local else "",
+            "sort": local.strftime("%Y-%m-%d %H:%M") if local else "9999",
+            "src": "mma", "fd_id": None,
+            "home_id": r.get("home_id"), "away_id": r.get("away_id"),
         })
     return rows
 
@@ -531,6 +593,9 @@ def news_flag(team, titles):
 # ---------- КАРТИ ----------
 def fixture_line(fx):
     t = fx["time"] or "--:--"
+    # Боевете не са „днес" — датата е част от реда, иначе часът лъже.
+    if fx.get("date"):
+        t = fx["date"] + " · " + t
     if fx["home"] and fx["away"]:
         mid = f"<b>{esc(fx['home'])}</b> 🆚 <b>{esc(fx['away'])}</b>"
     else:
@@ -543,12 +608,14 @@ def fixture_line(fx):
 
 def room_card(bucket, rows, now):
     cfg = SPORTS[bucket]
-    head = f"{cfg['emoji']} <b>{cfg['title']} · срещите днес</b> · {date_bg(now)}"
+    what = cfg.get("head") or "срещите днес"
+    only = cfg.get("only") or "срещите по направление"
+    head = f"{cfg['emoji']} <b>{cfg['title']} · {what}</b> · {date_bg(now)}"
     body = NL.join(fixture_line(fx) for fx in rows)
-    tail = ("📌 В тази стая влизат само срещите по направление — нищо друго." + NL
+    tail = (f"📌 В тази стая влизат само {only} — нищо друго." + NL
             + f"🧠 Анализът на бота е в {Q1}БОТА ПРЕДРИЧА{Q2}." + NL
             + f"🎯 Фишовете на човека-типстер са в {Q1}Фишове на деня{Q2}." + NL2
-            + "⚠️ 18+ · подредба от статистика, не гаранция" + NL
+            + "⚠️ подредба от статистика, не гаранция" + NL
             + "🟢 THE GREEN ROOM")
     return head + NL2 + body + NL2 + tail
 
@@ -590,7 +657,7 @@ def predict_card(picks, now, news_titles):
     parts.append("Как се чете това: числата дават вероятност и стойност, не сигурност.")
     parts.append(f"Малка извадка = малко доверие. {Q1}Няма залог{Q2} също е решение.")
     parts.append("📅 Пълните списъци със срещи са в стаите по спорт.")
-    parts.append("⚠️ 18+ · прогноза от статистика, не гаранция")
+    parts.append("⚠️ прогноза от статистика, не гаранция")
     parts.append("🟢 THE GREEN ROOM")
     return NL.join(parts)
 
@@ -617,10 +684,14 @@ def collect():
     for bucket in ("tabletennis", "volleyball", "basketball"):
         buckets[bucket] = sportsdb_fixtures(bucket)
 
+    # 🥊 Бойните спортове идват от ESPN през predictor.mma_fixtures.
+    buckets["combat"] = combat_fixtures()
+
     for bucket, rows in buckets.items():
         rows.sort(key=lambda fx: -fx["weight"])
         del rows[MAX_PER_ROOM:]
-        rows.sort(key=lambda fx: fx["time"] or "99:99")
+        # Боевете носят и дата („sort"); останалите спортове са само за днес.
+        rows.sort(key=lambda fx: fx.get("sort") or fx["time"] or "99:99")
     return buckets
 
 
@@ -653,6 +724,11 @@ def main():
     # 2) АНАЛИЗЪТ -> стая 27 „БОТА ПРЕДРИЧА". Разсъждението живее само тук.
     pool = []
     for bucket in SPORT_ORDER:
+        # 🥊 Боевете НЕ влизат в тукашния анализ: H2H по имена и „форма" от
+        # TheSportsDB нямат смисъл за ММА. Прогнозата за тях идва от
+        # predictor.py (model_mma) и пак излиза в стая 27.
+        if bucket == "combat":
+            continue
         for fx in (buckets.get(bucket) or []):
             if fx["home"] and fx["away"]:
                 pool.append(fx)
