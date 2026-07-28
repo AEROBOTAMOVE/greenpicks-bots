@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 THE GREEN ROOM — HUB + СТАЙНИ ПИНОВЕ (еднократно, Bot API — надеждно)
 
@@ -43,16 +44,42 @@ def block(*lines):
     return NL.join(lines)
 
 def api(method, **params):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
-    data = urllib.parse.urlencode(params).encode()
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url, data=data), timeout=25) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        print(method, "HTTP", e.code, e.read().decode("utf-8","replace")[:160]); return {}
-    except Exception as e:
-        print(method, "FAIL", e); return {}
+    """Една заявка към Telegram, която ИЗЧАКВА при 429.
 
+    ЗАЩО СЪЩЕСТВУВА ТОЗИ ЦИКЪЛ (намерено на живо на 28.07.2026)
+    Подреждането пише в 12 стаи, а всяка стая струва ТРИ заявки: откачване на
+    стария пин, пращане и закачане. Тридесет и шест заявки за половин минута
+    минават над лимита на Telegram и той започва да връща 429. Старият код
+    само печаташе грешката и продължаваше — резултатът беше, че последната
+    стая в реда, 328 „Бойни спортове", остана със стария си пин, а рънът се
+    отчете като успешен. Тих провал.
+
+    Сега чакаме толкова, колкото Telegram каже (parameters.retry_after), и
+    опитваме пак. Същото, което reset.py прави отдавна.
+    """
+    url = "https://api.telegram.org/bot" + BOT_TOKEN + "/" + method
+    for attempt in range(5):
+        data = urllib.parse.urlencode(params).encode()
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, data=data), timeout=25) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")
+            if e.code == 429:
+                try:
+                    ra = int(json.loads(body).get("parameters", {}).get("retry_after", 5))
+                except Exception:
+                    ra = 5
+                print("  429 при " + method + " — чакам " + str(ra + 1) + " сек и пробвам пак")
+                time.sleep(ra + 1)
+                continue
+            print(method, "HTTP", e.code, body[:160])
+            return {}
+        except Exception as e:
+            print(method, "FAIL", e)
+            return {}
+    print(method, "— пет пъти 429 подред, отказвам се")
+    return {}
 FOOT = "🟢 THE GREEN ROOM"
 
 HUB = block(
@@ -77,6 +104,7 @@ HUB = block(
 "🆘 <b>Помощ и контакт:</b> " + SUPPORT + " · или в стая 🆘 Въпроси и Помощ",
 "👇 Влез в групата и стаите по спорт от бутона."
 )
+
 # thread -> кратък закачен текст (потвърдената карта на стаите)
 ROOM_PINS = {
     3: block(
