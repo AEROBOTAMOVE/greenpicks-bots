@@ -28,6 +28,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from zoneinfo import ZoneInfo
@@ -40,6 +41,10 @@ CHAT_ID = os.environ.get("CHAT_ID", "")              # групата (-100...)
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "")        # каналът — САМО за проверка, НЕ пишем в него
 NEWS_THREAD_ID = os.environ.get("NEWS_THREAD_ID", "26") or "26"   # 📰 Новини — ЕДИНСТВЕНАТА стая за новини
 NEWS_ROOM_FALLBACK = "26"
+
+# 🚫 Стаи, в които новинарят НЯМА право да пише, дори да го „помолят" през env:
+# 4 = Фишове на деня (само човекът), 5/6/7/8 = спортните стаи (само срещи), 1 = общ чат.
+FORBIDDEN_THREADS = {1, 4, 5, 6, 7, 8}
 
 # --- граници на дума без обратна наклонена черта -----------------------------
 # LB/RB заместват regex-границата на дума: „nba" да не се хваща в „fanbase".
@@ -67,11 +72,13 @@ def wp(word):
 SPORT_ROOMS = {
     "tabletennis": {"thread": NEWS_THREAD_ID, "title": "🏓 ТЕНИС НА МАСА — новини",
                     "pat": "|".join(["тенис на маса", "table tennis", "ping pong", "пинг понг",
-                                     wb("wtt"), wb("ittf"), "тенисът на маса"])},
+                                     wb("wtt"), wb("ittf"), wb("ettu"), "тенисът на маса"])},
     "volleyball":  {"thread": NEWS_THREAD_ID, "title": "🏐 ВОЛЕЙБОЛ — новини",
-                    "pat": "|".join(["волейбол", "volleyball", wb("vnl"), wb("cev"), "plusliga",
-                                     "superlega", "николов", "соколов", "казийски",
-                                     "лига на нациите", "beach volley"])},
+                    # ⚠️ НЕ слагай голото „volley" — във футбола „stunning volley" е удар с
+                    # воле и би откраднал футболни новини в волейболната секция.
+                    "pat": "|".join(["волейбол", "volleyball", "siatkow", "pallavolo", wb("vnl"),
+                                     wb("cev"), "plusliga", "superlega", "николов", "соколов",
+                                     "казийски", "лига на нациите", "beach volley"])},
     "basketball":  {"thread": NEWS_THREAD_ID, "title": "🏀 БАСКЕТБОЛ — новини",
                     "pat": "|".join(["баскет", "basketball", wb("nba"), wb("wnba"), "евролига",
                                      "euroleague", wb("fiba"), "triple-double", "леброн", "lebron",
@@ -152,6 +159,8 @@ TITLES_KEEP = 200      # колко заглавия подаваме на Ан�
 PER_FEED = 20          # най-много записи, които четем от един източник
 MAX_AGE_H = int(os.environ.get("NEWS_MAX_AGE_H", "72"))    # по-стари от това не са „свежи"
 TG_LIMIT = 3500        # лимитът на Telegram е 4096 — държим запас за емоджита
+TG_HARD = 4000         # аварийна ножица: нито един пост не тръгва по-дълъг от това
+FETCH_WORKERS = 8      # източниците се дърпат едновременно (иначе 42 бавни адреса = 8 минути)
 
 # 📡 ИЗТОЧНИЦИ. Трети елемент = подсказка за спорт (специализиран сайт: заглавието
 # „Poland beat Italy 3:1" няма думата „волейбол", но източникът я знае).
@@ -173,35 +182,44 @@ FEED_SOURCES = [
     ("Sportlive", "https://sportlive.bg/rss", None),
     ("Actualno Спорт", "https://www.actualno.com/rss/sport", None),
     ("24 часа Спорт", "https://www.24chasa.bg/rss/sport", None),
+    ("Сега Спорт", "https://www.segabg.com/rss/sport", None),
     # --- световни общи ---
     ("BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml", None),
     ("Sky Sports", "https://www.skysports.com/rss/12040", None),
     ("ESPN", "https://www.espn.com/espn/rss/news", None),
     ("Guardian Sport", "https://www.theguardian.com/sport/rss", None),
     # --- 🏓 тенис на маса (най-оскъдният спорт — затова и блогове) ---
+    ("ETTU", "https://www.ettu.org/rss", "tabletennis"),
     ("TT England", "https://tabletennisengland.co.uk/feed/", "tabletennis"),
     ("Butterfly TT", "https://www.butterflyonline.com/feed/", "tabletennis"),
     ("TableTennisDaily", "https://www.tabletennisdaily.com/forum/forums/-/index.rss", "tabletennis"),
+    ("ExpertTT", "https://www.experttabletennis.com/feed/", "tabletennis"),
     ("ITTF", "https://www.ittf.com/feed/", "tabletennis"),
     # --- 🏐 волейбол ---
     ("WorldOfVolley", "https://worldofvolley.com/feed/", "volleyball"),
     ("Volleywood", "https://www.volleywood.net/feed/", "volleyball"),
     ("LegaVolley", "https://www.legavolley.it/feed/", "volleyball"),
+    ("Gazzetta Волей", "https://www.gazzetta.it/rss/volley.xml", "volleyball"),
     ("iVolleyMagazine", "https://www.ivolleymagazine.it/feed/", "volleyball"),
     ("VolleyCountry", "https://www.volleycountry.com/feed/", "volleyball"),
     ("VolleyballMag", "https://volleyballmag.com/feed/", "volleyball"),
+    ("Volleyverse", "https://volleyverse.com/feed/", "volleyball"),
+    ("NCAA Волейбол", "https://www.ncaa.com/news/volleyball-women/d1/rss.xml", "volleyball"),
     # --- 🏀 баскетбол ---
     ("Eurohoops", "https://www.eurohoops.net/en/feed/", "basketball"),
-    ("Sportando", "https://www.sportando.basketball/feed", "basketball"),
+    ("Sportando", "https://www.sportando.basketball/en/feed", "basketball"),
     ("TalkBasket", "https://www.talkbasket.net/feed", "basketball"),
     ("ESPN NBA", "https://www.espn.com/espn/rss/nba/news", "basketball"),
     ("Yahoo NBA", "https://sports.yahoo.com/nba/rss.xml", "basketball"),
+    ("CBS NBA", "https://www.cbssports.com/rss/headlines/nba/", "basketball"),
+    ("BallnEurope", "https://www.ballineurope.com/feed/", "basketball"),
     ("EuroLeague", "https://www.euroleaguebasketball.net/euroleague/rss/news/", "basketball"),
     # --- ⚽ футбол (минава само през филтъра TOP_FOOTBALL) ---
     ("BBC Football", "https://feeds.bbci.co.uk/sport/football/rss.xml", "football"),
     ("Guardian Football", "https://www.theguardian.com/football/rss", "football"),
     ("ESPN Soccer", "https://www.espn.com/espn/rss/soccer/news", "football"),
     ("Sky Футбол", "https://www.skysports.com/rss/11095", "football"),
+    ("90min", "https://www.90min.com/posts.rss", "football"),
     # --- 🎯 ниши за „Други спортове" ---
     ("Дартс PDC", "https://www.pdc.tv/rss.xml", "other"),
     ("Тенис ESPN", "https://www.espn.com/espn/rss/tennis/news", "other"),
@@ -214,7 +232,8 @@ FEED_SPORT = {name: hint for name, url, hint in FEED_SOURCES if hint}
 # Форуми, блогове и ревюта: съдържанието им е разговорно („Barefoot shoes", „Mizuno
 # Neo Jump Review"). Пускаме ги в спорта си, но искаме поне 1 точка — да не пълнят
 # картата с дрънканици, когато има истински новини.
-FEED_WEAK = {"TableTennisDaily", "Butterfly TT", "VolleyCountry", "VolleyballMag"}
+FEED_WEAK = {"TableTennisDaily", "Butterfly TT", "ExpertTT", "VolleyCountry",
+             "VolleyballMag", "Volleyverse", "NCAA Волейбол", "BallnEurope"}
 
 # Ключови думи -> точки (важност).
 KEYWORDS = {
@@ -384,18 +403,50 @@ def dedup(items, limit):
     return out
 
 
+def fetch_feed(pair):
+    """Един източник -> (име, записи, грешка). Никога не хвърля нагоре."""
+    source, url = pair
+    try:
+        return source, parse_rss(source, fetch(url))[:PER_FEED], ""
+    except Exception as e:
+        return source, [], str(e)[:120]
+
+
+def collect_feeds():
+    """Дърпа всички източници ЕДНОВРЕМЕННО (редът на резултатите е редът на FEEDS,
+    затова поведението е същото като едно по едно, само по-бързо)."""
+    try:
+        with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
+            results = list(ex.map(fetch_feed, FEEDS))
+    except Exception as e:
+        print("WARN: паралелното дърпане отказа (" + str(e)[:90] + ") — минавам едно по едно.")
+        results = [fetch_feed(p) for p in FEEDS]
+    collected = []
+    alive = 0
+    for source, got, err in results:
+        if err:
+            print("skip " + source + ": " + err)
+            continue
+        if got:
+            alive += 1
+        collected += got
+    return collected, alive
+
+
 # ---------------------------------------------------------------- пращане ---
 def news_thread():
     """ЕДИНСТВЕНАТА позволена стая за новини."""
     tid = str(NEWS_THREAD_ID or "").strip()
-    if tid.isdigit() and int(tid) > 1:
+    if tid.isdigit() and int(tid) > 1 and int(tid) not in FORBIDDEN_THREADS:
         return int(tid)
-    print("WARN: невалиден NEWS_THREAD_ID " + repr(NEWS_THREAD_ID) + " — падам към стая " + NEWS_ROOM_FALLBACK + ".")
+    print("WARN: непозволен NEWS_THREAD_ID " + repr(NEWS_THREAD_ID) + " — падам към стая " + NEWS_ROOM_FALLBACK + ".")
     return int(NEWS_ROOM_FALLBACK)
 
 
 def tg_send(text, preview=False):
     """Праща В СТАЯ 26 и НИКЪДЕ другаде. Уважава 429. Грешка не спира другите постове."""
+    if len(text) > TG_HARD:
+        text = text[:TG_HARD - 2] + " …"
     api = "https://api.telegram.org/bot" + BOT_TOKEN + "/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "HTML",
                "disable_web_page_preview": (not preview),
@@ -515,16 +566,7 @@ def main():
     sent = load_state()
     sent_set = set(sent)
 
-    collected = []
-    alive = 0
-    for source, url in FEEDS:
-        try:
-            got = parse_rss(source, fetch(url))[:PER_FEED]
-            if got:
-                alive += 1
-            collected += got
-        except Exception as e:
-            print("skip " + source + ": " + str(e)[:120])
+    collected, alive = collect_feeds()
     print("Източници: " + str(alive) + " живи от " + str(len(FEEDS)) + ", записи: " + str(len(collected)) + ".")
 
     # свежест + махане на еднакви заглавия от различни източници
