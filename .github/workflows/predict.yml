@@ -94,7 +94,6 @@ jobs:
           # Резервните стойности НЕ са излишни: незададена променлива в GitHub
           # идва като празен низ и празният низ бие подразбиращото се в скрипта.
           CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
-          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
           PREDICT_THREAD_ID: '27'
           # Незадължителни ключове — ако ги няма, идват празни и ботът кара
           # с TheSportsDB тест-ключа. Нищо не се чупи.
@@ -105,6 +104,9 @@ jobs:
           PREDICT_POOL: ${{ vars.PREDICT_POOL }}
           PREDICT_PER_SPORT: ${{ vars.PREDICT_PER_SPORT }}
           PREDICT_MIN_STRENGTH: ${{ vars.PREDICT_MIN_STRENGTH }}
+          # 18 лиги, не 14: лятото топ-5 почиват, играят Шотландия, Бразилия,
+          # Аржентина, MLS — при 14 точно те падаха и футболът мълчеше с дни.
+          PREDICT_FOOT_SLUGS: ${{ vars.PREDICT_FOOT_SLUGS || '18' }}
           # Пазачите на разписанието (по подразбиране 10 / 30 / 10):
           #   MAX_DAY    таван прогнози за ЦЕЛИЯ ден, за да не залее стаята
           #   HORIZON_H  докъде напред гледаме — далечният мач чака своя час
@@ -125,8 +127,17 @@ jobs:
         run: |
           git config user.name "greenpicks-bot"
           git config user.email "bot@greenpicks"
+          # Само predict_state.json: predictor.py пише единствено него (ред 141).
+          # Тук стоеше и "git add sent_predictions.json" — файл, който НИКОЙ .py
+          # в repo-то не пише и не чете (проверено с grep) — мъртвото стейджване
+          # е махнато.
           git add predict_state.json 2>/dev/null || true
-          git add sent_predictions.json 2>/dev/null || true
+          # predict_log.json = ДНЕВНИКЪТ НА ТВЪРДЕНИЯТА: кого сме посочили, с
+          # каква вероятност и колко звезди. От него живее scorer.py, който
+          # пълни стая 9 „Резултати" и стая 10 „Печеливши". Без този ред
+          # дневникът умира заедно с рънъра и двете стаи остават празни
+          # завинаги — а ботът пак ще твърди, без никой да го проверява.
+          git add predict_log.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Тефтерът е без промяна — няма какво да се връща."
             exit 0
