@@ -206,6 +206,75 @@ def admin_ids():
 
 ADMINS = admin_ids()
 
+# ------------------------------------------------- КОЙ Е АДМИН (сам се разпознава)
+# ЗАЩО СЪЩЕСТВУВА ТОВА
+# Релето („екипът отговаря на човека през бота") се пускаше САМО от id-та,
+# изброени на ръка в SUPPORT_ADMIN_IDS. Ако списъкът е празен — а той беше —
+# ботът приемаше въпроси, но на всеки опит за отговор връщаше „релето е
+# изключено". Тоест хората пишеха, а екипът физически нямаше как да им
+# отговори. Никой лог не крещеше за това.
+#
+# Вместо да караме собственика да преписва числови id-та, питаме самия
+# Telegram кой е админ на групата. Който е админ там, е админ и на съпорта.
+# Добави ли утре втори човек за админ — той работи веднага, без настройка.
+#
+# Ръчният списък SUPPORT_ADMIN_IDS остава и се ДОБАВЯ към намерените — за
+# човек, който помага, но не е админ на групата.
+ADMIN_CACHE_H = 6          # часа; питаме Telegram най-много веднъж на толкова
+
+
+def refresh_admins(state):
+    """Обединява ръчния списък с админите на групата. Кешира в паметта."""
+    global ADMINS
+    manual = admin_ids()
+    if not CHAT_ID:
+        ADMINS = manual
+        return ADMINS
+
+    cache = state.get("admins") if isinstance(state, dict) else None
+    cache = cache if isinstance(cache, dict) else {}
+    ids = []
+    for x in (cache.get("ids") or []):
+        try:
+            ids.append(int(x))
+        except Exception:                      # noqa: BLE001
+            pass
+    try:
+        age = time.time() - float(cache.get("ts") or 0)
+    except Exception:                          # noqa: BLE001
+        age = 1e9
+
+    if ids and age < ADMIN_CACHE_H * 3600:
+        ADMINS = manual | set(ids)
+        return ADMINS
+
+    res = api("getChatAdministrators", chat_id=CHAT_ID)
+    fresh = []
+    if isinstance(res, list):
+        for m in res:
+            u = ((m or {}).get("user") or {})
+            if u.get("is_bot"):
+                continue                       # бот не отговаря вместо човек
+            try:
+                fresh.append(int(u.get("id")))
+            except Exception:                  # noqa: BLE001
+                pass
+
+    if fresh:
+        # Отговорът на Telegram е АВТОРИТЕТЕН: свален админ трябва да отпадне,
+        # иначе бивш админ би могъл да отговаря от името на екипа завинаги.
+        if isinstance(state, dict):
+            state["admins"] = {"ts": time.time(), "ids": fresh}
+        ADMINS = manual | set(fresh)
+        print("Админи на групата: " + str(len(fresh)) + " (разпознати автоматично).")
+    else:
+        # НЕ СВИВАМЕ ПРИ ПРОВАЛ. Един трепет на мрежата не бива да изключва
+        # отговорите на екипа — държим каквото вече знаем.
+        ADMINS = ADMINS | manual | set(ids)
+        if not ADMINS:
+            print("ВНИМАНИЕ: няма нито един админ — релето остава изключено.")
+    return ADMINS
+
 
 # ---------------------------------------------------------------- СТАИТЕ (ПАЗАЧЪТ)
 # Картата на групата. Съпортът има ЕДНА своя стая; всичко останало е чуждо.
@@ -771,6 +840,15 @@ def handle_relay(msg, state):
                 and CHAT_ID and str(chat_id) == str(CHAT_ID).strip())
     thread = SUPPORT_THREAD if in_forum else None
 
+    # Кой е админ — пита се САМО ако още не знаем никого. Без този ред първият
+    # отговор на екипа удряше в „релето е изключено", защото ръчният списък е
+    # празен, а групата още не беше питана. Условието НЕ е излишно: без него
+    # всеки отговор би пращал по една излишна заявка към Telegram.
+    # Освежаването на списъка (свален админ да отпадне) става в handle_private,
+    # където така или иначе минаваме, и е с кеш от шест часа.
+    if not ADMINS:
+        refresh_admins(state)
+
     # Чужд човек не получава дори формата на командата: иначе всеки можеше да
     # накара бота да проговори в стаята, в която е застанал.
     if ADMINS and sid not in ADMINS:
@@ -857,6 +935,22 @@ def handle_private(msg, state, budget):
         delivered = bool(send(target_chat, card, target_thread))
     else:
         print("ГРЕШКА: няма CHAT_ID/ADMIN_CHAT_ID — въпросът няма къде да отиде.")
+
+    # И ЛИЧНО НА ВСЕКИ АДМИН.
+    # Картата в стаята е добра за прозрачност, но се губи в потока и никой не
+    # получава известие лично. Затова същата карта отива и в личния чат на
+    # всеки админ — там той просто натиска Reply и отговорът стига до човека.
+    # Тихо е нарочно: админ, който не е стартирал бота, не може да получи
+    # съобщение от него (Telegram го забранява) и това НЕ е грешка.
+    if delivered:
+        for aid in sorted(refresh_admins(state)):
+            if aid <= 0:
+                continue                       # отрицателното е група, не човек
+            if send(aid, card):
+                print("Копие до админ " + str(aid) + ".")
+            else:
+                print("Админ " + str(aid) + " не е стартирал бота — пропускам.")
+            time.sleep(0.3)
 
     if delivered:
         state["per_user"][uid] = used + 1
@@ -1278,6 +1372,28 @@ def selftest():
     check("картата не дава отрицателна цел",
           target_from_card({"from": {"is_bot": True},
                             "text": ID_MARK + "-1004403334702"}) == "")
+
+    # --- АДМИНИТЕ СЕ РАЗПОЗНАВАТ САМИ ---
+    # Без това релето стоеше изключено: ръчният списък SUPPORT_ADMIN_IDS беше
+    # празен и екипът получаваше „релето е изключено" на всеки опит за отговор.
+    _old_admins = g["ADMINS"]
+    g["ADMINS"] = set()
+    _st = {}
+    g["api"] = lambda m, **p: ([{"user": {"id": 111, "is_bot": False}},
+                                {"user": {"id": 222, "is_bot": False}},
+                                {"user": {"id": 333, "is_bot": True}}]
+                               if m == "getChatAdministrators" else {"message_id": 1})
+    _got = refresh_admins(_st)
+    check("админите на групата стават админи на съпорта", _got == {111, 222})
+    check("ботовете не стават админи", 333 not in _got)
+    check("списъкът се запомня в паметта",
+          set((_st.get("admins") or {}).get("ids") or []) == {111, 222})
+    g["ADMINS"] = {111}
+    g["api"] = lambda m, **p: (None if m == "getChatAdministrators"
+                               else {"message_id": 1})
+    check("провалена заявка НЕ свива списъка", 111 in refresh_admins({}))
+    g["api"] = fake_api
+    g["ADMINS"] = _old_admins
 
     # Новият въпрос отива в стаята на съпорта, никога в 4.
     calls[:] = []
