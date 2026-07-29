@@ -27,8 +27,12 @@ on:
         type: choice
         options: [rooms, hub, all]
 
+# contents: write — НЕ е разкош. setup_hub.py помни в hub_state.json кой пост
+# в коя стая е сложил. Без връщане на този файл в хранилището паметта умира с
+# рънъра и всяко следващо пускане пише НОВ пост във всяка стая — точно
+# дублиращите се закачени съобщения, от които собственикът се оплака.
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: hub-setup
@@ -40,6 +44,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -52,3 +58,32 @@ jobs:
           CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
           HUB_MODE: ${{ github.event.inputs.mode }}
         run: python setup_hub.py
+
+      # Паметта се връща в хранилището. Без този ред следващото пускане не
+      # знае какво вече е сложило и трупа втори комплект постове.
+      - name: Запомни кой пост къде е
+        if: always()
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          git add hub_state.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Паметта е без промяна."
+            exit 0
+          fi
+          git commit -m "hub state"
+          pushed=0
+          for i in 1 2 3 4 5; do
+            if git push; then
+              pushed=1
+              break
+            fi
+            echo "Push-ът не мина (опит $i) — дърпам и опитвам пак."
+            git pull --rebase --autostash || git rebase --abort || true
+            sleep $((RANDOM % 6 + 3))
+          done
+          if [ "$pushed" != "1" ]; then
+            echo "ЧЕРВЕНО: паметта НЕ се върна — следващото пускане ще дублира."
+            exit 1
+          fi
+          echo "Паметта е запазена."
