@@ -108,9 +108,29 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "-1004426592150")
 PREDICT_THREAD = (os.environ.get("PREDICT_THREAD_ID") or "27").strip()
 
-# 🚫 Стаята на човека-типстер и стаята на новините. Ботът няма работа там.
-FORBIDDEN_THREADS = {"4", "26"}
-ALLOWED_THREADS = {PREDICT_THREAD}
+# ═══════════════════════════ КЪДЕ ОТИВА КОЯ КАРТА (променено 29.07.2026)
+# СТАРО: всичко живееше само в стая 27, а спортните стаи получаваха голи
+# разписания. Собственикът го отхвърли: „общи разписания, които нищо не
+# значат и на никой не му пука за тях". Прогнозата трябва да е при своя спорт.
+#
+# СЕГА:
+#   стая 27  — ВСИЧКИ прогнози, както досега (общата витрина)
+#   стая на спорта — СЪЩАТА карта отива и там, при хората, които следят него
+#   стая 4   — трите комбинирани фиша на деня (виж combo_cards)
+#   стая 26  — НОВИНИТЕ. Тук предсказателят няма работа и това не се променя.
+SPORT_ROOM = {
+    "football":    (os.environ.get("FOOTBALL_THREAD_ID") or "5").strip(),
+    "basketball":  (os.environ.get("BASKET_THREAD_ID") or "6").strip(),
+    "tabletennis": (os.environ.get("TT_THREAD_ID") or "7").strip(),
+    "volleyball":  (os.environ.get("VOLLEY_THREAD_ID") or "8").strip(),
+    "mma":         (os.environ.get("COMBAT_THREAD_ID") or "328").strip(),
+    # тенис, хокей и бейзбол нямат своя стая — техните карти остават само в 27
+}
+PICKS_THREAD = (os.environ.get("PICKS_THREAD_ID") or "4").strip()
+# 🚫 Новините са чужди. Всичко останало, което пипаме, е изброено поименно.
+FORBIDDEN_THREADS = {"26"}
+ALLOWED_THREADS = ({PREDICT_THREAD, PICKS_THREAD}
+                   | set(SPORT_ROOM.values())) - FORBIDDEN_THREADS
 
 DRY_RUN = (os.environ.get("PREDICT_DRY_RUN") or "").strip() in ("1", "true", "yes", "да")
 
@@ -132,8 +152,13 @@ def env_float(name, default, lo, hi):
 
 
 MAX_PICKS = env_int("MAX_PICKS", 4, 1, 6)
-POOL = env_int("PREDICT_POOL", 14, 1, 40)
-PER_SPORT = env_int("PREDICT_PER_SPORT", 3, 1, 8)
+# 24, не 14. Сметката: три фиша по пет мача = 15 крака, но във фиш влизат само
+# избори над 52% (виж COMBO_MIN_P), а такива са около две трети от анализираните.
+# 15 / 0.65 ≈ 23. При 18 под лупата третият фиш пак не се събираше.
+POOL = env_int("PREDICT_POOL", 24, 1, 40)
+# 5, не 3: половината спортове са извън сезон в даден ден и таванът „три от
+# спорт" стягаше лупата точно когато трябва да е широка.
+PER_SPORT = env_int("PREDICT_PER_SPORT", 5, 1, 8)
 MIN_STRENGTH = env_float("PREDICT_MIN_STRENGTH", 0.10, 0.0, 0.9)
 HTTP_BUDGET = env_int("PREDICT_HTTP_BUDGET", 220, 10, 900)
 TENNIS_SWEEP = env_int("PREDICT_TENNIS_SWEEP", 8, 0, 30)
@@ -341,7 +366,6 @@ def fx_start(fx, now):
             loc = loc + timedelta(days=1)
         return loc
     return None
-
 
 def started(fx, now):
     """True = мачът вече тече, свършил е, или започва прекалено скоро.
@@ -551,7 +575,6 @@ def match_key(fx, now):
             + (("|" + tag) if tag else "")
             + "|" + norm_key(fx.get("home"))[:24] + "|" + norm_key(fx.get("away"))[:24])
 
-
 def already_posted(state, key):
     return key in (state.get("posted") or {})
 
@@ -693,14 +716,19 @@ def tg_send(text, thread_id):
 
 def post_predict(text, thread_id=None):
     """ЕДИНСТВЕНИЯТ изход на Предсказателя. Пазачите са ТУК, не по-нагоре.
-    Всичко, което този бот произвежда, влиза само в стая 27 „БОТА ПРЕДРИЧА".
-    Канал няма — този файл няма функция, която да праща в канал."""
+
+    Разрешените стаи са изброени поименно в ALLOWED_THREADS: 27 (витрината),
+    стаята на съответния спорт, и 4 за комбинираните фишове. Стая 26 остава
+    забранена — новините са чужда работа. Канал няма: този файл няма функция,
+    която да праща в канал.
+    """
     tid = str(thread_id if thread_id is not None else PREDICT_THREAD).strip()
     if tid in FORBIDDEN_THREADS:
-        print("ОТКАЗ: стая " + tid + " е забранена (човешки фишове / новини).")
+        print("ОТКАЗ: стая " + tid + " е чужда (новини).")
         return False
     if tid not in ALLOWED_THREADS:
-        print("ОТКАЗ: стая " + tid + " не е стаята на Предсказателя (" + PREDICT_THREAD + ").")
+        print("ОТКАЗ: стая " + tid + " не е в разрешените ("
+              + ", ".join(sorted(ALLOWED_THREADS)) + ").")
         return False
     if not tid.isdigit() or int(tid) <= 1:
         print("WARN: невалиден thread id " + tid + " — не пращам.")
@@ -765,7 +793,6 @@ def strength_binary(p):
 def strength_1x2(p1, px, p2):
     """1/X/2 има три изхода — базата е 1/3, не 1/2."""
     return clampf((max(p1, px, p2) - 1.0 / 3.0) * 1.5, 0.0, 1.0)
-
 
 # --- Поасон с корекция Диксън-Коулс -------------------------------------------
 # Чистият Поасон систематично подценява равенствата 0:0 и 1:1. Корекцията тежи
@@ -980,7 +1007,6 @@ def grade(bucket, n_eff, strength):
         stars = min(stars, 2)
     return max(1, min(stars, STAR_CAP.get(bucket, 3)))
 
-
 # ================================================================= ИЗТОЧНИЦИ
 ESPN_SITE = "https://site.api.espn.com/apis/site/v2/sports"
 
@@ -1191,7 +1217,6 @@ def foot_domestic_index():
           + str(got) + " първенства.")
     return idx
 
-
 def merge_recs(a, b):
     """Слепва два списъка мачове без повторения (един мач = дата + съперник)."""
     out = list(a)
@@ -1382,7 +1407,6 @@ def tennis_rankings(tour):
                             "name": ath.get("displayName") or ""}
     _ten_rank[tour] = out
     return out
-
 
 def _tennis_singles(j, want_pre):
     """Общ разбор: events[] са ТУРНИРИ, competitions[] са мачовете."""
@@ -1588,7 +1612,6 @@ def model_hockey(fx):
             "hgf": _rate(h["hgf"], h["hgp"], lvl), "hga": _rate(h["hga"], h["hgp"], lvl),
             "agf": _rate(a["rgf"], a["rgp"], lvl), "aga": _rate(a["rga"], a["rgp"], lvl)}
 
-
 # ----------------------------------------------------------------- ⚾ БЕЙЗБОЛ (MLB)
 MLB_API = "https://statsapi.mlb.com/api/v1"
 MLB_HOME = 0.25         # рънове предимство за домакина (~53% базова победа)
@@ -1789,7 +1812,6 @@ def mma_fixtures(now):
                 })
     return out
 
-
 def model_mma(fx, now):
     ex = fx.get("extra") or {}
     idx = mma_index(ex.get("league") or "ufc", now)
@@ -1976,7 +1998,6 @@ def vol_tournaments():
         print("   ⚠ волейбол, справочник турнири: " + str(e)[:60])
     return _vol_meta
 
-
 def vol_fixtures(now, ymd_dash):
     # КАПАН: правилните имена са FirstDate/LastDate. DateFrom/DateTo се ПРЕНЕБРЕГВАТ
     # мълчаливо и сървърът връща целия архив от 28 000 реда.
@@ -2145,7 +2166,6 @@ def vol_ratings(now):
           + str(skipped) + " без ясна кошница).")
     return _vol_rating, _vol_count
 
-
 def model_volleyball(fx, now):
     ex = fx.get("extra") or {}
     b = ex.get("vb")
@@ -2301,7 +2321,6 @@ def model_tabletennis(fx, now):
             "to_win": to_win, "dist_h": bo_distribution(p_game, to_win),
             "dist_a": bo_distribution(1.0 - p_game, to_win),
             "ok": (a["w"] + a["l"]) >= 5 and (b["w"] + b["l"]) >= 5}
-
 
 # ----------------------------------------------------------------- ПОСЛЕДНА РЕЗЕРВА
 def sdb_fixtures(bucket):
@@ -2501,7 +2520,6 @@ def tennis_sets_line(p_match):
         return "Под 2.5 сета: <b>" + pct(1.0 - p_three) + "</b>"
     return ""
 
-
 def sets_total_line(dists, line_sets):
     """Над/Под N.5 сета — направо от разпределението на сетовете.
 
@@ -2660,7 +2678,6 @@ def analyse(fx, ctx):
         if min(m["n_a"], m["n_b"]) < 6:
             n_eff = min(n_eff, 19.0)    # под 6 видени мача = най-много две звезди
         sample = ("ранглиста + " + str(m["n_a"]) + "+" + str(m["n_b"]) + " скорошни мача")
-
     elif b == "mma":
         m = model_mma(fx, now)
         if not m["ok"]:
@@ -2720,8 +2737,19 @@ def analyse(fx, ctx):
     else:
         return None, "непознат спорт"
 
+    # ПРАГЪТ „няма превес" Е МАХНАТ КАТО ОТКАЗ.
+    # По-рано срещата с 51% просто изчезваше. Собственикът реши друго: канал
+    # за прогнози значи, че излиза и близката среща — с истинското си число.
+    # 51% си е 51% и всеки го чете. Прагът остава само като БЕЛЕГ: под него
+    # картата получава една звезда, тоест „равностойно".
     if strength < MIN_STRENGTH:
-        return None, "числата не дават превес (" + pct(p) + ")"
+        return {"fx": fx, "bucket": b, "pick": pick, "p": p, "second": second,
+                "third": third,
+                "why": ([w for w in why if w][:2]
+                        + ["Числата са близки — превесът е малък."])[:2],
+                "sample": sample,
+                "n_eff": float(n_eff), "strength": float(strength),
+                "stars": 1}, ""
 
     return {"fx": fx, "bucket": b, "pick": pick, "p": p, "second": second,
             "third": third,
@@ -2834,6 +2862,149 @@ def collect_all(now):
               + ((" (" + str(far) + " далече — чакат)") if far else ""))
     return buckets
 
+# ═══════════════════════════════════════ ПРОГНОЗА ВИНАГИ (резервната стълба)
+# РЕШЕНИЕ НА СОБСТВЕНИКА (29.07.2026, казано два пъти и ясно):
+#   „Това е спортен канал за прогнози. Пишеш каквото може."
+# Затова отказът „няма история — не гадаем" е МАХНАТ като краен изход.
+#
+# Честността не изчезва, а се мести на две места, които остават:
+#   • ПРОЦЕНТЪТ — при празна извадка той е близо до 50 и не се разкрасява
+#   • ЗВЕЗДИТЕ — една звезда и изписано на какво стъпва картата
+# Читателят вижда и двете и си преценява сам. Това беше и уговорката.
+#
+# Стълбата отгоре надолу:
+#   1. пълен модел (когато има история)          — до три звезди
+#   2. частични данни (ранглиста, форма, H2H)    — една звезда
+#   3. нищо                                       — предимството на домакина
+FALLBACK_HOME = {
+    # Колко често печели домакинът/първият в двойката, когато не знаем нищо.
+    # Числата са общоприети за съответния спорт, не са измислени в движение.
+    "football": 0.45,       # 1X2: равенството яде част от масата
+    "basketball": 0.60,
+    "volleyball": 0.55,
+    "hockey": 0.55,
+    "baseball": 0.54,
+    "tabletennis": 0.50,    # „домакин" няма — двойката е неутрална
+    "tennis": 0.50,
+    "mma": 0.50,
+}
+
+
+def fallback_analyse(fx, ctx, reason):
+    """Карта дори когато моделът е замълчал. Никога не връща None."""
+    b = fx.get("bucket") or ""
+    home = esc(fx.get("home") or "")
+    away = esc(fx.get("away") or "")
+    p = float(FALLBACK_HOME.get(b, 0.52))
+
+    # Ако знаем поне тежестта на турнира или подредбата, накланяме мъничко.
+    ex = fx.get("extra") or {}
+    if ex.get("neutral"):
+        p = 0.50 + (p - 0.50) * 0.35      # неутрален терен: предимството пада
+
+    fav_home = p >= 0.50
+    if b == "football":
+        pick = ("1 · победа " + (fx.get("home") or "")) if fav_home else \
+               ("2 · победа " + (fx.get("away") or ""))
+        p_show = max(p, 1.0 - p)
+    else:
+        pick = (fx.get("home") or "") if fav_home else (fx.get("away") or "")
+        p_show = max(p, 1.0 - p)
+
+    kratko = (reason or "").split("(")[0].strip().rstrip(".")
+    why = ["Малко данни за тази среща: " + (kratko or "няма история в източника") + ".",
+           "Картата стъпва на предимството на домакина за този спорт."]
+    if b in ("tennis", "tabletennis", "mma"):
+        why[1] = "Двойката е неутрална — числото е близо до равностойно."
+
+    return {"fx": fx, "bucket": b, "pick": pick, "p": p_show,
+            "second": "", "third": "",
+            "why": why, "sample": "без история",
+            "n_eff": 0.0, "strength": 0.0, "stars": 1}
+
+
+# ═══════════════════════════════════ ТРИТЕ КОМБИНИРАНИ ФИША (стая 4)
+# ПОРЪЧКА НА СОБСТВЕНИКА (29.07.2026):
+#   „Във Фишове на деня ще комбинираш 3 пъти по 5 мача във всеки фиш,
+#    независимо различни спортове или един и същ."
+#
+# Правила, които си наложих, за да не е случайно:
+#   • ЕДИН мач влиза най-много в ЕДИН фиш — иначе трите фиша са един и същ
+#   • подредба по увереност: фиш 1 взима най-сигурните пет
+#   • пише се и общата вероятност (произведението) — тя пада бързо и това е
+#     честната част: пет по 70% не са 70%, а 17%
+#   • излизат ВЕДНЪЖ на ден, от първото пускане, което има достатъчно мачове
+COMBO_COUNT = env_int("PREDICT_COMBOS", 3, 0, 6)
+COMBO_SIZE = env_int("PREDICT_COMBO_SIZE", 5, 2, 10)
+# Долна граница за участие във фиш. Избор от 50% в комбинация е изречение,
+# което се самоопровергава: посочваме страна и в същото време казваме, че е
+# монета. Отделната карта може да е близка — фишът не.
+COMBO_MIN_P = env_float("PREDICT_COMBO_MIN_P", 0.52, 0.50, 0.90)
+
+
+def combo_card(idx, legs, now):
+    """Един фиш: пет реда и обща вероятност."""
+    lines = ["🎫 <b>ФИШ " + str(idx) + " НА ДЕНЯ</b> · " + date_bg(now),
+             "<i>" + str(len(legs)) + " мача</i>", ""]
+    total = 1.0
+    for a in legs:
+        fx = a["fx"]
+        emo = SPORTS.get(a["bucket"], {}).get("emoji", "•")
+        when = fx_start(fx, now)
+        chas = when.astimezone(SOFIA).strftime("%H:%M") if when is not None else ""
+        lines.append(emo + " <b>" + esc(fx.get("home")) + "</b> — <b>"
+                     + esc(fx.get("away")) + "</b>" + ((" · " + chas) if chas else ""))
+        lines.append("    🎯 " + esc(a["pick"]) + " · " + pct(a["p"])
+                     + " · " + ("⭐" * int(a.get("stars") or 1)))
+        total *= float(a["p"])
+    lines += ["",
+              "📊 И петте заедно: <b>" + pct(total) + "</b>",
+              "🟢 THE GREEN ROOM"]
+    return NL.join(lines)
+
+
+def post_combos(picks, cands, state, now):
+    """Строи и праща трите фиша. Връща колко съобщения са тръгнали."""
+    if COMBO_COUNT <= 0:
+        return 0
+    ckey = now.strftime("%Y-%m-%d") + "|combos"
+    if already_posted(state, ckey):
+        return 0                       # днес вече са пуснати
+
+    # ЗА ФИШ подредбата е ДРУГА, не като за отделните карти.
+    # Отделната карта се цени по увереност (звезди). Във фиш обаче петте
+    # избора се умножават, значи най-важна е самата вероятност: един избор от
+    # 43% срива целия фиш, колкото и звезди да носи. Затова тук водещото е p,
+    # а звездите са само разделител при равенство.
+    pool = [a for a in cands if float(a.get("p") or 0.0) >= COMBO_MIN_P]
+    pool.sort(key=lambda a: -(float(a.get("p") or 0.0) * 1000.0
+                              + int(a.get("stars") or 1)))
+    need = COMBO_COUNT * COMBO_SIZE
+    if len(pool) < COMBO_SIZE:
+        print("Фишове: само " + str(len(pool)) + " мача над "
+              + pct(COMBO_MIN_P) + " — трябват поне " + str(COMBO_SIZE)
+              + ". Днес без фишове.")
+        return 0
+
+    sent = 0
+    made = 0
+    for i in range(COMBO_COUNT):
+        legs = pool[i * COMBO_SIZE:(i + 1) * COMBO_SIZE]
+        if len(legs) < COMBO_SIZE:
+            break                      # непълен фиш не се пуска
+        if post_predict(combo_card(i + 1, legs, now), PICKS_THREAD):
+            sent += 1
+            made += 1
+            time.sleep(SEND_GAP)
+    if made:
+        mark_posted(state, ckey, now)
+        persist(state, now)
+        print("Фишове: " + str(made) + " по " + str(COMBO_SIZE) + " мача -> стая "
+              + PICKS_THREAD + ".")
+    elif len(pool) < need:
+        print("Фишове: стигнаха за " + str(len(pool) // COMBO_SIZE) + " фиша.")
+    return sent
+
 
 def build_pool(buckets):
     """Кръгова подредба: всеки спорт получава шанс, никой не задръства."""
@@ -2888,7 +3059,6 @@ def maybe_footer(state, now, seen, thin, weak):
         persist(state, now)
         return True
     return False
-
 
 # ================================================================= ГЛАВНО
 def run():
@@ -2950,16 +3120,17 @@ def run():
             print("   анализ " + name + ": " + str(e)[:110])
             an, why_not = None, "грешка в данните"
         if an is None:
-            if "превес" in why_not:
-                weak += 1
-            else:
-                thin += 1
-            print("   пропускам " + name + ": " + why_not)
-            continue
+            # РЕЗЕРВНАТА СТЪПКА. Дотук срещата просто изчезваше. Сега слиза
+            # едно стъпало надолу и пак излиза карта — с една звезда и с
+            # изписано на какво стъпва. Каналът е за прогнози.
+            thin += 1
+            an = fallback_analyse(fx, ctx, why_not)
+            print("   ~ " + name + ": резервна прогноза (" + why_not + ")")
         cands.append(an)
         st = an["stars"]
         print("   ✔ " + name + ": " + an["pick"] + " " + pct(an["p"])
               + ", " + str(st) + (" звезда" if st == 1 else " звезди"))
+
     seen = len(fresh)
     if not cands:
         # „Днес няма прогнози" се казва НАЙ-МНОГО ВЕДНЪЖ и не преди обяд:
@@ -2991,14 +3162,27 @@ def run():
             sent += 1
         time.sleep(SEND_GAP)
     for a in picks:
-        if post_predict(card(a, now)):
+        txt = card(a, now)
+        if post_predict(txt):
             mark_posted(state, a["fx"]["_key"], now)
             # Записваме СЛЕД ВСЯКА карта, не в края. Ако рънът умре на третата,
             # първите две са вече в тефтера и следващият рън не ги повтаря.
             persist(state, now)
             log_pick(a, now)
             sent += 1
+            # И В СТАЯТА НА СВОЯ СПОРТ. Прогнозата за футбол интересува хората
+            # в стая ⚽, не само тези, които следят общата витрина. Провал тук
+            # не отменя картата — тя вече е в 27.
+            room = SPORT_ROOM.get(a.get("bucket"))
+            if room and room != PREDICT_THREAD:
+                time.sleep(1.2)
+                if post_predict(txt, room):
+                    sent += 1
         time.sleep(SEND_GAP)
+
+    # Трите комбинирани фиша на деня → стая 4.
+    sent += post_combos(picks, cands, state, now)
+
     if maybe_footer(state, now, seen, thin, weak):
         sent += 1
     persist(state, now)
@@ -3051,7 +3235,6 @@ def selftest():
     check("3-0 е по-често от 3-2 при силен фаворит", d[0][2] > d[2][2])
     check("обратната сметка се връща вярно", abs(bo_match_prob(invert_bo(0.72, 3), 3) - 0.72) < 1e-6)
     check("best-of-7 има четири изхода", len(bo_distribution(0.6, 4)) == 4)
-
     # --- Elo, Брадли-Тери, свиване, свежест
     check("Elo при равни е 50%", abs(elo_expect(1500.0, 1500.0) - 0.5) < 1e-12)
     check("Elo +200 е ~76%", 0.74 < elo_expect(1700.0, 1500.0) < 0.78)
@@ -3214,7 +3397,6 @@ def selftest():
     check("ISO без часова зона", parse_iso("2026-06-10T13:00:00") is not None)
     check("боклук в датата е None", parse_iso("не-дата") is None)
     check("ключът чисти пунктуацията", norm_key("Ман. Сити!") == "мансити")
-
     # --- тефтерът
     old_state = STATE_FILE
     STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_selftest_state.json")
@@ -3273,16 +3455,25 @@ def selftest():
         STATE_FILE = old_state
 
     # --- пазачите на изхода
-    check("стая 4 е забранена", post_predict("тест", "4") is False)
-    check("стая 26 е забранена", post_predict("тест", "26") is False)
-    check("стая 5 не е наша", post_predict("тест", "5") is False)
-    # 🥊 Стая 328 „Бойни спортове" е за списъка с боеве (matches_bot.py).
-    # Прогнозите — включително за ММА — остават в стая 27.
-    check("стая 328 не е изходът на Предсказателя", post_predict("тест", "328") is False)
-    check("стая 328 НЕ е в забранените", "328" not in FORBIDDEN_THREADS)
-    check("стая 328 НЕ е в разрешените", "328" not in ALLOWED_THREADS)
-    check("ММА прогнозите пак ходят в стаята на Предсказателя",
-          "mma" in SPORTS and ALLOWED_THREADS == {PREDICT_THREAD})
+    # ⚠️ ТАЗИ СЕКЦИЯ Е ОБЪРНАТА НА 29.07.2026 ПО РЕШЕНИЕ НА СОБСТВЕНИКА.
+    # Пазеше правилото „всичко само в стая 27, спортните стаи са само за
+    # разписания". Той го отхвърли: „общи разписания, които нищо не значат".
+    # Сега прогнозата отива И в стаята на своя спорт, а фишовете — в стая 4.
+    # Единственото, което остава ЗАБРАНЕНО, е стая 26: новините са чужди.
+    check("стая 26 остава забранена", post_predict("тест", "26") is False)
+    check("стая 26 е в забранените", "26" in FORBIDDEN_THREADS)
+    check("стая 9 (резултати) не е наша", post_predict("тест", "9") is False)
+    check("стая 10 (печеливши) не е наша", post_predict("тест", "10") is False)
+    check("стая 11 (помощ) не е наша", post_predict("тест", "11") is False)
+    check("стая 1 (общ чат) не е наша", post_predict("тест", "1") is False)
+    check("футболът има своя стая", SPORT_ROOM.get("football") in ALLOWED_THREADS)
+    check("баскетболът има своя стая", SPORT_ROOM.get("basketball") in ALLOWED_THREADS)
+    check("волейболът има своя стая", SPORT_ROOM.get("volleyball") in ALLOWED_THREADS)
+    check("тенисът на маса има своя стая", SPORT_ROOM.get("tabletennis") in ALLOWED_THREADS)
+    check("ММА има своя стая", SPORT_ROOM.get("mma") in ALLOWED_THREADS)
+    check("тенисът НЯМА своя стая (остава в 27)", "tennis" not in SPORT_ROOM)
+    check("стая 4 е разрешена за фишовете", PICKS_THREAD in ALLOWED_THREADS)
+    check("стая 27 остава витрината", PREDICT_THREAD in ALLOWED_THREADS)
     check("хазартна дума не излиза", post_predict("залагай сега", PREDICT_THREAD) is False)
     check("име на букмейкър не излиза", post_predict("bet365 дава 2.10", PREDICT_THREAD) is False)
     check("коефициент не излиза", post_predict("коефициент 1.85", PREDICT_THREAD) is False)
@@ -3324,7 +3515,6 @@ def selftest():
     check("баскетболът носи очакван резултат", "Очакван резултат: ~112:105" in txt)
     check("картата носи звезди и извадка", "⭐⭐" in txt and "извадка 82+82" in txt)
     check("картата има най-много две обяснения", txt.count(NL + "• ") == 2)
-
     demo_f = {"fx": {"bucket": "football", "emoji": "⚽", "home": "Арсенал",
                      "away": "Челси", "league": "Висша лига", "when": None, "time": "19:30"},
               "bucket": "football",
@@ -3401,8 +3591,23 @@ def selftest():
     check("спорт с история има праг над 0",
           all(MIN_PER_SIDE.get(b, 0) > 0 for b in HISTORY_SPORTS))
     check("всеки спорт е описан в прага", all(b in MIN_PER_SIDE for b in SPORT_ORDER))
-    check("забранените стаи са точно две", FORBIDDEN_THREADS == {"4", "26"})
-    check("разрешената стая е една", ALLOWED_THREADS == {PREDICT_THREAD})
+    check("забранена е само стаята на новините", FORBIDDEN_THREADS == {"26"})
+    check("разрешените са витрината, фишовете и петте спортни стаи",
+          ALLOWED_THREADS == {PREDICT_THREAD, PICKS_THREAD} | set(SPORT_ROOM.values()))
+    check("новините не се промъкват в разрешените", "26" not in ALLOWED_THREADS)
+
+    # --- трите комбинирани фиша
+    def leg(nm, p, st):
+        return {"fx": {"home": nm, "away": "Б", "when": None}, "bucket": "football",
+                "pick": "1 · победа " + nm, "p": p, "stars": st, "strength": 0.3}
+    legs5 = [leg("Отбор" + str(i), 0.70, 3) for i in range(5)]
+    cc = combo_card(1, legs5, now)
+    check("фишът е озаглавен", "ФИШ 1 НА ДЕНЯ" in cc)
+    check("фишът показва петте мача", cc.count("🎯") == 5)
+    check("фишът дава обща вероятност", "И петте заедно" in cc)
+    check("общата вероятност е произведението (0.7^5 = 17%)", "17%" in cc)
+    check("фишът е чист", banned_word(cc) is None)
+    check("три фиша по пет", COMBO_COUNT == 3 and COMBO_SIZE == 5)
     check("всички спортове имат емоджи", all(SPORTS[b].get("emoji") for b in SPORT_ORDER))
     check("редът покрива всички спортове", set(SPORT_ORDER) == set(SPORTS.keys()))
 
