@@ -31,7 +31,9 @@
   "p": 0.425,
   "stars": 2,
   "sample": "извадка 5+34 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:4"
  },
  {
   "key": "2026-07-29|football|kairatalmaty|omonianicosia",
@@ -48,7 +50,9 @@
   "p": 0.4077,
   "stars": 2,
   "sample": "извадка 11+37 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-07-29|baseball|washingtonnationals|torontobluejays",
