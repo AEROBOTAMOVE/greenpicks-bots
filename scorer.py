@@ -238,6 +238,7 @@ def verdict(rec, hs, as_):
     home_won = hs > as_
     return home_won if said_home else (not home_won)
 
+
 # --------------------------------------------------------------------- ТЕКСТ
 def esc(s):
     return (str(s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
@@ -359,6 +360,14 @@ def selftest():
     check("витрината е чиста", banned_word(w) is None)
     check("витрината сочи към пълния отчет", "Резултати и статистика" in w)
 
+    # --- прозорецът на дните: днешното СЕ отчита, утрешното НЕ
+    _today = datetime.now(SOFIA).strftime("%Y-%m-%d")
+    _utre = (datetime.now(SOFIA) + timedelta(days=1)).strftime("%Y-%m-%d")
+    _vchera = (datetime.now(SOFIA) - timedelta(days=1)).strftime("%Y-%m-%d")
+    check("утрешният мач се прескача", _utre > _today)
+    check("днешният мач НЕ се прескача", not (_today > _today))
+    check("вчерашният мач НЕ се прескача", not (_vchera > _today))
+
     print("САМОПРОВЕРКА НА ОЦЕНИТЕЛЯ: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)
@@ -388,8 +397,17 @@ def main():
         if r.get("scored"):
             continue
         day = r.get("day") or ""
-        if day >= today:
-            continue                          # мачът е днес или напред — рано е
+        # ДНЕШНИТЕ МАЧОВЕ СЕ ОТЧИТАТ ОЩЕ ДНЕС.
+        # Тук стоеше „ако денят е днес — прескачай". Изглеждаше предпазливо, а
+        # всъщност обезсмисляше вечерното пускане в 20:00: то не можеше да
+        # отчете НИТО ЕДИН мач от същия ден и резултатите закъсняваха с
+        # денонощие. Пазачът е излишен, защото истинската защита е по-надолу:
+        # espn_result() връща резултат САМО когато ESPN каже "completed".
+        # Незавършил мач си остава неоценен и се пробва пак на следващото
+        # пускане. Мачът за УТРЕ обаче наистина се прескача — там няма какво
+        # да се пита.
+        if day > today:
+            continue
         if day < limit:
             r["scored"] = True                # твърде старо, отказваме се
             r["hit"] = None
