@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 THE GREEN ROOM — HUB + СТАЙНИ ПИНОВЕ (еднократно, Bot API — надеждно)
 
@@ -80,8 +79,8 @@ def api(method, **params):
             return {}
     print(method, "— пет пъти 429 подред, отказвам се")
     return {}
-FOOT = "🟢 THE GREEN ROOM"
 
+FOOT = "🟢 THE GREEN ROOM"
 HUB = block(
 "🟢 <b>THE GREEN ROOM — прогнози на база статистика</b>",
 "",
@@ -104,7 +103,6 @@ HUB = block(
 "🆘 <b>Помощ и контакт:</b> " + SUPPORT + " · или в стая 🆘 Въпроси и Помощ",
 "👇 Влез в групата и стаите по спорт от бутона."
 )
-
 # thread -> кратък закачен текст (потвърдената карта на стаите)
 ROOM_PINS = {
     3: block(
@@ -173,7 +171,77 @@ SUPPORT_POST = block(
 "💚 The Green Room"
 )
 
-def send_pin(chat, text, thread=None, unpin_first=False):
+# ------------------------------------------------------- ПАМЕТ НА ПОДРЕЖДАНЕТО
+# ЗАЩО СЪЩЕСТВУВА
+# Дотук всяко пускане пишеше НОВ пост във всяка стая и го закачаше. Три
+# пускания = три еднакви поста в дванадесет стаи. Собственикът го видя и каза
+# право: „искам по един път в началото и това е, после само резултати и
+# новини". Затова тук помним какво сме сложили и къде.
+#
+# Правилото е просто:
+#   няма записан пост          -> пращаме и закачаме
+#   има го и текстът е СЪЩИЯТ  -> НЕ пишем нищо, само се уверяваме, че е закачен
+#   има го, но текстът е нов   -> ОПРЕСНЯВАМЕ го на място (editMessageText)
+# Така подреждането може да се пуска колкото пъти искаш, без да трупа.
+HUB_STATE_FILE = (os.environ.get("HUB_STATE_FILE") or "hub_state.json").strip()
+
+
+def load_hub_state():
+    try:
+        with open(HUB_STATE_FILE, encoding="utf-8-sig") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:                     # noqa: BLE001
+        print("паметта на подреждането е повредена (" + str(e)[:60] + ") — почвам чисто.")
+        return {}
+
+
+def save_hub_state(st):
+    try:
+        tmp = HUB_STATE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(st, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, HUB_STATE_FILE)        # атомарно
+        return True
+    except Exception as e:                     # noqa: BLE001
+        print("паметта не се записа (" + str(e)[:60] + ") — следващото пускане ще дублира.")
+        return False
+
+
+def send_pin(chat, text, thread=None, unpin_first=False, state=None, key=None):
+    """Слага (или опреснява) ЕДИН пост в стая. Не трупа при повторно пускане."""
+    where = "канал" if str(chat) == str(CHANNEL_ID) else "стая " + str(thread)
+    st = state if isinstance(state, dict) else None
+    k = str(key if key is not None else thread)
+    prev = (st or {}).get(k) or {}
+    mid = prev.get("mid")
+
+    def do_pin(message_id):
+        return api("pinChatMessage", chat_id=chat, message_id=message_id,
+                   disable_notification="true").get("ok")
+
+    # 1) Познат пост със същия текст — нищо ново не пишем.
+    if mid and prev.get("text") == text:
+        print("  " + where + ": постът вече е там — " +
+              ("закачен" if do_pin(mid) else "не успях да го закача"))
+        return
+
+    # 2) Познат пост, но текстът се е сменил — опресняваме НА МЯСТО.
+    if mid:
+        p = {"chat_id": chat, "message_id": mid, "text": text,
+             "parse_mode": "HTML", "disable_web_page_preview": "true"}
+        r = api("editMessageText", **p)
+        if r.get("ok"):
+            if st is not None:
+                st[k] = {"mid": mid, "text": text}
+            print("  " + where + ": постът е опреснен на място — " +
+                  ("закачен" if do_pin(mid) else "не успях да го закача"))
+            return
+        print("  " + where + ": старият пост не се опресни (изтрит?) — пращам нов.")
+
+    # 3) Нищо не знаем (или старият е изчезнал) — нов пост.
     if unpin_first and thread:
         api("unpinAllForumTopicMessages", chat_id=chat, message_thread_id=thread)
     p = {"chat_id": chat, "text": text, "parse_mode": "HTML", "disable_web_page_preview": "true"}
@@ -182,29 +250,61 @@ def send_pin(chat, text, thread=None, unpin_first=False):
     r = api("sendMessage", **p)
     if not r.get("ok"):
         print("  send fail:", str(r)[:100]); return
-    mid = r["result"]["message_id"]
-    pin = api("pinChatMessage", chat_id=chat, message_id=mid, disable_notification="true")
-    where = "канал" if str(chat) == str(CHANNEL_ID) else "стая " + str(thread)
-    print("  " + where + ": " + ("закачено" if pin.get("ok") else "пратено (не закач.)"))
+    new_mid = r["result"]["message_id"]
+    if st is not None:
+        st[k] = {"mid": new_mid, "text": text}
+    print("  " + where + ": " + ("закачено" if do_pin(new_mid) else "пратено (не закач.)"))
 
 def main():
     if not BOT_TOKEN: print("Missing BOT_TOKEN"); sys.exit(1)
+    state = load_hub_state()
+
     if MODE in ("hub", "all"):
+        # Каналът също се помни: инак всяко пускане трупаше по един HUB.
         btn = {"inline_keyboard": [[{"text": "💬 Влез в групата и стаите", "url": GROUP_LINK}]]}
-        r = api("sendMessage", chat_id=CHANNEL_ID, text=HUB, parse_mode="HTML",
-                disable_web_page_preview="true", reply_markup=json.dumps(btn))
-        if r.get("ok"):
-            api("pinChatMessage", chat_id=CHANNEL_ID, message_id=r["result"]["message_id"], disable_notification="true")
-            print("HUB в канала: закачен")
-        else:
-            print("HUB провал:", str(r)[:120])
+        prev = state.get("channel") or {}
+        mid = prev.get("mid")
+        done = False
+        if mid and prev.get("text") == HUB:
+            api("pinChatMessage", chat_id=CHANNEL_ID, message_id=mid,
+                disable_notification="true")
+            print("HUB в канала: вече е там — само го закачам")
+            done = True
+        elif mid:
+            r = api("editMessageText", chat_id=CHANNEL_ID, message_id=mid, text=HUB,
+                    parse_mode="HTML", disable_web_page_preview="true",
+                    reply_markup=json.dumps(btn))
+            if r.get("ok"):
+                state["channel"] = {"mid": mid, "text": HUB}
+                api("pinChatMessage", chat_id=CHANNEL_ID, message_id=mid,
+                    disable_notification="true")
+                print("HUB в канала: опреснен на място")
+                done = True
+            else:
+                print("HUB: старият пост не се опресни — пращам нов.")
+        if not done:
+            r = api("sendMessage", chat_id=CHANNEL_ID, text=HUB, parse_mode="HTML",
+                    disable_web_page_preview="true", reply_markup=json.dumps(btn))
+            if r.get("ok"):
+                new_mid = r["result"]["message_id"]
+                state["channel"] = {"mid": new_mid, "text": HUB}
+                api("pinChatMessage", chat_id=CHANNEL_ID, message_id=new_mid,
+                    disable_notification="true")
+                print("HUB в канала: закачен")
+            else:
+                print("HUB провал:", str(r)[:120])
+
     if MODE in ("rooms", "all") and CHAT_ID:
         for thread, text in ROOM_PINS.items():
-            send_pin(CHAT_ID, text, thread, unpin_first=True)
+            send_pin(CHAT_ID, text, thread, unpin_first=True, state=state)
             time.sleep(1.2)
-        # съпорт-постът идва последен в стая 11 => той остава закаченият там
-        send_pin(CHAT_ID, SUPPORT_POST, 11, unpin_first=False)
+        # съпорт-постът идва последен в стая 11 => той остава закаченият там.
+        # Свой ключ, за да не се бие с обикновения пин на същата стая.
+        send_pin(CHAT_ID, SUPPORT_POST, 11, unpin_first=False,
+                 state=state, key="11-support")
         print("Стайни пинове + съпорт: готово.")
+
+    save_hub_state(state)
     print("HUB setup — край.")
 
 if __name__ == "__main__":
