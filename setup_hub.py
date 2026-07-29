@@ -81,6 +81,7 @@ def api(method, **params):
     return {}
 
 FOOT = "🟢 THE GREEN ROOM"
+
 HUB = block(
 "🟢 <b>THE GREEN ROOM — прогнози на база статистика</b>",
 "",
