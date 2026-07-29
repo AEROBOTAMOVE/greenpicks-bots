@@ -66,5 +66,39 @@
   "stars": 2,
   "sample": "извадка 127+124 мача",
   "scored": false
+ },
+ {
+  "key": "2026-07-29|volleyball|msen|пакистан|бангладеш",
+  "posted": "2026-07-29 09:57",
+  "day": "2026-07-29",
+  "bucket": "volleyball",
+  "home": "Пакистан",
+  "away": "Бангладеш",
+  "home_id": "PAK",
+  "away_id": "BAN",
+  "league": "CAVA Men’s Volleyball Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Пакистан (3:0)",
+  "p": 0.8799,
+  "stars": 2,
+  "sample": "извадка 26+10 мача",
+  "scored": false
+ },
+ {
+  "key": "2026-07-30|tennis|benshelton|ugohumbert",
+  "posted": "2026-07-29 09:57",
+  "day": "2026-07-30",
+  "bucket": "tennis",
+  "home": "Ben Shelton",
+  "away": "Ugo Humbert",
+  "home_id": "9250",
+  "away_id": "3085",
+  "league": "Mubadala DC Open · ATP",
+  "slug": null,
+  "pick": "1 · Ben Shelton",
+  "p": 0.6389,
+  "stars": 2,
+  "sample": "ранглиста + 2+7 скорошни мача",
+  "scored": false
  }
 ]
