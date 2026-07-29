@@ -57,7 +57,10 @@ on:
         description: 'Колко съобщения назад да гледа'
         type: string
         default: '400'
-
+      probe_sleep:
+        description: 'Пауза между проверките, сек. По-малко = по-бързо, но по-близо до лимита.'
+        type: string
+        default: '1.2'
 permissions:
   contents: read
 
@@ -68,7 +71,11 @@ concurrency:
 jobs:
   dedupe:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 55, не 30. Изчистването на стая проверява всяко съобщение в прозореца
+    # поотделно; при 900 съобщения първият опит се уби точно на 30-та минута
+    # и стаята остана наполовина изчистена. По-добре дълъг таван, отколкото
+    # прекъснато чистене.
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
 
@@ -91,6 +98,12 @@ jobs:
           DEDUPE_MODE: ${{ github.event.inputs.mode }}
           DEDUPE_THREAD: ${{ github.event.inputs.thread }}
           DEDUPE_WINDOW: ${{ github.event.inputs.window }}
+          # Скоростта на сондирането. По подразбиране 1.2 сек на съобщение —
+          # безопасно, но при прозорец от 900 съобщения това са 18 минути само
+          # за проверката и рънът се уби на 30-та минута (виж timeout-minutes
+          # по-долу, вдигнат заради същото). 0.6 сек е двойно по-бързо и още
+          # далеч под лимита на Telegram.
+          DEDUPE_PROBE_SLEEP: ${{ github.event.inputs.probe_sleep || '1.2' }}
           # Двоен ключ: отметката дава DEDUPE_DRY=0, а думата ТРИЙ отключва
           # вътрешното потвърждение. Липсва ли едното, скриптът само показва.
           DEDUPE_DRY: ${{ github.event.inputs.really_delete == 'true' && '0' || '1' }}
