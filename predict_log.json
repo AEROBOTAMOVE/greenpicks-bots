@@ -393,5 +393,22 @@
   "stars": 2,
   "sample": "извадка 89+5 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-01|tennis|benshelton|alejandrotabilo",
+  "posted": "2026-07-31 14:07",
+  "day": "2026-08-01",
+  "bucket": "tennis",
+  "home": "Ben Shelton",
+  "away": "Alejandro Tabilo",
+  "home_id": "9250",
+  "away_id": "2970",
+  "league": "Mubadala DC Open · ATP",
+  "slug": null,
+  "pick": "1 · Ben Shelton",
+  "p": 0.6964,
+  "stars": 2,
+  "sample": "ранглиста + 3+7 скорошни мача",
+  "scored": false
  }
 ]
