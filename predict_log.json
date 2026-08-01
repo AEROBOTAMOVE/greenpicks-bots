@@ -511,7 +511,9 @@
   "p": 0.5765,
   "stars": 3,
   "sample": "извадка 72+85 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "84:83"
  },
  {
   "key": "2026-08-02|tennis|taylorfritz|brandonnakashima",
