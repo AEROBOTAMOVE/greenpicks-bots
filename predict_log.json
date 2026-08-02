@@ -701,5 +701,22 @@
   "stars": 3,
   "sample": "извадка 57+56 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-02|football|newellsoldboys|bocajuniors",
+  "posted": "2026-08-02 12:18",
+  "day": "2026-08-02",
+  "bucket": "football",
+  "home": "Newell's Old Boys",
+  "away": "Boca Juniors",
+  "home_id": "14",
+  "away_id": "5",
+  "league": "Примера, Аржентина",
+  "slug": "arg.1",
+  "pick": "2 · победа Boca Juniors",
+  "p": 0.4417,
+  "stars": 3,
+  "sample": "извадка 50+55 мача",
+  "scored": false
  }
 ]
