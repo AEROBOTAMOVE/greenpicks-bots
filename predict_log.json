@@ -494,7 +494,9 @@
   "p": 0.4432,
   "stars": 3,
   "sample": "извадка 18+52 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-08-01|basketball|chicagosky|lasvegasaces",
