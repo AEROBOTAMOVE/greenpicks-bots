@@ -668,7 +668,9 @@
   "p": 0.6616,
   "stars": 3,
   "sample": "извадка 81+82 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "108:100"
  },
  {
   "key": "2026-08-02|tennis|rafaeljodar|taylorfritz",
