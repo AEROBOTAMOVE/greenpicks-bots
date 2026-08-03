@@ -858,5 +858,22 @@
   "stars": 3,
   "sample": "извадка 75+86 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-03|volleyball|wsen|колумбия|trinidadandtobago",
+  "posted": "2026-08-03 15:45",
+  "day": "2026-08-03",
+  "bucket": "volleyball",
+  "home": "Колумбия",
+  "away": "Trinidad and Tobago",
+  "home_id": "COL",
+  "away_id": "TTO",
+  "league": "XXV Women's Central American Sports Games 2026",
+  "slug": null,
+  "pick": "1 · победа Колумбия (3:0)",
+  "p": 0.92,
+  "stars": 2,
+  "sample": "извадка 50+13 мача",
+  "scored": false
  }
 ]
