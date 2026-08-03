@@ -721,7 +721,9 @@
   "p": 0.4417,
   "stars": 3,
   "sample": "извадка 50+55 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2"
  },
  {
   "key": "2026-08-03|volleyball|wsen|пуерторико|costarica",
