@@ -1268,7 +1268,6 @@ def merge_recs(a, b):
         out.append(r)
     return out
 
-
 FOOT_FAIL_TOLERANCE = 3     # подред, не общо
 
 
@@ -1504,7 +1503,6 @@ def tennis_fixtures(now, ymd):
             })
     return out
 
-
 def tennis_form(tour, now):
     """Форма от миналите табла: няколко дни назад, с махане на дубликатите.
     Не е Elo — Elo иска цялата мрежа мачове и не се събира в един рън."""
@@ -1718,7 +1716,6 @@ def model_amfootball(hr, ar, fx, now):
     return {"exp_h": exp_h, "exp_a": exp_a, "total": exp_h + exp_a,
             "margin": margin, "p_home": p_home, "p_away": 1.0 - p_home,
             "sh": sh, "sa": sa, "sigma": sigma}
-
 
 # ----------------------------------------------------------------- ⚾ БЕЙЗБОЛ (MLB)
 MLB_API = "https://statsapi.mlb.com/api/v1"
@@ -1945,7 +1942,6 @@ def model_mma(fx, now):
             "rec_h": (wa, la), "rec_a": (wb, lb), "fin_h": fin_a, "fin_a": fin_b,
             "win_h": sa_.get("w", 0), "win_a": sb_.get("w", 0),
             "ok": (wa + la) >= 3 and (wb + lb) >= 3}
-
 
 # ----------------------------------------------------------------- 🏐 ВОЛЕЙБОЛ (FIVB)
 # 🚨 НАЙ-ВАЖНОТО ТУК: TeamACode/TeamBCode е кодът на ДЪРЖАВАТА, нищо повече.
@@ -2392,7 +2388,6 @@ def tt_fixtures(now, ymd_dash):
             })
     return out
 
-
 def tt_player(ittf_id, now):
     """Бърза сводка за 18 месеца: мачове, победи, загуби. Пълната история е
     30-45 секунди на играч и не влиза в един рън — това е съзнателен избор."""
@@ -2618,7 +2613,6 @@ def set_prob_from_match(p_match, best_of=3):
         else:
             hi = mid
     return (lo + hi) / 2.0
-
 
 def tennis_sets_line(p_match):
     """Над/Под 2.5 сета при мач до два спечелени.
@@ -2998,7 +2992,6 @@ def collect_all(now):
               + ((" (" + str(far) + " далече — чакат)") if far else ""))
     return buckets
 
-
 # ═══════════════════════════════════════ ПРОГНОЗА ВИНАГИ (резервната стълба)
 # РЕШЕНИЕ НА СОБСТВЕНИКА (29.07.2026, казано два пъти и ясно):
 #   „Това е спортен канал за прогнози. Пишеш каквото може."
@@ -3187,7 +3180,6 @@ def choose(cands, limit):
             taken.add(id(a))
     return picked
 
-
 def maybe_footer(state, now, seen, thin, weak):
     """Подписът и легендата затварят ДЕНЯ, а не всяко пускане.
     Пуска се веднъж, от вечерното пускане, и само ако денят е имал карти —
@@ -3290,6 +3282,10 @@ def run():
     room = MAX_DAY - cards_today(state, now)
     if room <= 0:
         print("Дневният таван (" + str(MAX_DAY) + " прогнози) е стигнат — мълча до утре.")
+        # НО фишовете пак излизат. Тук се излизаше направо и в ден, в който
+        # таванът се стигне рано, трите фиша НИКОГА не се пускаха — а те са
+        # отделен продукт, веднъж на ден, не поредна карта.
+        post_combos([], cands, state, now)
         maybe_footer(state, now, seen, thin, weak)
         persist(state, now)
         return
@@ -3393,7 +3389,6 @@ def selftest():
                  {"gf": 0, "ga": 3, "home": False, "date": "2026-07-10"}], now, 400.0)
     check("претеглените средни работят", ws and 0.9 < ws["gf"] < 1.1 and ws["n"] == 2)
     check("домакинските мачове се броят отделно", ws["wh"] > 0 and ws["wa"] > 0)
-
     # --- 🏐 волейбол: ЕДИН код на държава, ТРИ различни отбора
     # Това е бъгът, който се хвана на живо: кодът ALG стои този сезон и в
     # „CAVB Boys' U18", и в „CAVB Girls' U18", и в „CAVB Zone I Men". Ако
@@ -3717,7 +3712,6 @@ def selftest():
                     nothing_card(now, 9, 5, 4)):
         check("служебният текст е чист: " + service[:24],
               banned_word(service) is None and not any(w in service.lower() for w in preachy))
-
     # --- подбор
     def mk(b, stars, s):
         return {"bucket": b, "stars": stars, "strength": s, "fx": {}, "pick": "x", "p": 0.6}
