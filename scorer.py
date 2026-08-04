@@ -298,6 +298,7 @@ def volley_day(day):
     _vol_days[day] = rows
     return rows
 
+
 def volley_result(rec):
     """(сетове домакин, сетове гост) или None, ако мачът още не е официален."""
     day = rec.get("day") or ""
