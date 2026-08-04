@@ -586,43 +586,154 @@ def bez_text(bez):
     return out + [""]
 
 
-def results_text(now, rows, total_all, hit_all, bez=None):
-    """Обзорът на деня. Числото отгоре, редовете отдолу, край.
+# Име на спорта на български + реда, в който се показва. Редът е по значение
+# за канала, не по азбука — футболът и баскетболът водят.
+SPORT_BG = {
+    "football": "ФУТБОЛ", "basketball": "БАСКЕТБОЛ", "volleyball": "ВОЛЕЙБОЛ",
+    "tennis": "ТЕНИС", "tabletennis": "ТЕНИС НА МАСА", "hockey": "ХОКЕЙ",
+    "baseball": "БЕЙЗБОЛ", "amfootball": "АМЕРИКАНСКИ ФУТБОЛ", "mma": "БОЙНИ",
+}
+SPORT_RED = ["football", "basketball", "volleyball", "tennis", "hockey",
+             "baseball", "amfootball", "tabletennis", "mma"]
 
-    ПРЕНАПИСАН НА 29.07.2026 ПО ИЗРИЧНА ПОРЪЧКА НА СОБСТВЕНИКА:
-      „Спри да пишеш какво следихме, спри да ми казваш нищо не се трие и
-       тъпотии — ясен точен обзор на деня какво е спечелено и какво не."
-    Затова тук няма нито един ред обяснение, обещание или самохвалство.
-    Първото нещо, което човек вижда, е резултатът за деня. После кой позна и
-    кой не. Толкова.
+
+def sport_ime(b):
+    return SPORT_BG.get(b) or str(b or "друго").upper()
+
+
+def sport_emo(b):
+    return (SPORT_PATH.get(b) or (None, "\U0001f4cc"))[1]
+
+
+def po_red(kluchove):
+    """Спортовете в постоянен ред. Непознат спорт отива накрая, по азбука."""
+    znam = [b for b in SPORT_RED if b in kluchove]
+    drugi = sorted(b for b in kluchove if b not in SPORT_RED)
+    return znam + drugi
+
+
+def kratak_red(rec, hs, as_, ok):
+    """Един мач в един ред. Без емоджи на спорта — то е в заглавието на групата."""
+    return ("  " + ("✅" if ok else "❌") + " <b>" + esc(rec.get("home")) + "</b> "
+            + str(hs) + ":" + str(as_) + " <b>" + esc(rec.get("away")) + "</b>" + NL
+            + "      " + esc(rec.get("pick")))
+
+
+def obshto_po_sport(vsichki):
+    """Успеваемостта ДОСЕГА, по спорт. Само отсъдените, с изписан знаменател.
+
+    Взима се от ЦЕЛИЯ дневник, не от днешното — иначе числото скача всеки ден
+    и не значи нищо. Спорт под 5 отсъдени НЕ получава процент: „1 от 1 = 100%"
+    е число, което заблуждава повече, отколкото информира.
+    """
+    broy = {}
+    for r in (vsichki or []):
+        if not r.get("scored") or r.get("hit") is None:
+            continue
+        b = r.get("bucket") or "друго"
+        d = broy.setdefault(b, [0, 0])
+        d[1] += 1
+        if r.get("hit"):
+            d[0] += 1
+    return broy
+
+
+def results_text(now, rows, total_all, hit_all, bez=None, vsichki=None):
+    """Обзорът на деня — ПОДРЕДЕН ПО СПОРТ.
+
+    ПРЕНАПИСАН 05.08.2026 ПО ИЗРИЧНА ПОРЪЧКА НА СОБСТВЕНИКА:
+      „Искам всичко да е доста по-ясно. Най-добре е да ги разделиш на спортове,
+       като са по единични. За всеки спорт какво е излязло."
+
+    Дотук обзорът беше две купчини — всички познати заедно, всички сгрешени
+    заедно. При петнайсет мача от шест спорта това е списък, не обзор: човек
+    не може да види кой спорт го носи и кой го тегли надолу. А точно това е
+    единственото, което има значение.
+
+    Сега всеки спорт е свой блок със свое число, а най-отдолу стои
+    успеваемостта ДОСЕГА по спортове — от целия дневник, не от днешния ден.
+
+    Правилото за знаменателя остава: винаги се изписва „N от M". Процент без
+    знаменател е реклама.
     """
     hits = [r for r in rows if r[3]]
     miss = len(rows) - len(hits)
     pct_day = (100.0 * len(hits) / len(rows)) if rows else 0.0
     pct_all = (100.0 * hit_all / total_all) if total_all else 0.0
 
-    ok_rows = [line(r[0], r[1], r[2], True) for r in rows if r[3]]
-    no_rows = [line(r[0], r[1], r[2], False) for r in rows if not r[3]]
+    # Днешното, групирано по спорт. ЕДИН МАЧ СЕ ПОКАЗВА ВЕДНЪЖ.
+    #
+    # Дневникът съдържа дубликати: същата среща, вписана в два поредни дни
+    # (мачът е бил пренасрочен, а ключът за „вече публикувано" носи деня).
+    # Досега не си личеше, защото обзорът беше една дълга купчина. Щом го
+    # подредих по спорт, „Rafael Jodar 0:2 Taylor Fritz" излезе два пъти един
+    # под друг — пред очите на хората. Пазачът е тук, а не в дневника, защото
+    # обзорът е мястото, което се чете; истинската поправка е в предсказателя.
+    grupi = {}
+    vidyani = set()
+    for rec, hs, as_, ok in rows:
+        kl = (str(rec.get("home") or "").strip().lower(),
+              str(rec.get("away") or "").strip().lower(),
+              str(hs), str(as_))
+        if kl in vidyani:
+            continue
+        vidyani.add(kl)
+        grupi.setdefault(rec.get("bucket") or "друго", []).append((rec, hs, as_, ok))
 
     out = ["\U0001f4ca <b>ОБЗОР НА ДЕНЯ</b> · " + date_bg(now),
            "",
            ("<b>" + str(len(hits)) + " познати · " + str(miss) + " сгрешени · "
             + ("%.0f" % pct_day) + "%</b>"),
            ""]
-    if ok_rows:
-        out += ["✅ <b>ПОЗНАТИ</b>"] + ok_rows + [""]
-    if no_rows:
-        out += ["❌ <b>СГРЕШЕНИ</b>"] + no_rows + [""]
+
+    for b in po_red(list(grupi)):
+        redove = grupi[b]
+        p = sum(1 for x in redove if x[3])
+        out.append(sport_emo(b) + " <b>" + sport_ime(b) + "</b> · "
+                   + str(p) + " от " + str(len(redove)))
+        # Познатите първи — човек чете отгоре надолу и първо иска доброто.
+        for x in sorted(redove, key=lambda y: not y[3]):
+            out.append(kratak_red(x[0], x[1], x[2], x[3]))
+        out.append("")
+
     out += bez_text(bez or {})
-    out += [("\U0001f4c8 Общо: <b>" + str(hit_all) + " от " + str(total_all)
+
+    # Успеваемостта ДОСЕГА, по спорт. Това е числото, което казва нещо.
+    tabl = obshto_po_sport(vsichki)
+    if tabl:
+        out.append("\U0001f4c8 <b>ДОСЕГА ПО СПОРТОВЕ</b>")
+        for b in po_red(list(tabl)):
+            p, n = tabl[b]
+            red = ("  " + sport_emo(b) + " " + sport_ime(b).capitalize()
+                   + ": <b>" + str(p) + " от " + str(n) + "</b>")
+            if n >= 5:
+                red += " · " + ("%.0f" % (100.0 * p / n)) + "%"
+            else:
+                red += " · рано за процент"
+            out.append(red)
+        out.append("")
+
+    out += [("\U0001f4ca Всичко: <b>" + str(hit_all) + " от " + str(total_all)
              + "</b> · " + ("%.0f" % pct_all) + "%"),
             "\U0001f7e2 THE GREEN ROOM"]
     return NL.join(out)
 
 
 def wins_text(now, rows):
-    """Витрината. Само познатите, без обяснения."""
-    body = NL.join(line(r[0], r[1], r[2], True) for r in rows)
+    """Витрината. Само познатите — също подредени по спорт."""
+    grupi = {}
+    for rec, hs, as_, ok in rows:
+        grupi.setdefault(rec.get("bucket") or "друго", []).append((rec, hs, as_, ok))
+    parts = []
+    for b in po_red(list(grupi)):
+        parts.append(sport_emo(b) + " <b>" + sport_ime(b) + "</b> · "
+                     + str(len(grupi[b])))
+        for x in grupi[b]:
+            parts.append(kratak_red(x[0], x[1], x[2], True))
+        parts.append("")
+    body = NL.join(parts).rstrip()
+    if not body:
+        body = NL.join(line(r[0], r[1], r[2], True) for r in rows)
     return NL.join([
         "\U0001f3c6 <b>ПОЗНАТИТЕ ДНЕС</b> · " + date_bg(now),
         "",
@@ -777,9 +888,66 @@ def selftest():
     check("отчетът е чист", banned_word(t) is None)
     check("отчетът е озаглавен ОБЗОР НА ДЕНЯ", "ОБЗОР НА ДЕНЯ" in t)
     check("отчетът дава числото веднага", "1 познати · 1 сгрешени" in t)
-    check("отчетът разделя познати и сгрешени",
-          "ПОЗНАТИ" in t and "СГРЕШЕНИ" in t)
-    check("отчетът показва и общото", "Общо:" in t)
+    check("отчетът показва и общото", "Всичко:" in t)
+
+    # --- ОБЗОРЪТ Е ПОДРЕДЕН ПО СПОРТ (поръчка на собственика, 05.08.2026).
+    # Дотук беше две купчини — всички познати заедно, всички сгрешени заедно.
+    # При петнайсет мача от шест спорта това е списък, не обзор.
+    _mix = [({"home": "Левски", "away": "ЦСКА", "pick": "1", "bucket": "football"}, 2, 1, True),
+            ({"home": "Милан", "away": "Интер", "pick": "1", "bucket": "football"}, 0, 3, False),
+            ({"home": "Куба", "away": "Перу", "pick": "1", "bucket": "volleyball"}, 3, 0, True),
+            ({"home": "Никс", "away": "Хийт", "pick": "1", "bucket": "basketball"}, 99, 90, True)]
+    _dnevnik = [{"bucket": "volleyball", "scored": True, "hit": True} for _ in range(12)]
+    _dnevnik += [{"bucket": "volleyball", "scored": True, "hit": False}]
+    _dnevnik += [{"bucket": "football", "scored": True, "hit": True} for _ in range(2)]
+    _dnevnik += [{"bucket": "football", "scored": True, "hit": False} for _ in range(9)]
+    _dnevnik += [{"bucket": "hockey", "scored": True, "hit": True}]
+    _dnevnik += [{"bucket": "tabletennis", "scored": True, "hit": None}]
+    _t3 = results_text(_now, _mix, 44, 29, {}, _dnevnik)
+    check("обзорът има блок за футбола", "ФУТБОЛ" in _t3)
+    check("обзорът има блок за волейбола", "ВОЛЕЙБОЛ" in _t3)
+    check("обзорът има блок за баскетбола", "БАСКЕТБОЛ" in _t3)
+    check("всеки блок носи своето число", "ФУТБОЛ</b> · 1 от 2" in _t3)
+    check("волейболният блок е 1 от 1", "ВОЛЕЙБОЛ</b> · 1 от 1" in _t3)
+    check("футболът е преди волейбола (постоянен ред)",
+          _t3.index("ФУТБОЛ") < _t3.index("ВОЛЕЙБОЛ"))
+    check("има таблица ДОСЕГА ПО СПОРТОВЕ", "ДОСЕГА ПО СПОРТОВЕ" in _t3)
+    check("волейболът досега е 12 от 13", "12 от 13" in _t3)
+    check("волейболът досега е 92%", "92%" in _t3)
+    check("футболът досега е 2 от 11", "2 от 11" in _t3)
+    check("футболът досега е 18%", "18%" in _t3)
+    check("малката извадка НЕ получава процент",
+          "1 от 1</b> · рано за процент" in _t3)
+    check("неотсъденото НЕ влиза в таблицата", "ТЕНИС НА МАСА</b>: " not in _t3)
+    check("обзорът по спортове е чист", banned_word(_t3) is None)
+    check("познатите са преди сгрешените в блока",
+          _t3.index("Левски") < _t3.index("Милан"))
+    check("знаменателят винаги е изписан", " от " in _t3)
+    check("празен дневник не чупи таблицата",
+          isinstance(results_text(_now, _mix, 4, 3, {}, []), str))
+    check("липсващ дневник не чупи",
+          isinstance(results_text(_now, _mix, 4, 3), str))
+    check("подредбата на спортовете е постоянна",
+          po_red(["tennis", "football", "volleyball"]) == ["football", "volleyball", "tennis"])
+    check("непознат спорт отива накрая",
+          po_red(["зззз", "football"]) == ["football", "зззз"])
+    check("името на спорта е на български", sport_ime("hockey") == "ХОКЕЙ")
+    check("непознат спорт пак получава име", sport_ime("нещо") == "НЕЩО")
+    # Дубликат: същият мач, същият резултат, вписан два пъти в дневника.
+    _dubl = _mix + [({"home": "Левски", "away": "ЦСКА", "pick": "1",
+                      "bucket": "football"}, 2, 1, True)]
+    _td = results_text(_now, _dubl, 44, 29, {}, _dnevnik)
+    check("дублираният мач се показва ВЕДНЪЖ", _td.count("Левски") == 1)
+    check("дублирането не мени числото на блока", "ФУТБОЛ</b> · 1 от 2" in _td)
+    check("различен резултат за същия мач НЕ е дубликат",
+          results_text(_now, _mix + [({"home": "Левски", "away": "ЦСКА",
+                                       "pick": "1", "bucket": "football"},
+                                      3, 0, True)], 44, 29, {}, _dnevnik)
+          .count("Левски") == 2)
+
+    _w3 = wins_text(_now, [x for x in _mix if x[3]])
+    check("витрината също е по спорт", "ФУТБОЛ" in _w3 and "ВОЛЕЙБОЛ" in _w3)
+    check("витрината е чиста", banned_word(_w3) is None)
     check("отчетът НЕ поучава",
           "не се трие" not in t and "Гледахме" not in t and "завинаги" not in t)
     w = wins_text(_now, [_rows[0]])
@@ -940,7 +1108,8 @@ def main():
     total_all += len(fresh)
     hit_all += sum(1 for f in fresh if f[3])
 
-    post(RESULTS_THREAD, results_text(now, fresh, total_all, hit_all, bez_izvor))
+    post(RESULTS_THREAD, results_text(now, fresh, total_all, hit_all,
+                                      bez_izvor, rows))
     wins = [f for f in fresh if f[3]]
     if wins:
         time.sleep(2.0)
