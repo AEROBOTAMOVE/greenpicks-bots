@@ -76,6 +76,25 @@ SPORT_PATH = {
     "tabletennis": (None, "\U0001f3d3"),     # WTT, не ESPN
 }
 
+# СПОРТОВЕ БЕЗ ИЗТОЧНИК НА РЕЗУЛТАТИ.
+#
+# Тенисът на маса влиза тук след шест измервания на 04.08.2026, не по усещане:
+#   1. WTT schedule.json — 1103 единици за събитие 3322, НИТО ЕДНО поле с
+#      резултат. Има „ScheduleStatus: Official", тоест мачът се е състоял, но
+#      кой е спечелил не пише никъде.
+#   2. WTT results/ matches/ draw/ livescore/ matchresults/ medalists/
+#      standings — празни или 404.
+#   3. WTT статистиката по един ден (GetStatsByPlayer) отговаря, но си
+#      ПРОТИВОРЕЧИ: при 40 мача 30% са двойки, в които И ДВАМАТА играчи имат
+#      нула загуби, а са играли един срещу друг. Невъзможно.
+#   4. TheSportsDB с безплатния ключ вече дава само футбол и мотоспорт.
+#   5. ESPN не покрива тенис на маса.
+#   6. Sofascore връща 403.
+#
+# Такава прогноза се затваря веднага след деня си с hit=None и се брои
+# отделно. НЕ влиза в процента — измислен резултат е по-лош от липсващ.
+NO_RESULT = {"tabletennis"}
+
 # Думи, които НЕ ИЗЛИЗАТ навън. Същият пазач като в другите ботове.
 BANNED = ["18+", "залагай отговорно",
           "коеф", "букмейкър", "odds",
@@ -474,19 +493,53 @@ def sport_result(rec):
     return espn_result(rec)
 
 
+def market_code(pick):
+    """Кодът на пазара от началото на избора: 1, 2, Х, 1Х, Х2. Празно = няма.
+
+    Чете се ПРЕДИ имената, защото е еднозначен, докато имената не са: избор
+    „1Х · Милан или равен" съдържа името на домакина и по имена би минал за
+    чиста победа — тоест равенството щеше да се брои за грешка, а точно
+    заради равенствата съществува двойният шанс.
+
+    Кирилското Х и латинското X изглеждат еднакво на екрана и различно в
+    паметта. Приемат се и двете, за да не зависи присъдата от клавиатурата.
+    """
+    s = str(pick or "").strip()
+    glava = (s.split("·")[0] if "·" in s else s[:2]).strip()
+    glava = glava.replace("X", "Х").replace("x", "Х").upper()
+    return {"1Х": "1X", "Х1": "1X", "Х2": "X2", "2Х": "X2",
+            "Х": "X", "1": "1", "2": "2"}.get(glava, "")
+
+
 def verdict(rec, hs, as_):
     """Позна ли прогнозата. Връща True / False / None (не можем да отсъдим).
 
     None НЕ е провал — то значи „не разбирам собственото си твърдение" и
     такъв ред просто не влиза в статистиката. По-добре празно, отколкото
     измислен резултат.
+
+    Редът е: първо кодът на пазара, чак после имената. Обратното вече ни
+    подведе веднъж — при двоен шанс имената сочат победител, какъвто не сме
+    твърдели.
     """
     pick = (rec.get("pick") or "")
     home = (rec.get("home") or "")
     away = (rec.get("away") or "")
     low = pick.lower().strip()
 
-    # Първо: разбираме ли изобщо какво сме твърдели?
+    kod = market_code(pick)
+    if kod == "1":
+        return hs > as_
+    if kod == "2":
+        return as_ > hs
+    if kod == "X":
+        return hs == as_
+    if kod == "1X":
+        return hs >= as_            # домакинът или равен
+    if kod == "X2":
+        return as_ >= hs            # гостът или равен
+
+    # Без код отпред остават имената — старият път, за по-стари записи.
     said_home = name_in(home, pick) or low[:2] in ("1 ", "1·", "1.")
     said_away = name_in(away, pick) or low[:2] in ("2 ", "2·", "2.")
     if said_home == said_away:
@@ -516,7 +569,24 @@ def line(rec, hs, as_, ok):
             + "    посочихме: " + esc(rec.get("pick")))
 
 
-def results_text(now, rows, total_all, hit_all):
+def bez_text(bez):
+    """Един ред за прогнозите, които никой източник не може да отсъди.
+
+    Мълчанието тук би било по-удобно, но собственикът щеше да брои картите в
+    стая 7 и да не ги намира в обзора. По-добре да пише защо.
+    """
+    if not bez:
+        return []
+    out = []
+    for b, n in sorted(bez.items()):
+        emo = (SPORT_PATH.get(b) or (None, "\U0001f4cc"))[1]
+        ime = {"tabletennis": "тенис на маса"}.get(b, b)
+        out.append(emo + " " + ime + ": <b>" + str(n) + "</b> без официален "
+                   + ("резултат" if n == 1 else "резултат"))
+    return out + [""]
+
+
+def results_text(now, rows, total_all, hit_all, bez=None):
     """Обзорът на деня. Числото отгоре, редовете отдолу, край.
 
     ПРЕНАПИСАН НА 29.07.2026 ПО ИЗРИЧНА ПОРЪЧКА НА СОБСТВЕНИКА:
@@ -543,6 +613,7 @@ def results_text(now, rows, total_all, hit_all):
         out += ["✅ <b>ПОЗНАТИ</b>"] + ok_rows + [""]
     if no_rows:
         out += ["❌ <b>СГРЕШЕНИ</b>"] + no_rows + [""]
+    out += bez_text(bez or {})
     out += [("\U0001f4c8 Общо: <b>" + str(hit_all) + " от " + str(total_all)
              + "</b> · " + ("%.0f" % pct_all) + "%"),
             "\U0001f7e2 THE GREEN ROOM"]
@@ -651,8 +722,33 @@ def selftest():
     check("името вътре в друга дума не се брои",
           name_in("Интер", "Интернационале") is False)
     check("познат след затягането", verdict(r4, 2, 0) is True)
-    r5 = {"home": "Милан", "away": "Интер", "pick": "1 · победа Милан и Интер"}
-    check("двусмислено твърдение не се съди", verdict(r5, 2, 0) is None)
+    r5 = {"home": "Милан", "away": "Интер", "pick": "победа Милан и Интер"}
+    check("двусмислено твърдение без код не се съди", verdict(r5, 2, 0) is None)
+
+    # --- ДВОЙНИЯТ ШАНС. Кодът отпред е присъдата, не имената.
+    check("кодът чете 1", market_code("1 · победа Милан") == "1")
+    check("кодът чете 2", market_code("2 · победа Интер") == "2")
+    check("кодът чете Х", market_code("Х · равен") == "X")
+    check("кодът чете 1Х", market_code("1Х · Милан или равен") == "1X")
+    check("кодът чете Х2", market_code("Х2 · Интер или равен") == "X2")
+    check("латинското X се приема като кирилско",
+          market_code("1X · Милан или равен") == "1X")
+    check("текст без код дава празно", market_code("победа Милан") == "")
+    check("празният избор дава празно", market_code("") == "")
+    dc1 = {"home": "Милан", "away": "Интер", "pick": "1Х · Милан или равен"}
+    check("1Х печели при победа на домакина", verdict(dc1, 2, 0) is True)
+    check("1Х ПЕЧЕЛИ ПРИ РАВЕН", verdict(dc1, 1, 1) is True)
+    check("1Х губи при победа на госта", verdict(dc1, 0, 2) is False)
+    dc2 = {"home": "Милан", "away": "Интер", "pick": "Х2 · Интер или равен"}
+    check("Х2 печели при победа на госта", verdict(dc2, 0, 2) is True)
+    check("Х2 печели при равен", verdict(dc2, 1, 1) is True)
+    check("Х2 губи при победа на домакина", verdict(dc2, 2, 0) is False)
+    x0 = {"home": "Милан", "away": "Интер", "pick": "Х · равен"}
+    check("чистото Х печели само при равен", verdict(x0, 1, 1) is True)
+    check("чистото Х губи при победа", verdict(x0, 2, 1) is False)
+    # Тук беше дупката: по имена „1Х · Милан или равен" съдържа „Милан" и
+    # равенството 1:1 щеше да мине за ГРЕШКА.
+    check("равенството при 1Х НЕ е грешка", verdict(dc1, 1, 1) is not False)
 
     # --- ТЕКСТЪТ. Пренаписан 29.07.2026: собственикът поиска ЯСЕН ОБЗОР,
     # без „какво следихме", без „нищо не се трие", без обяснения.
@@ -691,6 +787,23 @@ def selftest():
     check("днешният мач НЕ се прескача", not (_today > _today))
     check("вчерашният мач НЕ се прескача", not (_vchera > _today))
 
+    # --- спортът без източник. Измерено 04.08.2026: шест адреса, нула
+    # резултата, а статистиката по ден си противоречи в 30% от мачовете.
+    check("тенисът на маса е обявен за без източник", "tabletennis" in NO_RESULT)
+    check("волейболът НЕ е без източник", "volleyball" not in NO_RESULT)
+    check("тенисът НЕ е без източник", "tennis" not in NO_RESULT)
+    check("футболът НЕ е без източник", "football" not in NO_RESULT)
+    _b = bez_text({"tabletennis": 5})
+    check("редът за без-източник казва броя", "<b>5</b>" in NL.join(_b))
+    check("редът за без-източник назовава спорта",
+          "тенис на маса" in NL.join(_b))
+    check("без-източник не се появява, когато няма такива", bez_text({}) == [])
+    _t2 = results_text(_now, _rows, 10, 6, {"tabletennis": 3})
+    check("обзорът показва без-източник", "без официален" in _t2)
+    check("обзорът с без-източник е чист", banned_word(_t2) is None)
+    check("без-източник НЕ разваля процента", "1 познати · 1 сгрешени" in _t2)
+    check("обзорът без такива не пише за тях", "без официален" not in t)
+
     print("САМОПРОВЕРКА НА ОЦЕНИТЕЛЯ: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)
@@ -716,6 +829,7 @@ def main():
 
     fresh = []
     checked = 0
+    bez_izvor = {}
     for r in rows:
         if r.get("scored"):
             continue
@@ -734,6 +848,14 @@ def main():
         if day < limit:
             r["scored"] = True                # твърде старо, отказваме се
             r["hit"] = None
+            continue
+        # Спорт без източник: не хабим заявки да питаме нещо, което няма
+        # отговор. Затваряме го честно още щом денят му мине.
+        if r.get("bucket") in NO_RESULT and day < today:
+            r["scored"] = True
+            r["hit"] = None
+            r["why"] = "няма официален източник за резултата"
+            bez_izvor[r.get("bucket")] = bez_izvor.get(r.get("bucket"), 0) + 1
             continue
         checked += 1
         res = sport_result(r)
@@ -760,7 +882,7 @@ def main():
     total_all += len(fresh)
     hit_all += sum(1 for f in fresh if f[3])
 
-    post(RESULTS_THREAD, results_text(now, fresh, total_all, hit_all))
+    post(RESULTS_THREAD, results_text(now, fresh, total_all, hit_all, bez_izvor))
     wins = [f for f in fresh if f[3]]
     if wins:
         time.sleep(2.0)
