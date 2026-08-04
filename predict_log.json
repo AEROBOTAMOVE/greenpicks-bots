@@ -1354,5 +1354,23 @@
   "stars": 1,
   "sample": "без история",
   "scored": false
+ },
+ {
+  "key": "2026-08-04|tabletennis|jiananyuan|margarytapesotska",
+  "combo": 0,
+  "posted": "2026-08-04 14:01",
+  "day": "2026-08-04",
+  "bucket": "tabletennis",
+  "home": "Jia Nan YUAN",
+  "away": "Margaryta PESOTSKA",
+  "home_id": "137894",
+  "away_id": "107321",
+  "league": "WTT Champions Yokohama 2026 · Women's Singles",
+  "slug": null,
+  "pick": "2 · Margaryta PESOTSKA",
+  "p": 0.575,
+  "stars": 2,
+  "sample": "извадка 44+46 мача",
+  "scored": false
  }
 ]
