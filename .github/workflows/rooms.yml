@@ -1,0 +1,90 @@
+name: rooms (стаи по спорт)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Пуска make_rooms.py — създава ЛИПСВАЩИТЕ стаи по спорт във форум-групата.
+#
+#   plan   → САМО показва какво липсва. НИЩО не пипа. По подразбиране.
+#   create → наистина създава стаите и им закача отварящ пост.
+#
+# Ботът предричаше за осем спорта, а стаи имаше за пет. Хокеят, тенисът,
+# бейзболът и американският футбол нямаха своя стая.
+#
+# ЗАЩО ПЪРВО PLAN: създадена тема се трие само ръчно от приложението. Значи
+# това е действие БЕЗ лесен път назад и не бива да тръгва на сляпо.
+#
+# ЗАЩО contents: write — make_rooms.py помни в rooms_state.json коя стая на кой
+# спорт е дал. Bot API НЯМА метод за изброяване на теми, тоест този файл е
+# ЕДИНСТВЕНАТА памет. Без връщането му следващото пускане прави дубликати.
+#
+# ПРАВО, КОЕТО ТРЯБВА НА БОТА: „Управление на темите" в групата. Без него
+# createForumTopic връща грешка и рънът ще каже точно това.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'plan = само показва · create = създава стаите'
+        default: 'plan'
+        type: choice
+        options: [plan, create]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rooms-setup
+  cancel-in-progress: false
+
+jobs:
+  rooms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Портиерът. Ако самопроверката падне, нищо не се създава.
+      - name: Самопроверка
+        run: python make_rooms.py --selftest
+
+      - name: Стаите
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          ROOMS_MODE: ${{ github.event.inputs.mode || 'plan' }}
+        run: python make_rooms.py
+
+      # Паметта се връща в хранилището. Без този ред следващото пускане не знае
+      # какво вече е създало и прави втори комплект стаи.
+      - name: Запомни кой спорт коя стая получи
+        if: always()
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          git add rooms_state.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Паметта е без промяна."
+            exit 0
+          fi
+          git commit -m "rooms state"
+          pushed=0
+          for i in 1 2 3 4 5; do
+            if git push; then
+              pushed=1
+              break
+            fi
+            echo "Push-ът не мина (опит $i) — дърпам и опитвам пак."
+            git pull --rebase --autostash || git rebase --abort || true
+            sleep $((RANDOM % 6 + 3))
+          done
+          if [ "$pushed" != "1" ]; then
+            echo "ЧЕРВЕНО: паметта НЕ се върна — следващото пускане ще дублира стаите."
+            exit 1
+          fi
+          echo "Паметта е запазена."
