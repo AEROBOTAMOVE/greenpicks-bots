@@ -52,7 +52,10 @@ CHANNEL_ID = (os.environ.get("CHANNEL_ID") or "-1004403334702").strip()
 RESULTS_THREAD = (os.environ.get("RESULTS_THREAD_ID") or "9").strip()
 WINS_THREAD = (os.environ.get("WINS_THREAD_ID") or "10").strip()
 # Единствените две стаи, в които този файл има право да пише.
-ALLOWED_THREADS = {RESULTS_THREAD, WINS_THREAD}
+# Стая 4 „Фишове на деня": там излиза обзорът КАК СА МИНАЛИ фишовете.
+# Поръчка на собственика: „Фишовете на деня трябва и там обзор."
+PICKS_THREAD = (os.environ.get("PICKS_THREAD_ID") or "4").strip()
+ALLOWED_THREADS = {RESULTS_THREAD, WINS_THREAD, PICKS_THREAD}
 
 LOG_FILE = (os.environ.get("SCORE_LOG_FILE") or "predict_log.json").strip()
 DRY_RUN = (os.environ.get("SCORE_DRY_RUN") or "").strip() in ("1", "true", "yes", "да")
@@ -143,7 +146,6 @@ def post(thread, text):
     ok = bool(r.get("ok"))
     print(("  пратено в стая " if ok else "  НЕ мина в стая ") + tid)
     return ok
-
 
 # ------------------------------------------------------------------ РЕЗУЛТАТИ
 def espn_result(rec):
@@ -258,35 +260,76 @@ def line(rec, hs, as_, ok):
 
 
 def results_text(now, rows, total_all, hit_all):
+    """Обзорът на деня. Числото отгоре, редовете отдолу, край.
+
+    ПРЕНАПИСАН НА 29.07.2026 ПО ИЗРИЧНА ПОРЪЧКА НА СОБСТВЕНИКА:
+      „Спри да пишеш какво следихме, спри да ми казваш нищо не се трие и
+       тъпотии — ясен точен обзор на деня какво е спечелено и какво не."
+    Затова тук няма нито един ред обяснение, обещание или самохвалство.
+    Първото нещо, което човек вижда, е резултатът за деня. После кой позна и
+    кой не. Толкова.
+    """
     hits = [r for r in rows if r[3]]
+    miss = len(rows) - len(hits)
     pct_day = (100.0 * len(hits) / len(rows)) if rows else 0.0
     pct_all = (100.0 * hit_all / total_all) if total_all else 0.0
-    body = NL.join(line(r[0], r[1], r[2], r[3]) for r in rows)
-    return NL.join([
-        "\U0001f4ca <b>РЕЗУЛТАТИТЕ НА БОТА</b> · " + date_bg(now),
-        "",
-        body,
-        "",
-        ("За деня: <b>" + str(len(hits)) + " от "
-         + str(len(rows)) + "</b> (" + ("%.0f" % pct_day) + "%)"),
-        ("Общо досега: <b>" + str(hit_all)
-         + " от " + str(total_all) + "</b> (" + ("%.0f" % pct_all) + "%)"),
-        "\U0001f512 Нищо не се трие. Сгрешените остават тук завинаги.",
-        "\U0001f7e2 THE GREEN ROOM",
-    ])
+
+    ok_rows = [line(r[0], r[1], r[2], True) for r in rows if r[3]]
+    no_rows = [line(r[0], r[1], r[2], False) for r in rows if not r[3]]
+
+    out = ["\U0001f4ca <b>ОБЗОР НА ДЕНЯ</b> · " + date_bg(now),
+           "",
+           ("<b>" + str(len(hits)) + " познати · " + str(miss) + " сгрешени · "
+            + ("%.0f" % pct_day) + "%</b>"),
+           ""]
+    if ok_rows:
+        out += ["✅ <b>ПОЗНАТИ</b>"] + ok_rows + [""]
+    if no_rows:
+        out += ["❌ <b>СГРЕШЕНИ</b>"] + no_rows + [""]
+    out += [("\U0001f4c8 Общо: <b>" + str(hit_all) + " от " + str(total_all)
+             + "</b> · " + ("%.0f" % pct_all) + "%"),
+            "\U0001f7e2 THE GREEN ROOM"]
+    return NL.join(out)
 
 
 def wins_text(now, rows):
+    """Витрината. Само познатите, без обяснения."""
     body = NL.join(line(r[0], r[1], r[2], True) for r in rows)
     return NL.join([
-        "\U0001f3c6 <b>ПОЗНАТИТЕ НА БОТА</b> · " + date_bg(now),
+        "\U0001f3c6 <b>ПОЗНАТИТЕ ДНЕС</b> · " + date_bg(now),
         "",
         body,
         "",
-        "\U0001f4cc Пълният отчет — със сгрешените — е в ✅ Резултати и статистика.",
         "\U0001f7e2 THE GREEN ROOM",
     ])
 
+
+def combo_text(now, slips):
+    """Обзор на трите фиша: кой е минал изцяло и кой къде се е скъсал.
+
+    Поръчка на собственика: „Фишовете на деня трябва и там обзор."
+    Един фиш е верен само ако ВСИЧКИТЕ пет избора са познали — затова тук
+    се брои така, а не по проценти.
+    """
+    out = ["\U0001f3ab <b>ФИШОВЕТЕ ОТ ВЧЕРА</b> · " + date_bg(now), ""]
+    minali = 0
+    for n, legs in slips:
+        ok = sum(1 for x in legs if x[3])
+        vsi = len(legs)
+        cял = (ok == vsi)
+        if cял:
+            minali += 1
+        out.append(("✅" if cял else "❌") + " <b>ФИШ " + str(n) + "</b> · "
+                   + str(ok) + " от " + str(vsi))
+        for rec, hs, as_, hit in legs:
+            emo = (SPORT_PATH.get(rec.get("bucket")) or (None, "\U0001f4cc"))[1]
+            out.append(("   ✅ " if hit else "   ❌ ") + emo + " "
+                       + esc(rec.get("home")) + " " + str(hs) + ":" + str(as_)
+                       + " " + esc(rec.get("away")))
+        out.append("")
+    out.append("<b>" + str(minali) + " от " + str(len(slips)) + " фиша минаха.</b>")
+    out.append("\U0001f7e2 THE GREEN ROOM")
+    return NL.join(out)
 
 # --------------------------------------------------------------------- ГЛАВНО
 def load_log():
@@ -325,11 +368,15 @@ def selftest():
         else:
             bad.append(name)
 
-    # пазачът на стаите
-    for room in ("4", "5", "6", "7", "8", "11", "26", "27", "328"):
+    # пазачът на стаите. Стая 4 вече Е разрешена — там отива обзорът на
+    # фишовете (поръчка на собственика). Всичко останало си остава чуждо.
+    for room in ("5", "6", "7", "8", "11", "26", "27", "328", "1", "3"):
         check("стая " + room + " е забранена", room not in ALLOWED_THREADS)
     check("стая 9 е разрешена", RESULTS_THREAD in ALLOWED_THREADS)
     check("стая 10 е разрешена", WINS_THREAD in ALLOWED_THREADS)
+    check("стая 4 е разрешена (обзор на фишовете)", PICKS_THREAD in ALLOWED_THREADS)
+    check("разрешените са точно три",
+          ALLOWED_THREADS == {RESULTS_THREAD, WINS_THREAD, PICKS_THREAD})
 
     # отсъждането
     r = {"home": "Куба", "away": "Египет", "pick": "1 · победа Куба"}
@@ -349,16 +396,34 @@ def selftest():
     r5 = {"home": "Милан", "away": "Интер", "pick": "1 · победа Милан и Интер"}
     check("двусмислено твърдение не се съди", verdict(r5, 2, 0) is None)
 
-    # тонът
-    t = results_text(datetime.now(SOFIA),
-                     [({"home": "А", "away": "Б", "pick": "1", "bucket": "football"}, 2, 1, True)],
-                     10, 6)
+    # --- ТЕКСТЪТ. Пренаписан 29.07.2026: собственикът поиска ЯСЕН ОБЗОР,
+    # без „какво следихме", без „нищо не се трие", без обяснения.
+    _now = datetime.now(SOFIA)
+    _rows = [({"home": "Левски", "away": "ЦСКА", "pick": "1", "bucket": "football"}, 2, 1, True),
+             ({"home": "Милан", "away": "Интер", "pick": "1", "bucket": "football"}, 0, 3, False)]
+    t = results_text(_now, _rows, 10, 6)
     check("отчетът е чист", banned_word(t) is None)
-    check("отчетът показва и общото", "Общо досега" in t)
-    w = wins_text(datetime.now(SOFIA),
-                  [({"home": "А", "away": "Б", "pick": "1", "bucket": "football"}, 2, 1, True)])
+    check("отчетът е озаглавен ОБЗОР НА ДЕНЯ", "ОБЗОР НА ДЕНЯ" in t)
+    check("отчетът дава числото веднага", "1 познати · 1 сгрешени" in t)
+    check("отчетът разделя познати и сгрешени",
+          "ПОЗНАТИ" in t and "СГРЕШЕНИ" in t)
+    check("отчетът показва и общото", "Общо:" in t)
+    check("отчетът НЕ поучава",
+          "не се трие" not in t and "Гледахме" not in t and "завинаги" not in t)
+    w = wins_text(_now, [_rows[0]])
     check("витрината е чиста", banned_word(w) is None)
-    check("витрината сочи към пълния отчет", "Резултати и статистика" in w)
+    check("витрината е само познатите", "ПОЗНАТИТЕ ДНЕС" in w)
+    check("витрината не обяснява", "Пълният отчет" not in w)
+
+    # --- обзорът на фишовете
+    _legs = [({"home": "А" + str(i), "away": "Б", "pick": "1", "bucket": "football"},
+              2, 1, i != 2) for i in range(5)]
+    c = combo_text(_now, [(1, _legs)])
+    check("фишовете имат обзор", "ФИШОВЕТЕ ОТ ВЧЕРА" in c)
+    check("скъсаният фиш е отбелязан", "❌ <b>ФИШ 1</b> · 4 от 5" in c)
+    check("обзорът на фишовете е чист", banned_word(c) is None)
+    check("обзорът брои минали фишове", "0 от 1 фиша минаха" in c)
+    check("стая 4 е разрешена за обзора", PICKS_THREAD in ALLOWED_THREADS)
 
     # --- прозорецът на дните: днешното СЕ отчита, утрешното НЕ
     _today = datetime.now(SOFIA).strftime("%Y-%m-%d")
@@ -444,6 +509,32 @@ def main():
         post(WINS_THREAD, wins_text(now, wins))
     else:
         print("Днес няма познати — витрината мълчи, отчетът излезе.")
+
+    # ОБЗОР НА ФИШОВЕТЕ → стая 4.
+    # Един фиш се отчита ЕДВА когато и петте му крака са отсъдени. Ако един мач
+    # още не е свършил, фишът чака следващото пускане — иначе бихме обявили
+    # „скъсан фиш" върху половин информация.
+    slips = {}
+    for f in fresh:
+        n = int((f[0].get("combo") or 0))
+        if n:
+            slips.setdefault(n, []).append(f)
+    if slips:
+        gotovi = []
+        for n in sorted(slips):
+            legs = slips[n]
+            ochakvani = sum(1 for r in rows
+                            if int(r.get("combo") or 0) == n
+                            and (r.get("day") or "") == (legs[0][0].get("day") or ""))
+            if len(legs) >= ochakvani:
+                gotovi.append((n, legs))
+            else:
+                print("Фиш " + str(n) + ": " + str(len(legs)) + " от "
+                      + str(ochakvani) + " крака са готови — чака.")
+        if gotovi:
+            time.sleep(2.0)
+            post(PICKS_THREAD, combo_text(now, gotovi))
+
     save_log(rows)
     return 0
 
