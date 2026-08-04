@@ -124,8 +124,44 @@ SPORT_ROOM = {
     "tabletennis": (os.environ.get("TT_THREAD_ID") or "7").strip(),
     "volleyball":  (os.environ.get("VOLLEY_THREAD_ID") or "8").strip(),
     "mma":         (os.environ.get("COMBAT_THREAD_ID") or "328").strip(),
-    # тенис, хокей и бейзбол нямат своя стая — техните карти остават само в 27
 }
+
+# НОВИТЕ СТАИ СЕ ЧЕТАТ ОТ ФАЙЛ, НЕ СЕ ЗАКОВАВАТ ТУК.
+#
+# Ботът предричаше за осем спорта, а стаи имаше за пет: хокеят, тенисът,
+# бейзболът и американският футбол оставаха само в общата витрина 27.
+# make_rooms.py ги създава в групата и записва номерата им в rooms_state.json.
+# Тук те просто се вливат — така създаването и ползването им са ЕДНО качване,
+# а не две, и ако утре се появи девети спорт, не се пипа този файл.
+#
+# Ако файлът липсва или е повреден, нищо не се чупи: спортът просто остава
+# без своя стая, точно както беше досега. Тиха загуба, не тих провал.
+ROOMS_STATE_FILE = (os.environ.get("ROOMS_STATE_FILE") or "rooms_state.json").strip()
+
+
+def _stai_ot_fayl(path):
+    """Спорт -> номер на стая, от паметта на make_rooms.py. {} при липса."""
+    try:
+        with open(path, encoding="utf-8-sig") as f:
+            d = json.load(f)
+    except Exception:                             # noqa: BLE001
+        return {}
+    if not isinstance(d, dict):
+        return {}
+    out = {}
+    for sport, zapis in d.items():
+        thread = (zapis or {}).get("thread") if isinstance(zapis, dict) else None
+        try:
+            n = int(thread)
+        except (TypeError, ValueError):
+            continue
+        if n > 0 and str(sport).strip():
+            out[str(sport).strip()] = str(n)
+    return out
+
+
+for _sport, _stay in _stai_ot_fayl(ROOMS_STATE_FILE).items():
+    SPORT_ROOM.setdefault(_sport, _stay)      # закованите отгоре имат превес
 PICKS_THREAD = (os.environ.get("PICKS_THREAD_ID") or "4").strip()
 
 # 🚫 Новините са чужди. Всичко останало, което пипаме, е изброено поименно.
@@ -1847,6 +1883,43 @@ def mma_prior(w, l):
     return 1500.0 + 200.0 * (rate - 0.5) * 2.0 * min(1.0, n / 12.0)
 
 
+def mma_finish(status, periods):
+    """Предсрочен ли е краят на боя. None = не можем да кажем.
+
+    ТУК СТОЕШЕ ДЕФЕКТ, КОЙТО ЛЪЖЕШЕ ВСЕКИ ДЕН (намерен и оправен 04.08.2026).
+    Старият код четеше „period" и „displayClock" от status["type"], а те живеят
+    на самия status. И двете излизаха празни, тоест сметката ставаше
+        finish = not (3 >= 3 and "".startswith("5:0")) = not False = True
+    ВИНАГИ. Измерено: 71 от 71 бойци с дял на предсрочните победи 100%.
+    Картата печаташе „Печели предсрочно в 5 от 5 победи" за когото и да е.
+
+    По-скъпото беше невидимото: Elo коефициентът е MMA_ELO_K * 1.25 при
+    предсрочна победа и * 0.9 при съдийско решение. Щом „предсрочно" е винаги
+    вярно, множителят 0.9 никога не се е ползвал — тоест дефектът мести САМИТЕ
+    рейтинги, не само текста под тях.
+
+    ПРАВИЛОТО: ESPN няма поле „начин на победа". Изведено: боят е стигнал до
+    съдиите, ако са изиграни всичките рундове И часовникът е в края си. Едни
+    фийдове броят нагоре до 5:00, други надолу до 0:00 — приемат се и двете.
+
+    БЕЗ ЧАСОВНИК НЕ ТВЪРДИМ НИЩО. Връща се None и боят не влиза в статистиката
+    за предсрочни победи. По-добре по-малка извадка, отколкото същата лъжа с
+    друг знак.
+    """
+    s = status if isinstance(status, dict) else {}
+    per = to_num(s.get("period"))
+    clock = str(s.get("displayClock") or "").strip()
+    if not clock:
+        return None                       # няма на какво да стъпим
+    try:
+        n_per = int(periods)
+    except (TypeError, ValueError):
+        n_per = 3
+    celi = (per is not None) and (per >= n_per)
+    iztekal = clock.startswith("5:0") or clock.startswith("0:0")
+    return not (celi and iztekal)
+
+
 def mma_index(league, now):
     """Elo върху всички битки от последните години. Едно повикване на година."""
     if league in _mma_idx:
@@ -1873,11 +1946,8 @@ def mma_index(league, now):
                 if not all(ids) or win is None:
                     continue
                 periods = to_num(((comp.get("format") or {}).get("regulation") or {}).get("periods")) or 3
-                per = to_num(st.get("period")) or periods
-                clock = str(st.get("displayClock") or "")
-                # Няма поле „начин на победа". Изведено правило: пълни рундове с
-                # часовник 5:00 = съдийско решение, всичко друго = предсрочен край.
-                finish = not (per >= periods and clock.startswith("5:0"))
+                # ЧЕТЕ СЕ ОТ status, НЕ от status["type"] — точно това беше дефектът.
+                finish = mma_finish(comp.get("status") or {}, periods)
                 fights.append({"date": str(ev.get("date") or "")[:10],
                                "a": ids[0], "b": ids[1], "w": win, "fin": finish})
     fights.sort(key=lambda f: f["date"])
@@ -1887,18 +1957,29 @@ def mma_index(league, now):
             if cid not in elo:
                 w, l, _d = parse_record(rec.get(cid) or "")
                 elo[cid] = mma_prior(w, l)
-                seen[cid] = {"n": 0, "w": 0, "fin": 0}
+                seen[cid] = {"n": 0, "w": 0, "fin": 0, "znaem": 0}
         ra, rb = elo[f["a"]], elo[f["b"]]
         sa = 1.0 if f["w"] == f["a"] else 0.0
-        k = MMA_ELO_K * (1.25 if f["fin"] else 0.9)
+        # Неизвестен начин на победа (fin=None) минава с НЕУТРАЛЕН коефициент.
+        # Дотук такъв случай нямаше — защото „предсрочно" беше винаги вярно и
+        # множителят 0.9 не се ползваше нито веднъж.
+        if f["fin"] is None:
+            k = MMA_ELO_K
+        else:
+            k = MMA_ELO_K * (1.25 if f["fin"] else 0.9)
         ea = elo_expect(ra, rb)
         elo[f["a"]] = ra + k * (sa - ea)
         elo[f["b"]] = rb + k * ((1.0 - sa) - (1.0 - ea))
         for cid in (f["a"], f["b"]):
             seen[cid]["n"] += 1
         seen[f["w"]]["w"] += 1
-        if f["fin"]:
-            seen[f["w"]]["fin"] += 1
+        # „znaem" брои победите, за които ЗНАЕМ начина. Дялът на предсрочните
+        # се смята срещу него, не срещу всички победи — иначе липсващите данни
+        # се броят за съдийски решения и числото пак лъже, само в другата посока.
+        if f["fin"] is not None:
+            seen[f["w"]]["znaem"] += 1
+            if f["fin"]:
+                seen[f["w"]]["fin"] += 1
     _mma_idx[league] = {"elo": elo, "stat": seen, "rec": rec, "fights": len(fights)}
     return _mma_idx[league]
 
@@ -1966,13 +2047,21 @@ def model_mma(fx, now):
     p = 0.5 + (p - 0.5) * clampf((min(na, nb) + 2.0) / 8.0, 0.35, 1.0)
     p = clampf(p, 1.0 - MMA_P_MAX, MMA_P_MAX)
     sa_, sb_ = stat.get(ida) or {}, stat.get(idb) or {}
-    # Дялът предсрочни победи се показва само при поне 4 победи в индекса.
-    # „100% предсрочно" от една победа е число без съдържание.
-    fin_a = (sa_.get("fin", 0) / float(sa_["w"])) if sa_.get("w", 0) >= 4 else None
-    fin_b = (sb_.get("fin", 0) / float(sb_["w"])) if sb_.get("w", 0) >= 4 else None
+
+    # Дялът предсрочни победи се дели на ПОБЕДИТЕ С ИЗВЕСТЕН НАЧИН („znaem"),
+    # не на всички. Ако делим на всички, боевете без часовник се броят мълчаливо
+    # за съдийски решения и числото пак лъже — просто в другата посока.
+    # Прагът е поне 4 такива победи: „100% предсрочно" от една победа е число
+    # без съдържание.
+    def _dyal(s):
+        z = s.get("znaem", 0)
+        return (s.get("fin", 0) / float(z)) if z >= 4 else None
+
+    fin_a, fin_b = _dyal(sa_), _dyal(sb_)
     return {"p_home": p, "p_away": 1.0 - p, "ra": ra, "rb": rb, "na": na, "nb": nb,
             "rec_h": (wa, la), "rec_a": (wb, lb), "fin_h": fin_a, "fin_a": fin_b,
             "win_h": sa_.get("w", 0), "win_a": sb_.get("w", 0),
+            "znaem_h": sa_.get("znaem", 0), "znaem_a": sb_.get("znaem", 0),
             "ok": (wa + la) >= 3 and (wb + lb) >= 3}
 
 
@@ -2776,18 +2865,38 @@ def set_prob_from_match(p_match, best_of=3):
     return (lo + hi) / 2.0
 
 
-def tennis_sets_line(p_match):
-    """Над/Под 2.5 сета при мач до два спечелени.
+def tennis_sets_line(p_match, best_of=3):
+    """Над/Под сета — с линия, която ПАСВА на формата на мача.
 
-    P(три сета) = 2 * s * (1 - s) — точно, без приближение: и двата начина да
-    се стигне до трети сет минават през „по един сет за всеки".
+    ТУК ИЗЛИЗАШЕ ФИЗИЧЕСКИ НЕВЪЗМОЖЕН РЕД (намерено и оправено 04.08.2026).
+    Функцията беше закована на „мач до два спечелени сета" и печаташе
+    „Над/Под 2.5 сета" за ВСЕКИ тенис мач — включително за мачовете до ТРИ
+    спечелени сета. А там най-малкият възможен брой сетове е 3, тоест
+    „Под 2.5 сета" не е грешна оценка, а твърдение, което НЕ МОЖЕ да се сбъдне.
+    Загуба, обявена предварително.
+
+    Форматът вече беше известен на модела (extra.best_of), но не стигаше дотук.
+
+    ЛИНИЯТА Е СТЪЛБА, както при хокея: при мач до три спечелени опитваме първо
+    3.5 („ще има ли четвърти сет"), после 4.5 („ще има ли пети"). При мач до два
+    спечелени има само едно смислено място — 2.5.
     """
-    s = set_prob_from_match(p_match, 3)
-    p_three = 2.0 * s * (1.0 - s)
-    if p_three >= TOTAL_MIN:
-        return "Над 2.5 сета: <b>" + pct(p_three) + "</b>"
-    if (1.0 - p_three) >= TOTAL_MIN:
-        return "Под 2.5 сета: <b>" + pct(1.0 - p_three) + "</b>"
+    bo5 = int(best_of or 3) >= 5
+    to_win = 3 if bo5 else 2
+    s = set_prob_from_match(p_match, 5 if bo5 else 3)
+    dist = bo_distribution(s, to_win=to_win)
+    # bo_distribution дава разпределението за фаворита; огледалото е за другия.
+    ogledalo = [(j, i, p) for (i, j, p) in dist]
+    linii = (3.5, 4.5) if bo5 else (2.5,)
+    for line in linii:
+        p_over = sets_p_over([dist, ogledalo], line)
+        if p_over is None:
+            continue
+        if p_over >= TOTAL_MIN:
+            return "Над " + ("%.1f" % line) + " сета: <b>" + pct(p_over) + "</b>"
+        if (1.0 - p_over) >= TOTAL_MIN:
+            return ("Под " + ("%.1f" % line) + " сета: <b>"
+                    + pct(1.0 - p_over) + "</b>")
     return ""
 
 
@@ -2988,7 +3097,11 @@ def analyse(fx, ctx):
             if (f[0] + f[1]) >= 3:      # 0-1 не е форма, а шум — не го пишем
                 s += ", " + str(f[0]) + "-" + str(f[1]) + " в последните седмици"
             return s
-        third = tennis_sets_line(max(m["p_home"], m["p_away"]))
+        # ФОРМАТЪТ СТИГА ДОТУК. Дотогава редът беше закован на „до два спечелени
+        # сета" и в мачовете до три печаташе „Под 2.5 сета" — невъзможно
+        # твърдение, защото там минимумът е 3 сета.
+        third = tennis_sets_line(max(m["p_home"], m["p_away"]),
+                                 (fx.get("extra") or {}).get("best_of") or 3)
         why = [_pl(home, m["ra"], m["fa"]), _pl(away, m["rb"], m["fb"])]
         # Ранглистата е силен ориентир, но е ЕДИН показател, не двайсет мача.
         # Брои се за шест мача на играч, не повече — иначе картата се хвали с
@@ -3009,8 +3122,11 @@ def analyse(fx, ctx):
         p = m["p_home"] if fav_home else m["p_away"]
         strength = strength_binary(m["p_home"])
         fin = m["fin_h"] if fav_home else m["fin_a"]
-        wins = m["win_h"] if fav_home else m["win_a"]
-        if fin is not None and fin >= 0.6:
+        # Знаменателят е броят победи с ИЗВЕСТЕН начин, не всички победи —
+        # инак дробта и текстът щяха да си противоречат.
+        wins = m.get("znaem_h") if fav_home else m.get("znaem_a")
+        wins = int(wins or 0)
+        if fin is not None and fin >= 0.6 and wins >= 4:
             second = ("Печели предсрочно в " + str(int(round(fin * wins))) + " от "
                       + str(wins) + " победи в индекса")
         rh, ra_ = m["rec_h"], m["rec_a"]
@@ -3912,7 +4028,97 @@ def selftest():
     check("волейболът има своя стая", SPORT_ROOM.get("volleyball") in ALLOWED_THREADS)
     check("тенисът на маса има своя стая", SPORT_ROOM.get("tabletennis") in ALLOWED_THREADS)
     check("ММА има своя стая", SPORT_ROOM.get("mma") in ALLOWED_THREADS)
-    check("тенисът НЯМА своя стая (остава в 27)", "tennis" not in SPORT_ROOM)
+    # --- НОВИТЕ СТАИ ОТ ФАЙЛ. Ботът предричаше за осем спорта, а стаи имаше
+    # за пет. make_rooms.py създава останалите и пише номерата в rooms_state.json.
+    check("липсващ файл не чупи", _stai_ot_fayl("нямагоТакъвФайл.json") == {})
+    import tempfile as _tf
+    _tmp = os.path.join(_tf.gettempdir(), "_gp_rooms_test.json")
+    with open(_tmp, "w", encoding="utf-8") as _f:
+        json.dump({"hockey": {"thread": 401, "ime": "🏒 Хокей"},
+                   "tennis": {"thread": 402},
+                   "boklук": {"thread": "низ"},
+                   "praznо": {},
+                   "otricatelno": {"thread": -5}}, _f, ensure_ascii=False)
+    _chetene = _stai_ot_fayl(_tmp)
+    check("хокеят се чете от файла", _chetene.get("hockey") == "401")
+    check("тенисът се чете от файла", _chetene.get("tennis") == "402")
+    check("боклук на мястото на номера се прескача", "boklук" not in _chetene)
+    check("празен запис се прескача", "praznо" not in _chetene)
+    check("отрицателен номер се прескача", "otricatelno" not in _chetene)
+    check("прочетени са точно двата валидни", len(_chetene) == 2)
+    try:
+        os.remove(_tmp)
+    except OSError:
+        pass
+    with open(_tmp, "w", encoding="utf-8") as _f:
+        _f.write("това не е json")
+    check("повреден файл не чупи", _stai_ot_fayl(_tmp) == {})
+    try:
+        os.remove(_tmp)
+    except OSError:
+        pass
+    check("закованите стаи имат превес пред файла",
+          SPORT_ROOM.get("football") == "5")
+
+    # --- 🥊 ММА: НАЧИНЪТ НА ПОБЕДА. Дефектът лъжеше ВСЕКИ ДЕН — четеше се от
+    # status["type"], където полетата ги няма, и „предсрочно" излизаше винаги
+    # вярно: 71 от 71 бойци с дял 100%. И невидимото: Elo коефициентът беше
+    # закован на ×1.25, тоест грешката местеше самите рейтинги.
+    check("цели рундове с изтекъл часовник = съдийско решение",
+          mma_finish({"period": 3, "displayClock": "5:00"}, 3) is False)
+    check("часовник, който брои надолу, също значи изтекъл",
+          mma_finish({"period": 3, "displayClock": "0:00"}, 3) is False)
+    check("край във втория рунд = предсрочно",
+          mma_finish({"period": 2, "displayClock": "3:24"}, 3) is True)
+    check("край в последния рунд преди края = предсрочно",
+          mma_finish({"period": 3, "displayClock": "1:12"}, 3) is True)
+    check("петрундов бой: цели рундове = решение",
+          mma_finish({"period": 5, "displayClock": "5:00"}, 5) is False)
+    check("петрундов бой: край в трети = предсрочно",
+          mma_finish({"period": 3, "displayClock": "2:05"}, 5) is True)
+    check("БЕЗ ЧАСОВНИК не се твърди нищо",
+          mma_finish({"period": 3}, 3) is None)
+    check("празен часовник не се твърди",
+          mma_finish({"period": 3, "displayClock": ""}, 3) is None)
+    check("празен статус не се твърди", mma_finish({}, 3) is None)
+    check("боклук вместо статус не чупи", mma_finish(None, 3) is None)
+    check("боклук вместо рундове не чупи",
+          mma_finish({"period": 2, "displayClock": "1:00"}, None) is True)
+    check("липсващ рунд с часовник в края НЕ е решение",
+          mma_finish({"displayClock": "5:00"}, 3) is True)
+    # Точно старият дефект: полетата в status["type"] вместо в status.
+    _stara = {"type": {"period": 3, "displayClock": "5:00", "completed": True}}
+    check("СТАРИЯТ ДЕФЕКТ: полета на грешното място вече НЕ дават предсрочно",
+          mma_finish(_stara, 3) is None)
+    check("предсрочно и решение НЕ са едно и също",
+          mma_finish({"period": 1, "displayClock": "0:44"}, 3)
+          is not mma_finish({"period": 3, "displayClock": "5:00"}, 3))
+
+    # --- 🎾 ТЕНИС: ЛИНИЯТА ПАСВА НА ФОРМАТА.
+    # Редът беше закован на „до два спечелени сета" и в мачовете до ТРИ
+    # спечелени печаташе „Под 2.5 сета" — минимумът там е 3 сета, тоест
+    # твърдение, което не може да се сбъдне. Загуба, обявена предварително.
+    for _p in (0.55, 0.62, 0.70, 0.78, 0.85, 0.92):
+        _r3 = tennis_sets_line(_p, 3)
+        _r5 = tennis_sets_line(_p, 5)
+        check("при %.2f мач до 2 сета не говори за 3.5/4.5" % _p,
+              "3.5" not in _r3 and "4.5" not in _r3)
+        check("при %.2f мач до 3 сета НЕ казва Под 2.5" % _p,
+              "Под 2.5" not in _r5)
+        check("при %.2f мач до 3 сета не говори за 2.5 изобщо" % _p,
+              "2.5" not in _r5)
+    check("мач до 2 сета ползва линия 2.5",
+          "2.5" in tennis_sets_line(0.80, 3))
+    check("мач до 3 сета ползва 3.5 или 4.5",
+          ("3.5" in tennis_sets_line(0.80, 5)) or ("4.5" in tennis_sets_line(0.80, 5)))
+    check("липсващ формат се държи като до 2 сета",
+          tennis_sets_line(0.80) == tennis_sets_line(0.80, 3))
+    check("нула вместо формат не чупи", isinstance(tennis_sets_line(0.80, 0), str))
+    check("тенис-редът е чист", banned_word(tennis_sets_line(0.80, 5)) is None)
+    check("двата формата дават РАЗЛИЧЕН ред",
+          tennis_sets_line(0.75, 3) != tennis_sets_line(0.75, 5))
+    _teni = set(tennis_sets_line(0.52 + i * 0.008, 5) for i in range(50))
+    check("тенис-редът НЕ е константа (50 входа, 5+ различни)", len(_teni) >= 5)
     check("стая 4 е разрешена за фишовете", PICKS_THREAD in ALLOWED_THREADS)
     check("стая 27 остава витрината", PREDICT_THREAD in ALLOWED_THREADS)
     check("хазартна дума не излиза", post_predict("залагай сега", PREDICT_THREAD) is False)

@@ -1029,9 +1029,7 @@
   "p": 0.4645,
   "stars": 3,
   "sample": "извадка 46+14 мача",
-  "scored": true,
-  "hit": false,
-  "score": "1:2"
+  "scored": false
  },
  {
   "key": "2026-08-05|tennis|yannickhanfmann|flaviocobolli",
@@ -1067,9 +1065,7 @@
   "p": 0.92,
   "stars": 2,
   "sample": "извадка 21+14 мача",
-  "scored": true,
-  "hit": true,
-  "score": "3:0"
+  "scored": false
  },
  {
   "key": "2026-08-05|tennis|felixaugeraliassime|titouandroguet",
@@ -1105,9 +1101,7 @@
   "p": 0.6565,
   "stars": 2,
   "sample": "извадка 60+72 мача",
-  "scored": true,
-  "hit": null,
-  "why": "няма официален източник за резултата"
+  "scored": false
  },
  {
   "key": "2026-08-04|tabletennis|cheonhuijoo|yulingzhu",
@@ -1125,9 +1119,7 @@
   "p": 0.6105,
   "stars": 2,
   "sample": "извадка 70+73 мача",
-  "scored": true,
-  "hit": null,
-  "why": "няма официален източник за резултата"
+  "scored": false
  },
  {
   "key": "2026-08-04|football|hapoelbeer|redstarbelgrade",
@@ -1145,9 +1137,7 @@
   "p": 0.4768,
   "stars": 2,
   "sample": "извадка 38+10 мача",
-  "scored": true,
-  "hit": true,
-  "score": "1:0"
+  "scored": false
  },
  {
   "key": "2026-08-05|tennis|alexdeminaur|jamesduckworth",
@@ -1201,9 +1191,7 @@
   "p": 0.6133,
   "stars": 2,
   "sample": "извадка 63+39 мача",
-  "scored": true,
-  "hit": null,
-  "why": "няма официален източник за резултата"
+  "scored": false
  },
  {
   "key": "2026-08-04|tabletennis|amywang|yubinshin",
@@ -1221,9 +1209,7 @@
   "p": 0.5987,
   "stars": 2,
   "sample": "извадка 28+73 мача",
-  "scored": true,
-  "hit": null,
-  "why": "няма официален източник за резултата"
+  "scored": false
  },
  {
   "key": "2026-08-05|baseball|cincinnatireds|athletics",
@@ -1277,9 +1263,7 @@
   "p": 0.582,
   "stars": 2,
   "sample": "извадка 71+83 мача",
-  "scored": true,
-  "hit": null,
-  "why": "няма официален източник за резултата"
+  "scored": false
  },
  {
   "key": "2026-08-05|baseball|clevelandguardians|newyorkmets",
@@ -1315,9 +1299,7 @@
   "p": 0.5435,
   "stars": 1,
   "sample": "извадка 58+58 мача",
-  "scored": true,
-  "hit": null,
-  "why": "няма официален източник за резултата"
+  "scored": false
  },
  {
   "key": "2026-08-05|baseball|philadelphiaphillies|washingtonnationals",
@@ -1371,28 +1353,6 @@
   "p": 0.73,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": true,
-  "score": "2:1"
- },
- {
-  "key": "2026-08-04|tabletennis|jiananyuan|margarytapesotska",
-  "combo": 0,
-  "posted": "2026-08-04 14:01",
-  "day": "2026-08-04",
-  "bucket": "tabletennis",
-  "home": "Jia Nan YUAN",
-  "away": "Margaryta PESOTSKA",
-  "home_id": "137894",
-  "away_id": "107321",
-  "league": "WTT Champions Yokohama 2026 · Women's Singles",
-  "slug": null,
-  "pick": "2 · Margaryta PESOTSKA",
-  "p": 0.575,
-  "stars": 2,
-  "sample": "извадка 44+46 мача",
-  "scored": true,
-  "hit": null,
-  "why": "няма официален източник за резултата"
+  "scored": false
  }
 ]

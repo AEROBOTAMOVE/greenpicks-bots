@@ -42,6 +42,28 @@ def block(*lines):
     """Слепва редовете с нов ред — без обратни наклонени черти в текста."""
     return NL.join(lines)
 
+
+# ── ПАЗАЧЪТ ───────────────────────────────────────────────────────────────────
+# Този файл го НЯМАШЕ, а е единственият, който пише ЗАКАЧЕНИ постове — тоест
+# най-трайните съобщения в цялата група. И именно той веднъж вече изнесе навън
+# „18+" и „залагай отговорно"; тогава текстът беше пренаписан на ръка, но нищо
+# не пречеше да се върне. Предсказателят, оценителят и създателят на стаи имат
+# такъв пазач от самото начало — тук зееше дупка.
+#
+# Правилото е просто: съмнителен текст НЕ се праща. По-добре стая без пин,
+# отколкото пин, който не бива да е там — пинът се вижда от всеки, завинаги.
+BANNED = ["18+", "залагай отговорно",
+          "коеф", "букмейкър", "odds",
+          "заложи", "финансов съвет"]
+
+
+def banned_word(text):
+    low = (text or "").lower()
+    for w in BANNED:
+        if w in low:
+            return w
+    return None
+
 def api(method, **params):
     """Една заявка към Telegram, която ИЗЧАКВА при 429.
 
@@ -163,6 +185,64 @@ ROOM_PINS = {
         "Тук влизат <b>прогнозите за бойни спортове</b>: UFC, ММА, бокс — бойци, избор, числата.",
         "Новините са в стая 📰 Новини · всички спортове заедно — в 🤖 БОТА ПРЕДРИЧА."),
 }
+
+# ── НОВИТЕ СТАИ (хокей, тенис, бейзбол, американски футбол) ────────────────────
+# Ботът предричаше за осем спорта, а стаи имаше за пет. make_rooms.py създава
+# останалите и записва номерата им в rooms_state.json.
+#
+# ЗАЩО ТЕКСТОВЕТЕ СА ТУК, А НЕ САМО ТАМ: make_rooms.py слага отварящия пост ВЕДНЪЖ,
+# при създаването. Оттам нататък пиновете се поддържат от този файл — той е
+# мястото, където се пипат всички стайни текстове. Ако новите останеха само в
+# make_rooms.py, щяха да са единствените, които hub-ботът не може да опресни.
+NOVI_STAI_TEKST = {
+    "hockey": block(
+        "🏒 <b>ХОКЕЙ</b>",
+        "Тук влизат <b>прогнозите за хокей</b>: избор за мача, очаквани голове,"
+        " над/под общо голове.",
+        "Новините са в стая 📰 Новини · всички спортове заедно — в 🤖 БОТА ПРЕДРИЧА."),
+    "tennis": block(
+        "🎾 <b>ТЕНИС</b>",
+        "Тук влизат <b>прогнозите за тенис</b>: избор, брой сетове, числата зад мача.",
+        "Новините са в стая 📰 Новини · всички спортове заедно — в 🤖 БОТА ПРЕДРИЧА."),
+    "baseball": block(
+        "⚾ <b>БЕЙЗБОЛ</b>",
+        "Тук влизат <b>прогнозите за бейзбол</b>: избор и очаквани рънове.",
+        "Новините са в стая 📰 Новини · всички спортове заедно — в 🤖 БОТА ПРЕДРИЧА."),
+    "amfootball": block(
+        "🏈 <b>АМЕРИКАНСКИ ФУТБОЛ</b>",
+        "Тук влизат <b>прогнозите за НФЛ и колежанския футбол</b>: избор,"
+        " очакван резултат, над/под точки.",
+        "Новините са в стая 📰 Новини · всички спортове заедно — в 🤖 БОТА ПРЕДРИЧА."),
+}
+ROOMS_STATE_FILE = (os.environ.get("ROOMS_STATE_FILE") or "rooms_state.json").strip()
+
+
+def vlei_novite_stai():
+    """Влива създадените стаи в ROOM_PINS. Липсващ файл = нищо не се променя.
+
+    Пази се от две неща, които биха били тихи провали: номер, който вече е зает
+    от закована стая (не го презаписваме), и боклук на мястото на номера.
+    """
+    try:
+        with open(ROOMS_STATE_FILE, encoding="utf-8-sig") as f:
+            d = json.load(f)
+    except Exception:                             # noqa: BLE001
+        return []
+    if not isinstance(d, dict):
+        return []
+    vleti = []
+    for sport, zapis in d.items():
+        tekst = NOVI_STAI_TEKST.get(str(sport).strip())
+        if not tekst or not isinstance(zapis, dict):
+            continue
+        try:
+            n = int(zapis.get("thread"))
+        except (TypeError, ValueError):
+            continue
+        if n > 0 and n not in ROOM_PINS:
+            ROOM_PINS[n] = tekst
+            vleti.append((str(sport), n))
+    return vleti
 SUPPORT_POST = block(
 "🆘 <b>ВЪПРОСИ И ПОМОЩ</b>",
 "",
@@ -221,6 +301,10 @@ def save_hub_state(st):
 def send_pin(chat, text, thread=None, unpin_first=False, state=None, key=None):
     """Слага (или опреснява) ЕДИН пост в стая. Не трупа при повторно пускане."""
     where = "канал" if str(chat) == str(CHANNEL_ID) else "стая " + str(thread)
+    lоsha = banned_word(text)
+    if lоsha:
+        print("  ОТКАЗ " + where + ": забранена дума (" + lоsha + ") — не пращам.")
+        return
     st = state if isinstance(state, dict) else None
     k = str(key if key is not None else thread)
     prev = (st or {}).get(k) or {}
@@ -263,8 +347,13 @@ def send_pin(chat, text, thread=None, unpin_first=False, state=None, key=None):
         st[k] = {"mid": new_mid, "text": text}
     print("  " + where + ": " + ("закачено" if do_pin(new_mid) else "пратено (не закач.)"))
 
-def diagnoza():
+def diagnoza(state=None):
     """Свързани ли са каналът и групата — питаме Telegram, не помним.
+
+    ОТГОВОРЪТ СЕ ЗАПИСВА В ТЕФТЕРА, не само се печата. Дневникът на Actions се
+    чете само с админски права по API, а страницата му е тежко приложение,
+    което не се рендира навсякъде. hub_state.json обаче се връща в хранилището
+    от самия работен файл и се чете от всеки — тоест отговорът остава видим.
 
     ЗАЩО СЪЩЕСТВУВА: собственикът добавя хора в КАНАЛА и се чуди защо не се
     появяват в групата със стаите. Причината не е дефект в бота — каналът и
@@ -294,7 +383,82 @@ def diagnoza():
         print("     Канала -> Управление -> Дискусия -> избери групата.")
     print("  публично име на групата: @" + str(grupa.get("username") or "няма"))
     print("  връзка-покана в закачения пост: " + GROUP_LINK)
+    if isinstance(state, dict):
+        state["diag"] = {
+            "kanal_id": str(CHANNEL_ID),
+            "kanal_ime": str(kanal.get("title") or ""),
+            "grupa_id": str(CHAT_ID or ""),
+            "grupa_ime": str(grupa.get("title") or ""),
+            "grupa_e_forum": bool(grupa.get("is_forum")),
+            "grupa_username": str(grupa.get("username") or ""),
+            "svurzana_grupa": str(svurzan or ""),
+            "svurzani": bool(CHAT_ID and str(svurzan or "") == str(CHAT_ID)),
+            "chlenove_kanal": to_int(api("getChatMemberCount",
+                                         chat_id=CHANNEL_ID).get("result")),
+            "chlenove_grupa": (to_int(api("getChatMemberCount",
+                                          chat_id=CHAT_ID).get("result"))
+                               if CHAT_ID else None),
+        }
     return svurzan
+
+
+def to_int(x):
+    try:
+        return int(x)
+    except (TypeError, ValueError):
+        return None
+
+
+def selftest():
+    """Самопроверка. Този файл я нямаше — а пише най-трайните постове в групата."""
+    ok, bad = 0, []
+
+    def check(name, cond):
+        nonlocal ok
+        if cond:
+            ok += 1
+        else:
+            bad.append(name)
+
+    # --- пазачът
+    check("пазачът лови 18+", banned_word("вход 18+") == "18+")
+    check("пазачът лови залагай отговорно",
+          banned_word("Залагай Отговорно!") == "залагай отговорно")
+    check("пазачът лови коефициент", banned_word("коефициент 1.85") == "коеф")
+    check("пазачът лови букмейкър", banned_word("наш букмейкър") == "букмейкър")
+    check("пазачът не лови чист текст", banned_word("⚽ ФУТБОЛ · прогнози") is None)
+    check("пазачът понася празно", banned_word("") is None and banned_word(None) is None)
+
+    # --- всички закачени текстове са чисти
+    for thread, text in ROOM_PINS.items():
+        check("стая " + str(thread) + " е чиста", banned_word(text) is None)
+        check("стая " + str(thread) + " не е празна", bool(str(text).strip()))
+    check("HUB текстът е чист", banned_word(HUB) is None)
+    check("съпорт-постът е чист", banned_word(SUPPORT_POST) is None)
+    for sport, text in NOVI_STAI_TEKST.items():
+        check("новата стая " + sport + " е чиста", banned_word(text) is None)
+
+    # --- застоял текст: стаите вече носят ПРОГНОЗИ, не списъци със срещи
+    zastoyali = [t for t in ROOM_PINS.values()
+                 if "САМО срещите" in t or "САМО предстоящите" in t]
+    check("няма застояли текстове (само срещите)", not zastoyali)
+
+    # --- картата на стаите
+    for n in (3, 4, 5, 6, 7, 8, 9, 10, 11, 26, 27, 328):
+        check("стая " + str(n) + " има пин", n in ROOM_PINS)
+    check("четирите нови спорта имат текст", len(NOVI_STAI_TEKST) == 4)
+    for s in ("hockey", "tennis", "baseball", "amfootball"):
+        check("има текст за " + s, s in NOVI_STAI_TEKST)
+
+    # --- вливането на новите стаи
+    _preди = len(ROOM_PINS)
+    check("липсващ файл не влива нищо", vlei_novite_stai() == []
+          or len(ROOM_PINS) >= _preди)
+
+    print("САМОПРОВЕРКА НА ХЪБА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
+    for b in bad:
+        print("   счупено: " + b)
+    return not bad
 
 
 def main():
@@ -303,11 +467,21 @@ def main():
 
     if MODE in ("diag", "all"):
         try:
-            diagnoza()
+            diagnoza(state)
         except Exception as e:      # noqa: BLE001
             print("диагнозата не мина (" + str(e)[:60] + ") — продължавам.")
+        if MODE == "diag":
+            save_hub_state(state)   # режим diag не пипа нищо друго
+            print("Диагнозата е записана в " + HUB_STATE_FILE + ".")
+            return
 
-    if MODE in ("hub", "all"):
+    if MODE in ("hub", "all") and banned_word(HUB):
+        # Постът в КАНАЛА не минава през send_pin, значи има свой вход и свой
+        # пазач. Без този ред дупката щеше да остане точно там, където се вижда
+        # от най-много хора.
+        print("ОТКАЗ канал: в HUB текста има забранена дума ("
+              + str(banned_word(HUB)) + ") — не пращам.")
+    elif MODE in ("hub", "all"):
         # Каналът също се помни: инак всяко пускане трупаше по един HUB.
         btn = {"inline_keyboard": [[{"text": "💬 Влез в групата и стаите", "url": GROUP_LINK}]]}
         prev = state.get("channel") or {}
@@ -343,6 +517,13 @@ def main():
                 print("HUB провал:", str(r)[:120])
 
     if MODE in ("rooms", "all") and CHAT_ID:
+        vleti = vlei_novite_stai()
+        if vleti:
+            print("Нови стаи от " + ROOMS_STATE_FILE + ": "
+                  + ", ".join(s + "=" + str(n) for s, n in vleti))
+        else:
+            print("Няма нови стаи в " + ROOMS_STATE_FILE
+                  + " — работя само със закованите.")
         for thread, text in ROOM_PINS.items():
             send_pin(CHAT_ID, text, thread, unpin_first=True, state=state)
             time.sleep(1.2)
@@ -356,4 +537,6 @@ def main():
     print("HUB setup — край.")
 
 if __name__ == "__main__":
+    if "--selftest" in sys.argv or os.environ.get("HUB_SELFTEST") == "1":
+        sys.exit(0 if selftest() else 1)
     main()
