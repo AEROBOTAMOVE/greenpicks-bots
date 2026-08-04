@@ -163,7 +163,9 @@
   "p": 0.6447,
   "stars": 3,
   "sample": "извадка 71+72 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "94:88"
  },
  {
   "key": "2026-07-31|basketball|torontotempo|minnesotalynx",
@@ -180,7 +182,9 @@
   "p": 0.6411,
   "stars": 3,
   "sample": "извадка 27+80 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "72:104"
  },
  {
   "key": "2026-07-31|volleyball|msen|мексико|куба",
@@ -197,7 +201,9 @@
   "p": 0.6871,
   "stars": 3,
   "sample": "извадка 64+91 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-07-31|football|corinthians|athleticopr",
@@ -214,7 +220,9 @@
   "p": 0.5111,
   "stars": 3,
   "sample": "извадка 58+20 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0"
  },
  {
   "key": "2026-07-31|basketball|lasvegasaces|newyorkliberty",
@@ -231,7 +239,9 @@
   "p": 0.63,
   "stars": 3,
   "sample": "извадка 84+76 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "104:99"
  },
  {
   "key": "2026-07-31|football|coritiba|cruzeiro",
@@ -248,7 +258,9 @@
   "p": 0.4405,
   "stars": 3,
   "sample": "извадка 20+58 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-07-30|tennis|cruzhewitt|alexdeminaur",
@@ -322,7 +334,9 @@
   "p": 0.6407,
   "stars": 3,
   "sample": "извадка 56+51 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1"
  },
  {
   "key": "2026-08-01|basketball|atlantadream|seattlestorm",
@@ -339,7 +353,9 @@
   "p": 0.728,
   "stars": 3,
   "sample": "извадка 74+77 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "98:89"
  },
  {
   "key": "2026-08-01|basketball|portlandfire|indianafever",
@@ -356,7 +372,9 @@
   "p": 0.5908,
   "stars": 3,
   "sample": "извадка 28+81 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "98:112"
  },
  {
   "key": "2026-07-31|tennis|alexmichelsen|taylorfritz",
@@ -411,7 +429,9 @@
   "p": 0.6587,
   "stars": 2,
   "sample": "извадка 89+5 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-01|tennis|benshelton|alejandrotabilo",
@@ -485,7 +505,9 @@
   "p": 0.5647,
   "stars": 3,
   "sample": "извадка 55+50 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-02|football|belgranocórdoba|argentinosjuniors",
@@ -502,7 +524,9 @@
   "p": 0.4667,
   "stars": 3,
   "sample": "извадка 53+57 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-08-01|football|gimnasiamendoza|uniónsantafe",
@@ -576,7 +600,9 @@
   "p": 0.6453,
   "stars": 2,
   "sample": "извадка 60+16 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-01|tabletennis|daniamohd|thipphachanhxaiphetvong",
@@ -593,7 +619,9 @@
   "p": 0.7228,
   "stars": 2,
   "sample": "извадка 145+6 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-03|basketball|goldenstatevalkyries|torontotempo",
@@ -610,7 +638,9 @@
   "p": 0.7422,
   "stars": 3,
   "sample": "извадка 74+28 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "96:79"
  },
  {
   "key": "2026-08-03|basketball|dallaswings|connecticutsun",
@@ -627,7 +657,9 @@
   "p": 0.7246,
   "stars": 3,
   "sample": "извадка 73+73 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "83:63"
  },
  {
   "key": "2026-08-02|volleyball|wsen|тайланд|виетнам",
@@ -737,7 +769,9 @@
   "p": 0.4375,
   "stars": 3,
   "sample": "извадка 57+56 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-08-02|football|newellsoldboys|bocajuniors",
@@ -792,7 +826,9 @@
   "p": 0.8315,
   "stars": 3,
   "sample": "извадка 98+48 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-04|football|huracán|atléticotucumán",
@@ -809,7 +845,9 @@
   "p": 0.6093,
   "stars": 3,
   "sample": "извадка 56+50 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0"
  },
  {
   "key": "2026-08-04|basketball|newyorkliberty|seattlestorm",
@@ -826,7 +864,9 @@
   "p": 0.6868,
   "stars": 3,
   "sample": "извадка 78+78 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "95:83"
  },
  {
   "key": "2026-08-04|volleyball|wsen|мексико|венецуела",
@@ -843,7 +883,9 @@
   "p": 0.7911,
   "stars": 3,
   "sample": "извадка 67+20 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-03|tennis|titouandroguet|lucavanassche",
@@ -898,7 +940,9 @@
   "p": 0.6084,
   "stars": 3,
   "sample": "извадка 75+86 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "87:109"
  },
  {
   "key": "2026-08-03|volleyball|wsen|колумбия|trinidadandtobago",
