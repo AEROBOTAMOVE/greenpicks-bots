@@ -163,33 +163,49 @@ def espn_result(rec):
     if not path or not slug or not hid or not aid:
         return None
 
-    day = (rec.get("day") or "").replace("-", "")
-    if len(day) != 8:
-        return None
-    url = ESPN + "/" + path + "/" + slug + "/scoreboard?dates=" + day
-    try:
-        j = http_json(url)
-    except Exception as e:                    # noqa: BLE001
-        print("    ESPN мълчи за " + slug + " " + day + " (" + str(e)[:50] + ")")
+    den = rec.get("day") or ""
+    if len(den) != 10:
         return None
 
-    for ev in (j.get("events") or []):
-        comps = ev.get("competitions") or []
-        if not comps:
+    # ⚠️ ЧАСОВИТЕ ЗОНИ — намерено на живо на 04.08.2026.
+    # Дневникът пази деня на мача по БЪЛГАРСКО време. ESPN подрежда срещите по
+    # МЕСТНИЯ ден на състезанието. Мач в 03:00 българско на 31 юли е 20:00 в
+    # Ню Йорк на 30 юли — и ESPN го дава под 20260730. Заради това тринадесет
+    # американски и южноамерикански прогнози висяха неотсъдени: питахме за
+    # грешния ден и получавахме чужди мачове.
+    # Затова питаме и предния, и следващия ден. Отборните id-та са уникални,
+    # тоест няма опасност да хванем друг мач по погрешка.
+    try:
+        d0 = datetime.strptime(den, "%Y-%m-%d")
+    except Exception:                         # noqa: BLE001
+        return None
+    dni = [(d0 + timedelta(days=k)).strftime("%Y%m%d") for k in (0, -1, 1)]
+
+    for day in dni:
+        url = ESPN + "/" + path + "/" + slug + "/scoreboard?dates=" + day
+        try:
+            j = http_json(url)
+        except Exception:                     # noqa: BLE001
             continue
-        comp = comps[0] or {}
-        st = ((comp.get("status") or {}).get("type") or {})
-        if not st.get("completed"):
-            continue                          # още не е свършил
-        got = {}
-        for c in (comp.get("competitors") or []):
-            tid = str(((c.get("team") or {}).get("id")) or "")
-            try:
-                got[tid] = int(str(c.get("score")))
-            except Exception:                 # noqa: BLE001
-                return None
-        if hid in got and aid in got:
-            return got[hid], got[aid]
+        for ev in (j.get("events") or []):
+            comps = ev.get("competitions") or []
+            if not comps:
+                continue
+            comp = comps[0] or {}
+            st = ((comp.get("status") or {}).get("type") or {})
+            if not st.get("completed"):
+                continue                      # още не е свършил
+            got = {}
+            for c in (comp.get("competitors") or []):
+                tid = str(((c.get("team") or {}).get("id")) or "")
+                try:
+                    got[tid] = int(str(c.get("score")))
+                except Exception:             # noqa: BLE001
+                    got = {}
+                    break
+            if hid in got and aid in got:
+                return got[hid], got[aid]
+        time.sleep(0.25)
     return None
 
 
@@ -299,19 +315,26 @@ def volley_day(day):
     return rows
 
 
+def okolni_dni(den):
+    """Денят, предишният и следващият. Заради часовите зони (виж espn_result)."""
+    try:
+        d0 = datetime.strptime(str(den or ""), "%Y-%m-%d")
+    except Exception:                                  # noqa: BLE001
+        return []
+    return [(d0 + timedelta(days=k)).strftime("%Y-%m-%d") for k in (0, -1, 1)]
+
+
 def volley_result(rec):
     """(сетове домакин, сетове гост) или None, ако мачът още не е официален."""
-    day = rec.get("day") or ""
-    if len(day) != 10:
-        return None
     ha, hb = rec.get("home"), rec.get("away")
     if not ha or not hb:
         return None
-    for na, nb, pa, pb in volley_day(day):
-        if same_team(na, ha) and same_team(nb, hb):
-            return pa, pb
-        if same_team(na, hb) and same_team(nb, ha):    # обърнат ред в източника
-            return pb, pa
+    for day in okolni_dni(rec.get("day")):
+        for na, nb, pa, pb in volley_day(day):
+            if same_team(na, ha) and same_team(nb, hb):
+                return pa, pb
+            if same_team(na, hb) and same_team(nb, ha):   # обърнат ред
+                return pb, pa
     return None
 
 
@@ -378,11 +401,58 @@ def tennis_result(rec):
     ha, hb = rec.get("home"), rec.get("away")
     if not ha or not hb:
         return None
-    for na, nb, pa, pb in tennis_day(rec.get("day") or ""):
-        if same_team(na, ha) and same_team(nb, hb):
-            return pa, pb
-        if same_team(na, hb) and same_team(nb, ha):
-            return pb, pa
+    for day in okolni_dni(rec.get("day")):
+        for na, nb, pa, pb in tennis_day(day):
+            if same_team(na, ha) and same_team(nb, hb):
+                return pa, pb
+            if same_team(na, hb) and same_team(nb, ha):
+                return pb, pa
+    return None
+
+
+# ═══════════════════════════ ⚾ БЕЙЗБОЛ: РЕЗУЛТАТИ ОТ MLB
+# ЗАЩО ОТДЕЛНО: предсказателят взима бейзболните срещи от statsapi.mlb, значи
+# id-тата в дневника са НА MLB, не на ESPN. Търсенето в ESPN по тези id-та
+# никога не съвпадаше и трите бейзболни прогнози висяха неотсъдени.
+MLB_API = "https://statsapi.mlb.com/api/v1"
+_mlb_days = {}
+
+
+def mlb_day(day):
+    if day in _mlb_days:
+        return _mlb_days[day]
+    rows = []
+    try:
+        j = http_json(MLB_API + "/schedule?sportId=1&date=" + day)
+        for d in ((j or {}).get("dates") or []):
+            for g in (d.get("games") or []):
+                st = str((g.get("status") or {}).get("detailedState") or "")
+                if st not in ("Final", "Game Over", "Completed Early"):
+                    continue
+                t = g.get("teams") or {}
+                h, a = (t.get("home") or {}), (t.get("away") or {})
+                ht, at = (h.get("team") or {}), (a.get("team") or {})
+                try:
+                    rows.append((str(ht.get("id")), str(at.get("id")),
+                                 int(h.get("score")), int(a.get("score")),
+                                 ht.get("name") or "", at.get("name") or ""))
+                except Exception:                      # noqa: BLE001
+                    continue
+    except Exception as e:                             # noqa: BLE001
+        print("    MLB мълчи за " + str(day) + " (" + str(e)[:50] + ")")
+    _mlb_days[day] = rows
+    return rows
+
+
+def baseball_result(rec):
+    hid, aid = str(rec.get("home_id") or ""), str(rec.get("away_id") or "")
+    ha, hb = rec.get("home"), rec.get("away")
+    for day in okolni_dni(rec.get("day")):
+        for h, a, hs, as_, hn, an in mlb_day(day):
+            if hid and aid and h == hid and a == aid:
+                return hs, as_
+            if same_team(hn, ha) and same_team(an, hb):
+                return hs, as_
     return None
 
 
@@ -399,6 +469,8 @@ def sport_result(rec):
         return volley_result(rec)
     if b == "tennis":
         return tennis_result(rec)
+    if b == "baseball":
+        return baseball_result(rec)
     return espn_result(rec)
 
 
