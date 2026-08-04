@@ -147,6 +147,7 @@ def post(thread, text):
     print(("  пратено в стая " if ok else "  НЕ мина в стая ") + tid)
     return ok
 
+
 # ------------------------------------------------------------------ РЕЗУЛТАТИ
 def espn_result(rec):
     """Крайният резултат на един мач от ESPN. None = още не знаем.
@@ -215,6 +216,189 @@ def name_in(name, text):
         if before_ok and after_ok:
             return True
         start = i + 1
+
+
+# ═══════════════════════════ 🏐 ВОЛЕЙБОЛ: РЕЗУЛТАТИ ОТ FIVB
+# ЗАЩО СЪЩЕСТВУВА (измерено на 04.08.2026)
+# От 61 прогнози в дневника, 18 бяха волейболни и НИТО ЕДНА не беше отсъдена.
+# Причината: волейболът не е в ESPN, а SPORT_PATH го водеше None — тоест
+# espn_result() връщаше None винаги и мачът висеше неоценен, докато не остарее.
+# Резултатът: най-предсказваният спорт беше напълно невидим в отчета.
+#
+# FIVB VIS дава завършените мачове със Status="25" (официален резултат) и
+# MatchPointsA/B = спечелени сетове. Съпоставяме по ИМЕ на отбора, защото
+# дневникът и FIVB идват от един и същ източник — имената съвпадат буквално.
+_vol_days = {}
+
+
+def _norm(s):
+    return "".join(c for c in str(s or "").lower() if c.isalnum())
+
+
+# ═══════════ ИМЕНАТА: БЪЛГАРСКО СРЕЩУ АНГЛИЙСКО (намерено на 04.08.2026)
+# Предсказателят ПРЕВЕЖДА имената, преди да ги запише в дневника: „Poland"
+# става „Полша", „Puerto Rico" става „Пуерто Рико". Източниците обаче връщат
+# английските. Затова сравнението по име се проваляше и осемнадесет волейболни
+# прогнози висяха неотсъдени — мина единствено „Guatemala", защото не се
+# превежда.
+# Тук зареждаме СЪЩАТА таблица от predictor.py и сравняваме и в двете посоки.
+_bg2en = {}
+_bg_loaded = [False]
+
+
+def bg_map():
+    """Обратната карта българско -> английско. Зарежда се веднъж."""
+    if _bg_loaded[0]:
+        return _bg2en
+    _bg_loaded[0] = True
+    try:
+        import predictor as P
+        for en, bg in (getattr(P, "BG_NAME", {}) or {}).items():
+            _bg2en[_norm(bg)] = _norm(en)
+    except Exception as e:                             # noqa: BLE001
+        print("    таблицата с имена не се зареди (" + str(e)[:50] + ")")
+    return _bg2en
+
+
+def same_team(a, b):
+    """Едно и също ли са двете имена — на български или на английски."""
+    ka, kb = _norm(a), _norm(b)
+    if not ka or not kb:
+        return False
+    if ka == kb:
+        return True
+    m = bg_map()
+    return m.get(ka, ka) == kb or ka == m.get(kb, kb) or m.get(ka) == m.get(kb) is not None
+
+
+def volley_day(day):
+    """Завършените волейболни мачове за един ден. Кешира се по ден."""
+    if day in _vol_days:
+        return _vol_days[day]
+    rows = []
+    try:
+        import predictor as P
+        fields = ("No TeamAName TeamBName MatchPointsA MatchPointsB "
+                  "Status DateTimeLocal")
+        req = ('<Request Type="GetVolleyMatchList" Fields="' + fields
+               + '"><Filter FirstDate="' + day + '" LastDate="' + day + '"/></Request>')
+        root = P.vis_xml(req)
+        for m in root:
+            if str(m.get("Status") or "") != "25":     # 25 = официален резултат
+                continue
+            try:
+                pa = int(str(m.get("MatchPointsA")))
+                pb = int(str(m.get("MatchPointsB")))
+            except Exception:                          # noqa: BLE001
+                continue
+            rows.append(((m.get("TeamAName") or "").strip(),
+                         (m.get("TeamBName") or "").strip(), pa, pb))
+    except Exception as e:                             # noqa: BLE001
+        print("    FIVB мълчи за " + str(day) + " (" + str(e)[:50] + ")")
+    _vol_days[day] = rows
+    return rows
+
+def volley_result(rec):
+    """(сетове домакин, сетове гост) или None, ако мачът още не е официален."""
+    day = rec.get("day") or ""
+    if len(day) != 10:
+        return None
+    ha, hb = rec.get("home"), rec.get("away")
+    if not ha or not hb:
+        return None
+    for na, nb, pa, pb in volley_day(day):
+        if same_team(na, ha) and same_team(nb, hb):
+            return pa, pb
+        if same_team(na, hb) and same_team(nb, ha):    # обърнат ред в източника
+            return pb, pa
+    return None
+
+
+# ═══════════════════════════ 🎾 ТЕНИС: РЕЗУЛТАТИ ОТ ESPN (по турнир)
+# ЗАЩО НЕ РАБОТЕШЕ ДОСЕГА (проверено на живо на 04.08.2026)
+# За отборните спортове ESPN дава мачовете направо в scoreboard. За тениса
+# scoreboard връща ТУРНИРИ — вътре „competitions" е ПРАЗЕН списък. Затова
+# espn_result() не намираше нищо и 12 тенис прогнози висяха неотсъдени.
+# Мачовете живеят в summary на турнира.
+_ten_days = {}
+
+
+def tennis_day(day):
+    """Завършените тенис мачове за деня: [(имеA, имеB, сетовеA, сетовеB)]."""
+    if day in _ten_days:
+        return _ten_days[day]
+    ymd = day.replace("-", "")
+    out = []
+    for tour in ("atp", "wta"):
+        try:
+            board = http_json(ESPN + "/tennis/" + tour + "/scoreboard?dates=" + ymd)
+        except Exception:                              # noqa: BLE001
+            continue
+        for ev in ((board or {}).get("events") or []):
+            # ⚠️ ТУК Е КЛЮЧЪТ. Мачовете НЕ са в ev["competitions"] — той е
+            # празен. Живеят в ev["groupings"][i]["competitions"], защото ESPN
+            # групира по схема (основна, квалификации, двойки). Заради това
+            # дванадесет тенис прогнози висяха неотсъдени.
+            for g in (ev.get("groupings") or []):
+                for c in (g.get("competitions") or []):
+                    st = ((c.get("status") or {}).get("type") or {})
+                    if not st.get("completed"):
+                        continue
+                    sides = []
+                    for k in (c.get("competitors") or []):
+                        ath = (k.get("athlete") or {})
+                        nm = (ath.get("displayName") or ath.get("fullName")
+                              or (k.get("team") or {}).get("displayName") or "")
+                        gems = []
+                        for x in (k.get("linescores") or []):
+                            try:
+                                gems.append(float(x.get("value")))
+                            except Exception:          # noqa: BLE001
+                                gems.append(-1.0)
+                        sides.append((nm, gems, bool(k.get("winner"))))
+                    if len(sides) != 2:
+                        continue
+                    a, b = sides
+                    # Сетове = колко пъти всеки е взел повече геймове.
+                    sa = sb = 0
+                    for i in range(min(len(a[1]), len(b[1]))):
+                        if a[1][i] > b[1][i]:
+                            sa += 1
+                        elif b[1][i] > a[1][i]:
+                            sb += 1
+                    if sa == sb:            # редовете не свършиха работа
+                        sa, sb = (1, 0) if a[2] else (0, 1)
+                    out.append((a[0], b[0], sa, sb))
+    _ten_days[day] = out
+    return out
+
+
+def tennis_result(rec):
+    ha, hb = rec.get("home"), rec.get("away")
+    if not ha or not hb:
+        return None
+    for na, nb, pa, pb in tennis_day(rec.get("day") or ""):
+        if same_team(na, ha) and same_team(nb, hb):
+            return pa, pb
+        if same_team(na, hb) and same_team(nb, ha):
+            return pb, pa
+    return None
+
+
+def sport_result(rec):
+    """ЕДИНСТВЕНАТА врата към резултат. Всеки спорт минава оттук.
+
+    Дотук се викаше espn_result() направо и това мълчаливо изключваше три
+    спорта: волейбол и тенис на маса (нямат ESPN), и тенис (ESPN дава турнири,
+    не мачове). Осемнадесет волейболни и дванадесет тенис прогнози висяха
+    неотсъдени — тоест почти половината дневник беше невидим за отчета.
+    """
+    b = rec.get("bucket")
+    if b == "volleyball":
+        return volley_result(rec)
+    if b == "tennis":
+        return tennis_result(rec)
+    return espn_result(rec)
 
 
 def verdict(rec, hs, as_):
@@ -330,6 +514,7 @@ def combo_text(now, slips):
     out.append("<b>" + str(minali) + " от " + str(len(slips)) + " фиша минаха.</b>")
     out.append("\U0001f7e2 THE GREEN ROOM")
     return NL.join(out)
+
 
 # --------------------------------------------------------------------- ГЛАВНО
 def load_log():
@@ -478,7 +663,7 @@ def main():
             r["hit"] = None
             continue
         checked += 1
-        res = espn_result(r)
+        res = sport_result(r)
         time.sleep(0.4)
         if res is None:
             continue                          # пробваме пак утре
