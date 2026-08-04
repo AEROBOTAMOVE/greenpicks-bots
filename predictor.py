@@ -127,6 +127,7 @@ SPORT_ROOM = {
     # тенис, хокей и бейзбол нямат своя стая — техните карти остават само в 27
 }
 PICKS_THREAD = (os.environ.get("PICKS_THREAD_ID") or "4").strip()
+
 # 🚫 Новините са чужди. Всичко останало, което пипаме, е изброено поименно.
 FORBIDDEN_THREADS = {"26"}
 ALLOWED_THREADS = ({PREDICT_THREAD, PICKS_THREAD}
@@ -151,7 +152,11 @@ def env_float(name, default, lo, hi):
     return max(lo, min(hi, v))
 
 
-MAX_PICKS = env_int("MAX_PICKS", 4, 1, 6)
+# 6, не 4. Откакто списъците със срещи спряха (собственикът: „искам всичко
+# прогнози, а не какво предстои като някакви списъци"), спортните стаи живеят
+# САМО от прогнози. При четири карти на пускане и девет спорта една стая
+# оставаше по цял ден без нищо.
+MAX_PICKS = env_int("MAX_PICKS", 6, 1, 10)
 # 24, не 14. Сметката: три фиша по пет мача = 15 крака, но във фиш влизат само
 # избори над 52% (виж COMBO_MIN_P), а такива са около две трети от анализираните.
 # 15 / 0.65 ≈ 23. При 18 под лупата третият фиш пак не се събираше.
@@ -173,7 +178,10 @@ LEAD_MIN = env_int("PREDICT_LEAD_MIN", 10, 0, 240)
 HORIZON_H = env_int("PREDICT_HORIZON_H", 30, 2, 240)
 # Таван за ЦЕЛИЯ ден. Осем пускания по MAX_PICKS биха дали 32 карти — стаята
 # не е лента с новини. Тавана го брои тефтерът, не отделното пускане.
-MAX_DAY = env_int("PREDICT_MAX_DAY", 10, 1, 40)
+# 24, не 10. Същата причина: стаите на деветте спорта се пълнят единствено от
+# прогнози. Десет карти на ден означаваше, че пет от стаите мълчат.
+# Двадесет и четири при осем пускания са по три на пускане — четимо, не порой.
+MAX_DAY = env_int("PREDICT_MAX_DAY", 24, 1, 60)
 # Тефтерът пази толкова дни назад. Трябва да е ПО-ГОЛЯМО от най-далечния
 # хоризонт на събирането (ММА гледа 5 дни напред), иначе една гала, пусната
 # днес, се забравя и се пуска втори път след три дни.
@@ -197,12 +205,14 @@ SPORTS = {
                     "model": "Поасон по голове"},
     "football":    {"emoji": "⚽", "title": "Футбол", "prio": 30,
                     "model": "Поасон, Диксън-Коулс"},
+    "amfootball":  {"emoji": "🏈", "title": "Американски футбол", "prio": 25,
+                    "model": "точки за и против"},
     "baseball":    {"emoji": "⚾", "title": "Бейзбол", "prio": 20,
                     "model": "рънове за и против"},
 }
 # Футболът е последен по изрична заповед на шефа. Бейзболът е след него.
 SPORT_ORDER = ["mma", "tabletennis", "volleyball", "basketball",
-               "tennis", "hockey", "football", "baseball"]
+               "tennis", "hockey", "football", "amfootball", "baseball"]
 
 _want = [s.strip().lower() for s in (os.environ.get("PREDICT_SPORTS") or "").split(",") if s.strip()]
 ACTIVE_SPORTS = [s for s in SPORT_ORDER if (not _want or s in _want)]
@@ -210,17 +220,21 @@ ACTIVE_SPORTS = [s for s in SPORT_ORDER if (not _want or s in _want)]
 # Звездите говорят сами (легендата е в подписа) — картата не носи думи за тях.
 # Таван на звездите там, където сама по себе си дисциплината е непредсказуема.
 STAR_CAP = {"mma": 2, "tabletennis": 2, "baseball": 2, "tennis": 3,
-            "volleyball": 3, "football": 3, "basketball": 3, "hockey": 3}
+            "volleyball": 3, "football": 3, "basketball": 3, "hockey": 3,
+            "amfootball": 3}
 # Минимална извадка на страна. 0 = спортът има собствена проверка за достатъчност.
 # 0 = спортът НЕ минава през общата проверка, защото носи собствена. Волейболът
 # и тенисът на маса броят извадката вътре в модела си (рейтинг, не списък мачове);
 # ако ги оставим тук с число, общата проверка вижда празен списък и ги убива ВСИЧКИТЕ.
 MIN_PER_SIDE = {"football": 5, "basketball": 5, "volleyball": 0, "tabletennis": 0,
-                "tennis": 0, "mma": 0, "hockey": 0, "baseball": 10}
+                "tennis": 0, "mma": 0, "hockey": 0, "baseball": 10,
+                # Американският футбол играе 17 мача за сезон — праг 5 би
+                # изтрил целия септември. Три стигат, звездите пазят честността.
+                "amfootball": 3}
 # Спортовете, които наистина връщат списък с изиграни мачове през history_for().
 # Всеки ДРУГ спорт ЗАДЪЛЖИТЕЛНО стои с 0 по-горе. Самопроверката го пази —
 # сгрешено число тук не чупи нищо шумно, просто убива мълчаливо цял спорт.
-HISTORY_SPORTS = {"football", "basketball", "baseball"}
+HISTORY_SPORTS = {"football", "basketball", "baseball", "amfootball"}
 
 WEEKDAYS = ["понеделник", "вторник", "сряда", "четвъртък", "петък", "събота", "неделя"]
 
@@ -366,6 +380,7 @@ def fx_start(fx, now):
             loc = loc + timedelta(days=1)
         return loc
     return None
+
 
 def started(fx, now):
     """True = мачът вече тече, свършил е, или започва прекалено скоро.
@@ -575,6 +590,7 @@ def match_key(fx, now):
             + (("|" + tag) if tag else "")
             + "|" + norm_key(fx.get("home"))[:24] + "|" + norm_key(fx.get("away"))[:24])
 
+
 def already_posted(state, key):
     return key in (state.get("posted") or {})
 
@@ -627,14 +643,20 @@ PICKLOG_FILE = (os.environ.get("PREDICT_LOG_FILE") or "predict_log.json").strip(
 PICKLOG_KEEP = env_int("PREDICT_LOG_KEEP", 400, 20, 5000)
 
 
-def log_pick(an, now):
-    """Добавя едно твърдение към дневника. Провалът тук НЕ спира картите."""
+def log_pick(an, now, combo=0):
+    """Добавя едно твърдение към дневника. Провалът тук НЕ спира картите.
+
+    combo = номер на фиша, ако този избор е крак от комбиниран фиш. Нула значи
+    самостоятелна карта. Ако мачът вече е в дневника, само му се дописва
+    номерът на фиша — не се вписва втори път.
+    """
     if DRY_RUN:
         return False
     fx = an.get("fx") or {}
     when = fx_start(fx, now)
     rec = {
         "key": fx.get("_key"),
+        "combo": int(combo or 0),
         "posted": now.strftime("%Y-%m-%d %H:%M"),
         "day": (when.astimezone(SOFIA) if when is not None else now).strftime("%Y-%m-%d"),
         "bucket": an.get("bucket"),
@@ -655,8 +677,20 @@ def log_pick(an, now):
                 got = json.load(f)
             if isinstance(got, list):
                 rows = got
-        rows.append(rec)
-        rows = rows[-PICKLOG_KEEP:]
+        # Ако мачът вече е вписан (излязъл е като самостоятелна карта), само
+        # му дописваме номера на фиша. Иначе оценителят би го броил два пъти.
+        stara = None
+        for r in rows:
+            if r.get("key") and r.get("key") == rec.get("key"):
+                stara = r
+                break
+        if stara is not None:
+            if rec["combo"] and not stara.get("combo"):
+                stara["combo"] = rec["combo"]
+            rows = rows[-PICKLOG_KEEP:]
+        else:
+            rows.append(rec)
+            rows = rows[-PICKLOG_KEEP:]
         tmp = PICKLOG_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(rows, f, ensure_ascii=False, indent=1)
@@ -793,6 +827,7 @@ def strength_binary(p):
 def strength_1x2(p1, px, p2):
     """1/X/2 има три изхода — базата е 1/3, не 1/2."""
     return clampf((max(p1, px, p2) - 1.0 / 3.0) * 1.5, 0.0, 1.0)
+
 
 # --- Поасон с корекция Диксън-Коулс -------------------------------------------
 # Чистият Поасон систематично подценява равенствата 0:0 и 1:1. Корекцията тежи
@@ -1007,6 +1042,7 @@ def grade(bucket, n_eff, strength):
         stars = min(stars, 2)
     return max(1, min(stars, STAR_CAP.get(bucket, 3)))
 
+
 # ================================================================= ИЗТОЧНИЦИ
 ESPN_SITE = "https://site.api.espn.com/apis/site/v2/sports"
 
@@ -1217,6 +1253,7 @@ def foot_domestic_index():
           + str(got) + " първенства.")
     return idx
 
+
 def merge_recs(a, b):
     """Слепва два списъка мачове без повторения (един мач = дата + съперник)."""
     out = list(a)
@@ -1407,6 +1444,7 @@ def tennis_rankings(tour):
                             "name": ath.get("displayName") or ""}
     _ten_rank[tour] = out
     return out
+
 
 def _tennis_singles(j, want_pre):
     """Общ разбор: events[] са ТУРНИРИ, competitions[] са мачовете."""
@@ -1612,6 +1650,76 @@ def model_hockey(fx):
             "hgf": _rate(h["hgf"], h["hgp"], lvl), "hga": _rate(h["hga"], h["hgp"], lvl),
             "agf": _rate(a["rgf"], a["rgp"], lvl), "aga": _rate(a["rga"], a["rgp"], lvl)}
 
+
+# --------------------------------------------------- 🏈 АМЕРИКАНСКИ ФУТБОЛ (NFL)
+# ВНИМАНИЕ ЗА АДРЕСА: при ESPN „football" е АМЕРИКАНСКИЯТ футбол, а нашият
+# футбол е „soccer". Затова кошницата тук се казва amfootball, а пътят е
+# football/nfl. Разменят ли се, единият спорт мълчаливо дърпа мачовете на другия.
+#
+# МОДЕЛЪТ е същият като баскетболния — точки за и против, логистична крива —
+# само отклонението е друго: разликата в НФЛ се колебае с около 13.5 точки,
+# докато в баскетбола е 11.5. При 13.5 предимство от 7 точки дава ~64%.
+AMF_LEAGUES = [("nfl", 10, "НФЛ", 13.5),
+               ("college-football", 5, "Колежански", 16.0)]
+AMF_HALFLIFE = 200.0     # дни; един сезон е 17 мача, паметта не бива да е дълга
+AMF_SHRINK = 4.0
+AMF_HOME = 2.0           # точки предимство за домакина
+
+
+def amfootball_seasons(now):
+    """НФЛ брои сезона по началната година: 2026 = сезон 2026-27 (септември)."""
+    s = now.year if now.month >= 7 else now.year - 1
+    return [s, s - 1]
+
+
+def amfootball_fixtures(now, ymd):
+    out = []
+    for slug, w, name, sigma in AMF_LEAGUES:
+        try:
+            out += espn_fixtures("football", slug, ymd, "amfootball", w, name, now,
+                                 {"seasons": amfootball_seasons(now), "sigma": sigma})
+        except Exception as e:      # noqa: BLE001
+            print("   ⚠ американски футбол " + slug + ": " + str(e)[:60])
+    return out
+
+
+def amfootball_history(fx, side):
+    tid = fx.get("home_id") if side == "home" else fx.get("away_id")
+    if not tid:
+        return []
+    ex = fx.get("extra") or {}
+    slug = ex.get("slug") or "nfl"
+    seasons = list(ex.get("seasons") or amfootball_seasons(datetime.now(SOFIA)))
+    recs = espn_history("football", slug, tid, seasons, "amfootball")
+    if len(recs) < 8 and seasons:
+        recs = merge_recs(recs, espn_history("football", slug, tid,
+                                             seasons + [seasons[-1] - 1], "amfootball"))
+    return recs
+
+
+def model_amfootball(hr, ar, fx, now):
+    """Точки за и против, свити към нивото, после логистична крива."""
+    sh, sa = wstats(hr, now, AMF_HALFLIFE), wstats(ar, now, AMF_HALFLIFE)
+    if not sh or not sa:
+        return None
+    ex = fx.get("extra") or {}
+    sigma = float(ex.get("sigma") or 13.5)
+    hca = 0.0 if ex.get("neutral") else AMF_HOME
+    lvl = (sh["gf"] + sh["ga"] + sa["gf"] + sa["ga"]) / 4.0
+    sf_h = shrink(sh["gf"], lvl, sh["w"], AMF_SHRINK)
+    sa_h = shrink(sh["ga"], lvl, sh["w"], AMF_SHRINK)
+    sf_a = shrink(sa["gf"], lvl, sa["w"], AMF_SHRINK)
+    sa_a = shrink(sa["ga"], lvl, sa["w"], AMF_SHRINK)
+    exp_h = (sf_h + sa_a) / 2.0 + hca / 2.0
+    exp_a = (sf_a + sa_h) / 2.0 - hca / 2.0
+    margin = clampf(exp_h - exp_a, -28.0, 28.0)
+    scale = sigma * math.sqrt(3.0) / math.pi
+    p_home = logistic(margin / scale)
+    return {"exp_h": exp_h, "exp_a": exp_a, "total": exp_h + exp_a,
+            "margin": margin, "p_home": p_home, "p_away": 1.0 - p_home,
+            "sh": sh, "sa": sa, "sigma": sigma}
+
+
 # ----------------------------------------------------------------- ⚾ БЕЙЗБОЛ (MLB)
 MLB_API = "https://statsapi.mlb.com/api/v1"
 MLB_HOME = 0.25         # рънове предимство за домакина (~53% базова победа)
@@ -1812,6 +1920,7 @@ def mma_fixtures(now):
                 })
     return out
 
+
 def model_mma(fx, now):
     ex = fx.get("extra") or {}
     idx = mma_index(ex.get("league") or "ufc", now)
@@ -1998,6 +2107,7 @@ def vol_tournaments():
         print("   ⚠ волейбол, справочник турнири: " + str(e)[:60])
     return _vol_meta
 
+
 def vol_fixtures(now, ymd_dash):
     # КАПАН: правилните имена са FirstDate/LastDate. DateFrom/DateTo се ПРЕНЕБРЕГВАТ
     # мълчаливо и сървърът връща целия архив от 28 000 реда.
@@ -2166,6 +2276,7 @@ def vol_ratings(now):
           + str(skipped) + " без ясна кошница).")
     return _vol_rating, _vol_count
 
+
 def model_volleyball(fx, now):
     ex = fx.get("extra") or {}
     b = ex.get("vb")
@@ -2322,6 +2433,7 @@ def model_tabletennis(fx, now):
             "dist_a": bo_distribution(1.0 - p_game, to_win),
             "ok": (a["w"] + a["l"]) >= 5 and (b["w"] + b["l"]) >= 5}
 
+
 # ----------------------------------------------------------------- ПОСЛЕДНА РЕЗЕРВА
 def sdb_fixtures(bucket):
     """TheSportsDB е последна резерва: безплатният ключ дава 1-3 изиграни мача
@@ -2391,6 +2503,8 @@ def history_for(fx, side):
         return basketball_history(fx, side)
     if b == "baseball":
         return baseball_history(fx, side)
+    if b == "amfootball":
+        return amfootball_history(fx, side)
     return []
 
 
@@ -2519,6 +2633,7 @@ def tennis_sets_line(p_match):
     if (1.0 - p_three) >= TOTAL_MIN:
         return "Под 2.5 сета: <b>" + pct(1.0 - p_three) + "</b>"
     return ""
+
 
 def sets_total_line(dists, line_sets):
     """Над/Под N.5 сета — направо от разпределението на сетовете.
@@ -2678,6 +2793,7 @@ def analyse(fx, ctx):
         if min(m["n_a"], m["n_b"]) < 6:
             n_eff = min(n_eff, 19.0)    # под 6 видени мача = най-много две звезди
         sample = ("ранглиста + " + str(m["n_a"]) + "+" + str(m["n_b"]) + " скорошни мача")
+
     elif b == "mma":
         m = model_mma(fx, now)
         if not m["ok"]:
@@ -2717,6 +2833,24 @@ def analyse(fx, ctx):
                + " допуснати; равен няма, продълженията са близо до монета"]
         n_eff = m["gp_h"] + m["gp_a"]
         sample = samp(m["gp_h"], m["gp_a"])
+
+    elif b == "amfootball":
+        m = model_amfootball(hr, ar, fx, now)
+        if not m:
+            return None, "няма история"
+        fav_home = m["p_home"] >= 0.5
+        pick = pick_win(fav_home, fx["home"], fx["away"])   # равен няма
+        p = m["p_home"] if fav_home else m["p_away"]
+        strength = strength_binary(m["p_home"])
+        second = ("Очакван резултат: ~" + str(int(round(m["exp_h"])))
+                  + ":" + str(int(round(m["exp_a"]))))
+        third = points_total_line(m.get("total"), m.get("sigma"), "точки")
+        why = [home + ": " + one(m["sh"]["gf"]) + " : " + one(m["sh"]["ga"])
+               + " точки за мач (" + str(m["sh"]["n"]) + " мача)",
+               away + ": " + one(m["sa"]["gf"]) + " : " + one(m["sa"]["ga"])
+               + " точки за мач (" + str(m["sa"]["n"]) + " мача)"]
+        n_eff = m["sh"]["w"] + m["sa"]["w"]
+        sample = samp(m["sh"]["n"], m["sa"]["n"])
 
     elif b == "baseball":
         m = model_baseball(hr, ar, now)
@@ -2829,6 +2963,8 @@ def collect_all(now):
                 rows = tennis_fixtures(now, ymd)
             elif b == "hockey":
                 rows = hockey_fixtures(now, ymd_dash)
+            elif b == "amfootball":
+                rows = amfootball_fixtures(now, ymd)
             elif b == "baseball":
                 rows = baseball_fixtures(now, ymd_dash)
             elif b == "mma":
@@ -2861,6 +2997,7 @@ def collect_all(now):
               + ((" (" + str(gone) + " вече започнали)") if gone else "")
               + ((" (" + str(far) + " далече — чакат)") if far else ""))
     return buckets
+
 
 # ═══════════════════════════════════════ ПРОГНОЗА ВИНАГИ (резервната стълба)
 # РЕШЕНИЕ НА СОБСТВЕНИКА (29.07.2026, казано два пъти и ясно):
@@ -2995,6 +3132,10 @@ def post_combos(picks, cands, state, now):
         if post_predict(combo_card(i + 1, legs, now), PICKS_THREAD):
             sent += 1
             made += 1
+            # Всеки крак влиза в дневника с номера на фиша си, за да може
+            # оценителят утре да каже кой фиш е минал и къде се е скъсал.
+            for a in legs:
+                log_pick(a, now, combo=i + 1)
             time.sleep(SEND_GAP)
     if made:
         mark_posted(state, ckey, now)
@@ -3059,6 +3200,7 @@ def maybe_footer(state, now, seen, thin, weak):
         persist(state, now)
         return True
     return False
+
 
 # ================================================================= ГЛАВНО
 def run():
@@ -3235,6 +3377,7 @@ def selftest():
     check("3-0 е по-често от 3-2 при силен фаворит", d[0][2] > d[2][2])
     check("обратната сметка се връща вярно", abs(bo_match_prob(invert_bo(0.72, 3), 3) - 0.72) < 1e-6)
     check("best-of-7 има четири изхода", len(bo_distribution(0.6, 4)) == 4)
+
     # --- Elo, Брадли-Тери, свиване, свежест
     check("Elo при равни е 50%", abs(elo_expect(1500.0, 1500.0) - 0.5) < 1e-12)
     check("Elo +200 е ~76%", 0.74 < elo_expect(1700.0, 1500.0) < 0.78)
@@ -3397,6 +3540,7 @@ def selftest():
     check("ISO без часова зона", parse_iso("2026-06-10T13:00:00") is not None)
     check("боклук в датата е None", parse_iso("не-дата") is None)
     check("ключът чисти пунктуацията", norm_key("Ман. Сити!") == "мансити")
+
     # --- тефтерът
     old_state = STATE_FILE
     STATE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_selftest_state.json")
@@ -3515,6 +3659,7 @@ def selftest():
     check("баскетболът носи очакван резултат", "Очакван резултат: ~112:105" in txt)
     check("картата носи звезди и извадка", "⭐⭐" in txt and "извадка 82+82" in txt)
     check("картата има най-много две обяснения", txt.count(NL + "• ") == 2)
+
     demo_f = {"fx": {"bucket": "football", "emoji": "⚽", "home": "Арсенал",
                      "away": "Челси", "league": "Висша лига", "when": None, "time": "19:30"},
               "bucket": "football",
@@ -3610,6 +3755,25 @@ def selftest():
     check("три фиша по пет", COMBO_COUNT == 3 and COMBO_SIZE == 5)
     check("всички спортове имат емоджи", all(SPORTS[b].get("emoji") for b in SPORT_ORDER))
     check("редът покрива всички спортове", set(SPORT_ORDER) == set(SPORTS.keys()))
+
+    # --- 🏈 американски футбол (девети спорт)
+    check("американският футбол е в списъка", "amfootball" in SPORTS)
+    check("американският футбол има таван на звездите", "amfootball" in STAR_CAP)
+    check("американският футбол е в спортовете с история",
+          "amfootball" in HISTORY_SPORTS)
+    # ⚠️ Най-важната проверка тук: при ESPN „football" е АМЕРИКАНСКИЯТ футбол,
+    # а нашият е „soccer". Разменят ли се, единият спорт тихо дърпа чуждите мачове.
+    check("нашият футбол ползва soccer", "/soccer/" in ESPN_SITE + "/soccer/x")
+    check("американският ползва nfl", AMF_LEAGUES[0][0] == "nfl")
+    check("американският има по-широко отклонение от баскета",
+          AMF_LEAGUES[0][3] > 11.5)
+    m_amf = model_amfootball(
+        [{"gf": 27, "ga": 20, "home": True, "date": "2026-01-05", "opp": "x"}] * 8,
+        [{"gf": 17, "ga": 24, "home": False, "date": "2026-01-05", "opp": "y"}] * 8,
+        {"extra": {"sigma": 13.5}}, now)
+    check("американският модел смята", m_amf is not None)
+    check("по-силният отбор е фаворит", m_amf and m_amf["p_home"] > 0.5)
+    check("американският дава и очакван резултат", m_amf and m_amf["exp_h"] > 0)
 
     print("САМОПРОВЕРКА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b_ in bad:
