@@ -263,9 +263,49 @@ def send_pin(chat, text, thread=None, unpin_first=False, state=None, key=None):
         st[k] = {"mid": new_mid, "text": text}
     print("  " + where + ": " + ("закачено" if do_pin(new_mid) else "пратено (не закач.)"))
 
+def diagnoza():
+    """Свързани ли са каналът и групата — питаме Telegram, не помним.
+
+    ЗАЩО СЪЩЕСТВУВА: собственикът добавя хора в КАНАЛА и се чуди защо не се
+    появяват в групата със стаите. Причината не е дефект в бота — каналът и
+    групата са ДВА РАЗЛИЧНИ чата в Telegram и добавянето в единия никога не
+    добавя в другия. Единственото, което ги свързва като едно, е „дискусионна
+    група": тогава под всеки пост в канала излиза бутон за коментари, който
+    ВКАРВА човека в групата с едно докосване.
+
+    Свързването НЕ може да го направи бот — в Bot API няма такъв метод. Прави
+    се от приложението, от собственика на канала. Затова тук само ПРОВЕРЯВАМЕ
+    и казваме състоянието, за да не се гадае.
+    """
+    kanal = api("getChat", chat_id=CHANNEL_ID).get("result") or {}
+    grupa = api("getChat", chat_id=CHAT_ID).get("result") or {} if CHAT_ID else {}
+    svurzan = kanal.get("linked_chat_id")
+    print("--- ДИАГНОЗА: канал <-> група ---")
+    print("  канал : " + str(kanal.get("title") or "?") + "  id " + str(CHANNEL_ID))
+    print("  група : " + str(grupa.get("title") or "?") + "  id " + str(CHAT_ID or "-"))
+    print("  форум (стаи включени): " + ("да" if grupa.get("is_forum") else "НЕ"))
+    print("  канал -> свързана група: " + str(svurzan or "НЯМА"))
+    if CHAT_ID and str(svurzan or "") == str(CHAT_ID):
+        print("  ✅ СВЪРЗАНИ СА. Под всеки пост в канала има бутон за коментари,")
+        print("     който вкарва човека в групата с едно докосване.")
+    else:
+        print("  ⚠️  НЕ СА СВЪРЗАНИ. Затова добавен в канала човек НЕ влиза в групата.")
+        print("     Оправя се РЪЧНО от приложението (бот не може, няма такъв метод):")
+        print("     Канала -> Управление -> Дискусия -> избери групата.")
+    print("  публично име на групата: @" + str(grupa.get("username") or "няма"))
+    print("  връзка-покана в закачения пост: " + GROUP_LINK)
+    return svurzan
+
+
 def main():
     if not BOT_TOKEN: print("Missing BOT_TOKEN"); sys.exit(1)
     state = load_hub_state()
+
+    if MODE in ("diag", "all"):
+        try:
+            diagnoza()
+        except Exception as e:      # noqa: BLE001
+            print("диагнозата не мина (" + str(e)[:60] + ") — продължавам.")
 
     if MODE in ("hub", "all"):
         # Каналът също се помни: инак всяко пускане трупаше по един HUB.
