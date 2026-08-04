@@ -632,6 +632,24 @@ def wins_text(now, rows):
     ])
 
 
+def leg_score(rec):
+    """Резултатът на вече отсъден крак — от записаното в дневника.
+
+    Краката на един фиш свършват в различни дни и се отсъждат в различни
+    пускания. Затова резултатът не се държи в паметта на текущия рън, а се
+    чете от полето „score", което scorer-ът е записал, когато го е отсъдил.
+    Липсва ли — пише се въпросителна, не измислено число.
+    """
+    s = str(rec.get("score") or "")
+    if ":" in s:
+        a, b = s.split(":")[:2]
+        try:
+            return int(a.strip()), int(b.strip())
+        except ValueError:
+            pass
+    return "?", "?"
+
+
 def combo_text(now, slips):
     """Обзор на трите фиша: кой е минал изцяло и кой къде се е скъсал.
 
@@ -779,6 +797,46 @@ def selftest():
     check("обзорът брои минали фишове", "0 от 1 фиша минаха" in c)
     check("стая 4 е разрешена за обзора", PICKS_THREAD in ALLOWED_THREADS)
 
+    # --- ФИШЪТ СЕ СГЛОБЯВА ОТ ЦЕЛИЯ ДНЕВНИК, НЕ ОТ ЕДИН РЪН.
+    # Дотук списъкът се строеше само от отсъдените В ТОЗИ рън, а крак от минал
+    # рън има scored=True и се прескача — тоест фиш от пет крака се отчиташе
+    # само ако и петте мача свършат между две пускания. Никога не се случи.
+    check("резултатът на крак се чете от дневника",
+          leg_score({"score": "2:1"}) == (2, 1))
+    check("липсващият резултат не се измисля",
+          leg_score({}) == ("?", "?"))
+    check("счупеният резултат не се измисля",
+          leg_score({"score": "не знам"}) == ("?", "?"))
+
+    def _sglobi(redove):
+        """Същата логика като в main: групиране по (номер, ден)."""
+        s = {}
+        for r in redove:
+            n = int(r.get("combo") or 0)
+            if n and not r.get("combo_done"):
+                s.setdefault((n, str(r.get("day") or "")), []).append(r)
+        return s
+
+    _star = [{"combo": 1, "day": "2026-08-01", "scored": True, "hit": True, "score": "2:0"},
+             {"combo": 1, "day": "2026-08-01", "scored": True, "hit": False, "score": "0:1"}]
+    _nov = [{"combo": 1, "day": "2026-08-02", "scored": True, "hit": True, "score": "3:1"}]
+    _s = _sglobi(_star + _nov)
+    check("два дни с фиш №1 НЕ се сливат", len(_s) == 2)
+    check("вчерашният фиш пази двата си крака", len(_s[(1, "2026-08-01")]) == 2)
+    check("днешният фиш е отделен", len(_s[(1, "2026-08-02")]) == 1)
+    _chaka = _sglobi([{"combo": 2, "day": "2026-08-01", "scored": True, "hit": True},
+                      {"combo": 2, "day": "2026-08-01", "scored": False}])
+    _legs = _chaka[(2, "2026-08-01")]
+    check("фиш с незавършил крак се разпознава",
+          any(not x.get("scored") for x in _legs))
+    check("отчетеният фиш не се брои пак",
+          _sglobi([{"combo": 3, "day": "2026-08-01", "scored": True,
+                    "hit": True, "combo_done": True}]) == {})
+    check("самостоятелната карта не е фиш",
+          _sglobi([{"combo": 0, "day": "2026-08-01", "scored": True}]) == {})
+    check("липсващото поле combo не чупи (старите 55 записа)",
+          _sglobi([{"day": "2026-08-01", "scored": True}]) == {})
+
     # --- прозорецът на дните: днешното СЕ отчита, утрешното НЕ
     _today = datetime.now(SOFIA).strftime("%Y-%m-%d")
     _utre = (datetime.now(SOFIA) + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -891,29 +949,47 @@ def main():
         print("Днес няма познати — витрината мълчи, отчетът излезе.")
 
     # ОБЗОР НА ФИШОВЕТЕ → стая 4.
-    # Един фиш се отчита ЕДВА когато и петте му крака са отсъдени. Ако един мач
-    # още не е свършил, фишът чака следващото пускане — иначе бихме обявили
-    # „скъсан фиш" върху половин информация.
+    #
+    # ТУК ФИШЪТ НЕ МОЖЕШЕ ДА БЪДЕ ОТЧЕТЕН ИЗОБЩО (намерено и оправено 04.08.2026).
+    #
+    # Списъкът се строеше САМО от `fresh` — краката, отсъдени в ТОЗИ рън. Но крак,
+    # отсъден в предишен рън, има scored=True и се прескача още в началото на
+    # цикъла, тоест никога не влиза във `fresh`. Условието „всичките пет крака
+    # наведнъж" значеше на практика „и петте мача да свършат между две пускания
+    # на оценителя". При две пускания на ден това не се случва почти никога и
+    # стая 4 не е получила НИТО ЕДИН обзор на фиш.
+    #
+    # Сега фишът се сглобява от ЦЕЛИЯ дневник, по двойката (номер, ден). Денят е
+    # задължителен: номерата 1-3 се повтарят всеки ден и без него трите фиша от
+    # понеделник биха се слели с трите от вторник.
+    # Отчетеният фиш се маркира с combo_done, за да не излиза пак.
     slips = {}
-    for f in fresh:
-        n = int((f[0].get("combo") or 0))
-        if n:
-            slips.setdefault(n, []).append(f)
-    if slips:
-        gotovi = []
-        for n in sorted(slips):
-            legs = slips[n]
-            ochakvani = sum(1 for r in rows
-                            if int(r.get("combo") or 0) == n
-                            and (r.get("day") or "") == (legs[0][0].get("day") or ""))
-            if len(legs) >= ochakvani:
-                gotovi.append((n, legs))
-            else:
-                print("Фиш " + str(n) + ": " + str(len(legs)) + " от "
-                      + str(ochakvani) + " крака са готови — чака.")
-        if gotovi:
-            time.sleep(2.0)
-            post(PICKS_THREAD, combo_text(now, gotovi))
+    for r in rows:
+        n = int(r.get("combo") or 0)
+        if n and not r.get("combo_done"):
+            slips.setdefault((n, str(r.get("day") or "")), []).append(r)
+
+    gotovi = []
+    for klyuch in sorted(slips, key=lambda k: (k[1], k[0])):
+        n, den = klyuch
+        legs = slips[klyuch]
+        chakat = [r for r in legs if not r.get("scored")]
+        if chakat:
+            print("Фиш " + str(n) + " (" + den + "): " + str(len(chakat))
+                  + " от " + str(len(legs)) + " крака чакат резултат.")
+            continue
+        sudimi = [r for r in legs if r.get("hit") is not None]
+        for r in legs:
+            r["combo_done"] = True          # приключен, независимо от изхода
+        if not sudimi:
+            print("Фиш " + str(n) + " (" + den + "): нито един крак не се отсъжда"
+                  " — няма какво да отчета.")
+            continue
+        gotovi.append((n, [(r, leg_score(r)[0], leg_score(r)[1],
+                            bool(r.get("hit"))) for r in sudimi]))
+    if gotovi:
+        time.sleep(2.0)
+        post(PICKS_THREAD, combo_text(now, gotovi))
 
     save_log(rows)
     return 0
