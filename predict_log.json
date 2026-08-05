@@ -1876,5 +1876,41 @@
   "stars": 1,
   "sample": "без история",
   "scored": false
+ },
+ {
+  "key": "2026-08-06|baseball|cincinnatireds|athletics",
+  "combo": 0,
+  "posted": "2026-08-05 21:11",
+  "day": "2026-08-06",
+  "bucket": "baseball",
+  "home": "Cincinnati Reds",
+  "away": "Athletics",
+  "home_id": 113,
+  "away_id": 133,
+  "league": "МЛБ",
+  "slug": null,
+  "pick": "1 · Cincinnati Reds",
+  "p": 0.5497,
+  "stars": 1,
+  "sample": "по 136 и 137 мача",
+  "scored": false
+ },
+ {
+  "key": "2026-08-06|baseball|clevelandguardians|newyorkmets",
+  "combo": 0,
+  "posted": "2026-08-05 21:11",
+  "day": "2026-08-06",
+  "bucket": "baseball",
+  "home": "Cleveland Guardians",
+  "away": "New York Mets",
+  "home_id": 114,
+  "away_id": 121,
+  "league": "МЛБ",
+  "slug": null,
+  "pick": "1 · Cleveland Guardians",
+  "p": 0.5414,
+  "stars": 1,
+  "sample": "по 136 и 133 мача",
+  "scored": false
  }
 ]
