@@ -2308,5 +2308,41 @@
   "stars": 2,
   "sample": "по 47 и 73 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-07|volleyball|wyou|тайван|доминиканскарепублика",
+  "combo": 0,
+  "posted": "2026-08-06 16:11",
+  "day": "2026-08-07",
+  "bucket": "volleyball",
+  "home": "Тайван",
+  "away": "Доминиканска република",
+  "home_id": "TPE",
+  "away_id": "DOM",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Тайван (3:0)",
+  "p": 0.872,
+  "stars": 3,
+  "sample": "по 29 и 97 мача",
+  "scored": false
+ },
+ {
+  "key": "2026-08-07|volleyball|wyou|бразилия|хърватия",
+  "combo": 0,
+  "posted": "2026-08-06 16:11",
+  "day": "2026-08-07",
+  "bucket": "volleyball",
+  "home": "Бразилия",
+  "away": "Хърватия",
+  "home_id": "BRA",
+  "away_id": "CRO",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Бразилия (3:0)",
+  "p": 0.758,
+  "stars": 3,
+  "sample": "по 60 и 29 мача",
+  "scored": false
  }
 ]
