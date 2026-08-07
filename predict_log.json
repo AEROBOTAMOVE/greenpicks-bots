@@ -2560,5 +2560,23 @@
   "stars": 1,
   "sample": "по 136 и 138 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-07|volleyball|wyou|türkiye|сащ",
+  "combo": 0,
+  "posted": "2026-08-07 07:34",
+  "day": "2026-08-07",
+  "bucket": "volleyball",
+  "home": "Türkiye",
+  "away": "САЩ",
+  "home_id": "TUR",
+  "away_id": "USA",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Türkiye",
+  "p": 0.55,
+  "stars": 1,
+  "sample": "без история",
+  "scored": false
  }
 ]
