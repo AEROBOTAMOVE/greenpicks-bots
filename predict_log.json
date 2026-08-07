@@ -2812,5 +2812,23 @@
   "stars": 1,
   "sample": "по 89 и 74 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-08|tabletennis|hirotoshinozuka|felixlebrun",
+  "combo": 0,
+  "posted": "2026-08-07 18:39",
+  "day": "2026-08-08",
+  "bucket": "tabletennis",
+  "home": "Hiroto SHINOZUKA",
+  "away": "Felix LEBRUN",
+  "home_id": "134442",
+  "away_id": "135977",
+  "league": "WTT Champions Yokohama 2026 · Men's Singles",
+  "slug": null,
+  "pick": "2 · Felix LEBRUN",
+  "p": 0.603,
+  "stars": 2,
+  "sample": "по 74 и 84 мача",
+  "scored": false
  }
 ]
