@@ -2722,5 +2722,23 @@
   "stars": 1,
   "sample": "без история",
   "scored": false
+ },
+ {
+  "key": "2026-08-08|tabletennis|soramatsushima|woojinjang",
+  "combo": 0,
+  "posted": "2026-08-07 14:34",
+  "day": "2026-08-08",
+  "bucket": "tabletennis",
+  "home": "Sora MATSUSHIMA",
+  "away": "Woojin JANG",
+  "home_id": "135996",
+  "away_id": "114936",
+  "league": "WTT Champions Yokohama 2026 · Men's Singles",
+  "slug": null,
+  "pick": "1 · Sora MATSUSHIMA",
+  "p": 0.5359,
+  "stars": 1,
+  "sample": "по 78 и 57 мача",
+  "scored": false
  }
 ]
