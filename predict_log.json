@@ -3136,5 +3136,23 @@
   "stars": 1,
   "sample": "по 49 и 100 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-09|basketball|dallaswings|goldenstatevalkyries",
+  "combo": 0,
+  "posted": "2026-08-08 12:20",
+  "day": "2026-08-09",
+  "bucket": "basketball",
+  "home": "Dallas Wings",
+  "away": "Golden State Valkyries",
+  "home_id": "136441",
+  "away_id": "150722",
+  "league": "WNBA",
+  "slug": null,
+  "pick": "1 · победа Dallas Wings",
+  "p": 0.6,
+  "stars": 1,
+  "sample": "без история",
+  "scored": false
  }
 ]
