@@ -3118,5 +3118,23 @@
   "stars": 1,
   "sample": "по 135 и 133 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-08|volleyball|wyou|перу|мексико",
+  "combo": 0,
+  "posted": "2026-08-08 10:36",
+  "day": "2026-08-08",
+  "bucket": "volleyball",
+  "home": "Перу",
+  "away": "Мексико",
+  "home_id": "PER",
+  "away_id": "MEX",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Перу (3:1)",
+  "p": 0.5036,
+  "stars": 1,
+  "sample": "по 49 и 100 мача",
+  "scored": false
  }
 ]
