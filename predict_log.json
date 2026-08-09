@@ -3748,5 +3748,23 @@
   "stars": 1,
   "sample": "без история",
   "scored": false
+ },
+ {
+  "key": "2026-08-09|tabletennis|tintinho|audreyzarif",
+  "combo": 0,
+  "posted": "2026-08-09 15:01",
+  "day": "2026-08-09",
+  "bucket": "tabletennis",
+  "home": "Tin-Tin HO",
+  "away": "Audrey ZARIF",
+  "home_id": "115430",
+  "away_id": "116874",
+  "league": "Europe Smash - Sweden 2026 · Women's Singles",
+  "slug": null,
+  "pick": "2 · Audrey ZARIF",
+  "p": 0.5166,
+  "stars": 1,
+  "sample": "по 40 и 53 мача",
+  "scored": false
  }
 ]
