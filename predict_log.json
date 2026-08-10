@@ -4342,5 +4342,23 @@
   "stars": 1,
   "sample": "по 54 и 47 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-11|volleyball|wyou|чили|египет",
+  "combo": 0,
+  "posted": "2026-08-10 19:09",
+  "day": "2026-08-11",
+  "bucket": "volleyball",
+  "home": "Чили",
+  "away": "Египет",
+  "home_id": "CHI",
+  "away_id": "EGY",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "2 · победа Египет (3:1)",
+  "p": 0.6753,
+  "stars": 3,
+  "sample": "по 50 мача за всеки",
+  "scored": false
  }
 ]
