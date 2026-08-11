@@ -16,6 +16,46 @@ MODE = (os.environ.get("RESET_MODE") or (sys.argv[1] if len(sys.argv) > 1 else "
 # Forum topic containers. 328 = "Boyni sportove" (UFC/MMA/boxing) - if it is
 # missing here, the next wipe deletes the room itself. Same list as dedupe_clean.
 KEEP_IDS = {1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 26, 27, 328}
+ROOMS_STATE_FILE = (os.environ.get("ROOMS_STATE_FILE") or "rooms_state.json").strip()
+
+def keep_ids():
+    """Hard-coded list PLUS every thread id in rooms_state.json.
+
+    FIXED 2026-08-11. The frozen list above went stale the moment make_rooms.py
+    created hockey / tennis / baseball / amfootball (threads 1961, 1963, 1965,
+    1967). Those ids were not in KEEP_IDS, so a group wipe would have deleted
+    the four rooms THEMSELVES - and a deleted forum topic does not come back.
+    The very comment above warned about exactly this for room 328 and was still
+    not enough: a frozen list only protects what somebody remembered to add.
+
+    Returns None when the file exists but cannot be read. That is deliberate:
+    unreadable state must ABORT the wipe, not silently fall back to the short
+    list. Missing file is fine - it means no extra rooms were ever created.
+    """
+    ids = set(KEEP_IDS)
+    if not os.path.exists(ROOMS_STATE_FILE):
+        return ids
+    try:
+        with open(ROOMS_STATE_FILE, encoding="utf-8-sig") as f:
+            d = json.load(f)
+    except Exception as e:                                   # noqa: BLE001
+        print("  rooms_state.json unreadable (" + str(e)[:80] + ")")
+        return None
+    if not isinstance(d, dict):
+        print("  rooms_state.json is not a dict - refusing to guess")
+        return None
+    dobaveni = []
+    for zapis in d.values():
+        try:
+            n = int(zapis.get("thread"))
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if n > 0 and n not in ids:
+            ids.add(n)
+            dobaveni.append(n)
+    if dobaveni:
+        print("  protected extra rooms from rooms_state.json:", sorted(dobaveni))
+    return ids
 
 def api(method, **params):
     url = "https://api.telegram.org/bot" + BOT_TOKEN + "/" + method
@@ -110,7 +150,19 @@ def main():
             print("  GROUP skipped: CHAT_ID not set")
         else:
             print("== GROUP wipe (keep topic containers) ==")
-            if wipe(CHAT_ID, KEEP_IDS):
+            keep = keep_ids()
+            if keep is None:
+                print("  GROUP ABORTED: room state unreadable, refusing to wipe")
+                print("reset done -", MODE)
+                return
+            # The four rooms created later (hockey/tennis/baseball/amfootball)
+            # also need their pins back, exactly like the frozen ones. main() of
+            # setup_hub calls this; reset.py never did, so after a reset those
+            # rooms came back empty - wiped, then left without a pin.
+            vleti = H.vlei_novite_stai()
+            if vleti:
+                print("  pins added for new rooms:", vleti)
+            if wipe(CHAT_ID, keep):
                 for thread, text in H.ROOM_PINS.items():
                     send_pin(CHAT_ID, text, thread)
                     time.sleep(1.5)
