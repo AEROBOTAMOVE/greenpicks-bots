@@ -782,6 +782,81 @@ def results_text(now, rows, total_all, hit_all, bez=None, vsichki=None):
     return NL.join(out)
 
 
+# ═══════════════════════════════════════════ 🏁 ФИНИШЪТ НА ДЕНЯ
+# 🔴 ЗАЩО СЕ ПОЯВЯВА (11.08.2026, по изрична поръчка на собственика:
+# „в 23:30 прави ли там финиш на деня, какво що, разбор пълен").
+#
+# Дотук обедното и вечерното пускане пращаха ЕДНО И СЪЩО съобщение, със същото
+# заглавие „ОБЗОР НА ДЕНЯ" — а всяко показваше само отсъденото В СОБСТВЕНОТО
+# СИ пускане. Тоест мач, отчетен в 14:30, липсваше в 23:30. Никъде нямаше едно
+# съобщение, което да показва целия ден накуп.
+#
+# И второ: при нула отсъдени стаята мълчеше напълно. Човекът не различаваше
+# „днес няма готови мачове" от „ботът е паднал". Финишът излиза ВИНАГИ.
+def den_finish_text(now, rows, den):
+    """Равносметката на един ден: пуснато, отсъдено, познато, останало."""
+    dnes = [r for r in rows if str(r.get("posted") or "")[:10] == den]
+    otsadeni = [r for r in dnes if r.get("hit") is not None]
+    poznati = [r for r in otsadeni if r.get("hit") is True]
+    zagubeni = [r for r in otsadeni if r.get("hit") is False]
+    chakat = [r for r in dnes if not r.get("scored")]
+    bez = [r for r in dnes if r.get("scored") and r.get("hit") is None]
+
+    out = ["\U0001f3c1 <b>ФИНИШ НА ДЕНЯ</b> · " + date_bg(now), ""]
+    if not dnes:
+        out += ["Днес нямаше нито една прогноза.",
+                "Утре от 08:00 продължаваме.", "", "\U0001f7e2 THE GREEN ROOM"]
+        return NL.join(out)
+
+    out += ["\U0001f4cb пуснати прогнози: <b>" + str(len(dnes)) + "</b>",
+            "  ✅ познати: <b>" + str(len(poznati)) + "</b>",
+            "  ❌ загубени: <b>" + str(len(zagubeni)) + "</b>"]
+    if otsadeni:
+        out.append("  \U0001f4c8 отсъдени: <b>" + str(len(otsadeni)) + "</b> · "
+                   + ("%.0f" % (100.0 * len(poznati) / len(otsadeni))) + "%")
+    else:
+        out.append("  \U0001f4c8 отсъдени: <b>0</b> — мачовете още вървят")
+    if chakat:
+        out.append("  ⏳ чакат резултат: <b>" + str(len(chakat)) + "</b>")
+    if bez:
+        out.append("  \U0001f6ab без официален резултат: <b>" + str(len(bez)) + "</b>")
+
+    # Разбивка по спорт САМО за днес — това е „какво що" на деня.
+    po_sport = {}
+    for r in otsadeni:
+        b = r.get("bucket") or "друго"
+        p, n = po_sport.get(b, (0, 0))
+        po_sport[b] = (p + (1 if r.get("hit") else 0), n + 1)
+    if po_sport:
+        out += ["", "\U0001f3af <b>ДНЕС ПО СПОРТОВЕ</b>"]
+        for b in po_red(list(po_sport)):
+            p, n = po_sport[b]
+            out.append("  " + sport_emo(b) + " " + sport_ime(b).capitalize()
+                       + ": <b>" + str(p) + " от " + str(n) + "</b>")
+
+    # Фишовете на деня — по номер, с колко крака са минали.
+    fishove = {}
+    for r in dnes:
+        n = int(r.get("combo") or 0)
+        if n:
+            fishove.setdefault(n, []).append(r)
+    if fishove:
+        out += ["", "\U0001f3ab <b>ФИШОВЕТЕ НА ДЕНЯ</b>"]
+        for n in sorted(fishove):
+            legs = fishove[n]
+            ok = sum(1 for r in legs if r.get("hit") is True)
+            gotovi = sum(1 for r in legs if r.get("hit") is not None)
+            red = "  Фиш " + str(n) + ": <b>" + str(ok) + " от " + str(len(legs)) + "</b>"
+            if gotovi < len(legs):
+                red += " · " + str(len(legs) - gotovi) + " още чакат"
+            elif ok == len(legs):
+                red += " · \U0001f7e2 МИНА ЦЕЛИЯТ"
+            out.append(red)
+
+    out += ["", "Лека вечер \U0001f31b", "\U0001f7e2 THE GREEN ROOM"]
+    return NL.join(out)
+
+
 def wins_text(now, rows):
     """Витрината. Само познатите — също подредени по спорт."""
     grupi = {}
@@ -976,6 +1051,40 @@ def selftest():
     # А ако токенът беше налице, самопроверката щеше да изсипе тестов текст
     # В САМИЯ КАНАЛ, пред всички.
     # Затова тук сухият режим се включва НАСИЛА и се връща както е бил.
+    # --- 🏁 ФИНИШЪТ НА ДЕНЯ. Излиза ВИНАГИ вечер — включително при нула
+    # отсъдени, защото мълчаща стая не се различава от паднал бот.
+    _dn = "2026-08-11"
+    _redove = [
+        {"posted": _dn + " 09:00", "bucket": "football", "combo": 1,
+         "scored": True, "hit": True, "home": "А", "away": "Б"},
+        {"posted": _dn + " 09:00", "bucket": "football", "combo": 1,
+         "scored": True, "hit": False, "home": "В", "away": "Г"},
+        {"posted": _dn + " 12:00", "bucket": "tennis", "combo": 0,
+         "scored": False, "hit": None, "home": "Д", "away": "Е"},
+        {"posted": _dn + " 12:00", "bucket": "tabletennis", "combo": 0,
+         "scored": True, "hit": None, "home": "Ж", "away": "З"},
+        {"posted": "2026-08-10 21:00", "bucket": "football", "combo": 0,
+         "scored": True, "hit": True, "home": "И", "away": "Й"},
+    ]
+    _fin = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA), _redove, _dn)
+    check("финишът е озаглавен", "ФИНИШ НА ДЕНЯ" in _fin)
+    check("финишът брои само днешните", "пуснати прогнози: <b>4</b>" in _fin)
+    check("финишът брои познатите", "познати: <b>1</b>" in _fin)
+    check("финишът брои загубените", "загубени: <b>1</b>" in _fin)
+    check("финишът брои чакащите", "чакат резултат: <b>1</b>" in _fin)
+    check("финишът брои неотсъдимите", "без официален резултат: <b>1</b>" in _fin)
+    check("финишът дава процент за деня", "50%" in _fin)
+    check("финишът отчита фиша", "Фиш 1: <b>1 от 2</b>" in _fin)
+    check("финишът пожелава лека вечер", "Лека вечер" in _fin)
+    check("финишът е чист от забранени думи", banned_word(_fin) is None)
+    _praz = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA), [], _dn)
+    check("празният ден пак получава финиш", "ФИНИШ НА ДЕНЯ" in _praz)
+    check("празният ден го казва направо", "нито една прогноза" in _praz)
+    check("празният ден не лъже с проценти", "%" not in _praz)
+    _cql = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA),
+                           [dict(_redove[2])], _dn)
+    check("ден без нито един отсъден го казва", "мачовете още вървят" in _cql)
+
     check("каналът е зададен", bool(str(CHANNEL_ID).strip()))
     check("каналът НЕ е стая от групата", str(CHANNEL_ID) not in ALLOWED_THREADS)
     _star_dry = globals()["DRY_RUN"]
@@ -1209,8 +1318,22 @@ def main():
         fresh.append((r, hs, as_, bool(ok_hit)))
 
     print("Проверени " + str(checked) + " твърдения, отсъдени " + str(len(fresh)) + ".")
+
+    # ВЕЧЕРНОТО ПУСКАНЕ ЗАТВАРЯ ДЕНЯ. Обедното отчита каквото е свършило;
+    # вечерното прави равносметката — и я прави ВИНАГИ, дори при нула отсъдени.
+    # След полунощ (закъсняло пускане) денят, който се затваря, е вчерашният.
+    vecher = now.hour >= 20 or now.hour < 5
+    den = ((now - timedelta(days=1)) if now.hour < 5 else now).strftime("%Y-%m-%d")
+
     if not fresh:
         save_log(rows)
+        if vecher:
+            finish = den_finish_text(now, rows, den)
+            post(RESULTS_THREAD, finish)
+            time.sleep(1.5)
+            post_channel(finish)
+            print("Няма нови отсъдени — но финишът на деня излезе.")
+            return 1
         print("Няма завършили мачове за отчет — мълча.")
         return 0
 
@@ -1230,6 +1353,15 @@ def main():
     else:
         print("Днес няма познати — витрината мълчи, отчетът излезе.")
 
+    # И финишът, отделно съобщение, само вечер. Обзорът горе казва „кое
+    # свърши сега"; този казва „какво стана ЦЕЛИЯ ден".
+    if vecher:
+        time.sleep(2.0)
+        finish = den_finish_text(now, rows, den)
+        post(RESULTS_THREAD, finish)
+        time.sleep(1.5)
+        post_channel(finish)
+
     # ОБЗОР НА ФИШОВЕТЕ → стая 4.
     #
     # ТУК ФИШЪТ НЕ МОЖЕШЕ ДА БЪДЕ ОТЧЕТЕН ИЗОБЩО (намерено и оправено 04.08.2026).
@@ -1245,11 +1377,23 @@ def main():
     # задължителен: номерата 1-3 се повтарят всеки ден и без него трите фиша от
     # понеделник биха се слели с трите от вторник.
     # Отчетеният фиш се маркира с combo_done, за да не излиза пак.
+    # 🔴 ГРУПИРАНЕТО БЕШЕ ПО ГРЕШНИЯ ДЕН (намерено и оправено 11.08.2026).
+    #
+    # Стоеше по (номер, day), а `day` в дневника е денят на МАЧА, не денят, в
+    # който фишът е пуснат (predictor.py:740). Фиш, пуснат в 22:00 с крака в
+    # 22:30 и в 01:40, се разцепва на две купчини; и обратно — крак от вчерашен
+    # фиш се слепва с днешния със същия номер. Измерено върху живия дневник:
+    # 11 истински фиша ставаха 14 купчини, една от ОСЕМ крака, друга от ЕДИН.
+    # Тоест стая 4 отчиташе фишове, които никога не са били пускани така.
+    #
+    # `posted` е часът на пускане и е записан на всеки крак — първите десет
+    # знака са денят, в който фишът наистина е излязъл.
     slips = {}
     for r in rows:
         n = int(r.get("combo") or 0)
         if n and not r.get("combo_done"):
-            slips.setdefault((n, str(r.get("day") or "")), []).append(r)
+            den = str(r.get("posted") or r.get("day") or "")[:10]
+            slips.setdefault((n, den), []).append(r)
 
     gotovi = []
     for klyuch in sorted(slips, key=lambda k: (k[1], k[0])):
