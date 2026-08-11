@@ -109,8 +109,31 @@ def banned_word(text):
     return None
 
 
+# 🔴 БЛИЗНАКЪТ НА ПОПРАВКАТА В predictor.py (11.08.2026).
+#
+# Там пет спорта мълчаха, защото ESPN връщаше 403 на всеки адрес. Причината се
+# оказа обърната наопаки: не липса на подпис, а ПРЕПРАВЕН подпис. Измерено на
+# живо, един адрес, една минута:
+#     „Mozilla/5.0 (compatible; GreenRoomScorer/1.0)"  ->  403 Forbidden
+#     без подпис / подписът на самия Python            ->  200 и 10 срещи
+#
+# Отсъждащият чука на СЪЩАТА врата със същия преправен подпис. Значи и
+# резултатите за футбол, тенис, баскетбол, хокей, бейзбол и ММА са падали
+# мълчаливо. Поправката се прави и тук — иначе половината е оправена.
+NO_UA_HOSTS = ("espn.com",)
+
+
+def glavi_za(url, headers=None):
+    hd = ({"Accept": "application/json"}
+          if any(h in url for h in NO_UA_HOSTS)
+          else {"User-Agent": UA, "Accept": "*/*"})
+    if headers:
+        hd.update(headers)
+    return hd
+
+
 def http_json(url, timeout=25):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
+    req = urllib.request.Request(url, headers=glavi_za(url))
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
@@ -963,6 +986,13 @@ def selftest():
     finally:
         globals()["DRY_RUN"] = _star_dry
     check("сухият режим е върнат както беше", DRY_RUN == _star_dry)
+    # Подписът. Върне ли се преправеният подпис към ESPN, 403-ката се връща с
+    # него и стаята „Резултати" пак млъква за половината спортове.
+    check("ESPN не получава преправен подпис",
+          "User-Agent" not in glavi_za(ESPN + "/soccer/x/scoreboard"))
+    check("ESPN иска json", glavi_za(ESPN + "/x").get("Accept") == "application/json")
+    check("чуждите адреси пазят подписа",
+          glavi_za("https://worldtabletennis.com/x").get("User-Agent") == UA)
     # Тези двете НЕ стигат до мрежата — пазачът за думи е преди нея.
     check("каналът ОТКАЗВА хазартна дума",
           post_channel("залагай отговорно") is False)
