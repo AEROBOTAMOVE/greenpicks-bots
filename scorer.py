@@ -793,8 +793,13 @@ def results_text(now, rows, total_all, hit_all, bez=None, vsichki=None):
 #
 # И второ: при нула отсъдени стаята мълчеше напълно. Човекът не различаваше
 # „днес няма готови мачове" от „ботът е паднал". Финишът излиза ВИНАГИ.
-def den_finish_text(now, rows, den):
-    """Равносметката на един ден: пуснато, отсъдено, познато, останало."""
+def den_finish_text(now, rows, den, mezhdinna=False):
+    """Равносметката на един ден: пуснато, отсъдено, познато, останало.
+
+    mezhdinna=True е обедният вариант: същите числа, но заглавието и краят
+    казват, че денят ТЕЧЕ. Две еднакви „равносметки" на ден правят и двете
+    безсмислени — затова разликата е в текста, не само в часа.
+    """
     dnes = [r for r in rows if str(r.get("posted") or "")[:10] == den]
     otsadeni = [r for r in dnes if r.get("hit") is not None]
     poznati = [r for r in otsadeni if r.get("hit") is True]
@@ -802,10 +807,16 @@ def den_finish_text(now, rows, den):
     chakat = [r for r in dnes if not r.get("scored")]
     bez = [r for r in dnes if r.get("scored") and r.get("hit") is None]
 
-    out = ["\U0001f3c1 <b>ФИНИШ НА ДЕНЯ</b> · " + date_bg(now), ""]
+    if mezhdinna:
+        out = ["\U0001f552 <b>ДОКЪДЕ СМЕ ДНЕС</b> · " + date_bg(now),
+               "<i>междинна равносметка — денят още тече</i>", ""]
+    else:
+        out = ["\U0001f3c1 <b>ФИНИШ НА ДЕНЯ</b> · " + date_bg(now), ""]
     if not dnes:
         out += ["Днес нямаше нито една прогноза.",
-                "Утре от 08:00 продължаваме.", "", "\U0001f7e2 THE GREEN ROOM"]
+                ("Следващите пускания са до 23:00." if mezhdinna
+                 else "Утре от 08:00 продължаваме."),
+                "", "\U0001f7e2 THE GREEN ROOM"]
         return NL.join(out)
 
     out += ["\U0001f4cb пуснати прогнози: <b>" + str(len(dnes)) + "</b>",
@@ -853,7 +864,11 @@ def den_finish_text(now, rows, den):
                 red += " · \U0001f7e2 МИНА ЦЕЛИЯТ"
             out.append(red)
 
-    out += ["", "Лека вечер \U0001f31b", "\U0001f7e2 THE GREEN ROOM"]
+    if mezhdinna:
+        out += ["", "Денят продължава — следващите карти до 23:00 \U0001f680",
+                "\U0001f7e2 THE GREEN ROOM"]
+    else:
+        out += ["", "Лека вечер \U0001f31b", "\U0001f7e2 THE GREEN ROOM"]
     return NL.join(out)
 
 
@@ -1084,6 +1099,21 @@ def selftest():
     _cql = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA),
                            [dict(_redove[2])], _dn)
     check("ден без нито един отсъден го казва", "мачовете още вървят" in _cql)
+
+    # --- 🕒 ОБЕДНАТА РАВНОСМЕТКА. Същите числа, ДРУГО заглавие — иначе два
+    # еднакви „финиша" на ден правят и двата безсмислени.
+    _obed = den_finish_text(datetime(2026, 8, 11, 15, 30, tzinfo=SOFIA),
+                            _redove, _dn, mezhdinna=True)
+    check("обедната се казва другояче", "ДОКЪДЕ СМЕ ДНЕС" in _obed)
+    check("обедната НЕ се представя за финиш", "ФИНИШ НА ДЕНЯ" not in _obed)
+    check("обедната казва, че денят тече", "денят още тече" in _obed)
+    check("обедната не пожелава лека вечер", "Лека вечер" not in _obed)
+    check("обедната носи същите числа", "пуснати прогнози: <b>4</b>" in _obed)
+    check("обедната е чиста", banned_word(_obed) is None)
+    _obed_praz = den_finish_text(datetime(2026, 8, 11, 15, 30, tzinfo=SOFIA),
+                                 [], _dn, mezhdinna=True)
+    check("празният обед сочи напред, не назад",
+          "до 23:00" in _obed_praz and "Утре" not in _obed_praz)
 
     check("каналът е зададен", bool(str(CHANNEL_ID).strip()))
     check("каналът НЕ е стая от групата", str(CHANNEL_ID) not in ALLOWED_THREADS)
@@ -1353,20 +1383,29 @@ def main():
 
     print("Проверени " + str(checked) + " твърдения, отсъдени " + str(len(fresh)) + ".")
 
-    # ВЕЧЕРНОТО ПУСКАНЕ ЗАТВАРЯ ДЕНЯ. Обедното отчита каквото е свършило;
-    # вечерното прави равносметката — и я прави ВИНАГИ, дори при нула отсъдени.
-    # След полунощ (закъсняло пускане) денят, който се затваря, е вчерашният.
+    # 🔴 РАВНОСМЕТКА ДВА ПЪТИ НА ДЕН (11.08.2026, поръчка на собственика:
+    # „нека има и равносметка освен 23:30 и в 15:30 примерно“).
+    #
+    # Обедното пускане дотук казваше само „кое свърши В ТОВА пускане“ — а
+    # човек, който отваря стаята следобед, иска да види ДОКЪДЕ сме за деня,
+    # не последните пет мача. Затова равносметката вече излиза и по обяд.
+    #
+    # Разликата между двете е ЧЕСТНА и се вижда в заглавието:
+    #   • обяд  → „ДОКЪДЕ СМЕ ДНЕС“ — междинна, мачовете още вървят
+    #   • вечер → „ФИНИШ НА ДЕНЯ“   — окончателна
+    # Иначе два еднакви „финиша“ на ден правят и двата безсмислени.
     vecher = now.hour >= 20 or now.hour < 5
+    obed = 11 <= now.hour < 20
     den = ((now - timedelta(days=1)) if now.hour < 5 else now).strftime("%Y-%m-%d")
 
     if not fresh:
         save_log(rows)
-        if vecher:
-            finish = den_finish_text(now, rows, den)
+        if vecher or obed:
+            finish = den_finish_text(now, rows, den, mezhdinna=obed)
             post(RESULTS_THREAD, finish)
             time.sleep(1.5)
             post_channel(finish)
-            print("Няма нови отсъдени — но финишът на деня излезе.")
+            print("Няма нови отсъдени — но равносметката излезе.")
             return 1
         print("Няма завършили мачове за отчет — мълча.")
         return 0
@@ -1398,11 +1437,12 @@ def main():
     else:
         print("Днес няма познати — витрината мълчи, отчетът излезе.")
 
-    # И финишът, отделно съобщение, само вечер. Обзорът горе казва „кое
-    # свърши сега"; този казва „какво стана ЦЕЛИЯ ден".
-    if vecher:
+    # И равносметката, отделно съобщение. Обзорът горе казва „кое свърши
+    # сега"; тази казва „докъде сме за ЦЕЛИЯ ден". Излиза и по обяд, и вечер,
+    # но с различно заглавие — виж обяснението при vecher/obed по-горе.
+    if vecher or obed:
         time.sleep(2.0)
-        finish = den_finish_text(now, rows, den)
+        finish = den_finish_text(now, rows, den, mezhdinna=obed)
         post(RESULTS_THREAD, finish)
         time.sleep(1.5)
         post_channel(finish)
