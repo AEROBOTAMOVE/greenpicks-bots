@@ -2690,9 +2690,80 @@ def samp(a, b):
     return "по " + str(x) + " и " + str(y) + " мача"
 
 
-# Думата до звездите. Легендата стоеше САМО в подписа под последната карта —
-# тоест човек, който вижда една карта, не знае какво значат две звезди.
-ZVEZDI_DUMA = {1: "малка увереност", 2: "прилична увереност", 3: "добра увереност"}
+# 🔴 ПРЕРАБОТЕНО 11.08.2026. Звездите казваха „увереност", а НЕ мереха
+# увереност. Резултатът се четеше в стаята така:
+#     „1 · победа Bodo/Glimt — 50%   ⭐⭐⭐ добра увереност"
+# Петдесет процента е монета. Три звезди до нея са обещание, което самото
+# число опровергава два сантиметра по-нагоре. И обратното: две карти с по 92%
+# получаваха различен брой звезди и никой не разбираше защо.
+#
+# Причината е, че grade() смесва ДВЕ различни неща в един символ: колко мача
+# има зад картата (n_eff) и колко категоричен е превесът (strength). Затова
+# сега всяко от двете си казва своето с думи:
+#   • звездите остават, но говорят за ДАННИТЕ — колко стъпка има под картата
+#   • отделен ред казва колко е категоричен изборът, и той идва ПРАВО от
+#     вероятността, така че не може да ѝ противоречи
+ZVEZDI_DUMA = {1: "малко данни", 2: "прилична история", 3: "богата история"}
+
+# Границите не са на око. Върху 75 586 мача от бектеста измереното е, че под
+# 58% посочената страна печели горе-долу колкото хвърлена монета, между 58 и
+# 65 има истински, но лек превес, а над 75 разликата е видима с просто око.
+P_DUMI = ((0.80, "🟢 много ясен фаворит"),
+          (0.68, "🟢 ясен фаворит"),
+          (0.60, "🟡 лек фаворит"),
+          (0.55, "🟠 мъничък превес"),
+          (0.00, "🔴 почти равностойни"))
+
+
+def p_duma(p):
+    """Присъдата с думи — идва ПРАВО от процента, затова не може да го излъже."""
+    try:
+        x = float(p)
+    except (TypeError, ValueError):
+        return ""
+    for prag, duma in P_DUMI:
+        if x >= prag:
+            return duma
+    return ""
+
+
+# Имената на турнирите идват на английски и често отрязани по средата:
+# „FIVB Volleyball Girls' U17 World Championship…". Тук се превеждат тези,
+# които се повтарят всеки ден. Непознато име минава както си е — по-добре
+# английско, отколкото сгрешено.
+LIGA_BG = (
+    ("champions_qual", "Квалификации за Шампионска лига"),
+    ("uefa champions", "Шампионска лига"),
+    ("uefa europa conf", "Лига на конференциите"),
+    ("uefa europa", "Лига Европа"),
+    ("premier league", "Висша лига, Англия"),
+    ("laliga", "Ла Лига"), ("la liga", "Ла Лига"),
+    ("serie a", "Серия А"), ("bundesliga", "Бундеслига"),
+    ("ligue 1", "Лига 1"), ("eredivisie", "Ередивизи"),
+    ("primeira liga", "Примейра лига"), ("brasileirao", "Серия А, Бразилия"),
+    ("major league soccer", "MLS"),
+    ("girls' u17 world championship", "Световно U17, девойки"),
+    ("boys' u17 world championship", "Световно U17, юноши"),
+    ("girls' u19 world championship", "Световно U19, девойки"),
+    ("boys' u19 world championship", "Световно U19, юноши"),
+    ("world championship", "Световно първенство"),
+    ("nations league", "Лига на нациите"),
+    ("national bank open", "Мастърс, Торонто/Монреал"),
+    ("western & southern", "Мастърс, Синсинати"),
+    ("major league baseball", "МЛБ"),
+)
+
+
+def liga_bg(name, cap=44):
+    """Български надпис за турнира, ако го познаваме. Иначе — подрязан оригинал."""
+    s = str(name or "").strip()
+    low = s.lower()
+    for klyuch, bg in LIGA_BG:
+        if klyuch in low:
+            return bg
+    if len(s) > cap:
+        s = s[:cap - 1].rstrip() + chr(8230)
+    return s
 
 
 def one(x, d=1):
@@ -3170,14 +3241,24 @@ def analyse(fx, ctx):
         strength = strength_binary(m["p_home"])
         dist = m["dist_h"] if fav_home else m["dist_a"]
         best = max(dist, key=lambda x: x[2])
-        # Най-вероятният сетов резултат влиза в самата прогноза: „(3:1)".
-        pick = (pick_win(fav_home, fx["home"], fx["away"])
-                + " (" + str(best[0]) + ":" + str(best[1]) + ")")
+        # 🔴 ОПРАВЕНО 11.08.2026. Дотук сетовият резултат влизаше В САМАТА
+        # прогноза: „1 · победа Корея (3:0) — 92%". Човекът чете „3:0 с 92%",
+        # а 92% е вероятността да СПЕЧЕЛИ МАЧА — точното 3:0 е далеч по-рядко
+        # (тук 52%). Тоест картата обещаваше нещо, което моделът не твърди, а
+        # оценителят и без това отсъждаше само победителя. Числото си остава,
+        # но слиза на свой ред, със своята си вероятност.
+        pick = pick_win(fav_home, fx["home"], fx["away"])
         # Волейболът е до 3 спечелени сета: „над 3.5" значи мач в 4 или 5 сета.
         third = sets_total_line([m.get("dist_h"), m.get("dist_a")], 3.5)
-        # Свободният втори слот получава дължината на мача. Печалбата е точно
-        # там, където редът 3.5 мълчи — тогава картата днес остава гола.
-        second = fifth_set_line([m.get("dist_h"), m.get("dist_a")])
+        # Числото се сверява с обявеното: сборът на разпределението е СУРОВАТА
+        # вероятност за победа, а на картата стои свитата. Показваме дела на
+        # този резултат ВЪТРЕ в обявеното, иначе двете числа си противоречат.
+        _sur = sum(float(x[2]) for x in dist) or 1.0
+        second = ("Най-вероятен резултат: " + str(best[0]) + ":" + str(best[1])
+                  + " (" + pct(float(best[2]) / _sur * p) + ")")
+        if not third:
+            # Редът 3.5 мълчи — тогава втората рубрика поема дължината на мача.
+            third = fifth_set_line([m.get("dist_h"), m.get("dist_a")])
         rate = m["p_rally"] if fav_home else 1.0 - m["p_rally"]
         kosh = VOL_BUCKET_BG.get(m.get("vb"), m.get("vb"))
         why = [(home if fav_home else away) + " печели " + one(rate * 100.0)
@@ -3411,43 +3492,40 @@ def sport_record(bucket):
 def card(an, now):
     """Кратка карта. Прогнозата е ГЕРОЯТ, обяснението е два реда."""
     fx = an["fx"]
-    lg = str(fx.get("league") or "")
-    if len(lg) > 46:
-        lg = lg[:45] + "…"
-    sub = [x for x in [esc(lg), esc(fx.get("time") or when_label(fx.get("when"), now))] if x]
+    lg = liga_bg(fx.get("league"))
+    koga = esc(fx.get("time") or when_label(fx.get("when"), now))
     stars = an["stars"]
-    lines = [fx["emoji"] + " <b>" + esc(fx["home"]) + "</b> 🆚 <b>" + esc(fx["away"]) + "</b>"]
+    lines = [fx["emoji"] + " <b>" + esc(fx["home"]) + "</b> срещу <b>" + esc(fx["away"]) + "</b>"]
+    sub = [x for x in [esc(lg), koga] if x]
     if sub:
         lines.append("<i>" + " · ".join(sub) + "</i>")
-    # Звездите вече носят ДУМАТА си. Дотук легендата стоеше само в подписа под
-    # последната карта за деня — човек, който вижда една карта, не знаеше
-    # какво значат две звезди.
-    star_line = ("⭐" * stars) + " " + ZVEZDI_DUMA.get(stars, "") + " · " + esc(an["sample"])
-    if stars <= 1:
-        # ТУК КАРТАТА СИ ПРОТИВОРЕЧЕШЕ (оправено 04.08.2026): пишеше се
-        # „малка извадка" при ВСЯКА едназвездна карта, а 6 от 7 такива имаха
-        # ГОЛЯМА извадка — излизаше „⭐ · извадка 135+136 мача · малка извадка".
-        # Едната звезда има ДВЕ различни причини (grade): или извадката е под
-        # 10 (n_eff), или превесът е слаб. Сега се казва вярната.
-        star_line += (" · твърде малко мачове" if float(an.get("n_eff") or 0.0) < 10.0
-                      else " · слаб превес")
+
+    # Прогнозата и присъдата стоят една под друга. Присъдата идва от процента,
+    # затова не може да му противоречи — точно това правеха звездите.
     lines += ["",
-              "🎯 <b>" + esc(an["pick"]) + " — " + pct(an["p"]) + "</b>",
-              star_line]
+              "🎯 <b>" + esc(an["pick"]) + "</b>",
+              "<b>" + pct(an["p"]) + "</b> · " + p_duma(an["p"])]
+
+    # Стъпката под картата — вече говори за ДАННИТЕ, не за увереност.
+    stapka = ("⭐" * stars) + " " + ZVEZDI_DUMA.get(stars, "") + " · " + esc(an["sample"])
+    if stars <= 1 and float(an.get("n_eff") or 0.0) < 10.0:
+        stapka += " · пазете се, стъпката е тънка"
+    lines.append(stapka)
 
     # Допълнителните пазари стоят в свой блок, а не залепени за прогнозата.
     dop = [x for x in (an.get("second"), an.get("third")) if x]
     if dop:
         lines.append("")
+        lines.append("➕ <b>И още от същия мач</b>")
         for d in dop:
-            lines.append("↔️ " + d)
+            lines.append("• " + d)
 
     # Обяснението получава заглавие. Дотук двата реда висяха голи под картата
     # и не се разбираше, че са ПРИЧИНАТА за избора.
     prichini = [w for w in (an.get("why") or []) if w]
     if prichini:
         lines.append("")
-        lines.append("📋 <b>Защо</b>")
+        lines.append("📋 <b>Защо точно това</b>")
         for w in prichini:
             lines.append("• " + w)
 
@@ -3670,14 +3748,41 @@ COMBO_NO_RESULT = {"tabletennis"}
 # Долна граница за участие във фиш. Избор от 50% в комбинация е изречение,
 # което се самоопровергава: посочваме страна и в същото време казваме, че е
 # монета. Отделната карта може да е близка — фишът не.
-COMBO_MIN_P = env_float("PREDICT_COMBO_MIN_P", 0.52, 0.50, 0.90)
+COMBO_MIN_P = env_float("PREDICT_COMBO_MIN_P", 0.58, 0.50, 0.90)
+# 🔴 ДВЕТЕ НОВИ ПРАВИЛА (11.08.2026). Видяно с очи в сухо пускане същия ден:
+# фиш 3 излезе с пет крака по 53-55% и обща вероятност <b>4%</b>. Това не е
+# прогноза, а лотариен билет с нашето име отдолу. Затова:
+#
+#   1. ДЪЛЖИНАТА СЕ ЗАСЛУЖАВА, не се раздава. Крак се добавя само докато
+#      общата вероятност остава над пода. Пет крака по 90% са фиш; пет по 53%
+#      са фиш само на хартия. Сега първият става от пет, третият — от два-три.
+#   2. ЕДИН ТУРНИР НЕ ПРАВИ ФИШ. Фиш 1 същия ден беше четири крака от едно и
+#      също първенство (Световно U17). Такива изходи вървят заедно — един лош
+#      ден в залата събаря целия фиш. Най-много два крака от един турнир.
+COMBO_MIN_TOTAL = env_float("PREDICT_COMBO_MIN_TOTAL", 0.20, 0.02, 0.60)
+COMBO_MIN_LEGS = env_int("PREDICT_COMBO_MIN_LEGS", 2, 2, 5)
+COMBO_MAX_SAME_LEAGUE = env_int("PREDICT_COMBO_SAME_LEAGUE", 2, 1, 5)
+
+COMBO_DUMI = ((0.45, "🟢 стегнат фиш — малко крака, но здрави"),
+              (0.30, "🟢 разумен фиш"),
+              (0.22, "🟡 смел фиш — иска късмет в един от краката"),
+              (0.00, "🟠 рискован фиш"))
+
+
+def combo_duma(total):
+    for prag, duma in COMBO_DUMI:
+        if total >= prag:
+            return duma
+    return ""
 
 
 def combo_card(idx, legs, now):
-    """Един фиш: пет реда и обща вероятност."""
-    lines = ["🎫 <b>ФИШ " + str(idx) + " НА ДЕНЯ</b> · " + date_bg(now),
-             "<i>" + str(len(legs)) + " мача</i>", ""]
+    """Един фиш: краката, общата вероятност и честна дума за нея."""
     total = 1.0
+    for a in legs:
+        total *= float(a["p"])
+    lines = ["🎫 <b>ФИШ " + str(idx) + " НА ДЕНЯ</b> · " + date_bg(now),
+             "<i>" + n_match(len(legs)) + " · всички трябва да познаят</i>", ""]
     for a in legs:
         fx = a["fx"]
         emo = SPORTS.get(a["bucket"], {}).get("emoji", "•")
@@ -3685,13 +3790,39 @@ def combo_card(idx, legs, now):
         chas = when.astimezone(SOFIA).strftime("%H:%M") if when is not None else ""
         lines.append(emo + " <b>" + esc(fx.get("home")) + "</b> — <b>"
                      + esc(fx.get("away")) + "</b>" + ((" · " + chas) if chas else ""))
-        lines.append("    🎯 " + esc(a["pick"]) + " · " + pct(a["p"])
-                     + " · " + ("⭐" * int(a.get("stars") or 1)))
-        total *= float(a["p"])
+        lines.append("    🎯 " + esc(a["pick"]) + " · <b>" + pct(a["p"]) + "</b>")
     lines += ["",
-              "📊 И петте заедно: <b>" + pct(total) + "</b>",
+              "📊 И " + ("двата" if len(legs) == 2 else
+                         ("трите" if len(legs) == 3 else
+                          ("четирите" if len(legs) == 4 else "петте")))
+              + " заедно: <b>" + pct(total) + "</b>",
+              combo_duma(total),
               "🟢 THE GREEN ROOM"]
-    return NL.join(lines)
+    return NL.join([x for x in lines if x is not None])
+
+
+def sabiray_fish(pool):
+    """Един фиш от подредения списък. Спира, щом общото падне под пода.
+
+    Взима от най-сигурното надолу. Крак се добавя САМО ако след него общата
+    вероятност още е над COMBO_MIN_TOTAL — така дължината идва от качеството
+    на деня, а не от кръгло число, решено предварително. И най-много два крака
+    от един турнир, за да не виси целият фиш на една зала.
+    """
+    legs, total, po_liga = [], 1.0, {}
+    for a in pool:
+        if len(legs) >= COMBO_SIZE:
+            break
+        lg = str(((a.get("fx") or {}).get("league")) or "?")
+        if po_liga.get(lg, 0) >= COMBO_MAX_SAME_LEAGUE:
+            continue
+        p = float(a.get("p") or 0.0)
+        if legs and total * p < COMBO_MIN_TOTAL:
+            continue                   # този крак би свалил фиша под пода
+        legs.append(a)
+        total *= p
+        po_liga[lg] = po_liga.get(lg, 0) + 1
+    return legs if len(legs) >= COMBO_MIN_LEGS else []
 
 
 def post_combos(picks, cands, state, now):
@@ -3719,22 +3850,26 @@ def post_combos(picks, cands, state, now):
             and a.get("bucket") not in COMBO_NO_RESULT]
     pool.sort(key=lambda a: -(float(a.get("p") or 0.0) * 1000.0
                               + int(a.get("stars") or 1)))
-    need = COMBO_COUNT * COMBO_SIZE
-    if len(pool) < COMBO_SIZE:
+    if len(pool) < COMBO_MIN_LEGS:
         print("Фишове: само " + str(len(pool)) + " мача над "
-              + pct(COMBO_MIN_P) + " — трябват поне " + str(COMBO_SIZE)
+              + pct(COMBO_MIN_P) + " — трябват поне " + str(COMBO_MIN_LEGS)
               + ". Днес без фишове.")
         return 0
 
     sent = 0
     made = 0
+    dulzhini = []
+    ostava = list(pool)
     for i in range(COMBO_COUNT):
-        legs = pool[i * COMBO_SIZE:(i + 1) * COMBO_SIZE]
-        if len(legs) < COMBO_SIZE:
-            break                      # непълен фиш не се пуска
+        legs = sabiray_fish(ostava)
+        if len(legs) < COMBO_MIN_LEGS:
+            break                      # каквото остана, не прави фиш
+        for a in legs:
+            ostava.remove(a)           # един мач влиза само в един фиш
         if post_predict(combo_card(i + 1, legs, now), PICKS_THREAD):
             sent += 1
             made += 1
+            dulzhini.append(str(len(legs)))
             # Всеки крак влиза в дневника с номера на фиша си, за да може
             # оценителят утре да каже кой фиш е минал и къде се е скъсал.
             for a in legs:
@@ -3743,8 +3878,8 @@ def post_combos(picks, cands, state, now):
     if made:
         mark_posted(state, ckey, now)
         persist(state, now)
-        print("Фишове: " + str(made) + " по " + str(COMBO_SIZE) + " мача -> стая "
-              + PICKS_THREAD + ".")
+        print("Фишове: " + str(made) + " (" + ", ".join(dulzhini)
+              + " крака) -> стая " + PICKS_THREAD + ".")
     elif len(pool) < need:
         print("Фишове: стигнаха за " + str(len(pool) // COMBO_SIZE) + " фиша.")
     return sent
@@ -3829,9 +3964,31 @@ def next_run(now):
                                              second=0, microsecond=0)
 
 
-def urgent(fx, now):
-    """Мачът започва преди следващото пускане — значи сега или никога.
+# 🔴 ПРЕРАБОТЕНО 11.08.2026 по изрична поръчка: „късните мачове всичките
+# по-рано пускай ги".
+#
+# Дотук спешен беше само мачът, който започва ПРЕДИ следващото пускане. Това
+# звучи разумно и е грешно за точно случая, който собственикът посочи.
+# Измерено с истинските часове:
+#
+#   мач в 22:30 · пускане 20:00 → следващото е 22:00 → НЕ Е спешен
+#                 пускане 22:00 → следващото е утре 08:00 → спешен
+#
+# Тоест мач в 22:30 излиза в 22:00 — тридесет минути преди първия съдийски
+# сигнал. „По-рано" не се случваше НИКОГА за вечерните мачове; работеше само
+# за нощните, защото те падаха в десетчасовата дупка.
+#
+# Сега спешността е РАЗСТОЯНИЕ: всичко, което започва до URGENT_LEAD_H часа
+# напред, е спешно. Мач в 22:30 става спешен още от пускането в 16:00 и
+# излиза шест часа по-рано, с време човекът да го погледне.
+URGENT_LEAD_H = env_float("PREDICT_URGENT_LEAD_H", 7.0, 1.0, 30.0)
 
+
+def urgent(fx, now):
+    """Мачът е близо — сега или никога.
+
+    Спешен е този, който започва до URGENT_LEAD_H часа напред ИЛИ преди
+    следващото пускане (второто пази нощните мачове след последния крон).
     Мач без известен час НЕ е спешен: за него не знаем кога е, а да го обявим
     за спешен би изместило мач, за който знаем.
     """
@@ -3839,7 +3996,8 @@ def urgent(fx, now):
     if when is None:
         return False
     try:
-        return when.astimezone(SOFIA) < next_run(now)
+        w = when.astimezone(SOFIA)
+        return w < next_run(now) or w <= now + timedelta(hours=URGENT_LEAD_H)
     except Exception:                      # noqa: BLE001
         return False
 
@@ -3868,13 +4026,24 @@ def choose(cands, limit, now=None, urgent_limit=None):
 
     picked, used, taken = [], {}, set()
     # 1) СПЕШНИТЕ — със свой таван, не се състезават с останалите.
-    for a in speshni[:max(0, int(urgent_limit))]:
+    vzeti_speshni = speshni[:max(0, int(urgent_limit))]
+    # 🔴 ОТПАДНАЛИТЕ СПЕШНИ НЕ ИЗЧЕЗВАТ МЪЛЧАЛИВО (11.08.2026).
+    # Измерено: при 20 спешни мача и таван 12, осем отпадаха и НЕ влизаха в
+    # нито един следващ цикъл — тоест губеха и последния си шанс, без ред в
+    # дневника. Сега се връщат при останалите: ще се борят по увереност, а
+    # ако пак не влязат, поне се брои колко са.
+    izpusnati = speshni[max(0, int(urgent_limit)):]
+    if izpusnati:
+        ostanali = izpusnati + ostanali
+        print("   ⚠ спешни над тавана: " + str(len(izpusnati))
+              + " — пращам ги при останалите, не ги хвърлям.")
+    for a in vzeti_speshni:
         picked.append(a)
         taken.add(id(a))
         used[a["bucket"]] = used.get(a["bucket"], 0) + 1
     # 2) Останалите — по увереност, с разреждане по спорт.
     for a in ostanali:
-        if len(picked) - len(taken & {id(x) for x in speshni}) >= limit:
+        if len(picked) - len(taken & {id(x) for x in vzeti_speshni}) >= limit:
             break
         if used.get(a["bucket"], 0) >= 2 and len(ostanali) > limit:
             continue
@@ -3883,7 +4052,7 @@ def choose(cands, limit, now=None, urgent_limit=None):
         used[a["bucket"]] = used.get(a["bucket"], 0) + 1
     # 3) Ако разреждането е оставило място — пълним с каквото има.
     for a in ostanali:
-        if len(picked) >= limit + len(speshni[:max(0, int(urgent_limit))]):
+        if len(picked) >= limit + len(vzeti_speshni):
             break
         if id(a) not in taken:
             picked.append(a)
@@ -4599,18 +4768,43 @@ def selftest():
                      "sample": izvadka, "n_eff": float(n_eff),
                      "strength": 0.2, "stars": int(zvezdi)}, _sega2)
 
-    check("малката извадка се назовава",
-          "твърде малко мачове" in _karta(1, 4.0, samp(3, 3)))
-    check("голямата извадка НЕ се нарича малка",
-          "твърде малко мачове" not in _karta(1, 135.0, samp(135, 136)))
-    check("слабият превес се назовава слаб превес",
-          "слаб превес" in _karta(1, 135.0, samp(135, 136)))
-    check("картата с три звезди няма нито едното",
-          "твърде малко мачове" not in _karta(3, 135.0, samp(135, 136))
-          and "слаб превес" not in _karta(3, 135.0, samp(135, 136)))
-    check("прагът е точно 10 — под него е малка извадка",
-          "твърде малко мачове" in _karta(1, 9.9, samp(5, 5))
-          and "слаб превес" in _karta(1, 10.0, samp(20, 20)))
+    check("тънката стъпка се назовава",
+          "стъпката е тънка" in _karta(1, 4.0, samp(3, 3)))
+    check("голямата извадка НЕ се нарича тънка",
+          "стъпката е тънка" not in _karta(1, 135.0, samp(135, 136)))
+    check("картата с три звезди няма предупреждение",
+          "стъпката е тънка" not in _karta(3, 135.0, samp(135, 136)))
+    check("прагът е точно 10 — под него стъпката е тънка",
+          "стъпката е тънка" in _karta(1, 9.9, samp(5, 5))
+          and "стъпката е тънка" not in _karta(1, 10.0, samp(20, 20)))
+
+    # --- 🔴 ПРИСЪДАТА НЕ БИВА ДА ПРОТИВОРЕЧИ НА ПРОЦЕНТА.
+    # Точно това правеше старата карта: „50%" и „⭐⭐⭐ добра увереност" една
+    # под друга. Проверява се на самите гранични числа, не общо.
+    check("50% е почти равностойни", p_duma(0.50) == "🔴 почти равностойни")
+    check("57% още не е фаворит", "фаворит" not in p_duma(0.57))
+    check("62% е лек фаворит", p_duma(0.62) == "🟡 лек фаворит")
+    check("70% е ясен фаворит", p_duma(0.70) == "🟢 ясен фаворит")
+    check("85% е много ясен фаворит", p_duma(0.85) == "🟢 много ясен фаворит")
+    check("присъдата расте заедно с процента",
+          [p_duma(x) for x in (0.50, 0.62, 0.70, 0.85)]
+          == sorted({p_duma(x) for x in (0.50, 0.62, 0.70, 0.85)},
+                    key=lambda d: [p_duma(y) for y in (0.50, 0.62, 0.70, 0.85)].index(d)))
+    check("присъдата не пада при боклук", p_duma(None) == "" and p_duma("х") == "")
+    check("всяка вероятност получава дума",
+          all(p_duma(x / 100.0) for x in range(0, 101)))
+
+    # --- ИМЕНАТА НА ТУРНИРИТЕ. Дотук в стаята стоеше цял английски низ,
+    # отрязан по средата: „FIVB Volleyball Girls' U17 World Championship…".
+    check("световното за девойки е на български",
+          liga_bg("FIVB Volleyball Girls' U17 World Championship 2026")
+          == "Световно U17, девойки")
+    check("квалификациите се разпознават",
+          liga_bg("uefa.champions_qual") == "Квалификации за Шампионска лига")
+    check("непознат турнир минава както си е", liga_bg("Купа на Разград") == "Купа на Разград")
+    check("много дългото непознато име се реже",
+          len(liga_bg("х" * 90)) <= 44 and liga_bg("х" * 90).endswith(chr(8230)))
+    check("празното си остава празно", liga_bg(None) == "" and liga_bg("") == "")
 
     # --- ИЗВАДКАТА СЕ ЧЕТЕ КАКТО Е ЗАМИСЛЕНА.
     # Пишеше „извадка 30+30 мача" — плюсът се чете като сбор 60, а числата са
@@ -4619,7 +4813,11 @@ def selftest():
     check("различни извадки се пишат и двете", samp(76, 74) == "по 76 и 74 мача")
     check("извадката вече няма плюс", "+" not in samp(30, 30) and "+" not in samp(1, 2))
     check("звездите имат думи", len(ZVEZDI_DUMA) == 3)
-    check("трите звезди са добра увереност", ZVEZDI_DUMA[3] == "добра увереност")
+    # Звездите вече говорят за ДАННИТЕ. Думата „увереност" им беше отнета,
+    # защото я обещаваха и до 50%. Тук се пази да не се върне.
+    check("трите звезди са богата история", ZVEZDI_DUMA[3] == "богата история")
+    check("звездите не говорят за увереност",
+          not any("увереност" in d for d in ZVEZDI_DUMA.values()))
 
     # --- ИСТОРИЯТА НА БОТА ПО СПОРТ. Дневникът само се пишеше — нито един ред
     # не го е чел, тоест 73 карти са минали без доказателство зад себе си.
@@ -4783,7 +4981,8 @@ def selftest():
     check("баскетболът носи очакван резултат", "Очакван резултат: ~112:105" in txt)
     check("картата носи звезди и извадка",
           "⭐⭐" in txt and "по 82 мача за всеки" in txt)
-    check("картата има най-много две обяснения", txt.count(NL + "• ") == 2)
+    check("картата има най-много две обяснения",
+          txt.split("📋 <b>Защо точно това</b>")[-1].count(NL + "• ") == 2)
 
     demo_f = {"fx": {"bucket": "football", "emoji": "⚽", "home": "Арсенал",
                      "away": "Челси", "league": "Висша лига", "when": None, "time": "19:30"},
@@ -4839,7 +5038,10 @@ def selftest():
               "%" in t.split("🎯 <b>", 1)[1][:60])
         check("карта " + tag + ": звездите носят дума",
               any(d in t for d in ZVEZDI_DUMA.values()))
-        check("карта " + tag + ": обяснението има заглавие", "📋 <b>Защо</b>" in t)
+        check("карта " + tag + ": обяснението има заглавие",
+              "📋 <b>Защо точно това</b>" in t)
+        check("карта " + tag + ": присъдата не спори с процента",
+              p_duma(dm["p"]) in t)
         check("карта " + tag + ": чиста от забранени думи",
               banned_word(t) is None and not any(w in t.lower() for w in preachy))
         check("карта " + tag + ": под 1100 знака", len(t) < 1100)
@@ -4975,13 +5177,24 @@ def selftest():
           urgent(_fx(7, 6), _v20) is True)
     check("мач утре в 19:00 НЕ е спешен в 23:05",
           urgent(_fx(19, 6), _v20) is False)
-    # А в 20:05 нощните ОЩЕ НЕ СА спешни — има пускане в 23:00.
-    check("в 20:05 нощният мач още не е спешен",
-          urgent(_fx(2, 6), datetime(2026, 8, 5, 20, 5, tzinfo=SOFIA)) is False)
-    check("в 20:05 мач в 21:00 Е спешен... не, има 23:00",
+    # 🔴 НОВОТО ПРАВИЛО: спешността е РАЗСТОЯНИЕ, не „преди следващия крон".
+    # Точно заради това мач в 22:30 излизаше в 22:00 — половин час преди
+    # началото. Сега същият мач е спешен още от следобеда.
+    _v16 = datetime(2026, 8, 5, 16, 0, tzinfo=SOFIA)
+    check("мач в 22:30 Е спешен още в 16:00",
+          urgent({"when": datetime(2026, 8, 5, 22, 30, tzinfo=SOFIA)}, _v16) is True)
+    check("в 20:05 нощният мач в 02:00 вече Е спешен",
+          urgent(_fx(2, 6), datetime(2026, 8, 5, 20, 5, tzinfo=SOFIA)) is True)
+    check("в 20:05 мач в 21:00 Е спешен",
           urgent(_fx(21), datetime(2026, 8, 5, 20, 5, tzinfo=SOFIA)) is True)
     check("мач в 11:00 Е спешен в 10:05", urgent(_fx(11), _v10) is True)
-    check("мач в 15:00 НЕ е спешен в 10:05", urgent(_fx(15), _v10) is False)
+    check("мач в 15:00 Е спешен в 10:05 (4:55 напред)", urgent(_fx(15), _v10) is True)
+    # Но далечното си остава далечно — иначе „спешно" губи смисъл и всичко
+    # се изсипва в едно пускане.
+    check("мач в 20:00 НЕ е спешен в 10:05 (почти 10 часа напред)",
+          urgent(_fx(20), _v10) is False)
+    check("мач утре сутрин НЕ е спешен в 10:05", urgent(_fx(9, 6), _v10) is False)
+    check("границата е седем часа", 6.0 <= URGENT_LEAD_H <= 8.0)
     check("мач без час НЕ е спешен", urgent({"when": None}, _v20) is False)
     check("боклук вместо час не чупи", urgent({}, _v20) is False)
 
@@ -5022,17 +5235,47 @@ def selftest():
     check("новините не се промъкват в разрешените", "26" not in ALLOWED_THREADS)
 
     # --- трите комбинирани фиша
-    def leg(nm, p, st):
-        return {"fx": {"home": nm, "away": "Б", "when": None}, "bucket": "football",
+    def leg(nm, p, st, lg="Лига"):
+        return {"fx": {"home": nm, "away": "Б", "when": None, "league": lg},
+                "bucket": "football",
                 "pick": "1 · победа " + nm, "p": p, "stars": st, "strength": 0.3}
-    legs5 = [leg("Отбор" + str(i), 0.70, 3) for i in range(5)]
+    legs5 = [leg("Отбор" + str(i), 0.70, 3, "Лига" + str(i)) for i in range(5)]
     cc = combo_card(1, legs5, now)
     check("фишът е озаглавен", "ФИШ 1 НА ДЕНЯ" in cc)
     check("фишът показва петте мача", cc.count("🎯") == 5)
     check("фишът дава обща вероятност", "И петте заедно" in cc)
     check("общата вероятност е произведението (0.7^5 = 17%)", "17%" in cc)
     check("фишът е чист", banned_word(cc) is None)
-    check("три фиша по пет", COMBO_COUNT == 3 and COMBO_SIZE == 5)
+    check("фишът казва, че всички трябва да познаят", "всички трябва да познаят" in cc)
+    check("фишът носи присъда с думи", any(d in cc for _p, d in COMBO_DUMI))
+    check("най-много три фиша", COMBO_COUNT == 3 and COMBO_SIZE == 5)
+
+    # --- 🔴 ФИШЪТ ВЕЧЕ СИ ЗАСЛУЖАВА ДЪЛЖИНАТА (11.08.2026)
+    # Видяно с очи в сухо пускане същия ден: фиш 3 излезе с пет крака по
+    # 53-55% и обща вероятност 4%. Тези проверки държат това да не се върне.
+    _slab = [leg("С" + str(i), 0.53, 1, "Лига" + str(i)) for i in range(5)]
+    _sil = [leg("Я" + str(i), 0.90, 3, "Лига" + str(i)) for i in range(5)]
+    check("пет слаби крака НЕ правят фиш от пет", len(sabiray_fish(_slab)) < 5)
+    _t = 1.0
+    for _a in sabiray_fish(_slab):
+        _t *= _a["p"]
+    check("слабият фиш пак е над пода", _t >= COMBO_MIN_TOTAL)
+    check("силните крака си остават пет", len(sabiray_fish(_sil)) == 5)
+    check("подът не е под 20%", COMBO_MIN_TOTAL >= 0.20)
+    check("крак под 58% не влиза изобщо", COMBO_MIN_P >= 0.58)
+
+    # Един турнир не прави фиш: четири крака от една лига дават най-много два.
+    _edna = [leg("Е" + str(i), 0.80, 3, "Световно U17, девойки") for i in range(4)]
+    check("най-много два крака от един турнир",
+          len(sabiray_fish(_edna)) <= COMBO_MAX_SAME_LEAGUE)
+    _smes = _edna + [leg("Д" + str(i), 0.80, 3, "Друга" + str(i)) for i in range(3)]
+    _izbr = sabiray_fish(_smes)
+    check("смесеният фиш взима и от другите турнири",
+          len({str((a["fx"] or {}).get("league")) for a in _izbr}) >= 2)
+    check("два крака са най-малкото, което пускаме", COMBO_MIN_LEGS == 2)
+    check("под две — никакъв фиш", sabiray_fish([leg("Сам", 0.90, 3)]) == [])
+    _dva = combo_card(2, [leg("А", 0.8, 3, "Л1"), leg("Б", 0.8, 3, "Л2")], now)
+    check("фиш от два се брои като двата", "И двата заедно" in _dva)
     check("всички спортове имат емоджи", all(SPORTS[b].get("emoji") for b in SPORT_ORDER))
     check("редът покрива всички спортове", set(SPORT_ORDER) == set(SPORTS.keys()))
 
