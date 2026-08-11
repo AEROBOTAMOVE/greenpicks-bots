@@ -102,7 +102,10 @@ SPORT_PATH = {
 #
 # Такава прогноза се затваря веднага след деня си с hit=None и се брои
 # отделно. НЕ влиза в процента — измислен резултат е по-лош от липсващ.
-NO_RESULT = {"tabletennis"}
+# 🔴 ПРАЗЕН ОТ 11.08.2026. Тенисът на маса излезе оттук — WTT дава официалните
+# резултати през шлюза /ttu/ с ключ (виж дългото обяснение при wtt_result).
+# Списъкът остава жив: утре друг спорт може да влезе в него.
+NO_RESULT = set()
 
 # Думи, които НЕ ИЗЛИЗАТ навън. Същият пазач като в другите ботове.
 BANNED = ["18+", "залагай отговорно",
@@ -539,6 +542,170 @@ def baseball_result(rec):
     return None
 
 
+# ══════════════════════════════════════════════════════════════════════════
+#  🏓 ТЕНИСЪТ НА МАСА ВЕЧЕ СЕ ОТСЪЖДА (11.08.2026)
+#
+#  На 04.08 шест врати бяха затворени и спортът беше обявен за „без източник".
+#  Втората от тях гласеше „WTT results/ matches/ draw/ … празни или 404".
+#  Днес проверих пак и намерих РАБОТЕЩАТА:
+#
+#      GET wttcmsapigateway-new.azure-api.net/ttu/Matches/GetMatches?EventId=NNNN
+#      с глава ApiKey (същият ключ, който предсказателят вече ползва)
+#
+#  Измерено на живо, не разсъждавано:
+#    · турнир 3246 (Europe Smash) → HTTP 200, 571 319 байта, обикновен JSON
+#      (БЕЗ brotli — шлюзът не го ползва, за разлика от CDN-а)
+#    · 168 записа с ScheduleStatus == "Official" И MatchScore ("3-1", "0-3"…)
+#    · сверих ги срещу дневника по имена на играчи: 23 от нашите 72
+#      прогнози за тенис на маса се отсъждат ВЕДНАГА, само от този турнир
+#
+#  Дотук тези прогнози се затваряха с hit=None и се брояха отделно: 56 висяха
+#  в стая 9 като „без официален резултат". Тоест вторият най-продуктивен спорт
+#  беше напълно невидим за успеваемостта.
+#
+#  Защо предишното измерване е сгрешило: гледало е schedule.json на CDN-а (там
+#  наистина няма резултат) и пътища без ключ. Шлюзът /ttu/ с ключа е трети
+#  адрес и не е бил пробван за мачове — само за статистика по играч.
+# ══════════════════════════════════════════════════════════════════════════
+WTT_TTU = "https://wttcmsapigateway-new.azure-api.net/ttu/"
+WTT_HEAD = {"ApiKey": "2bf8b222-532c-4c60-8ebe-eb6fdfebe84a"}
+WTT_CDN = "https://wtt-web-frontdoor-cthahjeqhbh6aqe3.a01.azurefd.net"
+_wtt_index = {}          # EventId -> {frozenset(двете имена): (hs, as_)}
+_wtt_events = None       # кеш на календара за тази година
+
+
+def _wtt_ime(s):
+    """Име на играч, сведено до голи латински букви. Източниците се различават
+    по ударения, тирета и главни букви — сравняваме само буквите."""
+    import unicodedata
+    x = unicodedata.normalize("NFKD", str(s or ""))
+    x = x.encode("ascii", "ignore").decode().lower()
+    return "".join(c for c in x if "a" <= c <= "z")
+
+
+def _wtt_matches(eid):
+    """Двойка имена -> резултат по сетове, за един турнир. Кешира се."""
+    if eid in _wtt_index:
+        return _wtt_index[eid]
+    out = {}
+    try:
+        req = urllib.request.Request(
+            WTT_TTU + "Matches/GetMatches?EventId=" + str(eid),
+            headers={"Accept": "application/json", "ApiKey": WTT_HEAD["ApiKey"]})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            j = json.loads(r.read())
+    except Exception as e:                                   # noqa: BLE001
+        print("   ⚠ WTT мачове " + str(eid) + ": " + str(e)[:70])
+        _wtt_index[eid] = out
+        return out
+
+    def hodi(o):
+        if isinstance(o, list):
+            for x in o:
+                yield from hodi(x)
+        elif isinstance(o, dict):
+            if "MatchScore" in o:
+                yield o
+            for v in o.values():
+                yield from hodi(v)
+
+    for x in hodi(j):
+        if str(x.get("ScheduleStatus")) != "Official":
+            continue
+        sc = str(x.get("MatchScore") or "")
+        if "-" not in sc:
+            continue
+        a, b = _wtt_ime(x.get("Player1Name")), _wtt_ime(x.get("Player2Name"))
+        if not a or not b:
+            continue
+        try:
+            hs, as_ = (int(z) for z in sc.split("-")[:2])
+        except ValueError:
+            continue
+        # Ключът е НЕПОДРЕДЕН, защото домакин/гост при тенис на маса е само
+        # ред на изписване. Пазим и посоката, за да не обърнем резултата.
+        out[frozenset((a, b))] = (a, hs, as_)
+    _wtt_index[eid] = out
+    return out
+
+
+def _wtt_turniri(godina=None):
+    """(EventId, начало, край) за всички турнири. Кешира се за целия рън.
+
+    🔴 ВЗИМА СЕ ОТ ШЛЮЗА, НЕ ОТ CDN-а. Първата версия четеше календара на CDN-а
+    и падна веднага на живо: „utf-8 codec can not decode byte 0xc1" — CDN-ът
+    отговаря СГЪСТЕНО с brotli, а оценителят няма такъв модул (предсказателят
+    има, защото workflow-ът му го инсталира). Шлюзът /ttu/Events/GetEvents
+    връща обикновен JSON: измерено 83 173 байта, 100 турнира, без сгъстяване.
+    Тоест оценителят вече няма НИКАКВА нова зависимост.
+    """
+    global _wtt_events
+    if _wtt_events is not None:
+        return _wtt_events
+    _wtt_events = []
+    try:
+        req = urllib.request.Request(
+            WTT_TTU + "Events/GetEvents",
+            headers={"Accept": "application/json", "ApiKey": WTT_HEAD["ApiKey"]})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            raw = json.loads(r.read())
+    except Exception as e:                                   # noqa: BLE001
+        print("   ⚠ WTT турнири: " + str(e)[:70])
+        return _wtt_events
+
+    def hodi(o):
+        if isinstance(o, list):
+            for x in o:
+                yield from hodi(x)
+        elif isinstance(o, dict):
+            if "EventId" in o or "eventId" in o:
+                yield o
+            for v in o.values():
+                yield from hodi(v)
+
+    for r in hodi(raw):
+        eid = r.get("EventId") or r.get("eventId")
+        a = str(r.get("EventStartDate") or r.get("StartDateTime")
+                or r.get("startDateTime") or "")[:10]
+        b = str(r.get("EventEndDate") or r.get("EndDateTime")
+                or r.get("endDateTime") or "")[:10]
+        # 🔴 Шлюзът пише датата с наклонени черти („2026/08/10"), а дневникът
+        # с тирета. Без това привеждане сравнението мълчи и НИТО ЕДИН турнир
+        # не се намира — хванато на първото живо пускане.
+        a, b = a.replace("/", "-"), b.replace("/", "-")
+        if eid and len(a) == 10:
+            _wtt_events.append((int(eid), a, b if len(b) == 10 else a))
+    return _wtt_events
+
+
+def wtt_result(rec):
+    """Резултатът на един мач тенис на маса. None = още не знаем.
+
+    Търси само в турнирите, чийто период покрива деня на прогнозата — иначе
+    един рън би дръпнал сто турнира за нищо.
+    """
+    den = str(rec.get("day") or "")[:10]
+    if not den:
+        return None
+    godina = den[:4]
+    kand = [e for e, a, b in _wtt_turniri(godina) if a <= den <= b]
+    if not kand:
+        return None
+    dom = _wtt_ime(rec.get("home"))
+    gost = _wtt_ime(rec.get("away"))
+    if not dom or not gost:
+        return None
+    klyuch = frozenset((dom, gost))
+    for eid in kand[:4]:                    # таван: най-много четири турнира
+        idx = _wtt_matches(eid)
+        if klyuch in idx:
+            purvi, hs, as_ = idx[klyuch]
+            # WTT пише двамата в свой ред. Ако първият при тях е нашият гост,
+            # обръщаме — иначе бихме отсъдили точно наопаки.
+            return (hs, as_) if purvi == dom else (as_, hs)
+    return None
+
+
 def sport_result(rec):
     """ЕДИНСТВЕНАТА врата към резултат. Всеки спорт минава оттук.
 
@@ -554,6 +721,8 @@ def sport_result(rec):
         return tennis_result(rec)
     if b == "baseball":
         return baseball_result(rec)
+    if b == "tabletennis":
+        return wtt_result(rec)
     return espn_result(rec)
 
 
@@ -905,6 +1074,14 @@ def leg_score(rec):
     return "?", "?"
 
 
+def den_kratko(den):
+    """2026-08-10 -> „10.08". Празно или чудато влиза както е, без да гърми."""
+    s = str(den or "")
+    if len(s) == 10 and s[4] == "-" and s[7] == "-":
+        return s[8:10] + "." + s[5:7]
+    return s
+
+
 def combo_text(now, slips):
     """Обзор на трите фиша: кой е минал изцяло и кой къде се е скъсал.
 
@@ -912,15 +1089,29 @@ def combo_text(now, slips):
     Един фиш е верен само ако ВСИЧКИТЕ пет избора са познали — затова тук
     се брои така, а не по проценти.
     """
-    out = ["\U0001f3ab <b>ФИШОВЕТЕ ОТ ВЧЕРА</b> · " + date_bg(now), ""]
+    # 🔴 ДВЕ ПОПРАВКИ, 11.08.2026 — намерени с ЧЕТЕНЕ на сухото пускане.
+    #
+    # 1) Заглавието казваше „ФИШОВЕТЕ ОТ ВЧЕРА", а датата до него беше
+    #    ДНЕШНАТА. Два надписа в един ред, които се бият. И двата са отчасти
+    #    верни: тук излизат фишове от РАЗНИ дни — крак свършва, когато свърши
+    #    мачът му, и фиш от онзи ден се дозатваря днес.
+    # 2) В същия пост стояха ТРИ реда „ФИШ 1" един под друг. Номерът е
+    #    пореден ЗА ДЕНЯ, а постът показва няколко дни наведнъж. Човек чете
+    #    три различни резултата за „фиш 1" и решава, че ботът се обърква.
+    #    Затова всеки фиш вече си носи СОБСТВЕНАТА дата.
+    out = ["🎫 <b>ОТЧЕТ НА ФИШОВЕТЕ</b> · " + date_bg(now),
+           "<i>всеки фиш се отчита, когато последният му мач свърши</i>", ""]
     minali = 0
-    for n, legs in slips:
+    for klyuch, legs in slips:
+        n, den = (klyuch if isinstance(klyuch, (tuple, list))
+                  else (klyuch, ""))
         ok = sum(1 for x in legs if x[3])
         vsi = len(legs)
         cял = (ok == vsi)
         if cял:
             minali += 1
-        out.append(("✅" if cял else "❌") + " <b>ФИШ " + str(n) + "</b> · "
+        out.append(("✅" if cял else "❌") + " <b>ФИШ " + str(n) + "</b>"
+                   + (" от " + den_kratko(den) if den else "") + " · "
                    + str(ok) + " от " + str(vsi))
         for rec, hs, as_, hit in legs:
             emo = (SPORT_PATH.get(rec.get("bucket")) or (None, "\U0001f4cc"))[1]
@@ -1220,9 +1411,21 @@ def selftest():
     # --- обзорът на фишовете
     _legs = [({"home": "А" + str(i), "away": "Б", "pick": "1", "bucket": "football"},
               2, 1, i != 2) for i in range(5)]
-    c = combo_text(_now, [(1, _legs)])
-    check("фишовете имат обзор", "ФИШОВЕТЕ ОТ ВЧЕРА" in c)
-    check("скъсаният фиш е отбелязан", "❌ <b>ФИШ 1</b> · 4 от 5" in c)
+    c = combo_text(_now, [((1, "2026-08-10"), _legs)])
+    # 🔴 ПРЕПИСАНО 11.08.2026. Заглавието казваше „ФИШОВЕТЕ ОТ ВЧЕРА", а
+    # датата до него беше днешната — и в един пост стояха три реда „ФИШ 1"
+    # от различни дни. Сега всеки фиш си носи датата.
+    check("фишовете имат обзор", "ОТЧЕТ НА ФИШОВЕТЕ" in c)
+    check("заглавието не твърди грешен ден", "ОТ ВЧЕРА" not in c)
+    check("фишът носи собствената си дата", "ФИШ 1</b> от 10.08" in c)
+    check("скъсаният фиш е отбелязан", "❌ <b>ФИШ 1</b> от 10.08 · 4 от 5" in c)
+    check("два фиша с номер 1 от различни дни се различават",
+          combo_text(_now, [((1, "2026-08-09"), _legs),
+                            ((1, "2026-08-10"), _legs)]).count("ФИШ 1</b> от") == 2)
+    check("късата дата се чете", den_kratko("2026-08-10") == "10.08")
+    check("чудатата дата не гърми", den_kratko("") == "" and den_kratko(None) == "")
+    check("старият вид (само номер) още работи",
+          "ФИШ 7" in combo_text(_now, [(7, _legs)]))
     check("обзорът на фишовете е чист", banned_word(c) is None)
     check("обзорът брои минали фишове", "0 от 1 фиша минаха" in c)
     # 🔴 КОЕ СЪОБЩЕНИЕ В КОЯ СТАЯ. Собственикът го каза направо на 11.08.2026:
@@ -1314,7 +1517,30 @@ def selftest():
 
     # --- спортът без източник. Измерено 04.08.2026: шест адреса, нула
     # резултата, а статистиката по ден си противоречи в 30% от мачовете.
-    check("тенисът на маса е обявен за без източник", "tabletennis" in NO_RESULT)
+    _iztochnik_scorer = open(__file__, encoding="utf-8").read()
+    # 🔴 ОБЪРНАТО 11.08.2026: тенисът на маса ВЕЧЕ има източник — WTT дава
+    # официалните резултати през шлюза /ttu/ с ключ. Измерено: 168 завършили
+    # мача само за турнир 3246, от които 23 отсъждат наши висящи прогнози.
+    check("тенисът на маса ВЕЧЕ има източник", "tabletennis" not in NO_RESULT)
+    check("списъкът без-източник е празен", NO_RESULT == set())
+    check("тенисът на маса минава през WTT",
+          "wtt_result" in _iztochnik_scorer)
+    # Имената се сравняват по голи латински букви — иначе „Solè" и „Sole"
+    # са различни хора, а ударенията се различават между източниците.
+    check("името се свежда до букви", _wtt_ime("Zhao Yun TAN") == "zhaoyuntan")
+    check("ударенията отпадат", _wtt_ime("Solè Díaz") == "solediaz")
+    check("празното не гърми", _wtt_ime(None) == "" and _wtt_ime("") == "")
+    check("два различни играча остават различни",
+          _wtt_ime("Tin-Tin HO") != _wtt_ime("Tin HO"))
+    # 🔴 ДАТАТА НА ШЛЮЗА Е С НАКЛОНЕНИ ЧЕРТИ („2026/08/10"), дневникът е с
+    # тирета. Без привеждане НИТО ЕДИН турнир не се намира и всичко мълчи —
+    # хванато на първото живо пускане, не в главата.
+    check("турнирът се намира по ден с тирета",
+          any(len(a) == 10 and a[4] == "-" for _e, a, _b in (_wtt_turniri() or [(0, "----------", "")])))
+    # Измерено на живо 11.08.2026 върху истинския дневник: 64 от 72 прогнози
+    # за тенис на маса се отсъждат. Осемте, които не се, са от турнири извън
+    # стоте, които шлюзът връща.
+    check("списъкът с турнири не е празен", len(_wtt_turniri()) > 0)
     check("волейболът НЕ е без източник", "volleyball" not in NO_RESULT)
     check("тенисът НЕ е без източник", "tennis" not in NO_RESULT)
     check("футболът НЕ е без източник", "football" not in NO_RESULT)
@@ -1528,7 +1754,10 @@ def main():
             print("Фиш " + str(n) + " (" + den + "): нито един крак не се отсъжда"
                   " — няма какво да отчета.")
             continue
-        gotovi.append((n, [(r, leg_score(r)[0], leg_score(r)[1],
+        # Ключът носи И деня: постът показва фишове от няколко дни, а
+        # номерът е пореден ЗА ДЕНЯ. Без датата три реда „ФИШ 1" стоят
+        # един под друг с различни резултати.
+        gotovi.append(((n, den), [(r, leg_score(r)[0], leg_score(r)[1],
                             bool(r.get("hit"))) for r in sudimi]))
     if gotovi:
         time.sleep(2.0)

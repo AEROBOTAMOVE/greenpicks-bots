@@ -264,8 +264,14 @@ def build_overview_text(now, d):
     utre = d.get("tomorrow")
     if not utre:
         return ""
+    # 🔴 ДАТАТА БЕШЕ ДНЕШНАТА, 11.08.2026. Излизаше „🔜 УТРЕ · вторник, 11.08"
+    # — думата казва утре, числото до нея казва днес. Човек чете двете заедно
+    # и остава с грешния ден. Същият дефект намерих и в отчета на фишовете
+    # („ФИШОВЕТЕ ОТ ВЧЕРА" с днешна дата). Правилото е едно: числото и думата
+    # до него не бива да си противоречат.
+    utre_den = now + timedelta(days=1)
     return NL.join([
-        f"🔜 <b>УТРЕ</b> · {date_bg(now)}{NL}",
+        f"🔜 <b>УТРЕ</b> · {date_bg(utre_den)}{NL}",
         f"{utre}",
         f"{NL}🟢 THE GREEN ROOM",
     ])
@@ -306,6 +312,15 @@ def run_selftest():
     real_send = poster.send_message
     poster.send_message = lambda *a, **k: (sent.append((a, k)) or True)
     try:
+        # 🔴 ДАТАТА ДО ДУМАТА „УТРЕ". Излизаше „🔜 УТРЕ · вторник, 11.08" —
+        # думата казва утре, числото казва днес. Проверката ги държи заедно.
+        _dn = datetime(2026, 8, 11, 20, 0, tzinfo=SOFIA)
+        _txt = build_overview_text(_dn, {"tomorrow": "🏀 В — Г (21:00)"})
+        check("утрешният поглед носи УТРЕШНАТА дата", "12.08" in _txt)
+        check("утрешният поглед НЕ носи днешната дата", "11.08" not in _txt)
+        check("денят от седмицата също е утрешният", "сряда" in _txt)
+        check("празното утре не праща нищо",
+              build_overview_text(_dn, {"tomorrow": None}) == "")
         check("post_channel отказва", post_channel("тест") is False)
         check("post_channel не праща нищо", len(sent) == 0)
         for t in sorted(FORBIDDEN_THREADS):
