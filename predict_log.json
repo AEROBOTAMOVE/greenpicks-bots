@@ -5480,5 +5480,23 @@
   "stars": 1,
   "sample": "по 45 и 7 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-12|tabletennis|lilyzhang|manikabatra",
+  "combo": 0,
+  "posted": "2026-08-11 11:48",
+  "day": "2026-08-12",
+  "bucket": "tabletennis",
+  "home": "Lily ZHANG",
+  "away": "Manika BATRA",
+  "home_id": "112221",
+  "away_id": "115920",
+  "league": "Europe Smash - Sweden 2026 · Women's Singles",
+  "slug": null,
+  "pick": "2 · Manika BATRA",
+  "p": 0.5614,
+  "stars": 2,
+  "sample": "по 31 и 55 мача",
+  "scored": false
  }
 ]
