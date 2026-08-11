@@ -606,7 +606,13 @@ def save_state(state, now):
     try:
         tmp = STATE_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"v": 1, "posted": posted}, f, ensure_ascii=False)
+            # „diag" е черната кутия: колко срещи е видял ботът по спорт в
+            # ПОСЛЕДНОТО пускане. Записва се тук, защото този файл се връща в
+            # хранилището и се чете отвън — за разлика от дневника на GitHub.
+            json.dump({"v": 1, "posted": posted,
+                       "diag": {"kogа": now.strftime("%Y-%m-%d %H:%M"),
+                                "sportove": DIAG}},
+                      f, ensure_ascii=False)
         os.replace(tmp, STATE_FILE)     # атомарно: убит рън не оставя счупен JSON
         return True
     except Exception as e:              # noqa: BLE001
@@ -3506,6 +3512,13 @@ def collect_all(now):
         far = n_near - len(rows)
         rows.sort(key=lambda fx: -fx.get("weight", 0))
         buckets[b] = rows
+        # ЧЕРНАТА КУТИЯ. Дневникът на GitHub се чете само с админски права, а
+        # страницата му не се рендира навсякъде — тоест отвън НЕ СЕ ВИЖДА защо
+        # един спорт мълчи. Три спорта не дадоха карта НИТО ВЕДНЪЖ и никой не
+        # разбра, защото числото живееше само в един изчезващ дневник.
+        # Затова цифрите се записват във файл, който се връща в хранилището.
+        DIAG[b] = {"suredi": len(rows), "surovi": n_all,
+                   "zapochnali": gone, "daleche": far}
         print("   " + SPORTS[b]["emoji"] + " " + b + ": " + str(len(rows)) + " срещи"
               + ((" (" + str(gone) + " вече започнали)") if gone else "")
               + ((" (" + str(far) + " далече — чакат)") if far else ""))
@@ -3742,6 +3755,12 @@ def build_pool(buckets):
 # Последният час е 23:00 по изрична поръчка на собственика (05.08.2026):
 # прогнозите вървят до 23, за да хванат и късните мачове с по-пресни данни.
 RUN_HOURS = (8, 10, 12, 14, 16, 18, 20, 23)
+
+# ЧЕРНАТА КУТИЯ на пускането. Пълни се в движение и се записва накрая в
+# тефтера, който работният файл връща в хранилището. Без нея „защо мълчи
+# футболът" се вижда само в дневника на GitHub — а той иска админски права
+# и изчезва. Три спорта мълчаха дни наред точно заради това.
+DIAG = {}
 # Колко спешни карти може да излязат в едно пускане ОТГОРЕ на обичайните.
 # Вечерното пускане поема цялата нощ, затова числото е по-голямо от MAX_PICKS.
 MAX_URGENT = env_int("PREDICT_MAX_URGENT", 12, 0, 40)
@@ -4813,6 +4832,37 @@ def selftest():
           RUN_HOURS[0] == 8 and RUN_HOURS[-1] == 23)
     check("часовете са подредени и без повторение",
           list(RUN_HOURS) == sorted(set(RUN_HOURS)))
+
+    # --- ЧЕРНАТА КУТИЯ. Три спорта мълчаха дни наред и никой не разбра, защото
+    # числото „колко срещи видях" живееше само в дневника на GitHub, който иска
+    # админски права. Сега се записва в тефтера и се чете отвън.
+    DIAG.clear()
+    DIAG["proba"] = {"suredi": 3, "surovi": 9, "zapochnali": 4, "daleche": 2}
+    _sega3 = datetime.now(SOFIA)
+    _tmpst = os.path.join(_tf.gettempdir(), "_gp_state_test.json")
+    _star_state, _star_dry = STATE_FILE, DRY_RUN
+    try:
+        globals()["STATE_FILE"] = _tmpst
+        globals()["DRY_RUN"] = False
+        save_state({"posted": {}}, _sega3)
+        with open(_tmpst, encoding="utf-8") as _f:
+            _got = json.load(_f)
+    finally:
+        globals()["STATE_FILE"] = _star_state
+        globals()["DRY_RUN"] = _star_dry
+        try:
+            os.remove(_tmpst)
+        except OSError:
+            pass
+    check("тефтерът носи черната кутия", "diag" in _got)
+    check("черната кутия помни часа", bool(_got["diag"].get("kogа")))
+    check("черната кутия помни спорта", "proba" in (_got["diag"].get("sportove") or {}))
+    check("черната кутия помни колко срещи",
+          (_got["diag"]["sportove"]["proba"] or {}).get("suredi") == 3)
+    check("черната кутия помни колко са започнали",
+          (_got["diag"]["sportove"]["proba"] or {}).get("zapochnali") == 4)
+    check("тефтерът пази и старото поле", "posted" in _got)
+    DIAG.clear()
 
     # 🔴 НАЙ-ВАЖНАТА ПРОВЕРКА ТУК: списъкът в кода и кроновете в predict.yml
     # трябва да са ЕДНО И СЪЩО. Разминат ли се, ботът смята грешно кое е
