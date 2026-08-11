@@ -66,7 +66,7 @@ permissions:
 concurrency:
   # 🔴 СЪЩАТА ГРУПА КАТО predict.yml — двата пишат predict_log.json.
   # Виж обяснението там: 5 засичания за 7 дни, най-остро 13 секунди.
-  group: greenpicks-log
+  group: greenpicks-state
   cancel-in-progress: false
 
 jobs:
