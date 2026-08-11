@@ -5156,5 +5156,41 @@
   "stars": 1,
   "sample": "по 137 и 139 мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-11|tabletennis|jonghoonlim|pengxiang",
+  "combo": 0,
+  "posted": "2026-08-11 06:49",
+  "day": "2026-08-11",
+  "bucket": "tabletennis",
+  "home": "Jonghoon LIM",
+  "away": "Peng XIANG",
+  "home_id": "117357",
+  "away_id": "135888",
+  "league": "Europe Smash - Sweden 2026 · Men's Singles",
+  "slug": null,
+  "pick": "1 · Jonghoon LIM",
+  "p": 0.5618,
+  "stars": 2,
+  "sample": "по 64 и 48 мача",
+  "scored": false
+ },
+ {
+  "key": "2026-08-12|baseball|washingtonnationals|chicagocubs",
+  "combo": 0,
+  "posted": "2026-08-11 06:49",
+  "day": "2026-08-12",
+  "bucket": "baseball",
+  "home": "Washington Nationals",
+  "away": "Chicago Cubs",
+  "home_id": 120,
+  "away_id": 112,
+  "league": "МЛБ",
+  "slug": null,
+  "pick": "2 · Chicago Cubs",
+  "p": 0.507,
+  "stars": 1,
+  "sample": "по 140 и 142 мача",
+  "scored": false
  }
 ]
