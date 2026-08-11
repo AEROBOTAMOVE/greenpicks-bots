@@ -5408,5 +5408,23 @@
   "stars": 1,
   "sample": "0+0 боя в индекса",
   "scored": false
+ },
+ {
+  "key": "2026-08-12|mma|abealsaghir|fabrizioescarrega",
+  "combo": 0,
+  "posted": "2026-08-11 08:46",
+  "day": "2026-08-12",
+  "bucket": "mma",
+  "home": "Abe Alsaghir",
+  "away": "Fabrizio Escarrega",
+  "home_id": "5364833",
+  "away_id": "5364834",
+  "league": "Dana White's Contender Series… · Lightweight",
+  "slug": null,
+  "pick": "2 · Fabrizio Escarrega",
+  "p": 0.5067,
+  "stars": 1,
+  "sample": "0+0 боя в индекса",
+  "scored": false
  }
 ]
