@@ -50,7 +50,9 @@ permissions:
   contents: write
 
 concurrency:
-  group: support-bot
+  # Същата група като рутера и предсказателя — двамата пишат support_state.json
+  # и се засичаха 39 пъти за 7 дни (измерено 11.08.2026).
+  group: greenpicks-state
   cancel-in-progress: false     # никога не убивай рън по средата на отговор
 
 jobs:
