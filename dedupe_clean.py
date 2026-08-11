@@ -101,7 +101,41 @@ MIN_LEN = int(os.environ.get("DEDUPE_MIN_LEN", "12"))
 # Контейнерите на форум-темите. Същият списък като в reset.py.
 # 328 = „Бойни спортове" (UFC / ММА / бокс) — липсва ли тук, следващото
 # чистене трие самата стая.
+#
+# 🔴 РАЗМРАЗЕН 11.08.2026. Замразеният списък пази само това, което някой се е
+# сетил да допише. Когато make_rooms.py създаде хокей / тенис / бейзбол /
+# американски футбол (нишки 1961, 1963, 1965, 1967), никой не дописа нищо — и
+# четирите стаи останаха НЕзащитени, тоест на един замах от изтриване. Изтрита
+# форум-тема НЕ се връща. Затова списъкът вече се чете и от rooms_state.json
+# при всяко пускане: нова стая е защитена в мига, в който се роди.
 KEEP_IDS = {1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 26, 27, 328}
+
+
+def _vlei_stai_ot_fayla():
+    """Долива нишките от rooms_state.json в KEEP_IDS. Връща какво е долято."""
+    put = (os.environ.get("ROOMS_STATE_FILE") or "rooms_state.json").strip()
+    if not os.path.exists(put):
+        return []
+    try:
+        with open(put, encoding="utf-8-sig") as f:
+            d = json.load(f)
+    except Exception as e:                                   # noqa: BLE001
+        print("ВНИМАНИЕ: rooms_state.json не се чете (" + str(e)[:70] + ") —")
+        print("новите стаи остават НЕзащитени. Спирам, вместо да гадая.")
+        raise SystemExit(2)
+    if not isinstance(d, dict):
+        print("ВНИМАНИЕ: rooms_state.json не е речник — спирам.")
+        raise SystemExit(2)
+    dobaveni = []
+    for sport, zapis in d.items():
+        try:
+            n = int(zapis.get("thread"))
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if n > 0 and n not in KEEP_IDS:
+            KEEP_IDS.add(n)
+            dobaveni.append((str(sport), n))
+    return dobaveni
 # Стая 4 = "Фишове на деня" - САМО ХОРА. Ботът никога не трие и не пише там.
 FORBIDDEN_THREADS = {4}
 ROOM_NAME = {
@@ -348,6 +382,7 @@ def norm(s):
             out.append(" ")
             space = True
     return "".join(out).strip()
+
 
 def content_key(msg):
     """(вид, ключ, видим_текст). None ако няма какво да се сравнява."""
@@ -807,6 +842,7 @@ def run_scan(chat, is_channel, only_thread=None):
     report(title, plan, victims, blocked, records, deleted, failed, DRY)
     return 0
 
+
 def run_ids(chat):
     ids = _ids_from_env()
     if not ids:
@@ -935,12 +971,33 @@ def selftest():
     # 🥊 Стаята на бойните спортове е контейнер като всички останали.
     chk("врата-контейнер-328", delete_verdict(328, 26, set())[0] is False)
     chk("328 е в пазените контейнери", 328 in KEEP_IDS)
+    # 🔴 Заради тази проверка е размразен списъкът. Четирите стаи, създадени с
+    # make_rooms.py, стояха НЕзащитени — а изтрита форум-тема не се връща.
+    _stai = {}
+    try:
+        with open((os.environ.get("ROOMS_STATE_FILE") or "rooms_state.json"),
+                  encoding="utf-8-sig") as _f:
+            _stai = json.load(_f)
+    except Exception:                                        # noqa: BLE001
+        _stai = {}
+    _nishki = []
+    for _z in (_stai or {}).values():
+        try:
+            _nishki.append(int(_z.get("thread")))
+        except (AttributeError, TypeError, ValueError):
+            pass
+    chk("всяка стая от rooms_state.json е защитена",
+        all(n in KEEP_IDS for n in _nishki))
+    for _n in _nishki:
+        chk("стая " + str(_n) + " не може да бъде изтрита",
+            delete_verdict(_n, 26, set())[0] is False)
     chk("врата-неизвестна-стая", delete_verdict(777, None, set())[0] is False)
     chk("врата-нечетима-стая", delete_verdict(778, "кой знае", set())[0] is False)
     chk("врата-защитено", delete_verdict(779, 26, set([779]))[0] is False)
     chk("врата-нормален-дубликат", delete_verdict(800, 26, set())[0] is True)
     chk("врата-канал-нула", delete_verdict(801, 0, set())[0] is True)
     chk("врата-невалидно", delete_verdict("х", 26, set())[0] is False)
+
     # forward-сондата в групата НЕ доказва стая -> None, не 0 (старият бъг)
     chk("стая-forward-в-група", record_thread({}, "forward", False) is None)
     chk("стая-reply-4", record_thread({"message_thread_id": 4}, "reply", False) == 4)
@@ -1000,7 +1057,15 @@ def selftest():
 # ---------------------------------------------------------------- вход
 def main():
     if "--selftest" in sys.argv or os.environ.get("DEDUPE_SELFTEST") == "1":
+        _vlei_stai_ot_fayla()
         return selftest()
+    # ПЪРВОТО нещо преди каквото и да е триене: доливаме новите стаи в списъка
+    # на пазените. Ако файлът е нечетим, _vlei_stai_ot_fayla спира програмата —
+    # по-добре нищо, отколкото изтрита стая.
+    _dolyati = _vlei_stai_ot_fayla()
+    if _dolyati:
+        print("Пазени и новите стаи:",
+              ", ".join(s + "=" + str(n) for s, n in _dolyati))
     print("")
     print("GREEN PICKS - хирургичен чистач на повторения")
     print("режим:", MODE, "| прозорец:", WINDOW, "| сходство:", SIM,
