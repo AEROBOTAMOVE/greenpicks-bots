@@ -1168,6 +1168,36 @@ def espn_num(s):
     return to_num(s)
 
 
+# 🔴 ПАЗАЧЪТ ЗА ПРЕДСЕЗОННИ БЕШЕ СЛЯП (намерено и оправено 11.08.2026).
+#
+# Кодът режеше предсезонните така: `if "Preseason" in ev["seasonType"]["name"]`.
+# Измерено на живо срещу ESPN за 13.08.2026 (НФЛ):
+#     event.seasonType : {}                      ← ПРАЗНО
+#     event.season     : {"year":2026,"type":1,"slug":"preseason"}
+# Тоест полето, което проверявахме, ESPN изобщо не го пълни, а истинският
+# белег стои другаде. Проверката минаваше винаги и не е спряла нито един мач.
+#
+# Защо има значение точно сега: НФЛ подхваща на 13.08 — вдругиден. В предсезона
+# титулярите играят по четвърт час, а моделът смята по 17 мача от РЕДОВНИЯ
+# сезон. Тоест щяхме да пуснем карта с чужди числа под нея.
+#
+# Сега се гледат ТРИ места, защото различните турнири пълнят различни:
+#   • season.slug == "preseason"   (най-надеждното при НФЛ/НБА)
+#   • seasonType.name съдържа Preseason (там, където ESPN го пълни)
+#   • competition.type.abbreviation == "PRE"
+def predsezonen(ev, comp=None):
+    """Предсезонен ли е мачът. Гледа трите места, където ESPN го пише."""
+    sez = ev.get("season") or {}
+    if str(sez.get("slug") or "").lower() == "preseason":
+        return True
+    if "preseason" in str((ev.get("seasonType") or {}).get("name") or "").lower():
+        return True
+    tip = ((comp or {}).get("type") or {})
+    if str(tip.get("abbreviation") or "").upper() == "PRE":
+        return True
+    return False
+
+
 def espn_sides(comp):
     """Домакин и гост от competitors[].homeAway — никога от реда в списъка."""
     h = a = None
@@ -1195,7 +1225,7 @@ def espn_fixtures(sport, slug, ymd, bucket, weight, league_bg, now, extra=None):
         st = ((comp.get("status") or {}).get("type") or {})
         if str(st.get("state") or "").lower() != "pre":
             continue
-        if "Preseason" in str((ev.get("seasonType") or {}).get("name") or ""):
+        if predsezonen(ev, comp):
             continue
         h, a = espn_sides(comp)
         if not h or not a:
@@ -1228,10 +1258,13 @@ def espn_history(sport, slug, team_id, seasons, bucket):
         if not isinstance(j, dict):
             continue
         for ev in (j.get("events") or []):
-            if "Preseason" in str((ev.get("seasonType") or {}).get("name") or ""):
-                continue
             comps = ev.get("competitions") or []
             if not comps:
+                continue
+            # Същият сляп пазач стоеше и тук — историята се пълнеше с
+            # предсезонни резултати, тоест моделът смяташе по мачове, в които
+            # титулярите не са играли. Виж обяснението при predsezonen().
+            if predsezonen(ev, comps[0]):
                 continue
             me = opp = None
             for c in (comps[0].get("competitors") or []):
@@ -4834,6 +4867,21 @@ def selftest():
     # --- 🔴 ДОЛНАТА ГРАНИЦА ЗА ПУБЛИКУВАНЕ.
     # Измерено върху 131 отсъдени: под 45% има само футбол — 6 карти, 1 позната.
     # Махнати, общото се вдига от 64.9% на 67.2%.
+    # --- 🔴 ПРЕДСЕЗОННИТЕ. Пазачът гледаше поле, което ESPN оставя празно.
+    # Числата долу са ТОЧНО каквото ESPN върна за НФЛ на 13.08.2026.
+    check("предсезонен по slug", predsezonen(
+        {"season": {"year": 2026, "type": 1, "slug": "preseason"},
+         "seasonType": {}}) is True)
+    check("предсезонен по име", predsezonen(
+        {"seasonType": {"name": "Preseason"}}) is True)
+    check("предсезонен по съкращение на срещата",
+          predsezonen({}, {"type": {"abbreviation": "PRE"}}) is True)
+    check("редовният сезон НЕ е предсезонен", predsezonen(
+        {"season": {"year": 2026, "type": 2, "slug": "regular-season"},
+         "seasonType": {"name": "Regular Season"}}) is False)
+    check("празният мач не се брои за предсезонен", predsezonen({}) is False)
+    check("боклук вместо сезон не чупи", predsezonen({"season": None}) is False)
+
     check("прагът е точно 45%", abs(MIN_SHOW_P - 0.45) < 1e-9)
     check("прагът не е толкова висок, че да изяде волейбола", MIN_SHOW_P <= 0.50)
     check("прагът не е изключен по невнимание", MIN_SHOW_P > 0.0)
