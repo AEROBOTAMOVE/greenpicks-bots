@@ -205,7 +205,11 @@ def post_room(thread_id, text):
 
 # ---------- ДАННИ ----------
 def fetch_json(url, timeout=20, headers=None):
-    hd = {"User-Agent": "GreenPicksBot/1.0"}
+    # ESPN пуска само непреправени клиенти. Измерено на 11.08.2026: подпис
+    # „GreenPicksBot/1.0" -> 403 Forbidden; без подпис -> 200. Същият дефект
+    # свали пет спорта в predictor.py и отсъждането в scorer.py.
+    hd = ({"Accept": "application/json"} if "espn.com" in url
+          else {"User-Agent": "GreenPicksBot/1.0"})
     if headers:
         hd.update(headers)
     if "thesportsdb.com" in url:
