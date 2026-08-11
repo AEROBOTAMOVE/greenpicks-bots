@@ -1054,6 +1054,54 @@ def hard_drop(title):
     return any(re.search(p, t) for p in HARD_DROP)
 
 
+# ══════════════════════════════════════════════════════════════════════════
+#  🔴 ЕЗИКЪТ, 11.08.2026. Намерено с ОТВАРЯНЕ на стая 26 в Telegram.
+#
+#  Там висеше това, дословно:
+#     „Solè in vista della ripresa: fatta la storia ora bisogna ricominciare
+#      Perugia, 07 agosto 2026 Il palazzetto di Perugia sta per riaprire le
+#      porte: mercoledì prossimo, 12 agosto, riprende la preparazione…"
+#  Цял абзац на ИТАЛИАНСКИ, в българска група, за подновяване на тренировките
+#  в залата на Перуджа. Никой български читател няма да го прочете, а дори да
+#  можеше — новината не му върши работа.
+#
+#  Досега езикът се съдеше по ИЗТОЧНИКА (FEED_BG / FEED_FOREIGN). Това е
+#  косвено: източник, който никой не е вписал в двата списъка, минава без
+#  тежест. LegaVolley беше вписан, но всеки нов италиански или испански фийд
+#  ще мине пак. Затова сега езикът се съди по САМИЯ ТЕКСТ.
+#
+#  Правилото е просто и се проверява с очи:
+#    • кирилица       → чете се от групата, води
+#    • латиница-английски → минава, но с малка тежест срещу себе си
+#    • латиница-НЕанглийски → НЕ ВЛИЗА ИЗОБЩО
+#  „НЕанглийски" се разпознава по две независими улики, за да не режем по
+#  погрешка: чужд диакритичен знак (à è ñ ü ß …) ИЛИ поне ДВЕ служебни думи,
+#  които ги няма в английския (della, für, pour, los, não …).
+# ══════════════════════════════════════════════════════════════════════════
+KIRILICA = re.compile(r"[а-яА-ЯёЁ]")
+CHUZHD_ZNAK = re.compile(r"[àáâãèéêëìíîïòóôõùúûñçüößåæøä]", re.I)
+# Границите са LB/RB (виж горе) — файлът не търпи обратни наклонени черти.
+_CHUZHDI = ("della|dello|delle|degli|nella|nelle|sulla|dalla|questo|questa|"
+            "anche|perche|piu|prossimo|riprende|"          # италиански
+            "los|las|del|para|segun|pero|este|esta|hacia|"  # испански
+            "des|les|pour|avec|dans|cette|ainsi|apres|"     # френски
+            "fur|mit|und|beim|vom|zum|nach|uber|gegen|"     # немски
+            "nao|com|mais|pelo")                            # португалски
+CHUZHDA_DUMA = re.compile(LB + "(?:" + _CHUZHDI + ")" + RB, re.I)
+
+
+def ezik_na(title):
+    """Връща 'bg' | 'en' | 'chuzhd'. Съди по текста, не по източника."""
+    s = str(title or "")
+    if KIRILICA.search(s):
+        return "bg"
+    if CHUZHD_ZNAK.search(s):
+        return "chuzhd"
+    if len(CHUZHDA_DUMA.findall(s)) >= 2:
+        return "chuzhd"
+    return "en"
+
+
 def junk_penalty(t):
     """Сборът от наказанията (класация + видео = двойно наказание)."""
     total = 0.0
@@ -1126,8 +1174,16 @@ def rank_story(c, now=None):
     #
     # Бонусът е +2.0, не +10: наистина голяма чужда новина още може да води —
     # просто трябва да е наистина голяма.
-    if c.get("source") in FEED_BG:
+    # Езикът се съди по САМОТО ЗАГЛАВИЕ (виж дългото обяснение при ezik_na).
+    # Източникът остава като допълнителен, по-слаб сигнал — той греши, когато
+    # българският сайт е препечатал чужда новина без превод.
+    _ez = ezik_na(c.get("title"))
+    if _ez == "bg":
         r += NEWS_BG_BONUS
+    elif _ez == "chuzhd":
+        r -= 99.0            # практически изключване; изрязва се и по-надолу
+    if c.get("source") in FEED_BG:
+        r += 0.5
     if c.get("source") in FEED_WEAK:
         r -= 1.0
     if c.get("source") in FEED_FOREIGN:
@@ -2093,8 +2149,34 @@ def run_selftest():
     _en["source"] = "BBC Sport"
     check("българският източник води при равни други",
           rank_story(_bg, now) > rank_story(_en, now))
-    check("бонусът е точно колкото е обявен",
-          abs((rank_story(_bg, now) - rank_story(_en, now)) - NEWS_BG_BONUS) < 0.01)
+    # 🔴 ПРЕПИСАНО 11.08.2026: бонусът вече е за ЕЗИКА НА ЗАГЛАВИЕТО, не за
+    # източника. Двете новини горе са с ЕДНО И СЪЩО българско заглавие, значи
+    # и двете взимат езиковия бонус — остава само малката тежест на източника.
+    check("източникът тежи, но малко",
+          abs((rank_story(_bg, now) - rank_story(_en, now)) - 0.5) < 0.01)
+    _lat = make_item("Ludogorets signs a striker", date=now)
+    _lat["source"] = "BBC Sport"
+    check("кирилското заглавие бие латинското",
+          rank_story(_bg, now) - rank_story(_lat, now) >= NEWS_BG_BONUS - 0.01)
+    # --- ЕЗИКОВИЯТ СЪДИЯ (заради италианската новина в стая 26)
+    check("кирилица се разпознава", ezik_na("Лудогорец подписа") == "bg")
+    check("английското минава за английско", ezik_na("Mavericks place bounty") == "en")
+    # Точното заглавие, което висеше в стая 26 на 11.08 — с ударението.
+    check("италианското се хваща по диакритика",
+          ezik_na("Solè in vista della ripresa: fatta la storia") == "chuzhd")
+    check("италианското се хваща и без диакритика",
+          ezik_na("Il palazzetto della citta prossimo alla riapertura") == "chuzhd")
+    check("испанското се хваща",
+          ezik_na("Valencia cede al pivot para los partidos del grupo") == "chuzhd")
+    check("немското се хваща",
+          ezik_na("Bayern und Dortmund mit neuen Spielern") == "chuzhd")
+    check("едно съвпадение НЕ стига (за да не режем английско)",
+          ezik_na("Los Angeles Lakers sign a new guard") == "en")
+    check("празното не гърми", ezik_na("") == "en" and ezik_na(None) == "en")
+    _it = make_item("Solè in vista della ripresa: fatta la storia", date=now)
+    _it["source"] = "LegaVolley"
+    check("чуждоезичната новина пада на дъното",
+          rank_story(_it, now) < rank_story(_lat, now) - 50)
     check("бонусът може да се изключи с променлива", 0.0 <= NEWS_BG_BONUS <= 6.0)
     # Но не е чек в бланко. Измерено на 11.08.2026 с истинските числа:
     #   „Лудогорец подписа с нападател" (ключ 5) от BBC  -> 10.2
