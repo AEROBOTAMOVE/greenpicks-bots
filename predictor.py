@@ -510,6 +510,10 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 _http_cache = {}
 _http_used = [0]
 _http_fail = [0]
+# Кой адрес не отговори и защо. Броячът горе казва „три провала" — а въпросът
+# винаги е КОИ три. Тефтерът носи този списък навън, където се чете без права.
+_http_why = []
+HTTP_WHY_MAX = 40
 
 
 def _brotli(raw):
@@ -566,6 +570,9 @@ def http_json(url, headers=None, timeout=30, quiet=False):
         data = json.loads(http_text(url, headers, timeout) or "null")
     except Exception as e:                      # noqa: BLE001
         _http_fail[0] += 1
+        if len(_http_why) < HTTP_WHY_MAX:
+            _http_why.append(url.replace(ESPN_SITE, "espn")[:70]
+                             + " -> " + str(e)[:40])
         if not quiet:
             print("   ⚠ " + url[:78] + " -> " + str(e)[:70])
         data = None
@@ -3473,6 +3480,7 @@ def collect_all(now):
     buckets = {}
     for b in ACTIVE_SPORTS:
         rows = []
+        _zp, _pr, _gr = _http_used[0], len(_http_why), ""
         try:
             if b == "football":
                 rows = football_fixtures(now, ymd)
@@ -3494,6 +3502,7 @@ def collect_all(now):
                 rows = tt_fixtures(now, ymd_dash)
         except Exception as e:      # noqa: BLE001
             print("   ⚠ " + b + ": " + str(e)[:90])
+            _gr = str(e)[:90]
             rows = []
         if not rows and b in ("football", "basketball", "volleyball", "tabletennis"):
             rows = sdb_fixtures(b)
@@ -3518,7 +3527,9 @@ def collect_all(now):
         # разбра, защото числото живееше само в един изчезващ дневник.
         # Затова цифрите се записват във файл, който се връща в хранилището.
         DIAG[b] = {"suredi": len(rows), "surovi": n_all,
-                   "zapochnali": gone, "daleche": far}
+                   "zapochnali": gone, "daleche": far,
+                   "zaqvki": _http_used[0] - _zp,
+                   "gr": ([_gr] if _gr else []) + _http_why[_pr:][:4]}
         print("   " + SPORTS[b]["emoji"] + " " + b + ": " + str(len(rows)) + " срещи"
               + ((" (" + str(gone) + " вече започнали)") if gone else "")
               + ((" (" + str(far) + " далече — чакат)") if far else ""))
