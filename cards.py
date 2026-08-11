@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-GREEN PICKS — генератор на визуални картички (като фиш-слиповете, но честни + по-добри).
+THE GREEN ROOM — генератор на визуални картички (като фиш-слиповете, но честни + по-добри).
 Рендира PNG за: мач-преглед, ПЕЧЕЛИВШ фиш, ГУБЕЩ фиш (честно!), седмичен отчет.
-Тъмна тема, зелен акцент, 🦖 GREEN PICKS бранд. Без емоджи-шрифт (рисувани баджове).
+Тъмна тема, зелен акцент, 🦖 THE GREEN ROOM бранд. Без емоджи-шрифт (рисувани баджове).
 """
 from PIL import Image, ImageDraw, ImageFont
 import os
@@ -62,7 +62,7 @@ def _cross(draw, cx, cy, r, color):
 
 def _header(draw):
     draw.rectangle([0,0,W,10], fill=GREEN)
-    draw.text((44,40), "GREEN PICKS", font=F("arialbd.ttf",44), fill=WHITE)
+    draw.text((44,40), "THE GREEN ROOM", font=F("arialbd.ttf",44), fill=WHITE)
     draw.polygon([(30,62),(20,80),(30,98),(40,80)], fill=GREEN)
     hf=F("arial.ttf",28)
     tw=draw.textbbox((0,0),"@greenpicksbg",font=hf)[2]
@@ -71,7 +71,7 @@ def _header(draw):
 def _footer(draw, line):
     draw.line([(44,H-96),(W-44,H-96)], fill=LINE, width=2)
     draw.text((44,H-78), line, font=F("arial.ttf",24), fill=GRAY)
-    draw.text((44,H-46), "18+ · Прогноза, не съвет · Залагай отговорно", font=F("arial.ttf",22), fill=GRAY)
+    draw.text((44,H-46), "Числа и вероятности · всичко се отчита", font=F("arial.ttf",22), fill=GRAY)
 
 def base():
     img=Image.new("RGB",(W,H),BG1); d=ImageDraw.Draw(img); _grad(d); _header(d); return img,d
@@ -148,7 +148,7 @@ def morning_card(date_bg, total, sports, out):
         x1=cx+math.cos(math.radians(ang))*70; y1=cy+math.sin(math.radians(ang))*70
         x2=cx+math.cos(math.radians(ang))*92; y2=cy+math.sin(math.radians(ang))*92
         d.line([(x1,y1),(x2,y2)], fill=GOLD, width=7)
-    _center(d, "GREEN PICKS", F("arialbd.ttf",56), 440, WHITE)
+    _center(d, "THE GREEN ROOM", F("arialbd.ttf",56), 440, WHITE)
     _center(d, date_bg, F("arial.ttf",32), 512, GRAY)
     _round(d,[90,600,W-90,820],28, fill=CARD, outline=LINE, width=2)
     _center(d, f"{total}", F("arialbd.ttf",96), 630, GREEN)
@@ -169,7 +169,7 @@ def logo_avatar(out, size=1024):
     d.text((cx-w/2-tw[0], cy-h/2-tw[1]), "GP", font=mf, fill=BG1)
     nf=F("arialbd.ttf",int(size*0.105))
     _c=lambda txt,f,y,fill: d.text(((size-(d.textbbox((0,0),txt,font=f)[2]))/2,y),txt,font=f,fill=fill)
-    _c("GREEN PICKS", nf, int(size*0.70), WHITE)
+    _c("THE GREEN ROOM", nf, int(size*0.70), WHITE)
     tf=F("arial.ttf",int(size*0.042))
     _c("Честни спортни прогнози", tf, int(size*0.83), GRAY)
     d.rectangle([int(size*0.30),int(size*0.905),int(size*0.70),int(size*0.912)], fill=GREEN)
@@ -188,7 +188,7 @@ def room_welcome(title, subtitle, bullets, accent_name, out):
         d.ellipse([110,y+12,126,y+28], fill=acc)
         d.text((150,y), b, font=F("arial.ttf",32), fill=WHITE)
         y+=72
-    _footer(d, "🦖 GREEN PICKS · честни прогнози · 18+")
+    _footer(d, "🦖 THE GREEN ROOM · честни прогнози")
     img.save(out); return out
 
 if __name__=="__main__":
