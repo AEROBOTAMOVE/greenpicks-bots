@@ -530,13 +530,39 @@ def _brotli(raw):
     raise RuntimeError("нужен е модул brotli (pip install brotli)")
 
 
+# 🔴 ЗАЩО ESPN НЕ ПОЛУЧАВА ПОДПИС (измерено на живо на 11.08.2026)
+#
+# Пет спорта — футбол, тенис, баскетбол, хокей, ММА и американски футбол —
+# мълчаха с ДНИ. Черната кутия показа 403 Forbidden на всеки адрес на ESPN.
+# Първата мисъл е „блокират сървъра на GitHub". Грешна. Същият 403 идваше и на
+# домашната машина. Тестът беше един адрес, една минута, сменя се само подписът:
+#
+#     с фалшивия Chrome подпис горе  ->  403 Forbidden
+#     без никакъв подпис             ->  200 и 10 срещи
+#     с подписа на самия Python      ->  200 и 10 срещи
+#     с измислен подпис „GreenPicks" ->  403 Forbidden
+#
+# Тоест ESPN не пази данните — пази се от преправени клиенти. Маскировката
+# БЕШЕ причината. Затова тук подписът се маха точно за ESPN, а за WTT и FIVB,
+# които го искат, остава.
+NO_UA_HOSTS = ("espn.com",)
+
+
+def glavi_za(url, headers=None):
+    """Кои глави заминават с една заявка. Отделено, за да се проверява само."""
+    hd = ({"Accept": "application/json"}
+          if any(h in url for h in NO_UA_HOSTS)
+          else {"User-Agent": UA, "Accept": "*/*"})
+    if headers:
+        hd.update(headers)
+    return hd
+
+
 def http_bytes(url, headers=None, timeout=30):
     """Една заявка навън, с таван, пауза и разсгъстяване. Хвърля при провал."""
     if _http_used[0] >= HTTP_BUDGET:
         raise RuntimeError("изчерпан лимит заявки (" + str(HTTP_BUDGET) + ")")
-    hd = {"User-Agent": UA, "Accept": "*/*"}
-    if headers:
-        hd.update(headers)
+    hd = glavi_za(url, headers)
     time.sleep(HTTP_GAP)
     _http_used[0] += 1
     req = urllib.request.Request(url, headers=hd)
@@ -4874,6 +4900,15 @@ def selftest():
           (_got["diag"]["sportove"]["proba"] or {}).get("zapochnali") == 4)
     check("тефтерът пази и старото поле", "posted" in _got)
     DIAG.clear()
+
+    # --- ПОДПИСЪТ. Това не е стил, а причината пет спорта да мълчат дни наред.
+    # Върне ли се фалшивият Chrome подпис към ESPN, 403-ката се връща с него.
+    check("ESPN не получава подпис", "User-Agent" not in glavi_za(ESPN_SITE + "/x"))
+    check("ESPN иска json", glavi_za(ESPN_SITE + "/x").get("Accept") == "application/json")
+    check("чуждите адреси пазят подписа",
+          glavi_za("https://worldtabletennis.com/x").get("User-Agent") == UA)
+    check("подадена глава бие подразбирането",
+          glavi_za(ESPN_SITE + "/x", {"Accept": "text/html"})["Accept"] == "text/html")
 
     # 🔴 НАЙ-ВАЖНАТА ПРОВЕРКА ТУК: списъкът в кода и кроновете в predict.yml
     # трябва да са ЕДНО И СЪЩО. Разминат ли се, ботът смята грешно кое е
