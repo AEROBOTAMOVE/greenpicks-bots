@@ -706,6 +706,92 @@ def wtt_result(rec):
     return None
 
 
+# ══════════════════════════════════════════════════════════════════════════
+#  🔴 РЕЗЕРВНИЯТ ИЗТОЧНИК ВЕЧЕ СЕ ОТСЪЖДА (11.08.2026)
+#
+#  predictor.sdb_fixtures() е „последна резерва, за да не остане празна стая" —
+#  вади срещи от TheSportsDB, когато ESPN мълчи. Само че записва extra={},
+#  тоест БЕЗ slug, а отборните id-та са на TheSportsDB, не на ESPN.
+#  espn_result() пада на първия ред (`if not slug: return None`) и такава
+#  прогноза НЕ МОЖЕ да бъде отсъдена никога.
+#
+#  Измерено в живия дневник: 22 прогнози за WNBA, всичките без slug,
+#  НУЛА отсъдени. Тоест резервата пълнеше стаята с карти, за които обещанието
+#  „всичко се отчита" не важи.
+#
+#  Проверено на живо, че вратата съществува:
+#    eventsday.php?d=2026-08-06&s=Basketball → 3 събития с резултати,
+#    сред тях „Chicago Sky 95-88 Los Angeles Sparks" — точно наш висящ мач.
+#    eventslast.php?id=136447 → „Atlanta Dream 96-82 Phoenix Mercury".
+#  Затова тук има ДВЕ врати: по ден и по отбор. Първата хваща повечето,
+#  втората спасява мачовете, разместени от часовата зона.
+# ══════════════════════════════════════════════════════════════════════════
+SDB_KEY = (os.environ.get("SPORTSDB_KEY") or "123").strip()
+SDB = "https://www.thesportsdb.com/api/v1/json/" + SDB_KEY
+SDB_SPORT = {"basketball": "Basketball", "football": "Soccer",
+             "baseball": "Baseball", "hockey": "Ice Hockey",
+             "tennis": "Tennis", "volleyball": "Volleyball",
+             "amfootball": "American Football"}
+_sdb_den = {}
+
+
+def _sdb_json(url):
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=25) as r:
+            return json.loads(r.read())
+    except Exception:                                        # noqa: BLE001
+        return {}
+
+
+def _sdb_dvoyki(sabitiya):
+    """(домакин_id, гост_id, точки_д, точки_г, име_д, име_г) за завършилите."""
+    out = []
+    for e in (sabitiya or []):
+        hs, as_ = e.get("intHomeScore"), e.get("intAwayScore")
+        if hs in (None, "") or as_ in (None, ""):
+            continue
+        try:
+            hs, as_ = int(hs), int(as_)
+        except (TypeError, ValueError):
+            continue
+        out.append((str(e.get("idHomeTeam") or ""), str(e.get("idAwayTeam") or ""),
+                    hs, as_, e.get("strHomeTeam"), e.get("strAwayTeam")))
+    return out
+
+
+def sdb_result(rec):
+    """Резултат от TheSportsDB. За прогнози БЕЗ slug — тях ESPN не ги знае."""
+    hid, aid = str(rec.get("home_id") or ""), str(rec.get("away_id") or "")
+    ha, hb = rec.get("home"), rec.get("away")
+    sport = SDB_SPORT.get(rec.get("bucket"))
+    if not sport or (not hid and not ha):
+        return None
+
+    # ВРАТА 1: всички мачове от този спорт за деня (и съседните — часови зони).
+    for den in okolni_dni(rec.get("day")):
+        if den not in _sdb_den:
+            j = _sdb_json(SDB + "/eventsday.php?d=" + den + "&s="
+                          + urllib.parse.quote(sport))
+            _sdb_den[den] = _sdb_dvoyki(j.get("events"))
+            time.sleep(0.3)
+        for h, a, hs, as_, hn, an in _sdb_den[den]:
+            if hid and aid and h == hid and a == aid:
+                return hs, as_
+            if same_team(hn, ha) and same_team(an, hb):
+                return hs, as_
+
+    # ВРАТА 2: последните мачове на домакина. Спасява разместените по зона.
+    if hid:
+        j = _sdb_json(SDB + "/eventslast.php?id=" + hid)
+        for h, a, hs, as_, hn, an in _sdb_dvoyki(j.get("results")):
+            if aid and a == aid and h == hid:
+                return hs, as_
+            if same_team(hn, ha) and same_team(an, hb):
+                return hs, as_
+    return None
+
+
 def sport_result(rec):
     """ЕДИНСТВЕНАТА врата към резултат. Всеки спорт минава оттук.
 
@@ -723,6 +809,13 @@ def sport_result(rec):
         return baseball_result(rec)
     if b == "tabletennis":
         return wtt_result(rec)
+    # 🔴 БЕЗ slug ESPN не може да го намери — това са срещите от резервния
+    # източник (виж дългото обяснение при sdb_result). Дотук такава прогноза
+    # висеше вечно: 22 за WNBA, нула отсъдени.
+    if not rec.get("slug"):
+        r = sdb_result(rec)
+        if r is not None:
+            return r
     return espn_result(rec)
 
 
@@ -1541,6 +1634,74 @@ def selftest():
     # за тенис на маса се отсъждат. Осемте, които не се, са от турнири извън
     # стоте, които шлюзът връща.
     check("списъкът с турнири не е празен", len(_wtt_turniri()) > 0)
+    # 🔴 ОТВАРЯНЕТО НА СТАРИТЕ. Затварянето „без източник" беше необратимо: щом
+    # спортът получи източник, миналото му оставаше изтрито от статистиката.
+    # В живия дневник това бяха СЕДЕМДЕСЕТ прогнози за тенис на маса.
+    _mig = [
+        {"bucket": "tabletennis", "scored": True, "hit": None,
+         "why": "няма официален източник за резултата"},          # трябва да се отвори
+        {"bucket": "tabletennis", "scored": True, "hit": True},   # има присъда — не се пипа
+        {"bucket": "football", "scored": True, "hit": None,
+         "why": "мачът е отменен"},                               # друга причина — не се пипа
+    ]
+    _z = "няма официален източник за резултата"
+    for _r in _mig:
+        if (_r.get("scored") and _r.get("hit") is None
+                and str(_r.get("why") or "") == _z
+                and _r.get("bucket") not in NO_RESULT):
+            _r["scored"] = False
+            _r.pop("why", None)
+    # 🔴 РЕЗЕРВНИЯТ ИЗТОЧНИК. Прогноза без slug идва от TheSportsDB и ESPN
+    # не я знае — espn_result пада на първия ред. Измерено в живия дневник:
+    # 22 такива за WNBA, НУЛА отсъдени, докато вратата съществуваше.
+    _sdb_igli = ("sdb_result", "eventsday.php", "eventslast.php")
+    for _i in _sdb_igli:
+        check("резервната врата е в кода: " + _i, _i in _iztochnik_scorer)
+    check("без slug минаваме първо през резервата",
+          'if not rec.get("slug")' in _iztochnik_scorer)
+    check("всеки спорт с резерва има име за TheSportsDB",
+          all(b in SDB_SPORT for b in ("basketball", "football", "baseball")))
+    check("двойките се четат от суровия отговор",
+          _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
+                        "intHomeScore": "96", "intAwayScore": "82",
+                        "strHomeTeam": "A", "strAwayTeam": "B"}])
+          == [("1", "2", 96, 82, "A", "B")])
+    check("незавършил мач не се брои",
+          _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
+                        "intHomeScore": None, "intAwayScore": None}]) == [])
+    check("боклук вместо резултат не гърми",
+          _sdb_dvoyki([{"intHomeScore": "x", "intAwayScore": "y"}]) == [])
+    check("празният списък не гърми", _sdb_dvoyki(None) == [])
+    check("затвореният без източник се отваря", _mig[0]["scored"] is False)
+    check("отвореният губи старата причина", "why" not in _mig[0])
+    check("присъденият НЕ се пипа", _mig[1]["scored"] is True)
+    check("отмененият по друга причина НЕ се пипа", _mig[2]["scored"] is True)
+    # 🔴 ОБРЪЩАНЕТО НА РЕЗУЛТАТА — най-опасното място в целия този код.
+    # WTT пише двамата играчи в СВОЙ ред; при тенис на маса „домакин" и „гост"
+    # са само ред на изписване, не роля. Сгрешим ли посоката, всяка присъда
+    # излиза наопаки И процентът в стая 9 става лъжа, без нищо да гръмне.
+    # Сверих 64 истински мача срещу суровия запис: 0 обърнати. НО в нито един
+    # от тях WTT не е изписал нашия гост пръв — тоест обратният клон никога
+    # не е бил изпълняван на живо. Затова тук се изпълнява нарочно.
+    _stari_i, _stari_e = dict(_wtt_index), _wtt_events
+    try:
+        _wtt_index[9999] = {frozenset(("adam", "boris")): ("boris", 3, 1)}
+        globals()["_wtt_events"] = [(9999, "2026-08-10", "2026-08-10")]
+        _r = wtt_result({"day": "2026-08-10", "home": "Adam", "away": "Boris"})
+        # WTT казва „Boris 3-1", тоест Boris е спечелил. Нашият домакин е Adam,
+        # значи от НАША гледна точка резултатът е 1:3.
+        check("обърнатият ред се поправя", _r == (1, 3))
+        _r2 = wtt_result({"day": "2026-08-10", "home": "Boris", "away": "Adam"})
+        check("правилният ред остава непокътнат", _r2 == (3, 1))
+        check("непознат мач връща None",
+              wtt_result({"day": "2026-08-10", "home": "Ivan", "away": "Petar"}) is None)
+        globals()["_wtt_events"] = []
+        check("без турнири за деня не гадаем",
+              wtt_result({"day": "2026-08-10", "home": "Adam", "away": "Boris"}) is None)
+    finally:
+        _wtt_index.clear()
+        _wtt_index.update(_stari_i)
+        globals()["_wtt_events"] = _stari_e
     check("волейболът НЕ е без източник", "volleyball" not in NO_RESULT)
     check("тенисът НЕ е без източник", "tennis" not in NO_RESULT)
     check("футболът НЕ е без източник", "football" not in NO_RESULT)
@@ -1578,6 +1739,38 @@ def main():
     total_all = sum(1 for r in rows if r.get("scored") and r.get("hit") is not None)
     hit_all = sum(1 for r in rows if r.get("scored") and r.get("hit") is True)
 
+    # ══════════════════════════════════════════════════════════════════════
+    #  🔴 ОТВАРЯНЕ НА ЗАТВОРЕНИТЕ БЕЗ ПРИСЪДА (11.08.2026)
+    #
+    #  Прогноза за спорт без източник се затваря с scored=True и hit=None, за
+    #  да не се пита вечно нещо, което няма отговор. Разумно — но необратимо:
+    #  щом спортът получи източник, старите записи остават затворени завинаги,
+    #  защото цикълът долу прескача всичко със scored.
+    #
+    #  Точно това стана днес. Тенисът на маса излезе от NO_RESULT (WTT дава
+    #  официалните резултати през шлюза /ttu/), но в живия дневник СЕДЕМДЕСЕТ
+    #  негови прогнози вече бяха затворени с „няма официален източник". Тоест
+    #  новият източник щеше да важи само за бъдещето, а цялата минала история
+    #  на спорта оставаше изтрита от статистиката.
+    #
+    #  Затова: всеки запис, затворен САМО заради липса на източник, чийто спорт
+    #  ВЕЧЕ не е в NO_RESULT, се отваря наново. Правилото е общо — утре ако
+    #  друг спорт получи източник, миналото му се връща само.
+    #  Пуска се веднъж: след отсъждането записите имат присъда и не се пипат.
+    ZATVOREN_BEZ_IZVOR = "няма официален източник за резултата"
+    otvoreni = {}
+    for r in rows:
+        if (r.get("scored") and r.get("hit") is None
+                and str(r.get("why") or "") == ZATVOREN_BEZ_IZVOR
+                and r.get("bucket") not in NO_RESULT):
+            r["scored"] = False
+            r.pop("why", None)
+            b = r.get("bucket") or "?"
+            otvoreni[b] = otvoreni.get(b, 0) + 1
+    if otvoreni:
+        print("Отворени наново (спортът вече има източник): "
+              + ", ".join(k + " " + str(v) for k, v in sorted(otvoreni.items())))
+
     fresh = []
     checked = 0
     bez_izvor = {}
@@ -1605,7 +1798,7 @@ def main():
         if r.get("bucket") in NO_RESULT and day < today:
             r["scored"] = True
             r["hit"] = None
-            r["why"] = "няма официален източник за резултата"
+            r["why"] = ZATVOREN_BEZ_IZVOR
             bez_izvor[r.get("bucket")] = bez_izvor.get(r.get("bucket"), 0) + 1
             continue
         checked += 1
