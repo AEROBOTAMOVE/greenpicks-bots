@@ -5,7 +5,12 @@
 # Wipes messages via Bot API (bot is admin), keeps the forum topic-container ids,
 # then reposts HUB (channel) and the role pins (group). RESET_MODE = channel|group|all
 import os
-os.environ.setdefault("SUPPORT", "@greenpicks_support_bot")
+# FIXED 2026-08-11: this pinned @greenpicks_support_bot into the HUB, the pin of
+# room 11 and the support post - all three at once. That bot does not run:
+# support_bot.py calls it "the separate bot, IF it ever starts" and support.yml
+# says its token is "if ever added to Secrets". The live one is the main bot.
+# hub.yml and seed.yml already pass the right handle; only reset.py did not.
+os.environ.setdefault("SUPPORT", "@green_picks_info_bot")
 import json, sys, time, urllib.request, urllib.parse, urllib.error
 import setup_hub as H
 

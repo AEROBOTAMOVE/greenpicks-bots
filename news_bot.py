@@ -170,11 +170,27 @@ SPORT_ROOMS = {
     "volleyball":  {"thread": NEWS_THREAD_ID, "title": "🏐 ВОЛЕЙБОЛ — новини",
                     # ⚠️ НЕ слагай голото „volley" — във футбола „stunning volley" е удар с
                     # воле и би откраднал футболни новини в волейболната секция.
-                    "pat": "|".join(["волейбол", "volleyball", "siatkow", "pallavolo", wb("vnl"),
+                    # 🔴 КОРЕНЪТ, не цялата дума (11.08.2026). Шаблонът търсеше
+                    # „волейбол" и пропускаше думите на журналиста:
+                    # „капитанът на ВОЛЕЙнационалите", „ЕвроВОЛЕЙ 2026".
+                    # Измерено: и трите такива заглавия днес паднаха в „Други".
+                    # Кирилското „волей" няма капана на английското volley
+                    # („stunning volley") — проверено срещу футболните заглавия.
+                    # ⚠️ НЕ голото „волей": то хваща и футболния удар
+                    # („стунинг волей от Роналдо") — проверих го и падна.
+                    # Затова изброяваме сложните думи поименно.
+                    "pat": "|".join(["волейбол", "волейнацион", "евроволей",
+                                     "суперволей", "волейна", "волейни",
+                                     "volleyball", "siatkow", "pallavolo", wb("vnl"),
                                      wb("cev"), "plusliga", "superlega", "николов", "соколов",
                                      "казийски", "лига на нациите", "beach volley"])},
     "basketball":  {"thread": NEWS_THREAD_ID, "title": "🏀 БАСКЕТБОЛ — новини",
-                    "pat": "|".join(["баскет", "basketball", wb("nba"), wb("wnba"), "евролига",
+                    # 🔴 Български клубове (11.08.2026): „Балкан Ботевград със
+                    # силен трансфер" падаше в „Други спортове", защото нито
+                    # „баскет", нито „NBA" го има в заглавието.
+                    "pat": "|".join(["баскет", "балкан ботевград", "рилски спортист",
+                                     "черно море тича", "левски лукойл",
+                                     "basketball", wb("nba"), wb("wnba"), "евролига",
                                      "euroleague", wb("fiba"), "triple-double", "леброн", "lebron",
                                      "йокич", "jokic", "дончич", "doncic", "еврокъп", "eurocup",
                                      "везенков"])},
@@ -331,7 +347,10 @@ FEED_SOURCES = [
     ("Gong", "https://gong.bg/rss", None),
     ("Sportal", "https://www.sportal.bg/rss", None),
     ("Dsport", "https://dsport.bg/rss", None),
-    ("Blitz Спорт", "https://blitz.bg/rss/sport", None),
+    # 🔴 МАХНАТ 11.08.2026. Отговаря с HTTP 200 и 20 записа — но ВСИЧКИТЕ са
+    # от 2009-2010. Прясната дата е на ниво канал, а parse_rss чете само item.
+    # Тоест 20 дръпнати записа три пъти дневно за нула новини.
+    # ("Blitz Спорт", "https://blitz.bg/rss/sport", None),
     ("Sportlive", "https://sportlive.bg/rss", None),
     ("Actualno Спорт", "https://www.actualno.com/rss/sport", None),
     ("24ч Спорт", "https://www.24chasa.bg/rss/sport", None),
@@ -346,17 +365,20 @@ FEED_SOURCES = [
     ("TTEngland", "https://tabletennisengland.co.uk/feed/", "tabletennis"),
     ("Butterfly", "https://www.butterflyonline.com/feed/", "tabletennis"),
     ("TableTennisDaily", "https://www.tabletennisdaily.com/forum/forums/-/index.rss", "tabletennis"),
-    ("ExpertTT", "https://www.experttabletennis.com/feed/", "tabletennis"),
+    # 🔴 МАХНАТ: най-прясната новина е от 09.09.2020.
+    # ("ExpertTT", "https://www.experttabletennis.com/feed/", "tabletennis"),
     ("ITTF", "https://www.ittf.com/feed/", "tabletennis"),
     # --- 🏐 волейбол ---
     ("WorldOfVolley", "https://worldofvolley.com/feed/", "volleyball"),
-    ("Volleywood", "https://www.volleywood.net/feed/", "volleyball"),
+    # 🔴 МАХНАТ: най-прясната новина е от 27.02.2022.
+    # ("Volleywood", "https://www.volleywood.net/feed/", "volleyball"),
     ("LegaVolley", "https://www.legavolley.it/feed/", "volleyball"),
     ("Gazzetta Волей", "https://www.gazzetta.it/rss/volley.xml", "volleyball"),
     ("iVolleyMagazine", "https://www.ivolleymagazine.it/feed/", "volleyball"),
     ("VolleyCountry", "https://www.volleycountry.com/feed/", "volleyball"),
     ("VolleyballMag", "https://volleyballmag.com/feed/", "volleyball"),
-    ("Volleyverse", "https://volleyverse.com/feed/", "volleyball"),
+    # 🔴 МАХНАТ: най-прясната новина е от 23.04.2023.
+    # ("Volleyverse", "https://volleyverse.com/feed/", "volleyball"),
     ("NCAA Волейбол", "https://www.ncaa.com/news/volleyball-women/d1/rss.xml", "volleyball"),
     # --- 🏀 баскетбол ---
     ("Eurohoops", "https://www.eurohoops.net/en/feed/", "basketball"),
@@ -372,7 +394,8 @@ FEED_SOURCES = [
     ("Guardian Football", "https://www.theguardian.com/football/rss", "football"),
     ("ESPN Soccer", "https://www.espn.com/espn/rss/soccer/news", "football"),
     ("Sky Футбол", "https://www.skysports.com/rss/11095", "football"),
-    ("90min", "https://www.90min.com/posts.rss", "football"),
+    # 🔴 МАХНАТ: най-прясната новина е от 29.09.2025.
+    # ("90min", "https://www.90min.com/posts.rss", "football"),
     # --- 🥊 бойни спортове (ново; всички проверени наживо 28.07.2026) ---
     ("UFC", "https://www.ufc.com/rss/news", "combat"),
     ("ESPN MMA", "https://www.espn.com/espn/rss/mma/news", "combat"),
@@ -1081,23 +1104,62 @@ def hard_drop(title):
 KIRILICA = re.compile(r"[а-яА-ЯёЁ]")
 CHUZHD_ZNAK = re.compile(r"[àáâãèéêëìíîïòóôõùúûñçüößåæøä]", re.I)
 # Границите са LB/RB (виж горе) — файлът не търпи обратни наклонени черти.
+# 🔴 РАЗШИРЕН 11.08.2026: старият списък гръмваше ЕДИН път в 825 живи
+# заглавия. Липсваха най-честите служебни думи. Тези тук са подбрани да НЕ
+# се срещат в английско спортно заглавие — затова ги няма „la", „e", „a".
 _CHUZHDI = ("della|dello|delle|degli|nella|nelle|sulla|dalla|questo|questa|"
-            "anche|perche|piu|prossimo|riprende|"          # италиански
-            "los|las|del|para|segun|pero|este|esta|hacia|"  # испански
-            "des|les|pour|avec|dans|cette|ainsi|apres|"     # френски
-            "fur|mit|und|beim|vom|zum|nach|uber|gegen|"     # немски
-            "nao|com|mais|pelo")                            # португалски
+            "anche|perche|piu|prossimo|riprende|mantiene|non|una|che|nel|"
+            "dei|degli|allo|alla|dalle|sono|hanno|dopo|verso|contro|"   # италиански
+            "los|las|del|para|segun|pero|este|esta|hacia|desde|sobre|"
+            "como|entre|tras|"                                          # испански
+            "des|les|pour|avec|dans|cette|ainsi|apres|chez|"            # френски
+            "fur|mit|und|beim|vom|zum|nach|uber|gegen|nicht|auch|"      # немски
+            "nao|com|mais|pelo|pela")                                   # португалски
 CHUZHDA_DUMA = re.compile(LB + "(?:" + _CHUZHDI + ")" + RB, re.I)
 
 
 def ezik_na(title):
-    """Връща 'bg' | 'en' | 'chuzhd'. Съди по текста, не по източника."""
+    """Връща 'bg' | 'en' | 'chuzhd'. Съди по текста, не по източника.
+
+    🔴 ПРЕНАПИСАНА СЪЩИЯ ДЕН, 11.08.2026, СЛЕД ИЗМЕРВАНЕ.
+    Първата версия работеше НАОПАКИ и го доказах върху живите фийдове:
+
+      УБИВАШЕ английски заглавия заради ударение в СОБСТВЕНО ИМЕ —
+        „Source: Barça remain optimistic of signing Rodri"
+        „Martínez joins Rashford, Utd teammates at training"
+        „Why have Liverpool signed Barcelona captain Ronald Araújo"
+        „Arman Tsarukyan meets Maurício Ruffy in UFC 331"
+        „Europe Smash 2026, Malmö, 8/8-16"
+      осем от осем проби. ESPN Soccer губеше 6 от 19 записа — трансферните
+      новини за Барселона, точно това, което групата чака.
+
+      ПУСКАШЕ истински италиански, защото списъкът с думи нямаше най-честите:
+        „Perugia mantiene la testa e Trento non molla"
+        „Due nuovi professionisti al servizio dei Block Devils"
+      четири от четири проби.
+
+    Тоест сигналът, който гърмеше, беше винаги грешен, а верният почти не
+    гърмеше. Урок: ударението е в ИМЕТО, не в езика. Собственото име се пише
+    с главна буква — затова диакритикът брои само в дума с МАЛКА начална
+    буква. И списъкът с думи вече носи наистина честите служебни думи.
+    """
     s = str(title or "")
     if KIRILICA.search(s):
         return "bg"
-    if CHUZHD_ZNAK.search(s):
+    dumi = len(CHUZHDA_DUMA.findall(s))
+    if dumi >= 2:
         return "chuzhd"
-    if len(CHUZHDA_DUMA.findall(s)) >= 2:
+    # Диакритик в дума, която НЕ е собствено име (започва с малка буква).
+    # „Barça" и „Martínez" минават; „mantiene la città" не.
+    malka = False
+    for d in re.split(r"[^0-9A-Za-zÀ-ÿ]+", s):
+        if d and d[0].islower() and CHUZHD_ZNAK.search(d):
+            malka = True
+            break
+    if malka:
+        return "chuzhd"
+    # Ударение в име + поне една чужда служебна дума = достатъчно.
+    if dumi >= 1 and CHUZHD_ZNAK.search(s):
         return "chuzhd"
     return "en"
 
@@ -1186,8 +1248,14 @@ def rank_story(c, now=None):
         r += 0.5
     if c.get("source") in FEED_WEAK:
         r -= 1.0
+    # 🔴 ТВЪРДА ПОРТА, не наказание (11.08.2026). Тези три фийда издават
+    # САМО на италиански — там езикът не е въпрос на преценка по текста, а
+    # свойство на самия източник. Измерено на живо: четири техни истории
+    # МИНАХА прага 1.5 днес с ранг 1.70-2.10 и не излязоха само защото 241
+    # кандидата се биха за 10 места. В тих волейболен ден щяха да излязат.
+    # Наказанието от -1.5 просто не стигаше.
     if c.get("source") in FEED_FOREIGN:
-        r -= 1.5
+        r -= 99.0
     if t.rstrip().endswith("?"):
         r -= 0.8
     if len(c.get("title") or "") < 22:
@@ -1626,15 +1694,50 @@ def context_of(c):
     return s
 
 
+def koga_bg(date, now=None):
+    """Кога е СТАНАЛА новината, с думи: „днес 17:02" / „вчера 21:17" / „08.08, 21:17".
+
+    🔴 ДОБАВЕНО 11.08.2026. Дотук всеки пост носеше ЕДИН И СЪЩИ печат —
+    часът, в който ботът се е събудил (clock се смяташе веднъж за целия рън
+    и се подаваше на всяко съобщение). Тоест новина отпреди шест минути и
+    новина отпреди три дни изглеждаха еднакво пресни.
+    Измерено на живо: от 241 истории над прага, 27 (11%) са на 24-72 часа,
+    най-старата на 71 часа — а всичките носеха печат от текущия рън.
+    Това е буквално „стара новина, представена като днешна".
+    """
+    if now is None:
+        now = datetime.now(SOFIA)
+    if date is None:
+        return ""
+    try:
+        d = date.astimezone(SOFIA)
+    except Exception:                                        # noqa: BLE001
+        return ""
+    dnes = now.date()
+    razlika = (dnes - d.date()).days
+    chas = d.strftime("%H:%M")
+    if razlika <= 0:
+        return "днес " + chas
+    if razlika == 1:
+        return "вчера " + chas
+    return d.strftime("%d.%m") + ", " + chas
+
+
 def link_line(c, clock):
     src = esc(c["source"])
+    # Часът на САМАТА новина, не на рънa. Ако липсва — падаме на стария печат,
+    # за да не остане редът без нищо.
+    koga = koga_bg(c.get("date")) or clock
     if is_url(c.get("link") or ""):
-        line = '<a href="' + html.escape(c["link"], quote=True) + '">' + src + " →</a> · " + clock
+        line = (koga + " · <a href=" + chr(34)
+                + html.escape(c["link"], quote=True) + chr(34) + ">"
+                + src + "</a>")
     else:
-        line = "<i>" + src + "</i> · " + clock
+        line = koga + " · <i>" + src + "</i>"
     also = c.get("also") or []
     if also:
-        line = line + " · също: " + esc(", ".join(also[:2]))
+        # „също" не казваше какво значи. Значи: и друг издател я е потвърдил.
+        line = line + " · потвърдена и от " + esc(", ".join(also[:2]))
     return line
 
 
@@ -2235,8 +2338,65 @@ def run_selftest():
     check("подписът е под тавана", visible_len(cap) <= CAPTION_HARD)
     check("подписът има заглавие", "Лудогорец уволни" in cap)
     check("подписът има контекст", "трето поредно" in cap)
-    check("подписът има източник", "Gong" in cap and "09:12" in cap)
-    check("подписът има другите източници", "също: Sportal, Dsport" in cap)
+    # 🔴 ПРЕПИСАНИ 11.08.2026 заедно с реда. Постът вече носи часа на САМАТА
+    # новина („днес 17:02" / „вчера 21:17" / „08.08, 21:17"), не часа на рънa —
+    # иначе новина отпреди три дни изглежда като отпреди минута.
+    check("подписът има източник", "Gong" in cap)
+    check("подписът носи КОГА е новината", "днес" in cap or "вчера" in cap)
+    check("подписът НЕ носи часа на рънa", "09:12" not in cap)
+    check("подписът казва какво значи вторият източник",
+          "потвърдена и от Sportal, Dsport" in cap)
+    # И самата функция за времето, в трите си форми:
+    from datetime import datetime as _dt
+    _n = _dt(2026, 8, 11, 20, 0, tzinfo=SOFIA)
+    check("днешната новина се казва днес",
+          koga_bg(_dt(2026, 8, 11, 17, 2, tzinfo=SOFIA), _n) == "днес 17:02")
+    check("вчерашната се казва вчера",
+          koga_bg(_dt(2026, 8, 10, 21, 17, tzinfo=SOFIA), _n) == "вчера 21:17")
+    check("по-старата носи дата",
+          koga_bg(_dt(2026, 8, 8, 21, 17, tzinfo=SOFIA), _n) == "08.08, 21:17")
+    check("липсващата дата не гърми", koga_bg(None, _n) == "")
+
+    # ══════════════════════════════════════════════════════════════════
+    #  🔴 ЕЗИКОВИЯТ СЪДИЯ РАБОТЕШЕ НАОПАКИ — измерено върху живите фийдове
+    #  СЪЩИЯ ДЕН, в който беше добавен. Убиваше английски заглавия заради
+    #  ударение в СОБСТВЕНО ИМЕ (Barça, Martínez, Araújo, Malmö) и пускаше
+    #  истински италиански, защото списъкът нямаше честите служебни думи.
+    #  Тези проверки държат двете посоки едновременно.
+    # ══════════════════════════════════════════════════════════════════
+    for _en in ("Source: Barca remain optimistic of signing Rodri",
+                "Martínez joins Rashford, Utd teammates at training",
+                "Why have Liverpool signed Barcelona captain Ronald Araújo",
+                "How will Bruno Guimarães fit in Arsenal midfield?",
+                "José Montanha Ready To Finally Unleash The Monster",
+                "Europe Smash 2026, Malmö, 8/8-16",
+                "Matt Anderson and Fiancée Are Expecting A Boy",
+                "Los Angeles Lakers sign a new guard"):
+        check("английското оцелява: " + _en[:34], ezik_na(_en) != "chuzhd")
+    for _it in ("Perugia mantiene la testa e Trento non molla",
+                "Solè in vista della ripresa: fatta la storia",
+                "Il palazzetto della citta prossimo alla riapertura",
+                "Valencia cede al pivot para los partidos del grupo",
+                "Bayern und Dortmund mit neuen Spielern"):
+        check("чуждото се хваща: " + _it[:34], ezik_na(_it) == "chuzhd")
+    check("кирилицата води", ezik_na("Лудогорец подписа") == "bg")
+
+    # 🔴 ВОЛЕЙБОЛЪТ падаше в „Други": шаблонът искаше цялата дума „волейбол",
+    # а журналистът пише „волейнационалите" и „Евроволей".
+    check("волейнационалите са волейбол",
+          classify("Капитанът на волейнационалите: Има предстартова треска") == "volleyball")
+    check("Евроволей е волейбол",
+          classify("Бленджини направи промени за Евроволей 2026") == "volleyball")
+    # ⚠️ И обратното: футболният волей НЕ бива да става волейбол.
+    check("футболният волей не е волейбол",
+          classify("Стунинг волей от Роналдо срещу Сити") != "volleyball")
+    check("красив волей не е волейбол",
+          classify("Красив волей от Меси за 2:0") != "volleyball")
+    # Български баскетболни клубове — падаха в „Други".
+    check("Балкан Ботевград е баскетбол",
+          classify("Балкан Ботевград със силен трансфер") == "basketball")
+    check("Левски Лукойл е баскетбол, не футбол",
+          classify("Левски Лукойл с нов играч") == "basketball")
     check("голямата новина е 🔥", icon_of(demo) == "🔥")
     banned = ["18+", "не е съвет", "решението е твое", "залагай отговорно", "от банката",
               "коефициент", "букмейкър", "заложи", "залог", "отговорна игра"]

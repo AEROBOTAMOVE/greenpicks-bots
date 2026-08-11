@@ -157,7 +157,11 @@ BLOCK_WORDS = [
 
 
 def esc(x):
-    return html.escape(str(x or ""))
+    # 🔴 quote=False (11.08.2026). С подразбиращото се True апострофът излиза
+    # като &#x27; и Telegram го показва буквално: в стая 27 висеше
+    # „FIVB Volleyball Girls&#x27; U17 World Championship". Единственото, което
+    # трябва да се екранира в HTML-режима на Telegram, е < > &.
+    return html.escape(str(x or ""), quote=False)
 
 
 def clip(text, limit=3900):
@@ -184,6 +188,16 @@ def today_str():
 
 
 # ---------- ПРАЩАНЕ (един-единствен път навън, с пазач) ----------
+# 🔴 СУХО ПУСКАНЕ (11.08.2026). Този файл беше ЕДИНСТВЕНИЯТ жив бот без него:
+# предсказателят, оценителят, новинарят, съпортът и дневният го имат от седмици.
+# Тоест единственият начин да видиш какво праща Анализаторът беше да го оставиш
+# да го прати. Бот, който не може да се репетира, се разбира в продукцията —
+# а стаята е на хората, не полигон.
+# MATCHES_DRY_RUN=1 печата всяко съобщение с номера на стаята и не пуска нищо.
+DRY_RUN = (os.environ.get("MATCHES_DRY_RUN") or "").strip() in ("1", "true", "yes", "да")
+ROOM_LISTS = (os.environ.get("MATCHES_ROOM_LISTS", "0").strip() == "1")
+
+
 def post_room(thread_id, text):
     """Единственият изход на бота. Забранените стаи се режат ТУК, не по-нагоре.
     Канал няма — този файл физически не може да прати в канал."""
@@ -197,6 +211,13 @@ def post_room(thread_id, text):
     if not tid.isdigit() or int(tid) <= 1:
         print(f"WARN: невалиден thread id {tid} — не пращам.")
         return False
+    # Сухото пускане стои СЛЕД пазачите нарочно: така репетицията показва
+    # точно каквото би минало и навън, включително кое е било отказано.
+    if DRY_RUN:
+        print("--- СУХО, стая " + tid + " ---")
+        print(clip(text))
+        print("---")
+        return True
     if not CHAT_ID:
         print("Няма CHAT_ID — пропускам.")
         return False
@@ -433,6 +454,16 @@ def espn_rows(bucket):
                 "sort": local.strftime("%Y-%m-%d %H:%M") if local else "9999",
                 "src": "espn", "fd_id": None,
                 "home_id": r.get("home_id"), "away_id": r.get("away_id"),
+                # 🔴 РЕКОРДЪТ ОТ ESPN (11.08.2026). Дотук този бот питаше САМО
+                # TheSportsDB за история и форма — а безплатният ключ вече не
+                # дава нищо извън футбола. Резултатът: „нямаме изиграни мачове"
+                # за всичките девет кандидата, всеки ден. А ESPN връща
+                # records=[total 20-12, home 11-6, road 9-6] в СЪЩИЯ отговор,
+                # от който вече взимаме срещата.
+                "rec_h": (r.get("extra") or {}).get("rec_h") or "",
+                "rec_a": (r.get("extra") or {}).get("rec_a") or "",
+                "rec_h_home": (r.get("extra") or {}).get("rec_h_home") or "",
+                "rec_a_road": (r.get("extra") or {}).get("rec_a_road") or "",
             })
     print("  " + bucket + ": " + str(len(rows)) + " срещи от ESPN за "
           + str(MATCHES_DAYS) + " дни.")
@@ -591,7 +622,30 @@ def deep_stats(fx):
         st["hf"] = form_string(home, get_last_events(fx["home_id"]))
     if fx.get("away_id"):
         st["af"] = form_string(away, get_last_events(fx["away_id"]))
+
+    # 🔴 РЕЗЕРВА ОТ ESPN. Ако TheSportsDB не е дал нищо (а за всичко извън
+    # футбола вече не дава), ползваме рекорда „20-12", който ESPN връща в
+    # същия отговор със срещата. Той не е форма от последните мачове, но е
+    # ИЗМЕРЕН баланс победи/загуби — и е безкрайно повече от нищо.
+    st["rec_h"] = str(fx.get("rec_h") or "")
+    st["rec_a"] = str(fx.get("rec_a") or "")
+    st["rec_h_home"] = str(fx.get("rec_h_home") or "")
+    st["rec_a_road"] = str(fx.get("rec_a_road") or "")
     return st
+
+
+def rekord_dvoyka(s):
+    """„20-12" -> (20, 12). Празно или чудато -> None."""
+    parts = str(s or "").replace("–", "-").split("-")
+    if len(parts) < 2:
+        return None
+    try:
+        w, l = int(parts[0].strip()), int(parts[1].strip())
+    except ValueError:
+        return None
+    if w < 0 or l < 0 or (w + l) == 0:
+        return None
+    return (w, l)
 
 
 def markers(home, away, st):
@@ -661,6 +715,24 @@ def numbers_say(home, away, st):
     # Прогнозите ги дава predictor.py, който при празна извадка си има цяла
     # резервна стълба и казва на какво стъпва. Затова тук се казва истината:
     # нямаме числа за тази среща.
+    # 🔴 РЕКОРДЪТ ОТ ESPN (11.08.2026). Дотук при празен TheSportsDB тук се
+    # печаташе „нямаме изиграни мачове" — и това беше случаят за ВСИЧКИТЕ
+    # девет кандидата, всеки ден. А балансът победи/загуби е в същия отговор.
+    rh = rekord_dvoyka(st.get("rec_h"))
+    ra = rekord_dvoyka(st.get("rec_a"))
+    redove_rek = []
+    if rh and ra:
+        ph = rh[0] / float(rh[0] + rh[1])
+        pa = ra[0] / float(ra[0] + ra[1])
+        edge += 0.55 * (ph - pa)
+        n += (rh[0] + rh[1]) + (ra[0] + ra[1])
+        dom = st.get("rec_h_home")
+        gost = st.get("rec_a_road")
+        redove_rek = ["📊 Сезонът дотук: <b>" + str(rh[0]) + "-" + str(rh[1])
+                      + "</b> срещу <b>" + str(ra[0]) + "-" + str(ra[1]) + "</b>"
+                      + (" · у дома " + esc(dom) if dom else "")
+                      + (" · на гости " + esc(gost) if gost else "")]
+
     if n < 1:
         return ["🎲 Числата: за тази среща <b>нямаме изиграни мачове</b> в"
                 " източника — няма на какво да стъпи число.",
@@ -672,15 +744,17 @@ def numbers_say(home, away, st):
     # Колкото по-малка е извадката, толкова по-близо до 50 е числото.
     doverie = min(1.0, n / 12.0)
     p = 50.0 + min(15.0, abs(edge) * 30.0) * (0.4 + 0.6 * doverie)
+    _rek = redove_rek
     # Под 51 не слизаме: „превес за Х — 50% срещу 50%" е изречение, което
     # само по себе си се опровергава. Щом сме посочили страна, числото трябва
     # поне да я подкрепя.
     p = max(51.0, p)
     side = home if edge > 0 else away
-    baza = ("База: " + str(n) + " мача (H2H + форма)." if n >= 4
+    baza = ("База: " + str(n) + " мача (H2H, форма и сезонен баланс)." if n >= 4
             else "База: само " + str(n) + " мача — числото е предпазливо.")
-    return [f"🎲 Числата: превес за <b>{esc(side)}</b> — около {p:.0f}% срещу {100 - p:.0f}%.",
-            "   " + baza]
+    return (_rek
+            + [f"🎲 Числата: превес за <b>{esc(side)}</b> — около {p:.0f}% срещу {100 - p:.0f}%.",
+               "   " + baza])
 
 
 # ---------- 📰 КРЪСТОСАН ФЛАГ С НОВИНИТЕ (само в стая 27) ----------
@@ -795,7 +869,12 @@ def predict_card(picks, now, news_titles):
 
     parts.append("Как се чете това: числата дават вероятност, не сигурност.")
     parts.append("Малка извадка = малко доверие — тогава прогноза не даваме.")
-    parts.append("📅 Пълните списъци със срещи са в стаите по спорт.")
+    # 🔴 МАХНАТО 11.08.2026. Редът обещаваше „пълните списъци със срещи в
+    # стаите по спорт", а те са ИЗКЛЮЧЕНИ (MATCHES_ROOM_LISTS=0 по
+    # подразбиране) — тоест сочеше към нещо, което го няма. Ако някой ден
+    # списъците се върнат, редът се връща с тях.
+    if ROOM_LISTS:
+        parts.append("📅 Пълните списъци със срещи са в стаите по спорт.")
     parts.append("⚠️ прогноза от статистика, не гаранция")
     parts.append("🟢 THE GREEN ROOM")
     return NL.join(parts)
@@ -844,7 +923,9 @@ def collect():
 
 
 def main():
-    if not BOT_TOKEN or not CHAT_ID:
+    if DRY_RUN and not BOT_TOKEN:
+        print("СУХО ПУСКАНЕ — съобщенията се печатат, нищо не заминава.")
+    elif not BOT_TOKEN or not CHAT_ID:
         print("Missing BOT_TOKEN/CHAT_ID")
         sys.exit(1)
     if os.environ.get("MATCHES_THREAD_ID"):
@@ -868,7 +949,7 @@ def main():
     # стая 27 по-долу стъпва на същите срещи.
     # Ако някога програмата пак потрябва: MATCHES_ROOM_LISTS=1.
     sent_rooms = 0
-    if os.environ.get("MATCHES_ROOM_LISTS", "0").strip() == "1":
+    if ROOM_LISTS:
         for bucket in SPORT_ORDER:
             rows = buckets.get(bucket) or []
             if not rows:
@@ -893,15 +974,46 @@ def main():
             if fx["home"] and fx["away"]:
                 pool.append(fx)
     pool.sort(key=lambda fx: -(fx["prio"] * 100 + fx["weight"]))
-    picks = pool[:ANALYSIS_MAX]
+
+    # 🔴 СРЕЩА БЕЗ ЧИСЛА НЕ ВЛИЗА В ПРЕГЛЕДА (11.08.2026).
+    #
+    # Прочетох истинския пост, след като добавих сухо пускане. Заглавието
+    # обещаваше „числата преди мачовете", а И ТРИТЕ избрани срещи казваха
+    # „за тази среща нямаме изиграни мачове в източника". Тоест преглед на
+    # деня без нито едно число — всеки ден, в стая 27.
+    #
+    # Изборът дотук се правеше по важност (prio и тежест), а данните се
+    # питаха ЧАК СЛЕД това. Затова победителят често беше най-големият мач,
+    # за който не знаем нищо. Сега пробваме надолу по списъка, докато не
+    # съберем ANALYSIS_MAX срещи, за които наистина ИМА какво да се каже.
+    # Таванът пази заявките: гледаме най-много 3 пъти повече кандидати.
+    picks, gledani = [], 0
+    for fx in pool:
+        if len(picks) >= ANALYSIS_MAX or gledani >= ANALYSIS_MAX * 3:
+            break
+        gledani += 1
+        fx["stats"] = deep_stats(fx)
+        st = fx["stats"]
+        ima = (to_int(st.get("tot")) >= 2
+               or (st.get("hf") not in (None, "?", "") and len(str(st.get("hf"))) >= 3)
+               or (st.get("af") not in (None, "?", "") and len(str(st.get("af"))) >= 3)
+               # Сезонният баланс от ESPN е също числа — и за повечето спортове
+               # е ЕДИНСТВЕНИТЕ, защото TheSportsDB вече мълчи извън футбола.
+               or (rekord_dvoyka(st.get("rec_h")) and rekord_dvoyka(st.get("rec_a"))))
+        if ima:
+            picks.append(fx)
+        else:
+            print("   пропускам " + str(fx.get("home")) + " - " + str(fx.get("away"))
+                  + ": няма изиграни мачове в източника")
     if not picks:
-        print("Няма среща с два отбора за анализ — стая 27 мълчи.")
+        # Мълчание, а не празен преглед. Стаята получава прогнозите си от
+        # predictor.py — този файл няма какво да добави днес.
+        print("Нито една среща с данни от " + str(gledani) + " гледани — стая "
+              + str(PREDICT_THREAD) + " мълчи. Прегледът без числа е празен преглед.")
         print(f"Готово: {sent_rooms} спортни стаи.")
         return
 
     news_titles = load_recent_news_titles()
-    for fx in picks:
-        fx["stats"] = deep_stats(fx)
     if post_room(PREDICT_THREAD, predict_card(picks, now, news_titles)):
         print(f"Анализ: {len(picks)} срещи -> стая {PREDICT_THREAD}")
     print(f"Готово: {sent_rooms} спортни стаи, {total} срещи общо.")
@@ -921,6 +1033,36 @@ def selftest():
         {"intHomeScore": "3", "intAwayScore": "1", "strHomeTeam": "Алфа", "strAwayTeam": "Бета"},
         {"intHomeScore": "0", "intAwayScore": "0", "strHomeTeam": "Гама", "strAwayTeam": "Алфа"},
     ]
+    # ══════════════════════════════════════════════════════════════════
+    #  🔴 ПРЕГЛЕД БЕЗ ЧИСЛА Е ПРАЗЕН ПРЕГЛЕД (11.08.2026)
+    #  Добавих сухо пускане на този файл (беше единственият жив бот без
+    #  такова) и прочетох истинския пост. Заглавието обещаваше „числата
+    #  преди мачовете", а и ТРИТЕ избрани срещи казваха „нямаме изиграни
+    #  мачове". Причината: питахме само TheSportsDB, чийто безплатен ключ
+    #  вече не дава нищо извън футбола — а ESPN връща сезонния баланс
+    #  в СЪЩИЯ отговор, от който взимаме и самата среща.
+    # ══════════════════════════════════════════════════════════════════
+    check("рекордът се чете", rekord_dvoyka("20-12") == (20, 12))
+    check("тирето може да е дълго", rekord_dvoyka("20–12") == (20, 12))
+    check("празният рекорд не гърми", rekord_dvoyka("") is None)
+    check("боклук вместо рекорд не гърми", rekord_dvoyka("х-у") is None)
+    check("нула мача не е рекорд", rekord_dvoyka("0-0") is None)
+    _st_rek = {"tot": 0, "hw": 0, "aw": 0, "dr": 0, "hf": "?", "af": "?",
+               "rec_h": "20-12", "rec_a": "12-22",
+               "rec_h_home": "11-6", "rec_a_road": "5-14", "goals": []}
+    _r = numbers_say("Алфа", "Бета", _st_rek)
+    _txt = NL.join(_r)
+    check("сезонният баланс излиза в картата", "Сезонът дотук" in _txt)
+    check("балансът носи и двата рекорда", "20-12" in _txt and "12-22" in _txt)
+    check("по-добрият рекорд води", "Алфа" in _txt)
+    check("картата вече НЕ казва нямаме мачове", "нямаме изиграни" not in _txt)
+    _prazen = {"tot": 0, "hw": 0, "aw": 0, "dr": 0, "hf": "?", "af": "?",
+               "rec_h": "", "rec_a": "", "goals": []}
+    check("без НИКАКВИ данни пак се казва честно",
+          "нямаме изиграни" in NL.join(numbers_say("Алфа", "Бета", _prazen)))
+    # Апострофът изтичаше като &#x27; и стоеше буквално в стаята.
+    check("апострофът не изтича", esc("Girls' U17") == "Girls' U17")
+    check("острите скоби пак се екранират", esc("<b>") == "&lt;b&gt;")
     check("форма прескача None", form_string("Алфа", evs) == "WD")
     check("форма само None дава ?", form_string("Алфа", [{"intHomeScore": None, "intAwayScore": None}]) == "?")
     check("h2h прескача None", h2h_summary("Алфа", "Бета", evs) == (1, 1, 0))

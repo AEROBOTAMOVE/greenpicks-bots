@@ -68,7 +68,11 @@ import urllib.request
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "-1004403334702")
 GROUP_LINK = os.environ.get("GROUP_LINK", "https://t.me/+_oYsaYaVKU80Yjc0")
-SUPPORT = os.environ.get("SUPPORT", "@greenpicks_support_bot")
+# 🔴 11.08.2026: подразбиращото се сочеше @greenpicks_support_bot — бот, който
+# НЕ работи (support_bot.py го нарича „отделният бот, ако някога тръгне").
+# seed.yml подава верния, но ръчно локално пускане слагаше мъртвия акаунт в
+# единствения пост на канала.
+SUPPORT = os.environ.get("SUPPORT", "@green_picks_info_bot")
 
 NL = chr(10)
 TG_HARD = 3900                     # аварийна ножица: нищо не тръгва по-дълго

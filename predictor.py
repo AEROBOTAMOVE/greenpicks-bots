@@ -1267,6 +1267,21 @@ def espn_fixtures(sport, slug, ymd, bucket, weight, league_bg, now, extra=None):
         ex = dict(extra or {})
         ex["slug"] = slug
         ex["neutral"] = bool(comp.get("neutralSite"))
+        # 🔴 РЕКОРДЪТ СЕ ЗАПАЗВА (11.08.2026). ESPN го дава направо в
+        # scoreboard-а: records=[{'type':'total','summary':'20-12'},
+        # {'type':'home','summary':'11-6'}, {'type':'road','summary':'9-6'}].
+        # Анализаторът (matches_bot) нямаше НИКАКВИ числа за WNBA и волейбола
+        # и всеки ден пишеше „нямаме изиграни мачове" — а те са били на един
+        # ключ разстояние в същия отговор.
+        def _rec(side, vid):
+            for r in (side.get("records") or []):
+                if str(r.get("type") or "").lower() == vid:
+                    return str(r.get("summary") or "")
+            return ""
+        ex["rec_h"] = _rec(h, "total")
+        ex["rec_a"] = _rec(a, "total")
+        ex["rec_h_home"] = _rec(h, "home")
+        ex["rec_a_road"] = _rec(a, "road")
         ex["form_h"] = h.get("form") or ""
         ex["form_a"] = a.get("form") or ""
         out.append({
