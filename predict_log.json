@@ -695,7 +695,8 @@
   "p": 0.5819,
   "stars": 3,
   "sample": "извадка 84+72 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-02|volleyball|wsen|пуерторико|куба",
@@ -978,7 +979,8 @@
   "p": 0.92,
   "stars": 3,
   "sample": "извадка 48+64 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|basketball|goldenstatevalkyries|torontotempo",
@@ -995,7 +997,8 @@
   "p": 0.7535,
   "stars": 3,
   "sample": "извадка 75+29 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|volleyball|wsen|доминиканскарепублика|пуерторико",
@@ -1012,7 +1015,8 @@
   "p": 0.707,
   "stars": 3,
   "sample": "извадка 99+70 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|football|mjällbyaif|slovanbratislava",
@@ -1029,7 +1033,8 @@
   "p": 0.4645,
   "stars": 3,
   "sample": "извадка 46+14 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|tennis|yannickhanfmann|flaviocobolli",
@@ -1047,7 +1052,8 @@
   "p": 0.7661,
   "stars": 3,
   "sample": "ранглиста + 8+6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|volleyball|wsen|венецуела|trinidadandtobago",
@@ -1065,7 +1071,8 @@
   "p": 0.92,
   "stars": 2,
   "sample": "извадка 21+14 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|tennis|felixaugeraliassime|titouandroguet",
@@ -1083,7 +1090,8 @@
   "p": 0.88,
   "stars": 2,
   "sample": "ранглиста + 5+6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|tabletennis|nayeongkim|xingtongchen",
@@ -1101,7 +1109,8 @@
   "p": 0.6565,
   "stars": 2,
   "sample": "извадка 60+72 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|tabletennis|cheonhuijoo|yulingzhu",
@@ -1119,7 +1128,8 @@
   "p": 0.6105,
   "stars": 2,
   "sample": "извадка 70+73 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|football|hapoelbeer|redstarbelgrade",
@@ -1137,7 +1147,8 @@
   "p": 0.4768,
   "stars": 2,
   "sample": "извадка 38+10 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|tennis|alexdeminaur|jamesduckworth",
@@ -1155,7 +1166,8 @@
   "p": 0.8437,
   "stars": 2,
   "sample": "ранглиста + 7+4 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|tennis|vitkopriva|jirilehecka",
@@ -1173,7 +1185,8 @@
   "p": 0.7951,
   "stars": 2,
   "sample": "ранглиста + 3+5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|tabletennis|junsungoh|omarassar",
@@ -1191,7 +1204,8 @@
   "p": 0.6133,
   "stars": 2,
   "sample": "извадка 63+39 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|tabletennis|amywang|yubinshin",
@@ -1209,7 +1223,8 @@
   "p": 0.5987,
   "stars": 2,
   "sample": "извадка 28+73 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|baseball|cincinnatireds|athletics",
@@ -1227,7 +1242,8 @@
   "p": 0.5489,
   "stars": 1,
   "sample": "извадка 135+136 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|baseball|baltimoreorioles|losangelesangels",
@@ -1245,7 +1261,8 @@
   "p": 0.5465,
   "stars": 1,
   "sample": "извадка 132+137 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|tabletennis|flaviencoton|felixlebrun",
@@ -1263,7 +1280,8 @@
   "p": 0.582,
   "stars": 2,
   "sample": "извадка 71+83 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|baseball|clevelandguardians|newyorkmets",
@@ -1281,7 +1299,8 @@
   "p": 0.5455,
   "stars": 1,
   "sample": "извадка 135+132 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|tabletennis|benediktduda|shunsuketogami",
@@ -1299,7 +1318,8 @@
   "p": 0.5435,
   "stars": 1,
   "sample": "извадка 58+58 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|baseball|philadelphiaphillies|washingtonnationals",
@@ -1317,7 +1337,8 @@
   "p": 0.5169,
   "stars": 1,
   "sample": "извадка 132+134 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|volleyball|wsen|мексико|колумбия",
@@ -1335,7 +1356,8 @@
   "p": 0.5048,
   "stars": 1,
   "sample": "извадка 68+51 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-04|football|araratarmenia|nkcelje",
@@ -1353,7 +1375,8 @@
   "p": 0.73,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|volleyball|myou|пуерторико|сащ",
@@ -1371,7 +1394,9 @@
   "p": 0.9099,
   "stars": 3,
   "sample": "по 69 и 33 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-05|volleyball|msen|корея|япония",
@@ -1389,7 +1414,9 @@
   "p": 0.8749,
   "stars": 3,
   "sample": "по 28 и 62 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-05|tabletennis|ichingcheng|elizabetasamara",
@@ -1407,7 +1434,8 @@
   "p": 0.5897,
   "stars": 2,
   "sample": "по 56 и 39 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|tabletennis|yidiwang|mimaito",
@@ -1425,7 +1453,8 @@
   "p": 0.5785,
   "stars": 2,
   "sample": "по 71 и 54 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-06|baseball|baltimoreorioles|losangelesangels",
@@ -1443,7 +1472,10 @@
   "p": 0.5465,
   "stars": 1,
   "sample": "по 132 и 137 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:4",
+  "combo_done": true
  },
  {
   "key": "2026-08-05|baseball|houstonastros|torontobluejays",
@@ -1461,7 +1493,9 @@
   "p": 0.5379,
   "stars": 1,
   "sample": "по 136 и 130 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-05|volleyball|msen|hongkongchina|mongolia",
@@ -1479,7 +1513,9 @@
   "p": 0.92,
   "stars": 1,
   "sample": "по 8 и 7 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-05|basketball|atlantadream|phoenixmercury",
@@ -1497,7 +1533,9 @@
   "p": 0.6,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-05|basketball|newyorkliberty|seattlestorm",
@@ -1515,7 +1553,9 @@
   "p": 0.6,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-05|basketball|washingtonmystics|dallaswings",
@@ -1533,7 +1573,9 @@
   "p": 0.6,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-06|volleyball|myou|мексико|канада",
@@ -1551,7 +1593,10 @@
   "p": 0.5974,
   "stars": 3,
   "sample": "по 74 и 52 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-05|volleyball|msen|тайван|macaochina",
@@ -1569,7 +1614,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-08-06|volleyball|myou|венецуела|honduras",
@@ -1587,7 +1634,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "по 26 и 12 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-05|tabletennis|tomokazuharimoto|nicholaslum",
@@ -1605,7 +1654,8 @@
   "p": 0.7328,
   "stars": 2,
   "sample": "по 82 и 23 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|tabletennis|hinahayata|hoikemdoo",
@@ -1623,7 +1673,8 @@
   "p": 0.6481,
   "stars": 2,
   "sample": "по 89 и 50 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|baseball|coloradorockies|tampabayrays",
@@ -1641,7 +1692,8 @@
   "p": 0.5273,
   "stars": 1,
   "sample": "по 136 и 134 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|baseball|texasrangers|sanfranciscogiants",
@@ -1659,7 +1711,8 @@
   "p": 0.5237,
   "stars": 1,
   "sample": "по 134 и 139 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-06|volleyball|wsen|куба|венецуела",
@@ -1677,7 +1730,9 @@
   "p": 0.6367,
   "stars": 2,
   "sample": "по 50 и 22 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-06|volleyball|wsen|мексико|пуерторико",
@@ -1695,7 +1750,9 @@
   "p": 0.5411,
   "stars": 1,
   "sample": "по 69 и 71 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-05|baseball|chicagocubs|losangelesdodgers",
@@ -1713,7 +1770,8 @@
   "p": 0.5102,
   "stars": 1,
   "sample": "по 137 и 136 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-05|tabletennis|manushshah|alexislebrun",
@@ -1731,7 +1789,8 @@
   "p": 0.5085,
   "stars": 1,
   "sample": "по 62 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-06|basketball|atlantadream|phoenixmercury",
@@ -1785,7 +1844,9 @@
   "p": 0.6517,
   "stars": 2,
   "sample": "по 36 и 108 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|pengxiang|vladimirsidorenko",
@@ -1803,7 +1864,9 @@
   "p": 0.6286,
   "stars": 2,
   "sample": "по 46 и 55 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|antonkallberg|woojinjang",
@@ -1821,7 +1884,9 @@
   "p": 0.5822,
   "stars": 2,
   "sample": "по 45 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|simongauzy|yuanyuchen",
@@ -1839,7 +1904,9 @@
   "p": 0.5541,
   "stars": 2,
   "sample": "по 71 и 56 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|satsukiodo|annahursey",
@@ -1857,7 +1924,9 @@
   "p": 0.5032,
   "stars": 1,
   "sample": "по 114 и 112 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|basketball|washingtonmystics|dallaswings",
@@ -1893,7 +1962,9 @@
   "p": 0.5497,
   "stars": 1,
   "sample": "по 136 и 137 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "6:5"
  },
  {
   "key": "2026-08-06|baseball|clevelandguardians|newyorkmets",
@@ -1911,7 +1982,9 @@
   "p": 0.5414,
   "stars": 1,
   "sample": "по 136 и 133 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "6:13"
  },
  {
   "key": "2026-08-06|volleyball|msen|колумбия|венецуела",
@@ -1929,7 +2002,9 @@
   "p": 0.5439,
   "stars": 1,
   "sample": "по 39 и 18 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-06|baseball|philadelphiaphillies|washingtonnationals",
@@ -1947,7 +2022,9 @@
   "p": 0.5219,
   "stars": 1,
   "sample": "по 133 и 135 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:3"
  },
  {
   "key": "2026-08-06|baseball|newyorkyankees|stlouiscardinals",
@@ -1965,7 +2042,9 @@
   "p": 0.5491,
   "stars": 1,
   "sample": "по 135 мача за всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-06|volleyball|msen|аржентина|bolivia",
@@ -1983,7 +2062,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-06|tabletennis|prithikapavade|xingtongchen",
@@ -2001,7 +2082,9 @@
   "p": 0.6212,
   "stars": 2,
   "sample": "по 51 и 72 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|benediktduda|felixlebrun",
@@ -2019,7 +2102,9 @@
   "p": 0.6165,
   "stars": 2,
   "sample": "по 59 и 84 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|miwaharimoto|yichen",
@@ -2037,7 +2122,9 @@
   "p": 0.5686,
   "stars": 2,
   "sample": "по 111 и 65 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|soramatsushima|anderslind",
@@ -2055,7 +2142,9 @@
   "p": 0.547,
   "stars": 1,
   "sample": "по 78 и 69 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|tabletennis|joaogeraldo|hirotoshinozuka",
@@ -2073,7 +2162,9 @@
   "p": 0.523,
   "stars": 1,
   "sample": "по 57 и 74 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|basketball|chicagosky|losangelessparks",
@@ -2109,7 +2200,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "по 67 и 26 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-06|volleyball|wyou|аржентина|полша",
@@ -2127,7 +2220,9 @@
   "p": 0.8119,
   "stars": 3,
   "sample": "по 59 и 30 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-06|baseball|chicagocubs|torontobluejays",
@@ -2145,7 +2240,9 @@
   "p": 0.5798,
   "stars": 2,
   "sample": "по 138 и 132 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-06|baseball|milwaukeebrewers|pittsburghpirates",
@@ -2163,7 +2260,9 @@
   "p": 0.5753,
   "stars": 2,
   "sample": "по 135 и 137 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:2"
  },
  {
   "key": "2026-08-07|volleyball|wyou|türkiye|тайланд",
@@ -2181,7 +2280,10 @@
   "p": 0.8036,
   "stars": 3,
   "sample": "по 37 и 50 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-06|volleyball|wyou|мексико|венецуела",
@@ -2199,7 +2301,9 @@
   "p": 0.6393,
   "stars": 3,
   "sample": "по 99 и 25 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-07|tabletennis|yidiwang|ichingcheng",
@@ -2217,7 +2321,9 @@
   "p": 0.6194,
   "stars": 2,
   "sample": "по 71 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-07|tabletennis|sreejaakula|yubinshin",
@@ -2235,7 +2341,9 @@
   "p": 0.6118,
   "stars": 2,
   "sample": "по 42 и 73 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-06|volleyball|wyou|египет|сащ",
@@ -2253,7 +2361,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-07|basketball|chicagosky|losangelessparks",
@@ -2307,7 +2417,9 @@
   "p": 0.5898,
   "stars": 2,
   "sample": "по 47 и 73 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-07|volleyball|wyou|тайван|доминиканскарепублика",
@@ -2325,7 +2437,9 @@
   "p": 0.872,
   "stars": 3,
   "sample": "по 29 и 97 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-07|volleyball|wyou|бразилия|хърватия",
@@ -2343,7 +2457,9 @@
   "p": 0.758,
   "stars": 3,
   "sample": "по 60 и 29 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-07|volleyball|wyou|тайван|корея",
@@ -2361,7 +2477,10 @@
   "p": 0.671,
   "stars": 3,
   "sample": "по 30 и 26 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-07|volleyball|wyou|перу|венецуела",
@@ -2379,7 +2498,10 @@
   "p": 0.6312,
   "stars": 3,
   "sample": "по 48 и 26 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-07|tabletennis|satsukiodo|lilyzhang",
@@ -2397,7 +2519,9 @@
   "p": 0.7001,
   "stars": 2,
   "sample": "по 114 и 31 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|baseball|bostonredsox|athletics",
@@ -2415,7 +2539,9 @@
   "p": 0.6032,
   "stars": 2,
   "sample": "по 134 и 139 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:7"
  },
  {
   "key": "2026-08-07|tabletennis|dangqiu|kanakjha",
@@ -2433,7 +2559,9 @@
   "p": 0.5867,
   "stars": 2,
   "sample": "по 70 и 46 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|baseball|washingtonnationals|cincinnatireds",
@@ -2451,7 +2579,9 @@
   "p": 0.5565,
   "stars": 2,
   "sample": "по 137 и 138 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "8:2"
  },
  {
   "key": "2026-08-08|volleyball|wyou|египет|чехия",
@@ -2469,7 +2599,9 @@
   "p": 0.795,
   "stars": 2,
   "sample": "по 50 и 10 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-07|tabletennis|junsungoh|jonghoonlim",
@@ -2487,7 +2619,9 @@
   "p": 0.5504,
   "stars": 2,
   "sample": "по 65 и 63 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|baseball|pittsburghpirates|newyorkmets",
@@ -2505,7 +2639,9 @@
   "p": 0.5416,
   "stars": 1,
   "sample": "по 139 и 135 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "9:0"
  },
  {
   "key": "2026-08-08|baseball|philadelphiaphillies|torontobluejays",
@@ -2523,7 +2659,9 @@
   "p": 0.5381,
   "stars": 1,
   "sample": "по 135 и 133 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:7"
  },
  {
   "key": "2026-08-07|volleyball|wyou|бразилия|полша",
@@ -2541,7 +2679,9 @@
   "p": 0.5193,
   "stars": 1,
   "sample": "по 60 и 30 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-08|baseball|newyorkyankees|atlantabraves",
@@ -2559,7 +2699,9 @@
   "p": 0.5028,
   "stars": 1,
   "sample": "по 136 и 138 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:4"
  },
  {
   "key": "2026-08-07|volleyball|wyou|türkiye|сащ",
@@ -2577,7 +2719,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-07|tabletennis|tomokazuharimoto|pengxiang",
@@ -2595,7 +2739,9 @@
   "p": 0.6126,
   "stars": 2,
   "sample": "по 87 и 47 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-07|tabletennis|yuanyuchen|woojinjang",
@@ -2613,7 +2759,9 @@
   "p": 0.5576,
   "stars": 2,
   "sample": "по 56 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-07|tabletennis|hinahayata|yitianyeh",
@@ -2631,7 +2779,9 @@
   "p": 0.5213,
   "stars": 1,
   "sample": "по 89 и 109 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-07|tabletennis|bernadetteszocs|mankuai",
@@ -2649,7 +2799,9 @@
   "p": 0.5885,
   "stars": 2,
   "sample": "по 52 и 74 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-07|tabletennis|darkojorgic|alexislebrun",
@@ -2667,7 +2819,9 @@
   "p": 0.5142,
   "stars": 1,
   "sample": "по 74 и 59 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|basketball|minnesotalynx|losangelessparks",
@@ -2739,7 +2893,9 @@
   "p": 0.5359,
   "stars": 1,
   "sample": "по 78 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|volleyball|wyou|чили|тайланд",
@@ -2757,7 +2913,9 @@
   "p": 0.869,
   "stars": 3,
   "sample": "по 51 и 50 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-08|tabletennis|tomokazuharimoto|alexislebrun",
@@ -2775,7 +2933,9 @@
   "p": 0.5739,
   "stars": 2,
   "sample": "по 87 и 59 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|volleyball|wyou|аржентина|испания",
@@ -2793,7 +2953,9 @@
   "p": 0.5982,
   "stars": 1,
   "sample": "по 59 и 9 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-08-08|tabletennis|hinahayata|mankuai",
@@ -2811,7 +2973,9 @@
   "p": 0.5047,
   "stars": 1,
   "sample": "по 89 и 74 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|tabletennis|hirotoshinozuka|felixlebrun",
@@ -2829,7 +2993,9 @@
   "p": 0.603,
   "stars": 2,
   "sample": "по 74 и 84 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|volleyball|wyou|япония|хърватия",
@@ -2847,7 +3013,9 @@
   "p": 0.7515,
   "stars": 3,
   "sample": "по 50 и 29 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-08|volleyball|msen|аржентина|чили",
@@ -2865,7 +3033,9 @@
   "p": 0.6681,
   "stars": 3,
   "sample": "по 66 и 36 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-08|tabletennis|miwaharimoto|yubinshin",
@@ -2883,7 +3053,9 @@
   "p": 0.6072,
   "stars": 2,
   "sample": "по 111 и 74 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|tabletennis|dangqiu|junsungoh",
@@ -2901,7 +3073,9 @@
   "p": 0.5385,
   "stars": 1,
   "sample": "по 71 и 66 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|tabletennis|yidiwang|yulingzhu",
@@ -2919,7 +3093,9 @@
   "p": 0.5114,
   "stars": 1,
   "sample": "по 72 и 73 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|tabletennis|satsukiodo|xingtongchen",
@@ -2937,7 +3113,9 @@
   "p": 0.5007,
   "stars": 1,
   "sample": "по 115 и 72 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-08|basketball|dallaswings|goldenstatevalkyries",
@@ -2973,7 +3151,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "по 37 и 50 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-08|volleyball|wyou|тайван|пуерторико",
@@ -2991,7 +3171,9 @@
   "p": 0.846,
   "stars": 3,
   "sample": "по 31 и 67 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-08|baseball|miamimarlins|losangelesangels",
@@ -3009,7 +3191,9 @@
   "p": 0.555,
   "stars": 2,
   "sample": "по 134 и 140 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:0"
  },
  {
   "key": "2026-08-09|baseball|pittsburghpirates|newyorkmets",
@@ -3027,7 +3211,9 @@
   "p": 0.5416,
   "stars": 1,
   "sample": "по 139 и 135 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:11"
  },
  {
   "key": "2026-08-08|basketball|minnesotalynx|lasvegasaces",
@@ -3063,7 +3249,9 @@
   "p": 0.8265,
   "stars": 3,
   "sample": "по 61 и 59 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-08|basketball|chicagosky|indianafever",
@@ -3099,7 +3287,9 @@
   "p": 0.5418,
   "stars": 1,
   "sample": "по 50 и 10 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-09|baseball|philadelphiaphillies|torontobluejays",
@@ -3117,7 +3307,9 @@
   "p": 0.5381,
   "stars": 1,
   "sample": "по 135 и 133 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:6"
  },
  {
   "key": "2026-08-08|volleyball|wyou|перу|мексико",
@@ -3135,7 +3327,9 @@
   "p": 0.5036,
   "stars": 1,
   "sample": "по 49 и 100 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-09|basketball|dallaswings|goldenstatevalkyries",
@@ -3171,7 +3365,9 @@
   "p": 0.5661,
   "stars": 2,
   "sample": "по 28 и 51 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|volleyball|wyou|хърватия|испания",
@@ -3189,7 +3385,9 @@
   "p": 0.5939,
   "stars": 1,
   "sample": "по 30 и 10 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-09|volleyball|wyou|чили|сащ",
@@ -3207,7 +3405,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-08|volleyball|myou|пуерторико|guatemala",
@@ -3225,7 +3425,9 @@
   "p": 0.8219,
   "stars": 3,
   "sample": "по 71 и 53 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-09|volleyball|myou|мексико|канада",
@@ -3243,7 +3445,9 @@
   "p": 0.5852,
   "stars": 3,
   "sample": "по 74 и 56 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-09|tabletennis|miwaharimoto|yidiwang",
@@ -3261,7 +3465,9 @@
   "p": 0.5497,
   "stars": 1,
   "sample": "по 110 и 71 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|tabletennis|xingtongchen|mankuai",
@@ -3279,7 +3485,9 @@
   "p": 0.5176,
   "stars": 1,
   "sample": "по 72 и 75 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|volleyball|myou|honduras|costarica",
@@ -3297,7 +3505,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "по 14 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-09|volleyball|wyou|япония|полша",
@@ -3315,7 +3525,9 @@
   "p": 0.5217,
   "stars": 1,
   "sample": "по 51 и 31 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-09|tabletennis|ylanebatix|miloszredzimski",
@@ -3333,7 +3545,9 @@
   "p": 0.5945,
   "stars": 2,
   "sample": "по 23 и 31 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|volleyball|msen|япония|корея",
@@ -3351,7 +3565,10 @@
   "p": 0.7232,
   "stars": 3,
   "sample": "по 66 и 32 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-09|volleyball|wsen|тайланд|виетнам",
@@ -3369,7 +3586,10 @@
   "p": 0.7149,
   "stars": 3,
   "sample": "по 65 и 43 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-09|baseball|bostonredsox|athletics",
@@ -3387,7 +3607,10 @@
   "p": 0.6138,
   "stars": 2,
   "sample": "по 136 и 140 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:4",
+  "combo_done": true
  },
  {
   "key": "2026-08-09|baseball|washingtonnationals|cincinnatireds",
@@ -3405,7 +3628,9 @@
   "p": 0.5581,
   "stars": 2,
   "sample": "по 138 и 139 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:1"
  },
  {
   "key": "2026-08-09|basketball|newyorkliberty|lasvegasaces",
@@ -3459,7 +3684,10 @@
   "p": 0.8236,
   "stars": 2,
   "sample": "по 11 и 27 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-09|volleyball|msen|mongolia|китай",
@@ -3477,7 +3705,10 @@
   "p": 0.7879,
   "stars": 2,
   "sample": "по 10 и 56 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1",
+  "combo_done": true
  },
  {
   "key": "2026-08-09|basketball|minnesotalynx|dallaswings",
@@ -3513,7 +3744,9 @@
   "p": 0.5531,
   "stars": 2,
   "sample": "по 36 и 30 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-09|volleyball|myou|мексико|сащ",
@@ -3531,7 +3764,9 @@
   "p": 0.8127,
   "stars": 3,
   "sample": "по 74 и 37 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-09|volleyball|myou|пуерторико|costarica",
@@ -3549,7 +3784,9 @@
   "p": 0.6929,
   "stars": 3,
   "sample": "по 71 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-09|tabletennis|ricardowalther|gyuhyeonpark",
@@ -3567,7 +3804,9 @@
   "p": 0.6434,
   "stars": 2,
   "sample": "по 39 и 53 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|tabletennis|gaiamonfardini|yerinyoo",
@@ -3585,7 +3824,9 @@
   "p": 0.5908,
   "stars": 2,
   "sample": "по 44 и 148 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|baseball|newyorkyankees|atlantabraves",
@@ -3603,7 +3844,9 @@
   "p": 0.5037,
   "stars": 1,
   "sample": "по 138 и 141 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-08-10|volleyball|myou|канада|венецуела",
@@ -3621,7 +3864,9 @@
   "p": 0.663,
   "stars": 3,
   "sample": "по 57 и 29 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-09|volleyball|myou|guatemala|honduras",
@@ -3639,7 +3884,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "по 54 и 15 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-09|tabletennis|junsungoh|hirotoshinozuka",
@@ -3657,7 +3904,9 @@
   "p": 0.5075,
   "stars": 1,
   "sample": "по 67 и 74 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|tabletennis|denikozul|andreaslevenko",
@@ -3675,7 +3924,9 @@
   "p": 0.5012,
   "stars": 1,
   "sample": "по 52 и 35 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|tabletennis|tomokazuharimoto|junsungoh",
@@ -3693,7 +3944,9 @@
   "p": 0.604,
   "stars": 2,
   "sample": "по 88 и 67 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|tabletennis|miwaharimoto|xingtongchen",
@@ -3711,7 +3964,9 @@
   "p": 0.5575,
   "stars": 2,
   "sample": "по 111 и 72 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|tabletennis|soramatsushima|tomokazuharimoto",
@@ -3729,7 +3984,9 @@
   "p": 0.5344,
   "stars": 1,
   "sample": "по 79 и 88 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-09|volleyball|msen|перу|paraguay",
@@ -3747,7 +4004,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-09|tabletennis|tintinho|audreyzarif",
@@ -3765,7 +4024,9 @@
   "p": 0.5166,
   "stars": 1,
   "sample": "по 40 и 53 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|volleyball|msen|куба|доминиканскарепублика",
@@ -3783,7 +4044,9 @@
   "p": 0.7592,
   "stars": 3,
   "sample": "по 92 и 59 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-09|volleyball|msen|аржентина|бразилия",
@@ -3801,7 +4064,9 @@
   "p": 0.6376,
   "stars": 3,
   "sample": "по 68 и 77 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-09|volleyball|msen|канада|trinidadandtobago",
@@ -3819,7 +4084,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "по 88 и 10 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-09|volleyball|msen|венецуела|bolivia",
@@ -3837,7 +4104,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-10|volleyball|msen|сащ|costarica",
@@ -3855,7 +4124,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-09|baseball|stlouiscardinals|coloradorockies",
@@ -3873,7 +4144,9 @@
   "p": 0.5695,
   "stars": 2,
   "sample": "по 138 и 139 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:4"
  },
  {
   "key": "2026-08-09|baseball|texasrangers|baltimoreorioles",
@@ -3891,7 +4164,9 @@
   "p": 0.5361,
   "stars": 1,
   "sample": "по 137 мача за всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:10"
  },
  {
   "key": "2026-08-10|volleyball|msen|мексико|curaçao",
@@ -3909,7 +4184,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "по 65 и 13 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-09|baseball|arizonadiamondbacks|losangelesdodgers",
@@ -3927,7 +4204,9 @@
   "p": 0.5314,
   "stars": 1,
   "sample": "по 141 и 139 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "4:2"
  },
  {
   "key": "2026-08-09|baseball|sanfranciscogiants|detroittigers",
@@ -3945,7 +4224,9 @@
   "p": 0.5275,
   "stars": 1,
   "sample": "по 142 и 138 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-09|baseball|seattlemariners|tampabayrays",
@@ -3963,7 +4244,9 @@
   "p": 0.5066,
   "stars": 1,
   "sample": "по 140 и 137 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:4"
  },
  {
   "key": "2026-08-10|volleyball|wyou|корея|доминиканскарепублика",
@@ -3981,7 +4264,10 @@
   "p": 0.92,
   "stars": 3,
   "sample": "по 26 и 97 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "combo_done": true
  },
  {
   "key": "2026-08-10|volleyball|wyou|полша|хърватия",
@@ -3999,7 +4285,10 @@
   "p": 0.8019,
   "stars": 3,
   "sample": "по 30 и 29 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-10|tabletennis|minhyungjee|yichen",
@@ -4017,7 +4306,9 @@
   "p": 0.7002,
   "stars": 2,
   "sample": "по 25 и 61 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-11|baseball|atlantabraves|newyorkmets",
@@ -4035,7 +4326,9 @@
   "p": 0.5888,
   "stars": 2,
   "sample": "по 142 и 138 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:8"
  },
  {
   "key": "2026-08-10|tabletennis|brunatakahashi|sabinewinter",
@@ -4053,7 +4346,9 @@
   "p": 0.5668,
   "stars": 2,
   "sample": "по 45 и 56 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-11|baseball|stlouiscardinals|philadelphiaphillies",
@@ -4071,7 +4366,9 @@
   "p": 0.5305,
   "stars": 1,
   "sample": "по 138 мача за всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:6"
  },
  {
   "key": "2026-08-11|volleyball|wyou|türkiye|чехия",
@@ -4089,7 +4386,9 @@
   "p": 0.8207,
   "stars": 2,
   "sample": "по 36 и 12 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-10|volleyball|wyou|венецуела|тунис",
@@ -4107,7 +4406,10 @@
   "p": 0.7977,
   "stars": 3,
   "sample": "по 28 и 40 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-10|tabletennis|lilianbardet|ruibowen",
@@ -4125,7 +4427,9 @@
   "p": 0.641,
   "stars": 2,
   "sample": "по 52 и 67 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|shidonglin|yuanyuchen",
@@ -4143,7 +4447,9 @@
   "p": 0.6062,
   "stars": 2,
   "sample": "по 69 и 57 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-11|baseball|minnesotatwins|baltimoreorioles",
@@ -4161,7 +4467,9 @@
   "p": 0.5216,
   "stars": 1,
   "sample": "по 140 и 138 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "9:5"
  },
  {
   "key": "2026-08-11|baseball|torontobluejays|bostonredsox",
@@ -4179,7 +4487,9 @@
   "p": 0.5162,
   "stars": 1,
   "sample": "по 136 и 138 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-08-10|tabletennis|nicholaslum|cedricnuytinck",
@@ -4197,7 +4507,9 @@
   "p": 0.6834,
   "stars": 2,
   "sample": "по 25 и 47 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|tungchuanchien|fuyu",
@@ -4215,7 +4527,9 @@
   "p": 0.5533,
   "stars": 2,
   "sample": "по 47 и 37 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-11|baseball|losangelesangels|texasrangers",
@@ -4251,7 +4565,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-10|tabletennis|giorgiapiccolin|charlottelutz",
@@ -4269,7 +4585,9 @@
   "p": 0.5313,
   "stars": 1,
   "sample": "по 43 и 51 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|yujhunli|yerinyoo",
@@ -4287,7 +4605,9 @@
   "p": 0.5272,
   "stars": 1,
   "sample": "по 46 и 148 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-11|volleyball|wyou|бразилия|испания",
@@ -4305,7 +4625,9 @@
   "p": 0.7934,
   "stars": 2,
   "sample": "по 60 и 11 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-10|tabletennis|alvarorobles|tomislavpucar",
@@ -4323,7 +4645,9 @@
   "p": 0.5179,
   "stars": 1,
   "sample": "по 53 и 65 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|eliasranefur|iulianchirita",
@@ -4341,7 +4665,9 @@
   "p": 0.5022,
   "stars": 1,
   "sample": "по 54 и 47 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-11|volleyball|wyou|чили|египет",
@@ -4359,7 +4685,9 @@
   "p": 0.6753,
   "stars": 3,
   "sample": "по 50 мача за всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-08-10|tabletennis|jonathangroth|mattiaskarlsson",
@@ -4377,7 +4705,9 @@
   "p": 0.6516,
   "stars": 2,
   "sample": "по 31 и 52 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|xunyaoshi|mozhang",
@@ -4395,7 +4725,9 @@
   "p": 0.6293,
   "stars": 2,
   "sample": "по 60 и 30 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|jaehyunan|qihaozhou",
@@ -4413,7 +4745,9 @@
   "p": 0.5046,
   "stars": 1,
   "sample": "по 73 и 40 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|maharuyoshimura|kirillgerassimenko",
@@ -4431,7 +4765,9 @@
   "p": 0.5215,
   "stars": 1,
   "sample": "по 43 и 41 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-10|tabletennis|yuxuanqin|mimaito",
@@ -4449,7 +4785,9 @@
   "p": 0.5323,
   "stars": 1,
   "sample": "по 57 и 51 мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "няма официален източник за резултата"
  },
  {
   "key": "2026-08-11|volleyball|wyou|япония|аржентина",
@@ -4467,7 +4805,9 @@
   "p": 0.7994,
   "stars": 3,
   "sample": "по 50 и 59 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-11|volleyball|msen|канада|пуерторико",
@@ -4485,7 +4825,9 @@
   "p": 0.6379,
   "stars": 3,
   "sample": "по 89 и 59 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-10|volleyball|msen|trinidadandtobago|costarica",
@@ -4503,7 +4845,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "по 11 и 28 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-11|volleyball|msen|куба|curaçao",
@@ -4521,7 +4865,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "по 93 и 14 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-11|basketball|indianafever|newyorkliberty",
