@@ -6310,5 +6310,23 @@
   "stars": 3,
   "sample": "гледани 50 мача на единия и 99 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-13|volleyball|wyou|сащ|аржентина",
+  "combo": 0,
+  "posted": "2026-08-12 18:55",
+  "day": "2026-08-13",
+  "bucket": "volleyball",
+  "home": "САЩ",
+  "away": "Аржентина",
+  "home_id": "USA",
+  "away_id": "ARG",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "1 · победа САЩ",
+  "p": 0.904,
+  "stars": 3,
+  "sample": "гледани 38 мача на единия и 60 на другия",
+  "scored": false
  }
 ]
