@@ -6400,5 +6400,41 @@
   "stars": 2,
   "sample": "гледани по 10 мача на всеки",
   "scored": false
+ },
+ {
+  "key": "2026-08-13|tabletennis|yukiyauda|tomokazuharimoto",
+  "combo": 0,
+  "posted": "2026-08-12 20:55",
+  "day": "2026-08-13",
+  "bucket": "tabletennis",
+  "home": "Yukiya UDA",
+  "away": "Tomokazu HARIMOTO",
+  "home_id": "122777",
+  "away_id": "123980",
+  "league": "Europe Smash - Sweden 2026 · Men's Singles",
+  "slug": null,
+  "pick": "2 · Tomokazu HARIMOTO",
+  "p": 0.6189,
+  "stars": 2,
+  "sample": "гледани 68 мача на единия и 90 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-13|tabletennis|yihsinfeng|soramatsushima",
+  "combo": 0,
+  "posted": "2026-08-12 20:55",
+  "day": "2026-08-13",
+  "bucket": "tabletennis",
+  "home": "Yi-Hsin FENG",
+  "away": "Sora MATSUSHIMA",
+  "home_id": "122727",
+  "away_id": "135996",
+  "league": "Europe Smash - Sweden 2026 · Men's Singles",
+  "slug": null,
+  "pick": "2 · Sora MATSUSHIMA",
+  "p": 0.5903,
+  "stars": 2,
+  "sample": "гледани 56 мача на единия и 80 на другия",
+  "scored": false
  }
 ]
