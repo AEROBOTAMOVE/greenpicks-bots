@@ -1,14 +1,35 @@
 name: setup-topics (еднократно)
+
+# ⚠️ ОПАСЕН РЪН: createForumTopic СЪЗДАВА НОВИ СТАИ ПРИ ВСЯКО ПУСКАНЕ.
+# Без пазач всяко случайно натискане на бутона дублира стаите в групата.
+# Затова полето confirm е ЗАДЪЛЖИТЕЛНО: напиши точно SUZDAI-STAI, иначе
+# рънът излиза веднага, без да пипа групата.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Пазач срещу дублирани стаи: напиши SUZDAI-STAI (точно така), за да се създадат стаи'
+        required: true
+        default: ''
 
 permissions:
   contents: read
 
+concurrency:
+  group: setup-topics
+  cancel-in-progress: false
+
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      - name: Пазач срещу случайно пускане
+        if: ${{ github.event.inputs.confirm != 'SUZDAI-STAI' }}
+        run: |
+          echo "СПРЯНО, нищо не е пипано: createForumTopic създава НОВИ стаи при всяко пускане."
+          echo "Ако НАИСТИНА искаш да създадеш стаи, пусни пак и напиши SUZDAI-STAI в полето confirm."
+          exit 1
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:

@@ -80,6 +80,17 @@ jobs:
           # Празна GitHub-променлива бие подразбиращото се в скрипта, затова
           # номерът е изписан, а vars.* може да го замени, ако стаята се смени.
           COMBAT_THREAD_ID: ${{ vars.COMBAT_THREAD_ID || '328' }}
+          # 🔴 БЛИЗНАКЪТ НА ВЕЧЕ ОПРАВЕНИЯ COMBAT_THREAD_ID (11.08.2026).
+          # Тези пет номера се четат от predictor.py, matches_bot.py И
+          # router_bot.py — и не идваха от НИТО ЕДИН workflow. Живееха на
+          # заковани резерви 5/6/7/8/4. Смени ли се стая, трите бота щяха да
+          # пишат в старата без нито един ред грешка. Точно сценарият, който
+          # коментарът за бойните спортове описва — само че на пет места.
+          FOOTBALL_THREAD_ID: ${{ vars.FOOTBALL_THREAD_ID || '5' }}
+          BASKET_THREAD_ID: ${{ vars.BASKET_THREAD_ID || '6' }}
+          TT_THREAD_ID: ${{ vars.TT_THREAD_ID || '7' }}
+          VOLLEY_THREAD_ID: ${{ vars.VOLLEY_THREAD_ID || '8' }}
+          PICKS_THREAD_ID: ${{ vars.PICKS_THREAD_ID || '4' }}
           # Двете ръчки за пълнене. От 29.07.2026 срещите идват от ESPN/FIVB/WTT
           # през predictor.py, а не от осакатения безплатен TheSportsDB —
           # измерено същия ден: 25 футболни, 8 баскетболни, 14 волейболни и 403

@@ -74,6 +74,37 @@ jobs:
           DAILY_FORCE: ${{ github.event.inputs.force == 'true' && '1' || '0' }}
         run: python daily_bot.py
 
+      # 🔴 ЗАСЯВАНЕ НА НОВИТЕ СТАИ — БЕЗ БУТОН (11.08.2026)
+      #
+      # Тенисът и бейзболът получаваха карти в стая без нито ред обяснение кой
+      # ги прави и как се четат. Обучителният пост стоеше готов в seed_rooms.py
+      # и чакаше някой да пусне seed.yml на ръка. Чакаше седмици.
+      #
+      # SEED_ONLY_NEW=1 засява САМО стая, която НИКОГА не е засявана, и помни
+      # кои са в seed_state.json. Тоест: първият рън праща двата поста,
+      # всеки следващ вижда, че няма нищо ново, и мълчи.
+      # continue-on-error — това е допълнение към деня, а не самият ден.
+      - name: Засей стаите, които още нямат обучителен пост
+        continue-on-error: true
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
+          SUPPORT: ${{ vars.SUPPORT || '@green_picks_info_bot' }}
+          # GROUP_LINK НЕ се подава: seed_rooms.py не съдържа този низ
+          # изобщо (проверено с grep). Мъртва променлива лъже, че
+          # управлява нещо — и следващият човек ще я търси половин час.
+          SEED_ONLY_NEW: '1'
+        run: python seed_rooms.py
+
+      # 🩺 ЗДРАВЕН ПРЕГЛЕД. Отговаря на въпроса, който собственикът задава всеки
+      # ден: „защо еди-кой си спорт е празен". Пише отговора във файл, който се
+      # връща в хранилището — дневникът на Actions не се чете отвън.
+      # Излиза с 1 при намерен проблем, но continue-on-error пази деня.
+      - name: Здравен преглед
+        continue-on-error: true
+        run: python zdrave.py 2>&1 | tee zdrave.txt
+
       # ⚠️ ТУК БЕШЕ БЪГЪТ: комитваше се topnews_state.json — файл, който никой не пише.
       #    Затова състоянието никога не оставаше и постовете можеха да се повторят.
       #    Ботът пише daily_state.json — него комитваме.
@@ -84,13 +115,15 @@ jobs:
       #    е реално: daily бута в 18:00/20:00 UTC, router бута на всеки 10 мин.
       #    Сега: commit ВЕДНЪЖ, после само pull --rebase + push в цикъла, и
       #    провалът е ЧЕРВЕН (exit 1) — същият модел като news/router/predict.
-      - name: Запази състоянието (daily_state.json)
+      # seed_state.json Е ЧАСТ ОТ ТОВА. Без връщането му режимът „само новите"
+      # губи паметта си заедно с рънъра и праща същите постове пак утре.
+      - name: Запази състоянието (daily_state, seed_state, zdrave)
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add daily_state.json 2>/dev/null || true
+          git add daily_state.json seed_state.json zdrave.txt 2>/dev/null || true
           if git diff --cached --quiet; then
-            echo "daily_state.json не се е променил — няма какво да пазя."
+            echo "Нищо не се е променило — няма какво да пазя."
             exit 0
           fi
           git commit -m "daily state"
