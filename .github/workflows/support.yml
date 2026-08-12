@@ -58,7 +58,7 @@ concurrency:
 jobs:
   support:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       # 🔴 ДОБАВЕНО 12.08.2026. checkout@v4 сваля github.sha — върха от мига, в
@@ -140,12 +140,95 @@ jobs:
         run: python support_bot.py
 
       # Паметта се връща в хранилището. При "dry" няма какво да се пази.
+      # ══════════════════════════════════════════════════════════════
+      #  ⏰ ВТОРИ НЕЗАВИСИМ БУДИЛНИК (12.08.2026)
+      #
+      #  Първият виси на рутера. Но измереното е сурово: разписанието му е
+      #  */10, а GitHub дава 6.5 пускания на ден, медианна пауза 74 минути.
+      #  Един спусък върху ненадежден часовник е пак ненадежден часовник.
+      #
+      #  Съпортът е ОТДЕЛЕН крон (7,22,37,52) и отделна опашка от рънове —
+      #  тръгне ли той, а рутерът не, предсказателят пак се събужда. Двата са
+      #  в СЪЩАТА concurrency група, значи не се блъскат, а спирачката в
+      #  budilnik.py (30 мин + budilnik_state.json) пази от двойно будене.
+      #  Дубли няма и от втората страна: предсказателят помни какво е пуснал.
+      - name: Проспа ли предсказателя
+        id: budilnik
+        run: python budilnik.py
+
+      - name: Модулът за тениса на маса
+        if: steps.budilnik.outputs.budim == '1'
+        run: python -m pip install --quiet --disable-pip-version-check brotli
+
+      - name: Портиерът на предсказателя
+        if: steps.budilnik.outputs.budim == '1'
+        run: python predictor.py selftest
+
+      - name: Събуди предсказателя
+        if: steps.budilnik.outputs.budim == '1'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          # Резервните стойности НЕ са излишни: незададена променлива в GitHub
+          # идва като празен низ и празният низ бие подразбиращото се в скрипта.
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          PREDICT_THREAD_ID: '27'
+          # Незадължителни ключове — ако ги няма, идват празни и ботът кара
+          # с TheSportsDB тест-ключа. Нищо не се чупи.
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+          SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
+          # Настройки на модела — празна стойност = вътрешната подразбираща се.
+          MAX_PICKS: ${{ vars.MAX_PICKS }}
+          PREDICT_POOL: ${{ vars.PREDICT_POOL }}
+          PREDICT_PER_SPORT: ${{ vars.PREDICT_PER_SPORT }}
+          PREDICT_MIN_STRENGTH: ${{ vars.PREDICT_MIN_STRENGTH }}
+          # 🔴 ОТКОВАНО 11.08.2026. Тук стоеше твърдо '18'. Списъкът в кода
+          # порасна на 21: добавени бяха квалификациите за Лига Европа и за
+          # Лигата на конференциите. Измерено на живо същия ден — на 13 август
+          # тези два адреса дават 12 и 25 мача, а основните им (без _qual) са
+          # празни през целия август. Числото 18 щеше да отреже точно тях.
+          # Празна стойност = кодът пита ЦЕЛИЯ списък, какъвто и да стане утре.
+          PREDICT_FOOT_SLUGS: ${{ vars.PREDICT_FOOT_SLUGS }}
+          # 🔴 ДОБАВЕНО 11.08.2026. matches.yml подава COMBAT_THREAD_ID от vars,
+          # а predict.yml не го подаваше — а двата бота четат СЪЩАТА променлива.
+          # Смени ли се, боевете отиват в новата стая, а ММА-картите остават в
+          # 328: две стаи, нито един ред грешка в лога.
+          COMBAT_THREAD_ID: ${{ vars.COMBAT_THREAD_ID || '328' }}
+          # 🔴 БЛИЗНАКЪТ НА ВЕЧЕ ОПРАВЕНИЯ COMBAT_THREAD_ID (11.08.2026).
+          # Тези пет номера се четат от predictor.py, matches_bot.py И
+          # router_bot.py — и не идваха от НИТО ЕДИН workflow. Живееха на
+          # заковани резерви 5/6/7/8/4. Смени ли се стая, трите бота щяха да
+          # пишат в старата без нито един ред грешка. Точно сценарият, който
+          # коментарът за бойните спортове описва — само че на пет места.
+          FOOTBALL_THREAD_ID: ${{ vars.FOOTBALL_THREAD_ID || '5' }}
+          BASKET_THREAD_ID: ${{ vars.BASKET_THREAD_ID || '6' }}
+          TT_THREAD_ID: ${{ vars.TT_THREAD_ID || '7' }}
+          VOLLEY_THREAD_ID: ${{ vars.VOLLEY_THREAD_ID || '8' }}
+          PICKS_THREAD_ID: ${{ vars.PICKS_THREAD_ID || '4' }}
+          # Квота за спорт: 1 = всеки спорт с кандидат получава поне една карта
+          # (без нея ММА не влизаше НИКОГА — звездите му са заковани на една).
+          # 0 връща старото поведение, без пипане на код.
+          PREDICT_KVOTA: ${{ vars.PREDICT_KVOTA }}
+          # Пазачите на разписанието (по подразбиране 10 / 30 / 10):
+          #   MAX_DAY    таван прогнози за ЦЕЛИЯ ден, за да не залее стаята
+          #   HORIZON_H  докъде напред гледаме — далечният мач чака своя час
+          #   LEAD_MIN   колко минути преди начало спираме да пускаме карта
+          PREDICT_MAX_DAY: ${{ vars.PREDICT_MAX_DAY }}
+          PREDICT_HORIZON_H: ${{ vars.PREDICT_HORIZON_H }}
+          PREDICT_LEAD_MIN: ${{ vars.PREDICT_LEAD_MIN }}
+        run: python predictor.py
+
       - name: Запази паметта на съпорта
         if: ${{ always() && steps.m.outputs.mode == 'poll' }}
         run: |
           git config user.name "greenpicks-bot"
           git config user.email "bot@greenpicks"
-          git add support_state.json 2>/dev/null || true
+          # Съпортът вече може да буди предсказателя — значи трябва да
+          # връща и НЕГОВИТЕ тефтери. Иначе будилникът мери стар час и след
+          # 15 минути буди пак. Един по един: `git add a b липсващ` не добавя
+          # НИЩО (проверено в истинско repo), а `|| true` крие изход 128.
+          for f in support_state.json predict_state.json predict_log.json                    budilnik_state.json; do
+            [ -f "$f" ] && git add "$f"
+          done
           if ! git diff --cached --quiet; then
             git commit -m "support state"
             ok=0
