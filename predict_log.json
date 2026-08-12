@@ -6274,5 +6274,41 @@
   "stars": 2,
   "sample": "гледани 107 мача на единия и 113 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-12|volleyball|wyou|италия|перу",
+  "combo": 0,
+  "posted": "2026-08-12 18:04",
+  "day": "2026-08-12",
+  "bucket": "volleyball",
+  "home": "Италия",
+  "away": "Перу",
+  "home_id": "ITA",
+  "away_id": "PER",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Италия",
+  "p": 0.92,
+  "stars": 3,
+  "sample": "гледани 36 мача на единия и 49 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-13|volleyball|wyou|chinapeoplesrepof|доминиканскарепублика",
+  "combo": 0,
+  "posted": "2026-08-12 18:04",
+  "day": "2026-08-13",
+  "bucket": "volleyball",
+  "home": "China, People's Rep. of",
+  "away": "Доминиканска република",
+  "home_id": "CHN",
+  "away_id": "DOM",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "1 · победа China, People's Rep. of",
+  "p": 0.92,
+  "stars": 3,
+  "sample": "гледани 50 мача на единия и 99 на другия",
+  "scored": false
  }
 ]
