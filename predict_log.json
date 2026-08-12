@@ -5649,7 +5649,9 @@
   "p": 0.641,
   "stars": 2,
   "sample": "по 85 и 42 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-12|tabletennis|yidiwang|siribenjegard",
@@ -5667,7 +5669,9 @@
   "p": 0.5685,
   "stars": 2,
   "sample": "по 70 и 113 мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-12|tabletennis|kanakjha|bofang",
@@ -5685,7 +5689,9 @@
   "p": 0.5481,
   "stars": 1,
   "sample": "по 45 и 7 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-08-12|tabletennis|lilyzhang|manikabatra",
@@ -5703,7 +5709,9 @@
   "p": 0.5614,
   "stars": 2,
   "sample": "по 31 и 55 мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-08-11|tennis|pablollamasruiz|aleksandrshevchenko",
@@ -5799,7 +5807,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 60 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-12|tennis|dusanlajovic|lucavanassche",
@@ -5853,7 +5863,9 @@
   "p": 0.5224,
   "stars": 3,
   "sample": "гледани 45 мача на единия и 15 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-08-12|baseball|arizonadiamondbacks|coloradorockies",
@@ -5891,7 +5903,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 106 мача на единия и 26 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-12|volleyball|wyou|испания|египет",
@@ -5909,7 +5923,9 @@
   "p": 0.8553,
   "stars": 2,
   "sample": "гледани 12 мача на единия и 52 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-13|volleyball|wyou|пуерторико|тунис",
@@ -6055,7 +6071,9 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:1"
  },
  {
   "key": "2026-08-12|baseball|stlouiscardinals|philadelphiaphillies",
@@ -6093,7 +6111,9 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1"
  },
  {
   "key": "2026-08-12|tennis|christopheroconnell|aleksandrshevchenko",
@@ -6237,7 +6257,9 @@
   "p": 0.6584,
   "stars": 2,
   "sample": "гледани 61 мача на единия и 90 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-12|tabletennis|hanagoda|xingtongchen",
@@ -6255,7 +6277,9 @@
   "p": 0.653,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 72 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-12|tabletennis|annahursey|miwaharimoto",
@@ -6273,7 +6297,9 @@
   "p": 0.5727,
   "stars": 2,
   "sample": "гледани 107 мача на единия и 113 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-12|volleyball|wyou|италия|перу",
