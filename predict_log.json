@@ -6184,5 +6184,41 @@
   "stars": 1,
   "sample": "гледани 49 мача на единия и 57 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-13|tabletennis|lilyzhang|satsukiodo",
+  "combo": 0,
+  "posted": "2026-08-12 15:49",
+  "day": "2026-08-13",
+  "bucket": "tabletennis",
+  "home": "Lily ZHANG",
+  "away": "Satsuki ODO",
+  "home_id": "112221",
+  "away_id": "133405",
+  "league": "Europe Smash - Sweden 2026 · Women's Singles",
+  "slug": null,
+  "pick": "2 · Satsuki ODO",
+  "p": 0.7027,
+  "stars": 2,
+  "sample": "гледани 31 мача на единия и 116 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-13|tabletennis|shidonglin|kanakjha",
+  "combo": 0,
+  "posted": "2026-08-12 15:49",
+  "day": "2026-08-13",
+  "bucket": "tabletennis",
+  "home": "Shidong LIN",
+  "away": "Kanak JHA",
+  "home_id": "137237",
+  "away_id": "116021",
+  "league": "Europe Smash - Sweden 2026 · Men's Singles",
+  "slug": null,
+  "pick": "1 · Shidong LIN",
+  "p": 0.6332,
+  "stars": 2,
+  "sample": "гледани 68 мача на единия и 45 на другия",
+  "scored": false
  }
 ]
