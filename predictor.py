@@ -310,7 +310,27 @@ SPORT_ORDER = ["mma", "tabletennis", "volleyball", "basketball",
                "tennis", "hockey", "football", "amfootball", "baseball"]
 
 _want = [s.strip().lower() for s in (os.environ.get("PREDICT_SPORTS") or "").split(",") if s.strip()]
-ACTIVE_SPORTS = [s for s in SPORT_ORDER if (not _want or s in _want)]
+
+# 🔴 ЗАТВОРЕНИ СПОРТОВЕ (11.08.2026, по изрична заповед на собственика)
+#
+# Измерено, не усетено: predict_log.json има 261 записа. Хокей — 0. Американски
+# футбол — 0. Нито един за целия живот на дневника. НХЛ отваря около 15.09, а
+# НФЛ дава само предсезонни, които гейтът реже нарочно. Тоест два спорта,
+# две стаи и два пина стояха отворени и празни и произвеждаха единствено
+# въпроса „защо е празно".
+#
+# Затворени тук, а НЕ изтрити: hockey_fixtures, model_hockey, nhl_table,
+# amfootball_fixtures, model_amfootball и цялата им самопроверка остават
+# непокътнати и продължават да се тестват.
+#
+# ПЪТЯТ НАЗАД (правило 3): PREDICT_IZKL="" ги връща моментално, без нито ред
+# промяна по кода. През септември това е една променлива в GitHub, не ремонт.
+_izkl_raw = os.environ.get("PREDICT_IZKL")
+if _izkl_raw is None:
+    _izkl_raw = "hockey,amfootball"
+IZKLYUCHENI = {s.strip().lower() for s in _izkl_raw.split(",") if s.strip()}
+ACTIVE_SPORTS = [s for s in SPORT_ORDER
+                 if (not _want or s in _want) and s not in IZKLYUCHENI]
 
 # Звездите говорят сами (легендата е в подписа) — картата не носи думи за тях.
 # Таван на звездите там, където сама по себе си дисциплината е непредсказуема.
@@ -5802,6 +5822,16 @@ def selftest():
 
     # --- 🏈 американски футбол (девети спорт)
     check("американският футбол е в списъка", "amfootball" in SPORTS)
+    check("затворените спортове НЕ са в дневния ред",
+          not (IZKLYUCHENI & set(ACTIVE_SPORTS)))
+    check("затворените спортове пак имат код (не са изтрити)",
+          all(b in SPORTS and b in SPORT_ORDER for b in IZKLYUCHENI))
+    check("хокеят и амер. футбол са затворени по подразбиране",
+          bool(os.environ.get("PREDICT_IZKL") is not None)
+          or IZKLYUCHENI == {"hockey", "amfootball"})
+    check("остават седем работещи спорта",
+          len(ACTIVE_SPORTS) == 7 or os.environ.get("PREDICT_SPORTS")
+          or os.environ.get("PREDICT_IZKL") is not None)
     check("американският футбол има таван на звездите", "amfootball" in STAR_CAP)
     check("американският футбол е в спортовете с история",
           "amfootball" in HISTORY_SPORTS)

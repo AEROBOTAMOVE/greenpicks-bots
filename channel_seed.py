@@ -623,8 +623,18 @@ def selftest():
         for bad in ("delete", "ban", "kick", "restrict", "unpin", "leave", "close"):
             if bad in low:
                 problems.append("в разрешените методи има разрушителен метод: " + m)
-    for bad_method in ("deleteMessage", "deleteMessages", "unpinAllChatMessages"):
-        if api(bad_method, chat_id="0", message_id=1).get("ok"):
+    # 🔴 ПРЕПИСАНО 11.08.2026. Тук се викаше api() и се гледаше дали връща ok.
+    # Условието НЕ МОЖЕШЕ да стане истина по нито един път: ключалката отказва
+    # преди мрежата; ако тя падне, chat_id="0" дава 400; ако няма токен —
+    # изключение. И трите пътя връщат ok=False. Тоест „проверката" щеше да
+    # мълчи дори ако някой добави deleteMessage в разрешените методи.
+    #
+    # Сега се мери самата ключалка, а не отговорът на Telegram: методът е
+    # забранен ТОГАВА И САМО ТОГАВА, когато не е в разрешените списъци.
+    # Обратен тест: добави "deleteMessage" в ALLOWED_METHODS → гърми.
+    for bad_method in ("deleteMessage", "deleteMessages", "unpinAllChatMessages",
+                       "banChatMember", "leaveChat"):
+        if bad_method in ALLOWED_METHODS or bad_method in READ_METHODS:
             problems.append("ключалката пропуска " + bad_method)
 
     if MODE not in MODES:
