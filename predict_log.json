@@ -5883,5 +5883,41 @@
   "stars": 3,
   "sample": "ранглиста и 22 скорошни мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-12|baseball|athletics|tampabayrays",
+  "combo": 0,
+  "posted": "2026-08-12 09:08",
+  "day": "2026-08-12",
+  "bucket": "baseball",
+  "home": "Athletics",
+  "away": "Tampa Bay Rays",
+  "home_id": 133,
+  "away_id": 139,
+  "league": "МЛБ",
+  "slug": null,
+  "pick": "2 · Tampa Bay Rays",
+  "p": 0.5539,
+  "stars": 2,
+  "sample": "гледани 144 мача на единия и 140 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-12|football|fckøbenhavn|debrecen",
+  "combo": 0,
+  "posted": "2026-08-12 09:08",
+  "day": "2026-08-12",
+  "bucket": "football",
+  "home": "F.C. København",
+  "away": "Debrecen",
+  "home_id": "909",
+  "away_id": "532",
+  "league": "Квалификации за Лига на конференциите",
+  "slug": "uefa.europa.conf_qual",
+  "pick": "1 · победа F.C. København",
+  "p": 0.45,
+  "stars": 1,
+  "sample": "без история",
+  "scored": false
  }
 ]
