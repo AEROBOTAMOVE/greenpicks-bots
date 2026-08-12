@@ -39,6 +39,15 @@ IME = {
 
 # Спортове, за които ПРАЗНО Е НОРМАЛНО и кога свършва. Пълни се от измерване,
 # не от усещане: NHL връща nextStartDate, NFL дава само предсезонни.
+# 🔴 РЯДКИ ПО УСТРОЙСТВО (12.08.2026). Спорт, който мълчи ЗАКОНОМЕРНО, не бива
+# да пали тревога всеки ден — пазач, който крещи напразно, се научава да се
+# пренебрегва, и когато утре гръмне истински, никой не поглежда.
+# Измерено върху живия дневник: за 15 дни ММА е дал карти в ЕДИН ден.
+# Затова: мълчи ли под тавана в дни, това е състояние, не проблем. Над него —
+# вече е проблем и се изписва.
+RYADKI = {"mma": (10, "боевете са по няколко на седмица — измерено, карти в"
+                      " 1 от 15 дни")}
+
 IZVAN_SEZONA = {
     "hockey": "НХЛ отваря около 15.09 — дотогава източникът връща нула игри",
     "amfootball": "НФЛ дава само предсезонни, а гейтът ги реже нарочно",
@@ -132,10 +141,31 @@ def main():
         surovi = d.get("surovi")
         gr = d.get("gr") or []
 
+        posledna = ""
+        for r in log:
+            if r.get("bucket") == b:
+                d = str(r.get("posted") or r.get("day") or "")[:10]
+                if len(d) == 10 and d > posledna:
+                    posledna = d
+
         if dnesni:
             sast = "%d карти днес" % len(dnesni)
         elif b in IZVAN_SEZONA:
             sast = "празно — " + IZVAN_SEZONA[b]
+        elif b in RYADKI:
+            tavan, zashto = RYADKI[b]
+            dni_bez = 999
+            if posledna:
+                try:
+                    dni_bez = (now.date()
+                               - datetime.strptime(posledna, "%Y-%m-%d").date()).days
+                except ValueError:
+                    dni_bez = 999
+            sast = "празно — " + zashto
+            if dni_bez > tavan:
+                sast = "празно от %d дни — това вече е много" % dni_bez
+                problemi.append(IME[b] + ": %d дни без нито една карта (таван %d)"
+                                % (dni_bez, tavan))
         elif surovi == 0:
             sast = "празно — източникът върна нула срещи"
             problemi.append(IME[b] + ": източникът е празен, а не е извън сезон")
@@ -163,7 +193,10 @@ def main():
         if str(w.get("name", "")).startswith("scorer"):
             posl_scorer = str(w.get("run_started_at") or "")[:16].replace("T", " ")
             break
-    kraj = " (изчистват се на следващото пускане на оценителя, 13:30 и 22:30 UTC"
+    # 🔴 ПОПРАВЕНО 12.08.2026. Пишеше „13:30 и 22:30 UTC" — а кроновете в
+    # score.yml са `30 10` и `30 19` UTC, тоест 13:30 и 22:30 БЪЛГАРСКО.
+    # Разлика от три часа в собствения ми диагностичен текст.
+    kraj = " (изчистват се на следващото пускане на оценителя, 13:30 и 22:30 БГ"
     kraj += "; последното беше " + posl_scorer + ")" if posl_scorer else ")"
     if star:
         problemi.append("%d прогнози от МИНАЛИ дни още чакат резултат%s" % (len(star), kraj))
