@@ -11,8 +11,14 @@ THE GREEN ROOM — БУДИЛНИК ⏰
 
 Обичайното лекарство е външен будилник (cron-job.org), но той иска GitHub
 токен, въведен в поле. Този файл прави същото БЕЗ никакъв ключ и без външна
-услуга: рутерът вече върви на всеки 10 минути и е в СЪЩАТА concurrency група
-като предсказателя. Значи той може да го събуди — без да се блъскат.
+услуга: рутерът е в СЪЩАТА concurrency група като предсказателя, значи може да
+го събуди, без да се блъскат.
+
+КОЛКО ЧЕСТО ВСЪЩНОСТ — ИЗМЕРЕНО, НЕ ПРЕДПОЛОЖЕНО
+Разписанието на рутера е */10, но GitHub го спазва рядко: за 21 дни излизат
+6.5 ръна на ден, медианна пауза 74 минути (нула паузи под 15 мин). Тоест
+резолюцията на будилника е ОКОЛО ЧАС, не десет минути. Пак си струва: на
+измерените дни първата карта се мести от 10:36-13:00 на 08:06-09:31.
 
 КАК РЕШАВА
 Чете `diag.koga` от predict_state.json — часът на последното пускане, записан
@@ -113,7 +119,23 @@ def zapishi_opit(sega, path=None):
         return False
 
 
-def reshi(posleden, sega, ot=None, do=None, tavan=None, opit=None,
+# 🔴 СЕНТИНЕЛ, ДОБАВЕН 12.08.2026 — ПОПРАВКА НА ОПАСЕН ДЕФЕКТ.
+#
+# Досега `opit=None` значеше ДВЕ различни неща: „не съм ти го подал, прочети
+# го от диска" и „няма минал опит". Заради първото самопроверката четеше
+# ЖИВИЯ budilnik_state.json — с часове, ЗАКОВАНИ за 12.08.
+#
+# Измерено: помете се всяка минута от денонощието — 179 минути, в които
+# самопроверката пада. И понеже стъпката „Самопроверка на будилника" е ПРЕДИ
+# самото будене, файлът повече не се променя: рутерът остава ТРАЙНО ЧЕРВЕН,
+# опашката на Telegram не се чете, съпортът мълчи. Не до полунощ — завинаги.
+#
+# Сега: `opit=None` значи „няма минал опит"; дискът се чете само когато
+# аргументът изобщо не е подаден. Чистата функция не докосва файлове.
+_NEPODADEN = object()
+
+
+def reshi(posleden, sega, ot=None, do=None, tavan=None, opit=_NEPODADEN,
           pochivka=None):
     """(будим_ли, обяснение). Чиста функция — тества се без файлове и мрежа."""
     ot = OT_CHAS if ot is None else ot
@@ -143,7 +165,8 @@ def reshi(posleden, sega, ot=None, do=None, tavan=None, opit=None,
 def _s_pochivka(sega, minuti, tavan, opit, pochivka):
     """Дупката е реална. Но будили ли сме наскоро без резултат?"""
     pochivka = POCHIVKA_MIN if pochivka is None else pochivka
-    opit = posleden_opit() if opit is None else opit
+    if opit is _NEPODADEN:
+        opit = posleden_opit()
     if opit is not None:
         ot_opita = int((sega - opit).total_seconds() // 60)
         if 0 <= ot_opita < pochivka:
@@ -167,30 +190,30 @@ def selftest():
     d = lambda h, m: datetime(2026, 8, 12, h, m, tzinfo=SOFIA)     # noqa: E731
 
     # --- решението
-    check("в срок = не будим", reshi(d(12, 0), d(12, 30))[0] is False)
-    check("подранил час не буди", reshi(d(12, 0), d(13, 20))[0] is False)
-    check("прескочен час буди", reshi(d(12, 0), d(13, 40))[0] is True)
-    check("два прескочени часа будят", reshi(d(10, 0), d(12, 30))[0] is True)
+    check("в срок = не будим", reshi(d(12, 0), d(12, 30), opit=None)[0] is False)
+    check("подранил час не буди", reshi(d(12, 0), d(13, 20), opit=None)[0] is False)
+    check("прескочен час буди", reshi(d(12, 0), d(13, 40), opit=None)[0] is True)
+    check("два прескочени часа будят", reshi(d(10, 0), d(12, 30), opit=None)[0] is True)
     check("нощем НЕ будим дори при огромна дупка",
-          reshi(d(12, 0), datetime(2026, 8, 13, 3, 0, tzinfo=SOFIA))[0] is False)
-    check("в 07:59 НЕ будим", reshi(d(4, 0), d(7, 59))[0] is False)
+          reshi(d(12, 0), datetime(2026, 8, 13, 3, 0, tzinfo=SOFIA), opit=None)[0] is False)
+    check("в 07:59 НЕ будим", reshi(d(4, 0), d(7, 59), opit=None)[0] is False)
     check("в 08:00 будим", reshi(datetime(2026, 8, 11, 22, 0, tzinfo=SOFIA),
-                                 d(8, 0))[0] is True)
-    check("в 22:00 още будим", reshi(d(19, 0), d(22, 0))[0] is True)
-    check("в 23:00 вече не", reshi(d(19, 0), d(23, 0))[0] is False)
-    check("липсващ тефтер буди", reshi(None, d(12, 0))[0] is True)
-    check("липсващ тефтер НЕ буди нощем", reshi(None, d(3, 0))[0] is False)
-    check("час от бъдещето буди", reshi(d(15, 0), d(12, 0))[0] is True)
-    check("една минута напред НЕ е бъдеще", reshi(d(12, 1), d(12, 0))[0] is False)
+                                 d(8, 0), opit=None)[0] is True)
+    check("в 22:00 още будим", reshi(d(19, 0), d(22, 0), opit=None)[0] is True)
+    check("в 23:00 вече не", reshi(d(19, 0), d(23, 0), opit=None)[0] is False)
+    check("липсващ тефтер буди", reshi(None, d(12, 0), opit=None)[0] is True)
+    check("липсващ тефтер НЕ буди нощем", reshi(None, d(3, 0), opit=None)[0] is False)
+    check("час от бъдещето буди", reshi(d(15, 0), d(12, 0), opit=None)[0] is True)
+    check("една минута напред НЕ е бъдеще", reshi(d(12, 1), d(12, 0), opit=None)[0] is False)
 
     # Обяснението винаги казва нещо, и то на български.
     for p, s in ((d(12, 0), d(12, 30)), (d(12, 0), d(14, 0)), (None, d(12, 0))):
-        _, zashto = reshi(p, s)
+        _, zashto = reshi(p, s, opit=None)
         check("обяснението е непразно", len(zashto) > 10)
 
     # --- границата е ТОЧНО на тавана, не около него
-    check("точно на тавана НЕ будим", reshi(d(12, 0), d(13, 30))[0] is False)
-    check("една минута над тавана буди", reshi(d(12, 0), d(13, 31))[0] is True)
+    check("точно на тавана НЕ будим", reshi(d(12, 0), d(13, 30), opit=None)[0] is False)
+    check("една минута над тавана буди", reshi(d(12, 0), d(13, 31), opit=None)[0] is True)
 
     # --- четенето на тефтера
     check("боклук вместо тефтер не гърми", posleden_run("нямаго.json") is None)
@@ -267,6 +290,26 @@ def selftest():
         except OSError:
             pass
 
+    # 🔴 ПАЗАЧ СРЕЩУ ВЪРНАТИЯ ДЕФЕКТ. Самопроверката не бива да зависи от
+    # живия budilnik_state.json. Подхвърляме отровен файл и искаме СЪЩИЯ
+    # резултат. Върне ли се четенето от диска, тази проверка пада.
+    _star = BUD_STATE
+    try:
+        _otr = os.path.join(os.environ.get("TEMP") or ".", "_budilnik_otrova.json")
+        with io.open(_otr, "w", encoding="utf-8") as f:
+            json.dump({"posleden_opit": d(13, 20).strftime("%Y-%m-%d %H:%M")}, f)
+        globals()["BUD_STATE"] = _otr
+        check("отровен тефтер НЕ мени решението (прескочен час)",
+              reshi(d(12, 0), d(13, 40), opit=None)[0] is True)
+        check("отровен тефтер НЕ мени решението (в срок)",
+              reshi(d(12, 0), d(12, 30), opit=None)[0] is False)
+    finally:
+        globals()["BUD_STATE"] = _star
+        try:
+            os.remove(_otr)
+        except OSError:
+            pass
+
     check("броят проверки е поне 30", ok >= 30)
 
     print("САМОПРОВЕРКА НА БУДИЛНИКА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
@@ -280,7 +323,7 @@ def main():
         return selftest()
     sega = datetime.now(SOFIA)
     posleden = posleden_run()
-    budim, zashto = reshi(posleden, sega)
+    budim, zashto = reshi(posleden, sega, opit=None)
     if budim:
         # Записваме ПРЕДИ пускането, не след него. Падне ли предсказателят по
         # средата, опитът пак е отбелязан и спирачката важи.

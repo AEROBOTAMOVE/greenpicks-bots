@@ -45,7 +45,7 @@ THE GREEN ROOM — ДНЕВНИЯТ РИТЪМ 🦖 (чист, автомати�
 
 Данни: TheSportsDB eventsday. Часовете са Europe/Sofia.
 """
-import json, os, sys, time, urllib.request, urllib.parse, html
+import json, os, sys, time, urllib.request, urllib.parse, html, re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import poster
@@ -81,6 +81,22 @@ def forbidden_chats():
 
 BIG_LEAGUES = ["Premier League","La Liga","Serie A","Bundesliga","Ligue 1","Champions League",
                "Europa League","NBA","Euroleague","Nations League","WTA","ATP"]
+
+
+def golyama_liga(lg):
+    """Голяма ли е лигата. Сравнява по ЦЯЛА ДУМА, не по подниз.
+
+    🔴 12.08.2026. Условието беше `b.lower() in lg.lower()` — чист подниз.
+    Измерено на живо срещу TheSportsDB за утре: „NBA" хващаше **WNBA** и три
+    женски мача излизаха под етикета „голяма лига". Същият капан дебне при
+    всяко ново име, което съдържа старо (NBA/WNBA, Liga/La Liga).
+    """
+    niz = " " + re.sub(r"[^0-9a-zA-Zа-яА-Я ]+", " ", str(lg or "")).lower() + " "
+    for b in BIG_LEAGUES:
+        igla = " " + re.sub(r"[^0-9a-zA-Zа-яА-Я ]+", " ", b).lower().strip() + " "
+        if igla in niz:
+            return True
+    return False
 
 def esc(x): return html.escape(str(x or ""))
 

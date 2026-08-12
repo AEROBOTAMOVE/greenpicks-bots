@@ -2,7 +2,8 @@
 """
 THE GREEN ROOM — генератор на визуални картички (като фиш-слиповете, но честни + по-добри).
 Рендира PNG за: мач-преглед, ПЕЧЕЛИВШ фиш, ГУБЕЩ фиш (честно!), седмичен отчет.
-Тъмна тема, зелен акцент, 🦖 THE GREEN ROOM бранд. Без емоджи-шрифт (рисувани баджове).
+Тъмна тема, зелен акцент, THE GREEN ROOM бранд. Без емоджи-шрифт:
+bez_emodji() чисти всеки низ точно преди рисуване.
 """
 from PIL import Image, ImageDraw, ImageFont
 import os
@@ -68,9 +69,38 @@ def _header(draw):
     tw=draw.textbbox((0,0),"@greenpicksbg",font=hf)[2]
     draw.text((W-tw-44,52), "@greenpicksbg", font=hf, fill=GRAY)
 
+
+# 🔴 БЕЗ ЕМОДЖИ ВЪРХУ КАРТИНКИТЕ (12.08.2026)
+#
+# Шрифтовете тук (Arial/Liberation/DejaVu) НЯМАТ емоджи-глифове. Всяко емоджи
+# се рисува като празно квадратче. Докстрингът горе го казва от самото начало
+# („Без емоджи-шрифт"), но branding.ROOMS подава заглавия С емоджи за девет от
+# девет стаи, а долният ред носеше твърдо зашито 🦖. Тоест ВСЕКИ закачен банер
+# висеше със счупени знаци.
+#
+# Изрисувано и погледнато: „□ ФУТБОЛ" и „□ THE GREEN ROOM · честни прогнози".
+#
+# Лекът е на изхода, не на входа: чистим точно преди да рисуваме. Така
+# викащият може да си държи емоджитата за текстовите съобщения, без да мисли.
+def bez_emodji(txt):
+    """Маха знаците, които шрифтът не може да нарисува. Пази кирилица и латиница."""
+    if not txt:
+        return ""
+    out = []
+    for ch in str(txt):
+        o = ord(ch)
+        # Емоджи, символи, знамена, вариационни селектори, съединители.
+        if (0x1F000 <= o <= 0x1FAFF or 0x2190 <= o <= 0x2BFF
+                or 0xFE00 <= o <= 0xFE0F or o == 0x200D
+                or 0x1F1E6 <= o <= 0x1F1FF):
+            continue
+        out.append(ch)
+    return " ".join("".join(out).split())
+
+
 def _footer(draw, line):
     draw.line([(44,H-96),(W-44,H-96)], fill=LINE, width=2)
-    draw.text((44,H-78), line, font=F("arial.ttf",24), fill=GRAY)
+    draw.text((44,H-78), bez_emodji(line), font=F("arial.ttf",24), fill=GRAY)
     draw.text((44,H-46), "Числа и вероятности · всичко се отчита", font=F("arial.ttf",22), fill=GRAY)
 
 def base():
@@ -180,15 +210,15 @@ def room_welcome(title, subtitle, bullets, accent_name, out):
     img,d=base()
     d.rectangle([0,0,W,10], fill=acc)
     _round(d,[60,150,W-60,260],24, fill=CARD, outline=acc, width=3)
-    _center(d, title, F("arialbd.ttf",58), 172)
-    _center(d, subtitle, F("arial.ttf",32), 300, GRAY)
+    _center(d, bez_emodji(title), F("arialbd.ttf",58), 172)
+    _center(d, bez_emodji(subtitle), F("arial.ttf",32), 300, GRAY)
     _round(d,[70,380,W-70,H-140],28, fill=CARD, outline=LINE, width=2)
     y=430
     for b in bullets:
         d.ellipse([110,y+12,126,y+28], fill=acc)
-        d.text((150,y), b, font=F("arial.ttf",32), fill=WHITE)
+        d.text((150,y), bez_emodji(b), font=F("arial.ttf",32), fill=WHITE)
         y+=72
-    _footer(d, "🦖 THE GREEN ROOM · честни прогнози")
+    _footer(d, "THE GREEN ROOM · честни прогнози")
     img.save(out); return out
 
 if __name__=="__main__":

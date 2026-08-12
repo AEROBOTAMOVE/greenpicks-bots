@@ -1603,7 +1603,7 @@ def tg_photo(photo_url, caption):
 
 
 # ------------------------------------------------------------ съставяне ----
-BRAND = "🦖 THE GREEN ROOM · 📰 Новини"
+BRAND = "🟢 THE GREEN ROOM · 📰 Новини"
 
 
 def esc(s):

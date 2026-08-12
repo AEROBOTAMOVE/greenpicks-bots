@@ -1072,6 +1072,7 @@ def results_text(now, rows, total_all, hit_all, bez=None, vsichki=None):
 def obshto_dosega_text(now, rows):
     """Равносметката на целия живот на бота. Едно съобщение, стая 9."""
     rows = list(rows or [])
+    sega_den = now.strftime("%Y-%m-%d")
     pusnati = len(rows)
     ots = [r for r in rows if r.get("scored") and r.get("hit") is not None]
     poz = sum(1 for r in ots if r.get("hit"))
@@ -1079,8 +1080,13 @@ def obshto_dosega_text(now, rows):
     chakat = sum(1 for r in rows if not r.get("scored"))
     bez_prisada = pusnati - len(ots) - chakat
 
-    dni = sorted({str(r.get("day") or "")[:10] for r in rows if r.get("day")})
-    dni = [d for d in dni if len(d) == 10]
+    # 🔴 ПО ДЕНЯ НА ПУБЛИКУВАНЕ, НЕ ПО ДЕНЯ НА МАЧА (12.08.2026).
+    # Първата версия броеше „day" — деня на СРЕЩАТА. Карта за утрешен мач
+    # излиза днес, тоест заглавието „всичко ПУСНАТО" стоеше над период,
+    # който свършва в БЪДЕЩЕТО: „от 29.07 до 13.08" на 12 август.
+    # Числото и думата до него не бива да си противоречат.
+    dni = sorted({str(r.get("posted") or r.get("day") or "")[:10] for r in rows})
+    dni = [d for d in dni if len(d) == 10 and d <= sega_den]
 
     out = ["🧾 <b>ДОСЕГА ОБЩО</b> — всичко, пуснато в 🤖 БОТА ПРЕДРИЧА", ""]
     if dni:
@@ -1452,6 +1458,19 @@ def selftest():
     check("дава периода в дни", "2 дни" in _od)
     check("първият ден е най-старият", "10.08" in _od)
     check("последният ден е най-новият", "11.08" in _od)
+    # 🔴 Периодът НЕ бива да свършва в бъдещето. Карта за утрешен мач се
+    # публикува днес; ако броим деня на мача, „всичко пуснато" завършва утре.
+    _bud = obshto_dosega_text(_now, _dnev + [
+        {"bucket": "tennis", "day": "2099-01-01", "posted": "2026-08-11 20:00",
+         "scored": False}])
+    check("бъдещ мач НЕ мести края на периода", "2099" not in _bud
+          and "01.01" not in _bud)
+    # Копчето сено е БЕЗ самопроверката — иначе редът тук долу сам щеше да
+    # съдържа иглата. И се чете ТУК, защото _iztochnik_scorer се пълни
+    # по-надолу в тази функция: използван по-рано, той изобщо не съществува.
+    _ziv0 = _bez_samoproverkata(open(__file__, encoding="utf-8").read())
+    _telo_od = _ziv0.split("def obshto" + "_dosega_text")[1][:1500]         if ("def obshto" + "_dosega_text") in _ziv0 else ""
+    check("периодът стъпва на деня на ПУБЛИКУВАНЕ", "posted" in _telo_od)
     check("разбивката по спорт я има", "По спорт" in _od)
     check("спорт БЕЗ нито една присъда пак се вижда",
           "ТЕНИС</b> · 2 пуснати · още нищо отсъдено" in _od)
