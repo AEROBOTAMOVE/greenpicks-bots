@@ -137,6 +137,14 @@ def main():
             continue
         dnesni = [r for r in log if r.get("bucket") == b
                   and str(r.get("posted") or "")[:10] == dnes]
+        # 🔴 12.08.2026. Тук беше ФАЛШИВАТА ТРЕВОГА. Броеше се само по деня на
+        # ПУБЛИКУВАНЕ — а картата за днешен мач често излиза ВЧЕРА (хоризонтът
+        # е 30 часа). Измерено на живо: тенисът на маса имаше четири карти за
+        # днешните си мачове, пуснати вчера в 11:04, и прегледът пишеше „0
+        # карти днес, източникът даде 209 срещи — филтрите изядоха всичко".
+        # Спорт, който си е свършил работата, се обявяваше за счупен.
+        za_dnes = [r for r in log if r.get("bucket") == b
+                   and str(r.get("day") or "")[:10] == dnes]
         ots = [r for r in log if r.get("bucket") == b
                and r.get("scored") and r.get("hit") is not None]
         poz = sum(1 for r in ots if r.get("hit"))
@@ -153,6 +161,11 @@ def main():
 
         if dnesni:
             sast = "%d карти днес" % len(dnesni)
+            if za_dnes and len(za_dnes) != len(dnesni):
+                sast += " (%d за днешните мачове)" % len(za_dnes)
+        elif za_dnes:
+            sast = ("%d карти за днешните мачове — пуснати предния ден"
+                    % len(za_dnes))
         elif b in IZVAN_SEZONA:
             sast = "празно — " + IZVAN_SEZONA[b]
         elif b in RYADKI:
@@ -174,7 +187,8 @@ def main():
             problemi.append(IME[b] + ": източникът е празен, а не е извън сезон")
         elif surovi:
             sast = "0 карти днес, но източникът даде %s срещи" % surovi
-            problemi.append(IME[b] + ": има срещи, няма карти — филтрите изядоха всичко")
+            problemi.append(IME[b] + ": има срещи, няма карти — филтрите изядоха"
+                            " всичко (и нито една не е пусната предния ден)")
         else:
             sast = "няма данни за последния рън"
 
