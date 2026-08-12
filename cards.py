@@ -86,16 +86,23 @@ def bez_emodji(txt):
     """Маха знаците, които шрифтът не може да нарисува. Пази кирилица и латиница."""
     if not txt:
         return ""
+    # 🔴 СТЕСНЕН 12.08.2026. Първата версия режеше целия блок 0x2190-0x2BFF —
+    # а там живеят ≤ ≥ ≈ ≠ → ★ ☆ ● ✓ ∞ √, за които Arial/Liberation/DejaVu
+    # ИМАТ глифове. „≥58%" щеше да стане „58%". Сега падат само истинските
+    # емоджи-обхвати плюс шепа изрично изброени пиктограми.
+    IZKL = {0x2600, 0x2601, 0x2614, 0x26BD, 0x26BE, 0x26F3, 0x2708, 0x270A,
+            0x270B, 0x2728, 0x274C, 0x2753, 0x2757, 0x2764, 0x2B50, 0x2B55,
+            0x231A, 0x23F0, 0x23F3, 0x25B6, 0x25C0}
     out = []
     for ch in str(txt):
         o = ord(ch)
-        # Емоджи, символи, знамена, вариационни селектори, съединители.
-        if (0x1F000 <= o <= 0x1FAFF or 0x2190 <= o <= 0x2BFF
-                or 0xFE00 <= o <= 0xFE0F or o == 0x200D
-                or 0x1F1E6 <= o <= 0x1F1FF):
+        if (0x1F000 <= o <= 0x1FAFF or 0x1F1E6 <= o <= 0x1F1FF
+                or 0xFE00 <= o <= 0xFE0F or o == 0x200D or o in IZKL):
             continue
         out.append(ch)
-    return " ".join("".join(out).split())
+    # Редовете се ПАЗЯТ. Първата версия правеше " ".join(split()) и сливаше
+    # многоредов надпис в един ред. Чистят се само излишните интервали.
+    return chr(10).join(" ".join(r.split()) for r in "".join(out).split(chr(10)))
 
 
 def _footer(draw, line):

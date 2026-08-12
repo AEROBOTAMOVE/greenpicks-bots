@@ -86,7 +86,7 @@ BIG_LEAGUES = ["Premier League","La Liga","Serie A","Bundesliga","Ligue 1","Cham
 def golyama_liga(lg):
     """Голяма ли е лигата. Сравнява по ЦЯЛА ДУМА, не по подниз.
 
-    🔴 12.08.2026. Условието беше `b.lower() in lg.lower()` — чист подниз.
+    🔴 12.08.2026. Условието беше просто търсене на подниз в името на лигата.
     Измерено на живо срещу TheSportsDB за утре: „NBA" хващаше **WNBA** и три
     женски мача излизаха под етикета „голяма лига". Същият капан дебне при
     всяко ново име, което съдържа старо (NBA/WNBA, Liga/La Liga).
@@ -175,7 +175,7 @@ def collect_results(now):
         data = fetch_json(f"{API}/eventsday.php?d={d}&s={urllib.parse.quote(sport)}")
         for e in (data.get("events") or []):
             lg = e.get("strLeague", "")
-            if not any(b.lower() in lg.lower() for b in BIG_LEAGUES): continue
+            if not golyama_liga(lg): continue
             hs, as_ = e.get("intHomeScore"), e.get("intAwayScore")
             if hs in (None, "") or as_ in (None, ""): continue
             emo = "⚽" if sport == "Soccer" else "🏀"
@@ -244,14 +244,14 @@ def collect_overview(now):
         for e in evs:
             lg = e.get("strLeague", "")
             hs = e.get("intHomeScore")
-            if hs not in (None, "") and any(b.lower() in lg.lower() for b in BIG_LEAGUES) and not hot:
+            if hs not in (None, "") and golyama_liga(lg) and not hot:
                 hot = f"{emo} {esc(e.get('strHomeTeam'))} {hs}–{e.get('intAwayScore')} {esc(e.get('strAwayTeam'))}"
         time.sleep(2.1)
     tomorrow_big = None
     for skey, emo in [("Soccer","⚽"),("Basketball","🏀")]:
         data = fetch_json(f"{API}/eventsday.php?d={tmr}&s={urllib.parse.quote(skey)}")
         for e in (data.get("events") or []):
-            if any(b.lower() in (e.get("strLeague") or "").lower() for b in BIG_LEAGUES):
+            if golyama_liga(e.get("strLeague")):
                 t = (e.get("strTime") or "")[:5]
                 tomorrow_big = f"{emo} {esc(e.get('strHomeTeam'))} — {esc(e.get('strAwayTeam'))}" + (f" ({t})" if t and t != "00:00" else "")
                 break
@@ -316,6 +316,34 @@ def run_retired_topnews():
     print("Каналът не е новинарска лента — там пише само човекът.")
 
 # ---------- SELFTEST ----------
+def _proveri_ligi(ck):
+    """Пазач за golyama_liga. Викан от run_selftest.
+
+    🔴 12.08.2026. Функцията беше НАПИСАНА и НИКОГА НЕ СЕ ВИКАШЕ — трите
+    филтъра още търсеха подниз, тоест „NBA" хващаше WNBA и женски мачове
+    излизаха под етикета „голяма лига". Точно класът „защита на хартия".
+    Затова тук се проверява И поведението, И че старото търсене го няма.
+    Иглите долу са СГЛОБЕНИ от парчета — иначе този докстринг сам би ги
+    съдържал и проверката щеше да пада винаги, каквото и да е в кода.
+    """
+    for lg, ochakvan in (("NBA", True), ("WNBA", False), ("NBA Summer League", True),
+                         ("La Liga", True), ("Liga MX", False), ("Serie A", True),
+                         ("Serie B", False), ("Premier League", True),
+                         ("Champions League", True), ("Euroleague", True),
+                         ("ATP", True), ("WTA", True), ("", False), (None, False)):
+        ck("лигата " + str(lg) + " -> " + str(ochakvan), golyama_liga(lg) is ochakvan)
+    try:
+        with open(os.path.abspath(__file__), encoding="utf-8") as f:
+            src = f.read()
+    except Exception:                                        # noqa: BLE001
+        src = ""
+    ck("подниз-сравнението за лиги го няма",
+       ("b.lower() in lg" + ".lower()") not in src)
+    ck("подниз-сравнението за лиги го няма и в другия вид",
+       ('b.lower() in (e.get("str' + 'League")') not in src)
+    ck("филтрите викат golyama_liga", src.count("golyama_liga(") >= 4)
+
+
 def run_selftest():
     ok = 0; bad = []
 
@@ -401,6 +429,7 @@ def run_selftest():
     check("без долар-скоба", (chr(36) + chr(123)) not in src)
     check("post_channel не вика poster", "poster.send_message" not in src.split("def post_room")[0].split("def post_channel")[1])
 
+    _proveri_ligi(check)
     print(f"SELFTEST: {ok} наред, {len(bad)} проблема.")
     for b in bad: print("  ❌", b)
     return 0 if not bad else 1

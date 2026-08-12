@@ -58,6 +58,9 @@ IZVAN_SEZONA = {
 # разминат двата файла. Разминат ли се, прегледът щеше да крещи за спорт,
 # който никой не предрича — или да мълчи за спорт, който вали в празна стая.
 def zatvoreni():
+    _ot_sredata = os.environ.get("PREDICT_IZKL")
+    if _ot_sredata is not None:
+        return {s.strip() for s in _ot_sredata.split(",") if s.strip()}
     try:
         with io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "predictor.py"), encoding="utf-8-sig") as f:
             src = f.read()

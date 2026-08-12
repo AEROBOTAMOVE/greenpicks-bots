@@ -704,6 +704,15 @@ def zatvoreni_sportove():
     невъзможността да се прочете връща None, което викащият ЗАДЪЛЖИТЕЛНО
     проверява. Празно множество вече значи само едно: няма затворени спортове.
     """
+    # 🔴 12.08.2026. Променливата от СРЕДАТА бие изходния текст. Дотук тези
+    # функции четяха само литерала в predictor.py — тоест PREDICT_IZKL=""
+    # връщаше спорта в предсказателя, а стените, засяването и здравният
+    # преглед продължаваха да го смятат за затворен. Пътят назад работеше на
+    # едно от четири места, а пазачът, който точно това трябва да хване, пак
+    # казваше „наистина затворен" и мълчеше.
+    _ot_sredata = os.environ.get("PREDICT_IZKL")
+    if _ot_sredata is not None:
+        return {s.strip() for s in _ot_sredata.split(",") if s.strip()}
     put = os.path.join(os.path.dirname(os.path.abspath(__file__)), "predictor.py")
     try:
         with open(put, encoding="utf-8-sig") as f:
@@ -731,6 +740,9 @@ def naistina_zatvoren(sport):
     не вдигаме фалшива тревога в среда, където го няма. Тревогата е за
     РАЗМИНАВАНЕ, не за липса.
     """
+    _ot_sredata = os.environ.get("PREDICT_IZKL")
+    if _ot_sredata is not None:
+        return str(sport).strip() in {s.strip() for s in _ot_sredata.split(",") if s.strip()}
     try:
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "predictor.py"), encoding="utf-8-sig") as f:
             src = f.read()
