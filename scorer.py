@@ -823,7 +823,13 @@ def sdb_result(rec):
 #
 # ЗАЩО СЕ ПИТАТ ТРИ ДАТИ: галите са късна вечер в САЩ, тоест рано сутрин по
 # българско. Мач, записан при нас за 12.08, при ESPN стои на 11.08.
-MMA_LIGI = ("ufc", "pfl")
+# 🔴 РАЗШИРЕНО 13.08.2026 — СЕДЕМТЕ ЛИГИ, СЪЩИТЕ КАТО В ПРЕДСКАЗАТЕЛЯ.
+#
+# Ако тук стоят по-малко лиги, отколкото предсказателят пуска, боевете от
+# липсващите се отсъждат НИКОГА — точно дупката, която затворихме вчера, само
+# че отворена наново отстрани. Затова списъкът е един и същ и самопроверката
+# го сверява срещу predictor.py, вместо да се надява.
+MMA_LIGI = ("ufc", "pfl", "bellator", "rizin", "ksw", "lfa", "cage-warriors")
 _mma_kesh = {}
 
 
@@ -1960,7 +1966,25 @@ def selftest():
           ('if b == "mma"' in _iztochnik_scorer
            and "return mma" + "_result(rec)" in _iztochnik_scorer))
     check("ММА НЕ е обявен за спорт без източник", "mma" not in NO_RESULT)
-    check("питат се и двете лиги", set(MMA_LIGI) == {"ufc", "pfl"})
+    check("питат се седем лиги", len(MMA_LIGI) == 7)
+    # 🔴 СВЕРКА С ПРЕДСКАЗАТЕЛЯ. Пусне ли той лига, която оценителят не пита,
+    # боевете от нея висят вечно. Списъкът се чете от неговия код, не се
+    # преписва — препис се разминава мълчаливо.
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "predictor.py"), encoding="utf-8-sig") as f:
+            _psrc = f.read()
+        _marker = "MMA_LEAGUES_VSI = ["
+        _i = _psrc.find(_marker)
+        _blok = _psrc[_i:_psrc.find("]", _i)] if _i >= 0 else ""
+        _pl = {m for m in MMA_LIGI if ('"' + m + '"') in _blok}
+        check("оценителят пита ВСЯКА лига, която предсказателят пуска",
+              _i >= 0 and len(_pl) == len(MMA_LIGI))
+        _lipsva = [x for x in ("ufc", "pfl", "bellator", "rizin", "ksw", "lfa",
+                               "cage-warriors") if ('"' + x + '"') not in _blok]
+        check("нито една лига не е само от едната страна", not _lipsva)
+    except Exception as e:                                   # noqa: BLE001
+        bad.append("не мога да сверя ММА лигите с predictor.py: " + str(e)[:40])
 
     check("тенисът на маса минава през WTT",
           "wtt_result" in _iztochnik_scorer)
