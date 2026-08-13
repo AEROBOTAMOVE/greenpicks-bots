@@ -6858,5 +6858,41 @@
   "stars": 2,
   "sample": "гледани 36 мача на единия и 39 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-13|tabletennis|miyuukihara|xingtongchen",
+  "combo": 0,
+  "posted": "2026-08-13 11:11",
+  "day": "2026-08-13",
+  "bucket": "tabletennis",
+  "home": "Miyuu KIHARA",
+  "away": "Xingtong CHEN",
+  "home_id": "131036",
+  "away_id": "121403",
+  "league": "Europe Smash - Sweden 2026 · Women's Singles",
+  "slug": null,
+  "pick": "2 · Xingtong CHEN",
+  "p": 0.5827,
+  "stars": 2,
+  "sample": "гледани 35 мача на единия и 73 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-13|tennis|adrianmannarino|denisshapovalov",
+  "combo": 0,
+  "posted": "2026-08-13 11:11",
+  "day": "2026-08-13",
+  "bucket": "tennis",
+  "home": "Adrian Mannarino",
+  "away": "Denis Shapovalov",
+  "home_id": "1266",
+  "away_id": "2860",
+  "league": "Cincinnati Open · ATP",
+  "slug": null,
+  "pick": "2 · Denis Shapovalov",
+  "p": 0.5466,
+  "stars": 1,
+  "sample": "ранглиста и 12 скорошни мача",
+  "scored": false
  }
 ]
