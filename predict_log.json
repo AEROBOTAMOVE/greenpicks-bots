@@ -6894,5 +6894,23 @@
   "stars": 1,
   "sample": "ранглиста и 12 скорошни мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-14|volleyball|msen|saintlucia|grenada",
+  "combo": 0,
+  "posted": "2026-08-13 12:00",
+  "day": "2026-08-14",
+  "bucket": "volleyball",
+  "home": "Saint Lucia",
+  "away": "Grenada",
+  "home_id": "LCA",
+  "away_id": "GRN",
+  "league": "ECVA Senior Men’s Volleyball Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Saint Lucia",
+  "p": 0.6512,
+  "stars": 2,
+  "sample": "гледани по 17 мача на всеки",
+  "scored": false
  }
 ]
