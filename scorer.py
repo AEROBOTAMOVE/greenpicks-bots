@@ -804,6 +804,85 @@ def sdb_result(rec):
     return None
 
 
+# ═══════════════════════════════════════════════════ 🥊 БОЙНИ СПОРТОВЕ
+#
+# 🔴 ДОБАВЕНО 12.08.2026 — ММА ПУСКАШЕ КАРТИ, КОИТО НЕ МОЖЕХА ДА БЪДАТ
+# ОТСЪДЕНИ НИКОГА.
+#
+# Измерено в живия дневник: пет записа, НУЛА отсъдени, нула със slug.
+# `SDB_SPORT` няма „mma" → резервната врата пада на първия ред; `espn_result`
+# иска slug, а ММА-записът няма. И спортът НЕ беше в NO_RESULT, тоест го
+# чакахме за нищо: прогнозите висяха, докато срокът ги затвори без присъда.
+# Точно дупката, която затворихме за тениса на маса — само че тук никой не я
+# беше видял, защото ММА дава карти един ден от петнайсет.
+#
+# А източникът е СЪЩИЯТ, от който идват и боевете: ESPN. Проверено на живо:
+#   /mma/ufc/scoreboard?dates=20260811 → 5 боя, 5 завършили,
+#   Joe Kropschot(4687604, winner=True) vs Jon Kunneman(5282317, winner=False)
+# — дума по дума записът от дневника, с неговите home_id и away_id.
+#
+# ЗАЩО СЕ ПИТАТ ТРИ ДАТИ: галите са късна вечер в САЩ, тоест рано сутрин по
+# българско. Мач, записан при нас за 12.08, при ESPN стои на 11.08.
+MMA_LIGI = ("ufc", "pfl")
+_mma_kesh = {}
+
+
+def _mma_gala(liga, ymd):
+    """Боевете от една гала. Кеширано по (лига, дата) — не питаме два пъти."""
+    kl = (liga, ymd)
+    if kl in _mma_kesh:
+        return _mma_kesh[kl]
+    j = http_json(ESPN + "/mma/" + liga + "/scoreboard?dates=" + ymd)
+    idx = {}
+    if isinstance(j, dict):
+        for ev in (j.get("events") or []):
+            for comp in (ev.get("competitions") or []):
+                st = ((comp.get("status") or {}).get("type") or {})
+                if not st.get("completed"):
+                    continue
+                cs = comp.get("competitors") or []
+                if len(cs) != 2:
+                    continue
+                ids = [str(c.get("id") or "") for c in cs]
+                if not all(ids):
+                    continue
+                # Кой е победил. ESPN дава winner=True на единия; ако и двамата
+                # са False (равен/отменен), не отсъждаме — по-добре мълчание,
+                # отколкото измислена присъда.
+                pob = [i for i, c in enumerate(cs) if c.get("winner") is True]
+                if len(pob) != 1:
+                    continue
+                idx[frozenset(ids)] = (ids[pob[0]], ids)
+    _mma_kesh[kl] = idx
+    return idx
+
+
+def mma_result(rec):
+    """(точки_домакин, точки_гост) за бой. 1:0 или 0:1 — няма резултат в бокса.
+
+    Връща None при незавършил бой, равен, отменен или ненамерен.
+    """
+    dom, gost = str(rec.get("home_id") or ""), str(rec.get("away_id") or "")
+    if not dom or not gost:
+        return None
+    den = str(rec.get("day") or "")[:10]
+    if len(den) != 10:
+        return None
+    try:
+        d0 = datetime.strptime(den, "%Y-%m-%d")
+    except ValueError:
+        return None
+    klyuch = frozenset((dom, gost))
+    for otместване in (0, -1, 1):
+        ymd = (d0 + timedelta(days=otместване)).strftime("%Y%m%d")
+        for liga in MMA_LIGI:
+            idx = _mma_gala(liga, ymd)
+            if klyuch in idx:
+                pobeditel, _ = idx[klyuch]
+                return (1, 0) if pobeditel == dom else (0, 1)
+    return None
+
+
 def sport_result(rec):
     """ЕДИНСТВЕНАТА врата към резултат. Всеки спорт минава оттук.
 
@@ -821,6 +900,8 @@ def sport_result(rec):
         return baseball_result(rec)
     if b == "tabletennis":
         return wtt_result(rec)
+    if b == "mma":
+        return mma_result(rec)
     # 🔴 БЕЗ slug ESPN не може да го намери — това са срещите от резервния
     # източник (виж дългото обяснение при sdb_result). Дотук такава прогноза
     # висеше вечно: 22 за WNBA, нула отсъдени.
@@ -1847,6 +1928,40 @@ def selftest():
     # мача само за турнир 3246, от които 23 отсъждат наши висящи прогнози.
     check("тенисът на маса ВЕЧЕ има източник", "tabletennis" not in NO_RESULT)
     check("списъкът без-източник е празен", NO_RESULT == set())
+    # 🥊 ММА — вратата, отворена на 12.08.2026. Дотук спортът пускаше карти,
+    # които НЕ МОГАТ да бъдат отсъдени: пет записа, нула присъди, нула slug.
+    # Тестът работи върху подхвърлена гала, БЕЗ мрежа.
+    _stara_gala = globals().get("_mma_gala")
+    try:
+        globals()["_mma_gala"] = lambda liga, ymd: (
+            {frozenset(("111", "222")): ("111", ["111", "222"])}
+            if (liga == "ufc" and ymd == "20260811") else {})
+        _b = {"bucket": "mma", "day": "2026-08-12", "home_id": "111", "away_id": "222"}
+        check("боят се намира и в предния ден", mma_result(_b) == (1, 0))
+        check("победата на домакина е 1:0", mma_result(_b)[0] > mma_result(_b)[1])
+        _b2 = dict(_b, home_id="222", away_id="111")
+        check("обърнатите бойци дават обърнат резултат", mma_result(_b2) == (0, 1))
+        check("непознат бой не се отсъжда",
+              mma_result(dict(_b, home_id="999")) is None)
+        check("бой без id не се отсъжда", mma_result({"bucket": "mma",
+                                                      "day": "2026-08-12"}) is None)
+        check("бой без ден не се отсъжда",
+              mma_result({"bucket": "mma", "home_id": "111", "away_id": "222"}) is None)
+        check("боклук вместо ден не гърми",
+              mma_result(dict(_b, day="абв")) is None)
+        # Равен или отменен бой: ESPN дава winner=False и на двамата. По-добре
+        # мълчание, отколкото измислена присъда.
+        globals()["_mma_gala"] = lambda liga, ymd: {}
+        check("равен/отменен бой не се отсъжда", mma_result(_b) is None)
+    finally:
+        if _stara_gala is not None:
+            globals()["_mma_gala"] = _stara_gala
+    check("ММА минава през своята врата",
+          ('if b == "mma"' in _iztochnik_scorer
+           and "return mma" + "_result(rec)" in _iztochnik_scorer))
+    check("ММА НЕ е обявен за спорт без източник", "mma" not in NO_RESULT)
+    check("питат се и двете лиги", set(MMA_LIGI) == {"ufc", "pfl"})
+
     check("тенисът на маса минава през WTT",
           "wtt_result" in _iztochnik_scorer)
     # Имената се сравняват по голи латински букви — иначе „Solè" и „Sole"

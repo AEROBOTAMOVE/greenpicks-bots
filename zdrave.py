@@ -110,10 +110,49 @@ def runove():
         return []
 
 
+# ═══════════════════════════════════ 📐 КАЛИБРАЦИЯ (12.08.2026)
+#
+# Най-важното число за продукт, който продава вероятности: като каже 70%,
+# сбъдва ли се 70%? Измерено веднъж на живо върху 279 отсъдени, ботът се
+# ПОДЦЕНЯВАШЕ — обещава 63.4%, сбъдва 70.6%. Средният ешелон биеше обещаното
+# с над единайсет пункта.
+#
+# Това не е дефект, който яде пари. Но е разминаване между числото и истината,
+# а правилото на собственика е точно това. И е нещо, което не бива да се мери
+# веднъж и да се забрави — затова живее тук и излиза при всеки преглед.
+#
+# НЕ пипаме модела заради него. Числото само се показва; решението е човешко.
+KOFI = ((0.45, 0.53), (0.53, 0.60), (0.60, 0.68), (0.68, 0.80), (0.80, 1.01))
+KALIB_MIN = 40          # под толкова отсъдени не се произнасяме изобщо
+KALIB_PRAG = 8.0        # пунктове разминаване, над които го наричаме проблем
+
+
+def kalibraciya(log, bucket=None):
+    """[(етикет, брой, обещано%, сбъднато%)] + общият ред. Празно = малко данни."""
+    ots = [r for r in (log or [])
+           if r.get("scored") and r.get("hit") is not None and r.get("p")
+           and (bucket is None or r.get("bucket") == bucket)]
+    if len(ots) < KALIB_MIN:
+        return [], len(ots)
+    out = []
+    for a2, b2 in KOFI:
+        g = [r for r in ots if a2 <= float(r["p"]) < b2]
+        if len(g) < 10:
+            continue
+        out.append(("%d-%d%%" % (a2 * 100, b2 * 100), len(g),
+                    100.0 * sum(float(r["p"]) for r in g) / len(g),
+                    100.0 * sum(1 for r in g if r["hit"]) / len(g)))
+    out.append(("ВСИЧКО", len(ots),
+                100.0 * sum(float(r["p"]) for r in ots) / len(ots),
+                100.0 * sum(1 for r in ots if r["hit"]) / len(ots)))
+    return out, len(ots)
+
+
 def main():
     kratko = "--kratko" in sys.argv
     now = datetime.now(SOFIA)
     dnes = now.strftime("%Y-%m-%d")
+    vchera_den = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 
     log = ot_github("predict_log.json")
     if log is None:
@@ -183,8 +222,20 @@ def main():
                 problemi.append(IME[b] + ": %d дни без нито една карта (таван %d)"
                                 % (dni_bez, tavan))
         elif surovi == 0:
-            sast = "празно — източникът върна нула срещи"
-            problemi.append(IME[b] + ": източникът е празен, а не е извън сезон")
+            # 🔴 12.08.2026. Тук пак крещеше напразно. „Нула срещи" се чете от
+            # ПОСЛЕДНИЯ рън — а последният рън на деня е в 22:00, когато
+            # футболът наистина няма какво да предложи за оставащите два часа.
+            # Спорт, който вече си е свършил работата днес, не е счупен.
+            # Гърми само ако е мълчал И вчера: тогава дупката е реална.
+            vchera = [r for r in log if r.get("bucket") == b
+                      and str(r.get("posted") or "")[:10] == vchera_den]
+            if dnesni or za_dnes or vchera:
+                sast = ("източникът е празен в последния рън, но спортът"
+                        " е давал карти")
+            else:
+                sast = "празно — източникът върна нула срещи"
+                problemi.append(IME[b] + ": източникът е празен, а не е извън"
+                                " сезон, и няма карти нито днес, нито вчера")
         elif surovi:
             sast = "0 карти днес, но източникът даде %s срещи" % surovi
             problemi.append(IME[b] + ": има срещи, няма карти — филтрите изядоха"
@@ -247,6 +298,35 @@ def main():
             for w in cherveni[:3]:
                 print("         🔴 %s · %s" % (w.get("name", "")[:26], w.get("run_started_at", "")))
         print("")
+
+    # ---------- 4. КАЛИБРАЦИЯ ----------
+    kal, n_kal = kalibraciya(log)
+    if not kratko:
+        print("📐 КАЛИБРАЦИЯ · като каже X%, сбъдва ли се X%?")
+        if not kal:
+            print("   още малко данни: %d отсъдени, трябват поне %d"
+                  % (n_kal, KALIB_MIN))
+        else:
+            print("   %-12s %6s %9s %10s %8s" % ("обявено", "брой", "обещава",
+                                                 "сбъдва", "разлика"))
+            for etiket, br, obe, sbd in kal:
+                print("   %-12s %6d %8.1f%% %9.1f%% %+7.1f"
+                      % (etiket, br, obe, sbd, sbd - obe))
+        print("")
+
+    # Спорт, който НАДЦЕНЯВА себе си, е по-опасен от такъв, който се подценява:
+    # човекът плаща вниманието си по обявеното число. Затова тук гърми само
+    # отрицателната посока, и то при достатъчно данни.
+    for b in sorted(IME):
+        if b in ZATVORENI:
+            continue
+        k, n_b = kalibraciya(log, b)
+        if not k:
+            continue
+        _, br, obe, sbd = k[-1]
+        if sbd - obe < -KALIB_PRAG:
+            problemi.append("%s: обещава %.0f%%, сбъдва %.0f%% (%d отсъдени)"
+                            " — надценява се" % (IME[b], obe, sbd, br))
 
     if problemi:
         print("🔴 ЗА ГЛЕДАНЕ (%d):" % len(problemi))
