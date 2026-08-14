@@ -3043,7 +3043,7 @@
   "p": 0.5739,
   "stars": 2,
   "sample": "по 87 и 59 мача",
-  "scored": false,
+  "scored": true,
   "hit": null
  },
  {
@@ -6528,7 +6528,9 @@
   "p": 0.5903,
   "stars": 2,
   "sample": "гледани 56 мача на единия и 80 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-13|tennis|christopheroconnell|aleksandrshevchenko",
@@ -6708,7 +6710,10 @@
   "p": 0.7113,
   "stars": 3,
   "sample": "гледани 82 мача на единия и 76 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "85:81",
+  "combo_done": true
  },
  {
   "key": "2026-08-14|tennis|brandonnakashima|benshelton",
@@ -6726,7 +6731,10 @@
   "p": 0.6144,
   "stars": 3,
   "sample": "ранглиста и 20 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "combo_done": true
  },
  {
   "key": "2026-08-13|baseball|chicagowhitesox|cincinnatireds",
@@ -6764,7 +6772,10 @@
   "p": 0.6894,
   "stars": 3,
   "sample": "гледани 91 мача на единия и 76 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "83:76",
+  "combo_done": true
  },
  {
   "key": "2026-08-13|football|pafos|rbsalzburg",
@@ -6846,7 +6857,8 @@
   "sample": "ранглиста и 13 скорошни мача",
   "scored": true,
   "hit": true,
-  "score": "1:2"
+  "score": "1:2",
+  "combo_done": true
  },
  {
   "key": "2026-08-13|tennis|jackdraper|martinlandaluce",
@@ -6866,7 +6878,8 @@
   "sample": "ранглиста и 4 скорошни мача",
   "scored": true,
   "hit": true,
-  "score": "0:2"
+  "score": "0:2",
+  "combo_done": true
  },
  {
   "key": "2026-08-14|basketball|connecticutsun|atlantadream",
@@ -6884,7 +6897,10 @@
   "p": 0.6371,
   "stars": 3,
   "sample": "гледани 75 мача на единия и 79 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "69:104",
+  "combo_done": true
  },
  {
   "key": "2026-08-13|tabletennis|mankuai|sofiapolcanova",
@@ -6982,7 +6998,9 @@
   "p": 0.5827,
   "stars": 2,
   "sample": "гледани 35 мача на единия и 73 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-13|tennis|adrianmannarino|denisshapovalov",
@@ -7000,7 +7018,9 @@
   "p": 0.5466,
   "stars": 1,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-08-14|volleyball|msen|saintlucia|grenada",
@@ -7018,7 +7038,9 @@
   "p": 0.6512,
   "stars": 2,
   "sample": "гледани по 17 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-13|football|бешикташ|fchradeckrálové",
@@ -7076,7 +7098,9 @@
   "p": 0.54,
   "stars": 1,
   "sample": "ранглиста и 17 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1"
  },
  {
   "key": "2026-08-14|volleyball|msen|britishvirginislands|bermuda",
@@ -7094,7 +7118,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-13|volleyball|wsen|bermuda|dominica",
@@ -7152,7 +7178,9 @@
   "p": 0.92,
   "stars": 1,
   "sample": "гледани 11 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-13|tabletennis|christinakallberg|yichen",
@@ -7230,7 +7258,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-13|tabletennis|jonathangroth|yunjulin",
@@ -7308,7 +7338,9 @@
   "p": 0.5345,
   "stars": 1,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-08-13|tabletennis|nayeongkim|miwaharimoto",
