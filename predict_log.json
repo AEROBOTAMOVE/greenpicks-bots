@@ -7811,5 +7811,41 @@
   "stars": 1,
   "sample": "без история",
   "scored": false
+ },
+ {
+  "key": "2026-08-14|tabletennis|shidonglin|alexislebrun",
+  "combo": 0,
+  "posted": "2026-08-14 15:45",
+  "day": "2026-08-14",
+  "bucket": "tabletennis",
+  "home": "Shidong LIN",
+  "away": "Alexis LEBRUN",
+  "home_id": "137237",
+  "away_id": "132992",
+  "league": "Europe Smash - Sweden 2026 · Men's Singles",
+  "slug": null,
+  "pick": "1 · Shidong LIN",
+  "p": 0.5562,
+  "stars": 2,
+  "sample": "гледани 69 мача на единия и 59 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-14|volleyball|wyou|италия|сащ",
+  "combo": 0,
+  "posted": "2026-08-14 15:45",
+  "day": "2026-08-14",
+  "bucket": "volleyball",
+  "home": "Италия",
+  "away": "САЩ",
+  "home_id": "ITA",
+  "away_id": "USA",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "2 · победа САЩ",
+  "p": 0.6193,
+  "stars": 3,
+  "sample": "гледани 37 мача на единия и 39 на другия",
+  "scored": false
  }
 ]
