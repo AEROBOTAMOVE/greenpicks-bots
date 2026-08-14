@@ -7955,5 +7955,41 @@
   "stars": 1,
   "sample": "без история",
   "scored": false
+ },
+ {
+  "key": "2026-08-15|volleyball|wsen|bermuda|anguilla",
+  "combo": 0,
+  "posted": "2026-08-14 19:53",
+  "day": "2026-08-15",
+  "bucket": "volleyball",
+  "home": "Bermuda",
+  "away": "Anguilla",
+  "home_id": "BER",
+  "away_id": "AGU",
+  "league": "ECVA Senior Women’s Volleyball Championship 2026",
+  "slug": null,
+  "pick": "1 · победа Bermuda",
+  "p": 0.92,
+  "stars": 1,
+  "sample": "гледани 12 мача на единия и 8 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-15|tabletennis|darkojorgic|omarassar",
+  "combo": 0,
+  "posted": "2026-08-14 19:53",
+  "day": "2026-08-15",
+  "bucket": "tabletennis",
+  "home": "Darko JORGIC",
+  "away": "Omar ASSAR",
+  "home_id": "118927",
+  "away_id": "100696",
+  "league": "Europe Smash - Sweden 2026 · Men's Singles",
+  "slug": null,
+  "pick": "1 · Darko JORGIC",
+  "p": 0.6234,
+  "stars": 2,
+  "sample": "гледани 77 мача на единия и 42 на другия",
+  "scored": false
  }
 ]
