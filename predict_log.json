@@ -7919,5 +7919,41 @@
   "stars": 2,
   "sample": "гледани 63 мача на единия и 92 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-14|tabletennis|mankuai|ninamittelham",
+  "combo": 0,
+  "posted": "2026-08-14 18:46",
+  "day": "2026-08-14",
+  "bucket": "tabletennis",
+  "home": "Man KUAI",
+  "away": "Nina MITTELHAM",
+  "home_id": "135049",
+  "away_id": "114726",
+  "league": "Europe Smash - Sweden 2026 · Women's Singles",
+  "slug": null,
+  "pick": "1 · Man KUAI",
+  "p": 0.5838,
+  "stars": 2,
+  "sample": "гледани 75 мача на единия и 36 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-15|volleyball|msen|britishvirginislands|dominica",
+  "combo": 0,
+  "posted": "2026-08-14 18:46",
+  "day": "2026-08-15",
+  "bucket": "volleyball",
+  "home": "British Virgin Islands",
+  "away": "Dominica",
+  "home_id": "IVB",
+  "away_id": "DMA",
+  "league": "ECVA Senior Men’s Volleyball Championship 2026",
+  "slug": null,
+  "pick": "1 · победа British Virgin Islands",
+  "p": 0.55,
+  "stars": 1,
+  "sample": "без история",
+  "scored": false
  }
 ]
