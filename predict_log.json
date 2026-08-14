@@ -3004,8 +3004,9 @@
   "p": 0.5739,
   "stars": 2,
   "sample": "по 87 и 59 мача",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-08-08|volleyball|wyou|аржентина|испания",
@@ -7411,7 +7412,9 @@
   "p": 0.5795,
   "stars": 2,
   "sample": "гледани 117 мача на единия и 65 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-14|baseball|chicagocubs|stlouiscardinals",
@@ -7555,7 +7558,9 @@
   "p": 0.7255,
   "stars": 3,
   "sample": "гледани 50 мача на единия и 61 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-15|basketball|seattlestorm|portlandfire",
@@ -7591,7 +7596,9 @@
   "p": 0.5735,
   "stars": 3,
   "sample": "гледани по 35 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-14|tabletennis|qihaozhou|soramatsushima",
@@ -7609,7 +7616,9 @@
   "p": 0.5609,
   "stars": 2,
   "sample": "гледани 41 мача на единия и 81 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-15|baseball|detroittigers|chicagowhitesox",
@@ -7645,7 +7654,9 @@
   "p": 0.5392,
   "stars": 1,
   "sample": "гледани 62 мача на единия и 36 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-15|football|racingclub|banfield",
@@ -7699,7 +7710,9 @@
   "p": 0.5441,
   "stars": 1,
   "sample": "гледани 75 мача на единия и 91 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-14|tabletennis|yinghan|miwaharimoto",
@@ -7717,7 +7730,9 @@
   "p": 0.6572,
   "stars": 2,
   "sample": "гледани 41 мача на единия и 115 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-14|tabletennis|tomislavpucar|eliasranefur",
@@ -7735,7 +7750,9 @@
   "p": 0.5629,
   "stars": 2,
   "sample": "гледани 66 мача на единия и 56 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-14|football|kiklaksvik|lechpoznan",
@@ -7753,7 +7770,9 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:5"
  },
  {
   "key": "2026-08-14|football|галатасарай|çorumfk",
@@ -7789,7 +7808,9 @@
   "p": 0.5562,
   "stars": 2,
   "sample": "гледани 69 мача на единия и 59 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-14|volleyball|wyou|италия|сащ",
@@ -7807,7 +7828,9 @@
   "p": 0.6193,
   "stars": 3,
   "sample": "гледани 37 мача на единия и 39 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-14|tabletennis|omarassar|jonathangroth",
@@ -7825,7 +7848,9 @@
   "p": 0.5327,
   "stars": 1,
   "sample": "гледани 42 мача на единия и 33 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-14|volleyball|msen|bermuda|anguilla",
@@ -7843,7 +7868,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-14|tabletennis|annettkaufmann|yichen",
@@ -7861,7 +7888,9 @@
   "p": 0.5573,
   "stars": 2,
   "sample": "гледани 38 мача на единия и 63 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-14|tabletennis|shunsuketogami|tomokazuharimoto",
@@ -7879,7 +7908,9 @@
   "p": 0.5857,
   "stars": 2,
   "sample": "гледани 63 мача на единия и 92 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-14|tabletennis|mankuai|ninamittelham",
@@ -7897,7 +7928,9 @@
   "p": 0.5838,
   "stars": 2,
   "sample": "гледани 75 мача на единия и 36 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-15|volleyball|msen|britishvirginislands|dominica",
@@ -7969,7 +8002,9 @@
   "p": 0.6123,
   "stars": 2,
   "sample": "гледани 87 мача на единия и 53 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-15|volleyball|msen|antiguaandbarbuda|grenada",
