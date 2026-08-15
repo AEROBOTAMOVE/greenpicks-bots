@@ -1,24 +1,5 @@
 [
  {
-  "key": "2026-08-01|football|newyorkcityfc|torontofc",
-  "posted": "2026-07-31 01:47",
-  "day": "2026-08-01",
-  "bucket": "football",
-  "home": "New York City FC",
-  "away": "Toronto FC",
-  "home_id": "17606",
-  "away_id": "7318",
-  "league": "MLS",
-  "slug": "usa.1",
-  "pick": "1 · победа New York City FC",
-  "p": 0.6407,
-  "stars": 3,
-  "sample": "извадка 56+51 мача",
-  "scored": true,
-  "hit": false,
-  "score": "1:1"
- },
- {
   "key": "2026-08-01|basketball|atlantadream|seattlestorm",
   "posted": "2026-07-31 01:47",
   "day": "2026-08-01",
@@ -8005,6 +7986,24 @@
   "p": 0.6209,
   "stars": 3,
   "sample": "гледани 76 мача на единия и 83 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-15|football|willemii|necnijmegen",
+  "combo": 0,
+  "posted": "2026-08-15 08:18",
+  "day": "2026-08-15",
+  "bucket": "football",
+  "home": "Willem II",
+  "away": "NEC Nijmegen",
+  "home_id": "156",
+  "away_id": "147",
+  "league": "Ередивизи",
+  "slug": "ned.1",
+  "pick": "2 · победа NEC Nijmegen",
+  "p": 0.5613,
+  "stars": 3,
+  "sample": "гледани по 35 мача на всеки",
   "scored": false
  }
 ]
