@@ -1,24 +1,5 @@
 [
  {
-  "key": "2026-08-01|basketball|atlantadream|seattlestorm",
-  "posted": "2026-07-31 01:47",
-  "day": "2026-08-01",
-  "bucket": "basketball",
-  "home": "Atlanta Dream",
-  "away": "Seattle Storm",
-  "home_id": "20",
-  "away_id": "14",
-  "league": "WNBA",
-  "slug": "wnba",
-  "pick": "1 · победа Atlanta Dream",
-  "p": 0.728,
-  "stars": 3,
-  "sample": "извадка 74+77 мача",
-  "scored": true,
-  "hit": true,
-  "score": "98:89"
- },
- {
   "key": "2026-08-01|basketball|portlandfire|indianafever",
   "posted": "2026-07-31 11:19",
   "day": "2026-08-01",
@@ -8004,6 +7985,24 @@
   "p": 0.5613,
   "stars": 3,
   "sample": "гледани по 35 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-08-15|football|fcutrecht|azalkmaar",
+  "combo": 0,
+  "posted": "2026-08-15 10:22",
+  "day": "2026-08-15",
+  "bucket": "football",
+  "home": "FC Utrecht",
+  "away": "AZ Alkmaar",
+  "home_id": "153",
+  "away_id": "140",
+  "league": "Ередивизи",
+  "slug": "ned.1",
+  "pick": "1 · победа FC Utrecht",
+  "p": 0.4726,
+  "stars": 3,
+  "sample": "гледани 37 мача на единия и 35 на другия",
   "scored": false
  }
 ]
