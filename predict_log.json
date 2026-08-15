@@ -1,24 +1,5 @@
 [
  {
-  "key": "2026-07-31|tennis|brandonnakashima|alexdeminaur",
-  "posted": "2026-07-31 11:19",
-  "day": "2026-07-31",
-  "bucket": "tennis",
-  "home": "Brandon Nakashima",
-  "away": "Alex de Minaur",
-  "home_id": "3774",
-  "away_id": "2651",
-  "league": "Mubadala DC Open · ATP",
-  "slug": null,
-  "pick": "2 · Alex de Minaur",
-  "p": 0.7434,
-  "stars": 2,
-  "sample": "ранглиста + 4+6 скорошни мача",
-  "scored": true,
-  "hit": false,
-  "score": "2:0"
- },
- {
   "key": "2026-07-31|tabletennis|yuankaiwu|shihyuanlu",
   "posted": "2026-07-31 11:19",
   "day": "2026-07-31",
@@ -8001,6 +7982,24 @@
   "p": 0.5582,
   "stars": 2,
   "sample": "гледани 147 мача на единия и 144 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-15|volleyball|wyou|венецуела|филипини",
+  "combo": 0,
+  "posted": "2026-08-15 12:27",
+  "day": "2026-08-15",
+  "bucket": "volleyball",
+  "home": "Венецуела",
+  "away": "Филипини",
+  "home_id": "VEN",
+  "away_id": "PHI",
+  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
+  "slug": null,
+  "pick": "2 · победа Филипини",
+  "p": 0.5795,
+  "stars": 2,
+  "sample": "гледани 35 мача на единия и 20 на другия",
   "scored": false
  }
 ]
