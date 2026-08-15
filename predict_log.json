@@ -6881,7 +6881,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 56 мача на единия и 27 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-14|football|спортинглисабон|vitóriadeguimaraes",
@@ -6899,7 +6901,9 @@
   "p": 0.796,
   "stars": 3,
   "sample": "гледани по 35 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-15|basketball|indianafever|dallaswings",
@@ -6917,7 +6921,9 @@
   "p": 0.6803,
   "stars": 3,
   "sample": "гледани 86 мача на единия и 78 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "98:87"
  },
  {
   "key": "2026-08-15|tennis|rinkyhijikata|lucianodarderi",
@@ -6973,7 +6979,9 @@
   "p": 0.5611,
   "stars": 2,
   "sample": "гледани 145 мача на единия и 142 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-15|volleyball|wyou|испания|тунис",
@@ -6991,7 +6999,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "гледани 13 мача на единия и 43 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-15|tennis|cameronnorrie|alexanderzverev",
@@ -7027,7 +7037,9 @@
   "p": 0.8936,
   "stars": 3,
   "sample": "гледани 61 мача на единия и 107 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-15|tennis|jakubmensik|mattiabellucci",
@@ -7119,7 +7131,9 @@
   "p": 0.6156,
   "stars": 3,
   "sample": "гледани 82 мача на единия и 33 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "82:84"
  },
  {
   "key": "2026-08-14|football|telstar|spartarotterdam",
@@ -7177,7 +7191,9 @@
   "p": 0.5539,
   "stars": 2,
   "sample": "гледани по 142 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:9"
  },
  {
   "key": "2026-08-14|tabletennis|xunyaoshi|miyuukihara",
@@ -7215,7 +7231,9 @@
   "p": 0.4729,
   "stars": 3,
   "sample": "гледани 59 мача на единия и 52 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-08-15|volleyball|wyou|египет|пуерторико",
@@ -7233,7 +7251,9 @@
   "p": 0.5812,
   "stars": 3,
   "sample": "гледани 53 мача на единия и 70 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-14|tabletennis|yubinshin|hinahayata",
@@ -7331,7 +7351,9 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2"
  },
  {
   "key": "2026-08-14|tabletennis|shidonglin|alexislebrun",
@@ -7489,7 +7511,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-15|volleyball|wsen|bermuda|anguilla",
@@ -7507,7 +7531,9 @@
   "p": 0.92,
   "stars": 1,
   "sample": "гледани 12 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-15|tabletennis|darkojorgic|omarassar",
@@ -7563,7 +7589,9 @@
   "p": 0.5771,
   "stars": 2,
   "sample": "гледани 22 мача на единия и 18 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-15|tabletennis|annawalter|xiaoweisun",
@@ -7581,7 +7609,9 @@
   "p": 0.574,
   "stars": 2,
   "sample": "гледани 97 мача на единия и 30 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:4"
  },
  {
   "key": "2026-08-15|tabletennis|gorkemocal|motiejusadamonis",
@@ -7599,7 +7629,9 @@
   "p": 0.606,
   "stars": 2,
   "sample": "гледани 137 мача на единия и 31 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:0"
  },
  {
   "key": "2026-08-15|tabletennis|soraokada|erikkogerfelt",
@@ -7617,7 +7649,9 @@
   "p": 0.6284,
   "stars": 2,
   "sample": "гледани 118 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:1"
  },
  {
   "key": "2026-08-15|tabletennis|lisazhao|karissserban",
@@ -7635,7 +7669,9 @@
   "p": 0.6218,
   "stars": 2,
   "sample": "гледани 79 мача на единия и 67 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "4:3"
  },
  {
   "key": "2026-08-16|volleyball|wyou|аржентина|доминиканскарепублика",
@@ -7725,7 +7761,9 @@
   "p": 0.5635,
   "stars": 2,
   "sample": "гледани 146 мача на единия и 143 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-16|mma|jeremiahwells|myktybekorolbai",
@@ -7905,7 +7943,9 @@
   "p": 0.5582,
   "stars": 2,
   "sample": "гледани 147 мача на единия и 144 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:5"
  },
  {
   "key": "2026-08-15|volleyball|wyou|венецуела|филипини",
