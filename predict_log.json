@@ -1,26 +1,5 @@
 [
  {
-  "key": "2026-08-04|tabletennis|cheonhuijoo|yulingzhu",
-  "combo": 0,
-  "posted": "2026-08-04 08:06",
-  "day": "2026-08-04",
-  "bucket": "tabletennis",
-  "home": "Cheonhui JOO",
-  "away": "Yuling ZHU",
-  "home_id": "200413",
-  "away_id": "117332",
-  "league": "WTT Champions Yokohama 2026 · Women's Singles",
-  "slug": null,
-  "pick": "2 · Yuling ZHU",
-  "p": 0.6105,
-  "stars": 2,
-  "sample": "извадка 70+73 мача",
-  "scored": true,
-  "hit": true,
-  "opit": 1,
-  "score": "1:3"
- },
- {
   "key": "2026-08-04|football|hapoelbeer|redstarbelgrade",
   "combo": 0,
   "posted": "2026-08-04 08:06",
@@ -8024,6 +8003,24 @@
   "p": 0.5896,
   "stars": 2,
   "sample": "гледани 79 мача на единия и 88 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-16|football|ajaxamsterdam|heerenveen",
+  "combo": 0,
+  "posted": "2026-08-16 13:28",
+  "day": "2026-08-16",
+  "bucket": "football",
+  "home": "Ajax Amsterdam",
+  "away": "Heerenveen",
+  "home_id": "139",
+  "away_id": "146",
+  "league": "Ередивизи",
+  "slug": "ned.1",
+  "pick": "1 · победа Ajax Amsterdam",
+  "p": 0.5602,
+  "stars": 3,
+  "sample": "гледани 37 мача на единия и 36 на другия",
   "scored": false
  }
 ]
