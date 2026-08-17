@@ -1,27 +1,5 @@
 [
  {
-  "key": "2026-08-05|basketball|washingtonmystics|dallaswings",
-  "combo": 2,
-  "posted": "2026-08-05 01:43",
-  "day": "2026-08-05",
-  "bucket": "basketball",
-  "home": "Washington Mystics",
-  "away": "Dallas Wings",
-  "home_id": "136446",
-  "away_id": "136441",
-  "league": "WNBA",
-  "slug": null,
-  "pick": "1 · победа Washington Mystics",
-  "p": 0.6,
-  "stars": 1,
-  "sample": "без история",
-  "scored": true,
-  "hit": true,
-  "combo_done": true,
-  "opit": 1,
-  "score": "96:92"
- },
- {
   "key": "2026-08-06|volleyball|myou|мексико|канада",
   "combo": 2,
   "posted": "2026-08-05 01:43",
@@ -8047,6 +8025,24 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
+  "scored": false
+ },
+ {
+  "key": "2026-08-18|football|internacional|remo",
+  "combo": 0,
+  "posted": "2026-08-17 08:29",
+  "day": "2026-08-18",
+  "bucket": "football",
+  "home": "Internacional",
+  "away": "Remo",
+  "home_id": "1936",
+  "away_id": "4936",
+  "league": "Серия А, Бразилия",
+  "slug": "bra.1",
+  "pick": "1 · победа Internacional",
+  "p": 0.4532,
+  "stars": 3,
+  "sample": "гледани 60 мача на единия и 22 на другия",
   "scored": false
  }
 ]
