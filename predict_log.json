@@ -1,27 +1,5 @@
 [
  {
-  "key": "2026-08-05|volleyball|msen|тайван|macaochina",
-  "combo": 2,
-  "posted": "2026-08-05 01:43",
-  "day": "2026-08-05",
-  "bucket": "volleyball",
-  "home": "Тайван",
-  "away": "Macao, China",
-  "home_id": "TPE",
-  "away_id": "MAC",
-  "league": "Asian Eastern Zonal Men’s Volleyball Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Тайван",
-  "p": 0.55,
-  "stars": 1,
-  "sample": "без история",
-  "scored": true,
-  "hit": true,
-  "combo_done": true,
-  "opit": 1,
-  "score": "3:0"
- },
- {
   "key": "2026-08-06|volleyball|myou|венецуела|honduras",
   "combo": 0,
   "posted": "2026-08-05 16:17",
@@ -8076,6 +8054,24 @@
   "p": 0.8082,
   "stars": 2,
   "sample": "ранглиста и 10 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-08-17|tennis|alejandrotabilo|rafaeljodar",
+  "combo": 0,
+  "posted": "2026-08-17 19:28",
+  "day": "2026-08-17",
+  "bucket": "tennis",
+  "home": "Alejandro Tabilo",
+  "away": "Rafael Jodar",
+  "home_id": "2970",
+  "away_id": "12657",
+  "league": "Cincinnati Open · ATP",
+  "slug": null,
+  "pick": "2 · Rafael Jodar",
+  "p": 0.6654,
+  "stars": 3,
+  "sample": "ранглиста и 21 скорошни мача",
   "scored": false
  }
 ]
