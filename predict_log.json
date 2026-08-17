@@ -7173,7 +7173,9 @@
   "p": 0.8583,
   "stars": 3,
   "sample": "ранглиста и 19 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0"
  },
  {
   "key": "2026-08-16|volleyball|wyou|чили|пуерторико",
@@ -7231,7 +7233,10 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 102 мача на единия и 32 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-17|tennis|jaimefaria|benshelton",
@@ -7249,7 +7254,10 @@
   "p": 0.8583,
   "stars": 3,
   "sample": "ранглиста и 19 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-17|basketball|phoenixmercury|portlandfire",
@@ -7267,7 +7275,10 @@
   "p": 0.6394,
   "stars": 3,
   "sample": "гледани 90 мача на единия и 34 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "85:88",
+  "combo_done": true
  },
  {
   "key": "2026-08-16|baseball|atlantabraves|arizonadiamondbacks",
@@ -7325,7 +7336,10 @@
   "p": 0.7629,
   "stars": 3,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "combo_done": true
  },
  {
   "key": "2026-08-16|volleyball|wyou|аржентина|япония",
@@ -7343,7 +7357,10 @@
   "p": 0.7564,
   "stars": 3,
   "sample": "гледани 63 мача на единия и 54 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-16|tennis|felixaugeraliassime|stefanostsitsipas",
@@ -7419,7 +7436,10 @@
   "p": 0.6223,
   "stars": 3,
   "sample": "гледани 83 мача на единия и 78 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "80:82",
+  "combo_done": true
  },
  {
   "key": "2026-08-16|football|feyenoordrotterdam|goaheadeagles",
@@ -7495,7 +7515,9 @@
   "p": 0.6028,
   "stars": 3,
   "sample": "гледани 80 мача на единия и 87 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "91:95"
  },
  {
   "key": "2026-08-16|tabletennis|yidiwang|miwaharimoto",
@@ -7693,7 +7715,9 @@
   "p": 0.8809,
   "stars": 3,
   "sample": "гледани 53 мача на единия и 37 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-17|volleyball|wyou|сащ|türkiye",
@@ -7711,7 +7735,9 @@
   "p": 0.7568,
   "stars": 3,
   "sample": "гледани 41 мача на единия и 37 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-16|volleyball|msen|grenada|antiguaandbarbuda",
@@ -7769,7 +7795,9 @@
   "p": 0.8141,
   "stars": 1,
   "sample": "гледани 7 мача на единия и 19 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-16|volleyball|wsen|saintlucia|britishvirginislands",
@@ -7845,7 +7873,9 @@
   "p": 0.5618,
   "stars": 1,
   "sample": "гледани 13 мача на единия и 14 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-16|football|amedsfk|erzurumbb",
@@ -7863,7 +7893,9 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-16|football|бешикташ|eyupspor",
@@ -7881,7 +7913,9 @@
   "p": 0.6138,
   "stars": 3,
   "sample": "гледани по 34 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-17|volleyball|msen|stvincentthegrenadines|saintlucia",
@@ -7899,7 +7933,9 @@
   "p": 0.682,
   "stars": 2,
   "sample": "гледани 10 мача на единия и 20 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-08-17|tennis|flaviocobolli|alexanderblockx",
