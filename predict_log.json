@@ -7869,7 +7869,9 @@
   "p": 0.643,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1"
  },
  {
   "key": "2026-08-17|football|casapia|бенфика",
