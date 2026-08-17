@@ -1,26 +1,5 @@
 [
  {
-  "key": "2026-08-06|volleyball|myou|мексико|канада",
-  "combo": 2,
-  "posted": "2026-08-05 01:43",
-  "day": "2026-08-06",
-  "bucket": "volleyball",
-  "home": "Мексико",
-  "away": "Канада",
-  "home_id": "MEX",
-  "away_id": "CAN",
-  "league": "2026 NORCECA U17 Boys’ Pan American Cup",
-  "slug": null,
-  "pick": "2 · победа Канада (3:1)",
-  "p": 0.5974,
-  "stars": 3,
-  "sample": "по 74 и 52 мача",
-  "scored": true,
-  "hit": false,
-  "score": "3:0",
-  "combo_done": true
- },
- {
   "key": "2026-08-05|volleyball|msen|тайван|macaochina",
   "combo": 2,
   "posted": "2026-08-05 01:43",
@@ -8079,6 +8058,24 @@
   "p": 0.4532,
   "stars": 3,
   "sample": "гледани 60 мача на единия и 22 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-18|tennis|felixaugeraliassime|juanmanuelcerundolo",
+  "combo": 0,
+  "posted": "2026-08-17 18:21",
+  "day": "2026-08-18",
+  "bucket": "tennis",
+  "home": "Felix Auger-Aliassime",
+  "away": "Juan Manuel Cerundolo",
+  "home_id": "3209",
+  "away_id": "4008",
+  "league": "Cincinnati Open · ATP",
+  "slug": null,
+  "pick": "1 · Felix Auger-Aliassime",
+  "p": 0.8082,
+  "stars": 2,
+  "sample": "ранглиста и 10 скорошни мача",
   "scored": false
  }
 ]
