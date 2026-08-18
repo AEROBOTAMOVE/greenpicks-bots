@@ -11,21 +11,34 @@ def _api(method):
     return f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
 
 def send_message(chat_id, text, thread_id=None, preview=False):
-    """Прост текстов пост (HTML)."""
-    import urllib.parse
+    """Прост текстов пост (HTML). 429 уважава parameters.retry_after и опитва още веднъж."""
+    import urllib.parse, time
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML",
                "disable_web_page_preview": (not preview)}
     tid = str(thread_id or "").strip()
     if tid.isdigit() and int(tid) > 1:
         payload["message_thread_id"] = int(tid)
     data = urllib.parse.urlencode(payload).encode()
-    try:
-        with urllib.request.urlopen(urllib.request.Request(_api("sendMessage"), data=data), timeout=25) as r:
-            return json.loads(r.read()).get("ok", False)
-    except urllib.error.HTTPError as e:
-        print("sendMessage HTTP", e.code, e.read().decode("utf-8","replace")[:200]); return False
-    except Exception as e:
-        print("sendMessage FAIL:", e); return False
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(_api("sendMessage"), data=data), timeout=25) as r:
+                return json.loads(r.read()).get("ok", False)
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")[:300]
+            print("sendMessage HTTP", e.code, body[:200])
+            if e.code == 429 and attempt == 1:
+                wait = 3
+                try:
+                    wait = int((json.loads(body).get("parameters") or {}).get("retry_after", 3))
+                except Exception:
+                    pass
+                time.sleep(min(max(wait, 1), 60) + 1)
+                continue
+            return False
+        except Exception as e:
+            print("sendMessage FAIL:", e)
+            return False
+    return False
 
 def send_photo(chat_id, image_path, caption="", thread_id=None):
     """Праща картинка + подпис (multipart/form-data, чист stdlib)."""

@@ -167,9 +167,14 @@ PAZAR_MIN = 30          # под толкова двойки не се прои�
 
 def sreshtu_pazara(log):
     """(редове за печат, брой сравними). Празно, ако още няма данни."""
+    # 🔴 САМО ВЕРСИЯ 2+ (18.08.2026). Версия 1 записваше суровото `1/цена`, в
+    # което седи делът на букмейкъра: измерено 7.4% при футбола, 1.9% при
+    # бейзбола. Прагът тук е 2% — тоест старите записи са изкривени с повече
+    # от цялата ширина на самия праг. Не се смесват.
     dvoyki = [r for r in (log or [])
               if r.get("scored") and r.get("hit") is not None
-              and r.get("p") and r.get("pazar_p")]
+              and r.get("p") and r.get("pazar_p")
+              and int(r.get("pazar_v") or 0) >= 2]
     if len(dvoyki) < PAZAR_MIN:
         return [], len(dvoyki)
     smeli = [r for r in dvoyki if float(r["p"]) > float(r["pazar_p"]) + 0.02]
@@ -207,6 +212,18 @@ def koga_pak(sportove, now, napred_dni=7):
           "baseball": lambda d: P.baseball_fixtures(d, d.strftime("%Y-%m-%d")),
           "mma": lambda d: P.mma_fixtures(d)}
     for b in sportove:
+        # 🔴 ТЕНИСЪТ НА МАСА СЕ ПИТА ПО КАЛЕНДАР, НЕ ПО РАЗПИСАНИЕ (18.08.2026).
+        # WTT пуска разписанието ден-два преди турнира. Питането „има ли мач
+        # утре" връщаше НЕ, макар календарът да казва „турнир от утре" — и
+        # прегледът гърмеше червено за спорт в най-обикновена пауза.
+        if b == "tabletennis":
+            try:
+                d_tt = P.tt_turnir_sled(now, napred_dni)
+            except Exception:                                # noqa: BLE001
+                d_tt = None
+            if d_tt is not None and d_tt >= 1:
+                out[b] = d_tt
+            continue
         f = fn.get(b)
         if not f:
             continue

@@ -103,6 +103,11 @@ try:
 except Exception as _pz_err:          # noqa: BLE001
     PZ = None
     print("pazar не се зареди (" + str(_pz_err)[:80] + ") — картите остават без цена.")
+try:
+    import pinnacle as PIN
+except Exception as _pin_err:                                # noqa: BLE001
+    PIN = None
+    print("вторият източник не се зареди (" + str(_pin_err)[:70] + ").")
 
 SOFIA = ZoneInfo("Europe/Sofia")
 NL = chr(10)
@@ -848,7 +853,24 @@ def persist(state, now):
 # Файлът е списък, не речник: един ред = едно твърдение, в реда на пускане.
 # Не се трие нищо. Сгрешените прогнози остават — това е продуктът.
 PICKLOG_FILE = (os.environ.get("PREDICT_LOG_FILE") or "predict_log.json").strip()
-PICKLOG_KEEP = env_int("PREDICT_LOG_KEEP", 400, 20, 5000)
+# 🔴 400 → 5000 НА 18.08.2026. ДНЕВНИКЪТ СЕ ТРИЕШЕ, НЕ СЕ ПАЗЕШЕ.
+#
+# Този таван реже най-старите записи при ВСЯКО дописване. При 40 карти на ден
+# 400 значи ДЕСЕТ ДНИ история — после всеки нов запис изяжда по един стар.
+# Живият дневник стоеше на ТОЧНО 400: таванът беше запушен, не с резерва.
+# Измерено: 95 записа от 29.07-05.08 вече ги няма, от тях 50 отсъдени.
+#
+# И най-лошото — публичното число лъжеше заради това: футболът показваше
+# 61% (19 от 31), а по цялата история е 50% (21 от 42). Единайсет пункта
+# грешка на стената, произведена само от триенето.
+#
+# Архивът, писан вчера, беше МЪРТЪВ ПО РОЖДЕНИЕ: оценителят архивира на
+# 120-ия ден, а предсказателят триеше на 10-ия. Нищо не стигаше до архива.
+#
+# Правилото: таванът ТРЯБВА да е над MAX_DAY × ARHIV_DNI, иначе триенето
+# изпреварва архивирането. 40 × 60 = 2400; 5000 дава двойна резерва и след
+# есенното удвояване на обема.
+PICKLOG_KEEP = env_int("PREDICT_LOG_KEEP", 5000, 20, 20000)
 
 
 def log_pick(an, now, combo=0):
@@ -878,6 +900,13 @@ def log_pick(an, now, combo=0):
         # качество: бием ли пазара, или само познаваме фаворити.
         "pazar_cena": an.get("pazar_cena"),
         "pazar_p": an.get("pazar_p"),
+        "pazar_v": an.get("pazar_v"),
+        "pit_home": ((an.get("fx") or {}).get("extra") or {}).get("pit_home"),
+        "pit_away": ((an.get("fx") or {}).get("extra") or {}).get("pit_away"),
+        "pazar_ev": an.get("pazar_ev"),
+        "pazar_izt": an.get("pazar_izt"),
+        "pazar_sport": an.get("pazar_sport"),
+        "pazar_liga": an.get("pazar_liga"),
         "p": round(float(an.get("p") or 0.0), 4),
         "stars": an.get("stars"),
         "sample": an.get("sample"),
@@ -1369,6 +1398,11 @@ def espn_fixtures(sport, slug, ymd, bucket, weight, league_bg, now, extra=None):
         ex["rec_a_road"] = _rec(a, "road")
         ex["form_h"] = h.get("form") or ""
         ex["form_a"] = a.get("form") or ""
+        # 🔴 ОРИГИНАЛНОТО ИМЕ (18.08.2026). Показваме „Фенербахче", но чуждите
+        # източници знаят „Fenerbahce". Измерено: търсенето по имена НЕ
+        # намираше нито един преведен отбор — а превеждаме точно големите.
+        ex["home_en"] = str(ht.get("displayName") or "")
+        ex["away_en"] = str(at.get("displayName") or "")
         out.append({
             "bucket": bucket, "emoji": SPORTS[bucket]["emoji"], "src": "espn",
             "home": bg_name(ht.get("displayName") or ""), "away": bg_name(at.get("displayName") or ""),
@@ -2047,7 +2081,14 @@ _mlb_hist = {}
 
 
 def baseball_fixtures(now, ymd_dash):
-    j = http_json(MLB_API + "/schedule?sportId=1&date=" + ymd_dash)
+    # 🔴 `hydrate=probablePitcher` НЕ СТРУВА ДОПЪЛНИТЕЛНА ЗАЯВКА (18.08.2026):
+    # същият адрес, един параметър. Измерено на живо: без него нула мача носят
+    # питчър, с него 13 от 15 днес и 9 от 15 утре.
+    # Стартиращият питчър е първото, което човек гледа в бейзбола. НЕ влиза в
+    # сметката — за това трябва измерване, каквото още нямаме — но влиза на
+    # картата и в дневника, за да може след месец да се провери струва ли си.
+    j = http_json(MLB_API + "/schedule?sportId=1&date=" + ymd_dash
+                  + "&hydrate=probablePitcher")
     out = []
     for day in ((j or {}).get("dates") or []):
         for g in (day.get("games") or []):
@@ -2063,7 +2104,13 @@ def baseball_fixtures(now, ymd_dash):
                 "home": bg_name(h.get("name")), "away": bg_name(a.get("name")),
                 "home_id": h.get("id"), "away_id": a.get("id"),
                 "league": "МЛБ", "weight": 5, "when": parse_iso(g.get("gameDate")),
-                "extra": {},
+                "extra": {
+                    "home_en": str(h.get("name") or ""),
+                    "away_en": str(a.get("name") or ""),
+                    "pit_home": str((((t.get("home") or {}).get("probablePitcher")
+                                      or {}).get("fullName")) or "").strip(),
+                    "pit_away": str((((t.get("away") or {}).get("probablePitcher")
+                                      or {}).get("fullName")) or "").strip()},
             })
     return out
 
@@ -2724,7 +2771,35 @@ WTT_TTU = "https://wttcmsapigateway-new.azure-api.net/ttu/"
 # Ключът стои открито в главния JS на worldtabletennis.com. Само за /ttu/ —
 # ранглистата иска и подправени Origin/Referer и затова НЕ я пипаме.
 WTT_HEAD = {"ApiKey": "2bf8b222-532c-4c60-8ebe-eb6fdfebe84a"}
-TT_SCALE = 0.55
+# 🔴 ШИРИНАТА, ИЗМЕРЕНА НА ЖИВО 18.08.2026 (беше заковано 0.55).
+#
+# 114 съдени мача от живия дневник: ботът ОБЯВЯВА 58.1%, а СБЪДВА 75.4% —
+# 17.3 точки под собствената си дума, при шум ±7.9. Тоест продаваме по-евтино,
+# отколкото струваме, и то системно.
+#
+# Подписът показва, че вината е в ШИРИНАТА, не в модела:
+#     една звезда (обявено ~52.6%)  →  сбъднато 54.5%   разлика +1.9 т
+#     две+ звезди (обявено ~60.4%)  →  сбъднато 84.0%   разлика +23.6 т
+# При 50% умножението по ширина не мести нищо; при 65% мести всичко. Точно
+# това се вижда. Ако моделът грешеше, разликата щеше да е равна навсякъде.
+#
+# Цепките държат: първата половина дни +14.3, втората +20.2, най-голямата
+# лига +20.2 — и трите извън шума, независимо една от друга.
+#
+# Пробвани ширини върху същите 114 мача (обявено / сбъднато / Брайер):
+#     0.55  →  58.1% / 75.4%  +17.3 т  0.2053   (сегашното)
+#     1.70  →  71.3% / 75.4%   +4.2 т  0.1692
+#     2.20  →  74.5% / 75.4%   +0.9 т  0.1646   ← избраното
+#     2.80  →  77.1% / 75.4%   -1.7 т  0.1630
+#     3.50  →  78.9% / 75.4%   -3.5 т  0.1646
+# Брайерът е почти равен между 2.2 и 3.5. Избираме края, който НЕ обещава
+# повече, отколкото сбъдва: 2.2 дава +0.9 т, 2.8 вече дава -1.7 т.
+#
+# Път назад: PREDICT_TT_SCALE=0.55 връща точно старото поведение.
+TT_SCALE = env_float("PREDICT_TT_SCALE", 2.2, 0.3, 4.5)
+# 🔴 СТЕНИТЕ НЕ СЕ ПИПАТ. Измерено: НУЛА от 114-те мача опират в 0.15/0.85 при
+# старата ширина, а разширяването им беше мерено и излезе ПО-ЛОШО. Тесният
+# процент не идваше от стените, а от ширината.
 TT_P_MIN, TT_P_MAX = 0.15, 0.85
 _tt_stats = {}
 
@@ -2747,6 +2822,76 @@ def _unwrap(x):
     return x if isinstance(x, dict) else {}
 
 
+# 🔴 КОЙ ТУРНИР СЕ ГЛЕДА, КОГАТО ТЕКАТ ПОВЕЧЕ ОТ ТАВАНА (18.08.2026)
+#
+# Досега кодът взимаше ПЪРВИТЕ ДВА в реда на файла — тоест по случайност.
+# Измерено върху живия календар на WTT (172 турнира за 2026): на 9 от
+# следващите 45 дни текат по 4-5 турнира едновременно, значи 2-3 се изхвърлят
+# невидимо. На 26-28.08 се пропускат по три наведнъж.
+#
+# Редът вече е по ТЕЖЕСТ. Юношеските падат най-долу нарочно: там няма
+# 18-месечна история на играча, а тя е целият ни източник за този спорт —
+# без нея процентът е познайница с десетична запетая.
+def _tt_rang(ime):
+    """Колко тежи турнир. По-голямото се гледа първо, щом таванът реже."""
+    t = str(ime or "").lower()
+    for d in ("youth", "junior", "u15", "u17", "u19", "cadet"):
+        if d in t:
+            return 10
+    for duma, tejest in (("olympic", 100), ("world championship", 95),
+                         ("finals", 92), ("smash", 90), ("champions", 85),
+                         ("world cup", 82), ("star contender", 75),
+                         ("contender", 65), ("feeder", 55)):
+        if duma in t:
+            return tejest
+    return 40
+
+
+# Таван на едновременно гледаните турнири. Всеки струва едно разписание плюс
+# статистиката на играчите в него — затова не е безкраен.
+TT_MAX_TURNIRI = env_int("PREDICT_TT_TURNIRI", 3, 1, 8)
+
+
+def tt_turnir_sled(now, napred_dni=21):
+    """След колко дни почва следващият турнир по тенис на маса. None = не знам.
+
+    🔴 ЗАЩО НЕ СТИГА ДА СЕ ПИТА ЗА МАЧОВЕ (18.08.2026). WTT публикува
+    разписанието на един турнир чак ден-два преди началото му. Измерено на
+    живо: на 18.08 календарът ясно казва „WTT Feeder Berlin, 19-23.08", а
+    разписанието за 19.08 връща НУЛА мача. Тоест здравният преглед питаше
+    „има ли мач утре?", получаваше „не" и вдигаше ЧЕРВЕН флаг за спорт, който
+    просто е между два турнира.
+
+    Календарът знае истината. Него питаме.
+    """
+    try:
+        cal = http_json(WTT_CDN + "/websitestaticapifiles/general/"
+                        + str(now.year) + "_eventcalendar.json", quiet=True)
+    except Exception:                                        # noqa: BLE001
+        return None
+    rows = []
+    for blk in (cal if isinstance(cal, list) else [cal or {}]):
+        rows += ((blk or {}).get("rows") or [])
+    if not rows:
+        return None
+    dnes = now.strftime("%Y-%m-%d")
+    nay = None
+    for r in rows:
+        st = str(dget(r, "StartDateTime") or "")[:10]
+        en = str(dget(r, "EndDateTime") or "")[:10]
+        if not st or not en or en < dnes:
+            continue
+        # Турнир, който ТЕЧЕ днес, значи нула дни чакане.
+        try:
+            dni = (datetime.strptime(st, "%Y-%m-%d").date() - now.date()).days
+        except ValueError:
+            continue
+        dni = max(0, dni)
+        if dni <= int(napred_dni) and (nay is None or dni < nay):
+            nay = dni
+    return nay
+
+
 def tt_fixtures(now, ymd_dash):
     try:
         cal = http_json(WTT_CDN + "/websitestaticapifiles/general/"
@@ -2764,8 +2909,10 @@ def tt_fixtures(now, ymd_dash):
         eid = to_num(dget(r, "EventId"))
         if eid and s and e and s <= ymd_dash <= e:
             live.append((eid, str(dget(r, "EventName") or "WTT")))
+    # Най-тежкият пръв; при равенство — по име, за да е повторимо.
+    live.sort(key=lambda x: (-_tt_rang(x[1]), str(x[1])))
     out = []
-    for eid, ename in live[:2]:
+    for eid, ename in live[:TT_MAX_TURNIRI]:
         sch = http_json(WTT_CDN + "/websitecacheddata/" + str(eid)
                         + "/schedule/schedule.json", quiet=True)
         units = []
@@ -3866,6 +4013,20 @@ def card(an, now):
         stapka += " · пазете се, стъпката е тънка"
     lines.append(stapka)
 
+    # ⚾ Стартиращите питчъри. Факт, не оценка — затова стои като факт и няма
+    # дума за това какво значи. Показва се само когато знаем И ДВАМАТА: един
+    # питчър без другия не казва нищо, а изглежда сякаш казва.
+    _ex = (fx.get("extra") or {}) if fx else {}
+    _ph, _pa = str(_ex.get("pit_home") or ""), str(_ex.get("pit_away") or "")
+    if _ph and _pa:
+        # 🔴 РЕДЪТ Е ДОМАКИН → ГОСТ, като заглавието на картата (18.08.2026).
+        # Първата ми версия ги нареждаше гост → домакин, защото MLB пише
+        # „Toronto at Tampa Bay". Видяно в сухо пускане: заглавието казваше
+        # „Tampa Bay Rays срещу Toronto Blue Jays", а редът отдолу —
+        # „José Soriano срещу Nick Martinez", тоест точно обратното.
+        # Никой тест не гръмна: собственият ми тест заключваше грешния ред.
+        lines.append("⚾ Хвърлят: " + esc(_ph) + " срещу " + esc(_pa))
+
     # Допълнителните пазари стоят в свой блок, а не залепени за прогнозата.
     dop = [x for x in (an.get("second"), an.get("third")) if x]
     if dop:
@@ -4120,10 +4281,16 @@ def dobavi_pazar(an):
                  "football": "soccer"}.get(str(an.get("bucket") or ""))
     if not slug:
         slug = {"baseball": "mlb"}.get(str(an.get("bucket") or ""))
-    if not sport or not slug:
-        return an
+    # 🔴 БЕЗ РАНЕН ИЗХОД (18.08.2026). Тук стоеше `return an`, ако ESPN няма
+    # адрес за спорта — и заради него тенисът, ММА и тенисът на маса излизаха
+    # от функцията ПРЕДИ да се стигне до втория източник. Тоест новият
+    # източник беше написан, вързан и НЕДОСТИЖИМ. Видя се само в сухо
+    # пускане: четири карти с цена, четирите тенис-карти без.
+    dom = gost = raven = None
     try:
-        if ev_id:
+        if not (sport and slug):
+            pass                          # ESPN няма адрес — минаваме нататък
+        elif ev_id:
             dom, gost, raven = PZ.cena_za(sport, slug, ev_id)
         else:
             s = fx_start(fx, datetime.now(SOFIA))
@@ -4131,8 +4298,41 @@ def dobavi_pazar(an):
                    else datetime.now(SOFIA)).strftime("%Y%m%d")
             dom, gost, raven = PZ.cena_po_imena(sport, slug, ymd,
                                                 fx.get("home"), fx.get("away"))
+            # Номерът на срещата от СЪЩИЯ кеширан индекс — нула нови заявки.
+            # Влиза в дневника, за да може оценителят после да вземе
+            # ЗАТВАРЯЩАТА цена директно, без пак да търси по имена.
+            ev_id = PZ.ev_za_imena(sport, slug, ymd,
+                                   fx.get("home"), fx.get("away"))
     except Exception:                                        # noqa: BLE001
+        dom = gost = raven = None
+    izt = "espn" if (dom or gost) else None
+
+    # 🔴 ВТОРИЯТ ИЗТОЧНИК (18.08.2026). ESPN дава цена само за три спорта —
+    # 123 от 400 карти. Тенисът (40), ММА (7) и тенисът на маса (114) оставаха
+    # НАВЕКИ без цена, тоест доходността щеше да се мери на 31% от продукта.
+    #
+    # Измерено живо срещу guest слоя на Pinnacle, върху НАШИТЕ имена:
+    #   бейзбол 100% · баскетбол 100% · тенис 78% · футбол 66% · ММА 28%
+    #   общо 35 от 49 срещи, с ДЕСЕТ заявки за целия ден.
+    # Волейболът е недостъпен там (401) и затова изобщо не се пита.
+    #
+    # Търсим с ОРИГИНАЛНИТЕ имена: показваме „Фенербахче", те знаят
+    # „Fenerbahce" — с преведеното не се намираше нито един голям отбор.
+    if not (dom or gost) and PIN is not None:
+        try:
+            _b = str(an.get("bucket") or "")
+            _d = str(ex.get("home_en") or fx.get("home") or "")
+            _g = str(ex.get("away_en") or fx.get("away") or "")
+            if _b in PIN.SPORT_ID and _d and _g:
+                dom, gost, raven = PIN.ceni_za(_b, _d, _g)
+                if dom or gost:
+                    izt = "pinnacle"
+                    sport = _b            # маржът се маха по НАШЕТО име
+        except Exception:                                    # noqa: BLE001
+            pass
+    if not (dom or gost):
         return an
+
     # Кой изход сме посочили. Картата пише „1 · ...", „2 · ..." или „Х · равен".
     pick = str(an.get("pick") or "")
     cena = None
@@ -4144,9 +4344,38 @@ def dobavi_pazar(an):
         cena = raven
     if cena:
         an["pazar_cena"] = cena
-        pz = PZ.veroyatnost(cena)
-        if pz:
-            an["pazar_p"] = round(pz, 4)
+        # 🔴 МАРЖЪТ НА БУКМЕЙКЪРА (18.08.2026).
+        # На КАРТАТА стои суровата цена — тя е това, което пазарът наистина
+        # плаща, и читателят има право на нея непокътната.
+        # В ДНЕВНИКА обаче влиза вероятността БЕЗ дела на букмейкъра, защото
+        # само с нея сравнението „ние срещу пазара" значи нещо. Измерено на
+        # живо: суровото 1/цена надува пазара със 7.4% при футбола и 1.9% при
+        # бейзбола, а прагът на сравнението е 2%. Тоест почти половината
+        # футболни изходи щяха да изглеждат „по-уверени от нас" само заради
+        # маржа.
+        pd, pg, pr = PZ.bez_marzh(sport, dom, gost, raven)
+        chist = {"1": pd, "2": pg, "Х": pr, "X": pr}.get(pick[:1])
+        if chist:
+            an["pazar_p"] = round(chist, 4)
+            # 🔴 ЗНАК ЗА ВЕРСИЯ (18.08.2026). В живия дневник вече стоят 5
+            # записа със СУРОВА пазарна вероятност (с маржа вътре) от старата
+            # версия. Смесени със свитите, те биха развалили сравнението, а
+            # прагът за него е 30 отсъдени — тоест щеше да се прекрачи с
+            # мръсна смес и никой нямаше да разбере. Мери се само версия 2+.
+            an["pazar_v"] = 2
+        # Адресът за затварящата цена. Без него CLV не може да се смята — а
+        # CLV е единственото доказателство за ръб, което работи при 20 залога.
+        an["pazar_izt"] = izt
+        # Затварящата цена се взима от ESPN по номер. Pinnacle маха мача от
+        # витрината си, щом започне — за него затварящата иска ДРУГ подход
+        # (опресняване преди началото) и още не е направен. Казва се честно
+        # в дневника, вместо да се мълчи.
+        if izt == "espn" and ev_id:
+            an["pazar_ev"] = str(ev_id)
+            an["pazar_sport"] = str(sport)
+            an["pazar_liga"] = str(slug)
+        # Непълен набор → `pazar_p` НЕ се записва изобщо. По-добре кантарът да
+        # мълчи, отколкото да мери с крив аршин. Цената на картата остава.
     return an
 
 
@@ -4218,6 +4447,13 @@ COMBO_MIN_P = env_float("PREDICT_COMBO_MIN_P", 0.58, 0.50, 0.90)
 COMBO_MIN_TOTAL = env_float("PREDICT_COMBO_MIN_TOTAL", 0.20, 0.02, 0.60)
 COMBO_MIN_LEGS = env_int("PREDICT_COMBO_MIN_LEGS", 2, 2, 5)
 COMBO_MAX_SAME_LEAGUE = env_int("PREDICT_COMBO_SAME_LEAGUE", 2, 1, 5)
+# 🔴 И ТАВАН НА ЕДИН СПОРТ (18.08.2026). Таванът по ЛИГА не пази от еднообразен
+# фиш, защото един спорт дава по няколко лиги на ден: тенисът на маса имаше
+# три едновременни турнира, значи три различни „лиги" — и фиш от четири крака
+# можеше да е изцяло тенис на маса, от една зала, в един следобед. Тогава
+# фишът не е разпределен риск, а един залог, преоблечен като четири.
+# Таван 3 при дължина 4: най-много три крака от един спорт, четвъртият е чужд.
+COMBO_MAX_SAME_SPORT = env_int("PREDICT_COMBO_SAME_SPORT", 3, 1, 6)
 
 COMBO_DUMI = ((0.45, "🟢 стегнат фиш — малко крака, но здрави"),
               (0.30, "🟢 разумен фиш"),
@@ -4265,12 +4501,15 @@ def sabiray_fish(pool):
     на деня, а не от кръгло число, решено предварително. И най-много два крака
     от един турнир, за да не виси целият фиш на една зала.
     """
-    legs, total, po_liga = [], 1.0, {}
+    legs, total, po_liga, po_sport = [], 1.0, {}, {}
     for a in pool:
         if len(legs) >= COMBO_SIZE:
             break
         lg = str(((a.get("fx") or {}).get("league")) or "?")
         if po_liga.get(lg, 0) >= COMBO_MAX_SAME_LEAGUE:
+            continue
+        sp = str(a.get("bucket") or "?")
+        if po_sport.get(sp, 0) >= COMBO_MAX_SAME_SPORT:
             continue
         p = float(a.get("p") or 0.0)
         if legs and total * p < COMBO_MIN_TOTAL:
@@ -4278,6 +4517,7 @@ def sabiray_fish(pool):
         legs.append(a)
         total *= p
         po_liga[lg] = po_liga.get(lg, 0) + 1
+        po_sport[sp] = po_sport.get(sp, 0) + 1
     return legs if len(legs) >= COMBO_MIN_LEGS else []
 
 
@@ -5136,6 +5376,7 @@ def selftest():
         check("непусната среща не е в тефтера", not already_posted(st, k))
         mark_posted(st, k, now)
         check("пусната среща се помни", already_posted(st, k))
+
         check("тефтерът се записва", save_state(st, now))
         check("тефтерът се чете обратно", already_posted(load_state(), k))
         st2 = load_state()
@@ -5742,6 +5983,32 @@ def selftest():
     check("картата има най-много две обяснения",
           txt.split("📋 <b>Защо точно това</b>")[-1].count(NL + "• ") == 2)
 
+    # ⚾ СТАРТИРАЩИТЕ ПИТЧЪРИ (18.08.2026) — само когато знаем и двамата.
+    _bb = {"fx": {"bucket": "baseball", "emoji": "⚾", "home": "Ню Йорк Янкис",
+                  "away": "Балтимор Ориолс", "league": "МЛБ", "when": None,
+                  "time": "02:05",
+                  "extra": {"pit_home": "Carlos Rodón", "pit_away": "Shane Smith"}},
+           "bucket": "baseball", "pick": "1 · Ню Йорк Янкис", "p": 0.57,
+           "why": ["Янкис: 4.8 : 4.1 точки за мач"],
+           "sample": samp(60, 60), "n_eff": 120.0, "strength": 0.20, "stars": 2}
+    _t_bb = card(_bb, now)
+    check("картата казва кой хвърля", "⚾ Хвърлят: " in _t_bb)
+    # 🔴 РЕДЪТ СЕ СВЕРЯВА С ЗАГЛАВИЕТО, не се пише наизуст. Питчърът на
+    # домакина трябва да стои от същата страна, от която стои домакинът.
+    check("питчърите са в реда на отборите",
+          (_t_bb.index("Ню Йорк Янкис") < _t_bb.index("Балтимор Ориолс"))
+          == (_t_bb.index("Carlos Rodón") < _t_bb.index("Shane Smith")))
+    check("и двете имена са на картата",
+          "Carlos Rodón" in _t_bb and "Shane Smith" in _t_bb)
+    check("редът за питчърите не коментира",
+          not any(w in _t_bb for w in ("по-добър", "предимство", "затова", "форма на")))
+    _bb1 = {k: v for k, v in _bb.items()}
+    _bb1["fx"] = dict(_bb["fx"], extra={"pit_home": "Carlos Rodón", "pit_away": ""})
+    check("един питчър без другия НЕ се показва", "Хвърлят" not in card(_bb1, now))
+    _bb0 = {k: v for k, v in _bb.items()}
+    _bb0["fx"] = dict(_bb["fx"], extra={})
+    check("без питчъри картата е както преди", "Хвърлят" not in card(_bb0, now))
+
     demo_f = {"fx": {"bucket": "football", "emoji": "⚽", "home": "Арсенал",
                      "away": "Челси", "league": "Висша лига", "when": None, "time": "19:30"},
               "bucket": "football",
@@ -6072,9 +6339,12 @@ def selftest():
     check("новините не се промъкват в разрешените", "26" not in ALLOWED_THREADS)
 
     # --- трите комбинирани фиша
-    def leg(nm, p, st, lg="Лига"):
+    def leg(nm, p, st, lg="Лига", sport=None):
         return {"fx": {"home": nm, "away": "Б", "when": None, "league": lg},
-                "bucket": "football",
+                # Спортът по подразбиране е РАЗЛИЧЕН за всяка лига. Инак таванът
+                # „три крака от един спорт" би скъсил всеки тестов фиш и старите
+                # проверки щяха да падат по грешна причина.
+                "bucket": sport or ("sp_" + str(lg)),
                 "pick": "1 · победа " + nm, "p": p, "stars": st, "strength": 0.3}
     legs5 = [leg("Отбор" + str(i), 0.70, 3, "Лига" + str(i)) for i in range(5)]
     cc = combo_card(1, legs5, now)
@@ -6121,6 +6391,19 @@ def selftest():
     _izbr = sabiray_fish(_smes)
     check("смесеният фиш взима и от другите турнири",
           len({str((a["fx"] or {}).get("league")) for a in _izbr}) >= 2)
+    # 🔴 ЕДИН СПОРТ НЕ ПРАВИ ЦЕЛИЯ ФИШ (18.08.2026). Таванът по лига не пази
+    # от това: тенисът на маса дава по три едновременни турнира, значи три
+    # различни „лиги" — и четирите крака можеха да са от една зала.
+    _ed_sp = [leg("Т" + str(i), 0.80, 3, "Турнир" + str(i), sport="tabletennis")
+              for i in range(5)]
+    check("един спорт не прави целия фиш",
+          len(sabiray_fish(_ed_sp)) <= COMBO_MAX_SAME_SPORT)
+    _sm_sp = _ed_sp + [leg("Ф" + str(i), 0.80, 3, "Лига" + str(i), sport="football")
+                       for i in range(3)]
+    check("смесеният фиш взима и от друг спорт",
+          len({a["bucket"] for a in sabiray_fish(_sm_sp)}) >= 2)
+    check("таванът по спорт е под дължината на фиша",
+          COMBO_MAX_SAME_SPORT < COMBO_SIZE)
     check("два крака са най-малкото, което пускаме", COMBO_MIN_LEGS == 2)
     check("под две — никакъв фиш", sabiray_fish([leg("Сам", 0.90, 3)]) == [])
 
@@ -6250,6 +6533,110 @@ def selftest():
     check("американският модел смята", m_amf is not None)
     check("по-силният отбор е фаворит", m_amf and m_amf["p_home"] > 0.5)
     check("американският дава и очакван резултат", m_amf and m_amf["exp_h"] > 0)
+
+    # 🔴 ПАЗАЧ СРЕЩУ ТРИЕНЕТО (18.08.2026). Таванът на дневника ТРЯБВА да е
+    # над MAX_DAY × ARHIV_DNI, иначе предсказателят трие по-бързо, отколкото
+    # оценителят архивира, и записите изчезват вместо да се преместят.
+    # Точно това стана: таван 400 при нужни 4800 — 95 записа се загубиха, а
+    # футболът показваше 61% вместо истинските 50%.
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "scorer.py"), encoding="utf-8-sig") as _f:
+            _ss = _f.read()
+        _i2 = _ss.find("ARHIV_DNI = max(")
+        _dni = 0
+        if _i2 >= 0:
+            _hv = _ss[_i2:_ss.find(")))", _i2)]
+            _c = [x for x in _hv.split('"') if x.strip().isdigit()]
+            _dni = int(_c[-1]) if _c else 0
+        check("прагът на архива се прочете от scorer.py", _dni > 0)
+        check("таванът на дневника е над триещата граница",
+              _dni == 0 or PICKLOG_KEEP >= MAX_DAY * _dni)
+    except Exception as _e2:                                 # noqa: BLE001
+        check("сверката на тавана с архива мина", False)
+
+    # 🔴 ВТОРИЯТ ИЗТОЧНИК ТРЯБВА ДА Е ДОСТИЖИМ (18.08.2026).
+    # Първата ми версия го викаше СЛЕД `return an` за спортове, които ESPN не
+    # покрива — тоест точно за спортовете, заради които съществува. Кодът
+    # беше налице, тестовете зелени, тенисът без цена.
+    _st_pin = globals().get("PIN")
+    try:
+        class _MakPin(object):
+            SPORT_ID = {"tennis": 33}
+
+            @staticmethod
+            def ceni_za(sp, d, g):
+                return (1.57, 2.55, None) if sp == "tennis" else (None, None, None)
+
+        globals()["PIN"] = _MakPin
+        _t = dobavi_pazar({"bucket": "tennis", "pick": "1 · А",
+                           "fx": {"home": "А", "away": "Б", "extra": {}}})
+        check("спорт без ESPN стига до втория източник",
+              _t.get("pazar_cena") == 1.57 and _t.get("pazar_izt") == "pinnacle")
+        check("маржът се маха и на втория източник",
+              _t.get("pazar_p") is not None and float(_t["pazar_p"]) < 1.0 / 1.57)
+        check("вторият източник не получава адрес за затваряща",
+              "pazar_ev" not in _t)
+        _t2 = dobavi_pazar({"bucket": "tennis", "pick": "2 · Б",
+                            "fx": {"home": "А", "away": "Б", "extra": {}}})
+        check("изборът 2 взима цената на госта", _t2.get("pazar_cena") == 2.55)
+        globals()["PIN"] = None
+        _t3 = dobavi_pazar({"bucket": "tennis", "pick": "1 · А",
+                            "fx": {"home": "А", "away": "Б", "extra": {}}})
+        check("без втори източник картата пак излиза", "pazar_cena" not in _t3)
+    finally:
+        globals()["PIN"] = _st_pin
+
+    # 🔴 НАПИСАНА, НО НЕВЪРЗАНА (поуката от `golyama_liga`, 12.08.2026).
+    # `tt_turnir_sled` съществува само за да махне фалшивата тревога в
+    # здравния преглед. Ако там не се вика, функцията е мъртъв код, а флагът
+    # продължава да гърми — и никой тест няма да го забележи.
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "zdrave.py"), encoding="utf-8-sig") as _fz:
+            _sz = _fz.read()
+        check("здравният преглед наистина вика tt_turnir_sled",
+              "tt_turnir_sled" in _sz)
+    except Exception:                                        # noqa: BLE001
+        check("сверката със здравния преглед мина", False)
+
+    # 🔴 РЕДЪТ НА ТУРНИРИТЕ ПО ТЕНИС НА МАСА (18.08.2026).
+    check("Смашът бие юношеския турнир",
+          _tt_rang("Europe Smash - Sweden 2026")
+          > _tt_rang("Europe Youth Smash - Sweden 2026"))
+    check("Champions бие Feeder",
+          _tt_rang("WTT Champions Macao 2026") > _tt_rang("WTT Feeder Berlin 2026"))
+    check("Contender бие Feeder",
+          _tt_rang("WTT Contender Almaty 2026") > _tt_rang("WTT Feeder Olomouc 2026"))
+    check("юношеският Contender пада под възрастния Feeder",
+          _tt_rang("WTT Youth Contender Otocec 2026")
+          < _tt_rang("WTT Feeder Olomouc 2026"))
+    check("непознат турнир не е нито най-горе, нито най-долу",
+          10 < _tt_rang("Нещо съвсем ново") < 90)
+    _live = [(1, "WTT Youth Contender Otocec 2026"), (2, "WTT Feeder Olomouc 2026"),
+             (3, "WTT Champions Macao 2026"), (4, "ITTF-Oceania Youth Champs")]
+    _live.sort(key=lambda x: (-_tt_rang(x[1]), str(x[1])))
+    check("подредбата слага най-тежкия пръв", _live[0][0] == 3)
+    check("подредбата слага юношеските най-долу",
+          {_live[2][0], _live[3][0]} == {1, 4})
+    check("таванът е поне два турнира", TT_MAX_TURNIRI >= 2)
+    # Оценителят трябва да гледа ПОНЕ толкова турнира, колкото предсказателят
+    # засява — иначе карта излиза, а присъда за нея никога не идва.
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "scorer.py"), encoding="utf-8-sig") as _f3:
+            _s3 = _f3.read()
+        _i3 = _s3.find("WTT_MAX_TURNIRI")
+        _n3 = 0
+        if _i3 >= 0:
+            _hv3 = _s3[_i3:_i3 + 120].split(chr(10))[0]
+            _c3 = [int(x) for x in "".join(
+                (ch if ch.isdigit() else " ") for ch in _hv3).split()]
+            _n3 = max(_c3) if _c3 else 0
+        check("оценителят гледа поне колкото предсказателят засява",
+              _n3 >= TT_MAX_TURNIRI)
+    except Exception:                                        # noqa: BLE001
+        check("сверката с турнирите на оценителя мина", False)
 
     print("САМОПРОВЕРКА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b_ in bad:

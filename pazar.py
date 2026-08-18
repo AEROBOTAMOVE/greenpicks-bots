@@ -77,6 +77,43 @@ def _cena(dyal):
     return None
 
 
+def _amerikanski(v):
+    """Американска цена -> десетична. -145 значи 1.69, +310 значи 4.10.
+
+    ЗАЩО СЪЩЕСТВУВА (18.08.2026). ESPN дава РАВНИЯ във футбола САМО така:
+    `drawOdds = {"moneyLine": 310.0}` — плоско число, без open/current/close.
+    Измерено на живо: 38 от 38 футболни мача. Тоест без този четец равният
+    липсва ВИНАГИ, а без равния маржът на букмейкъра не може да се махне.
+
+    ОТДЕЛНА функция, не разхлабване на `_cena`: там проверката „американски
+    формат не се бърка за десетичен" пази вложения път и остава непокътната.
+    """
+    try:
+        a = float(v)
+    except (TypeError, ValueError):
+        return None
+    if a >= 100.0:
+        return round(1.0 + a / 100.0, 2)
+    if a <= -100.0:
+        return round(1.0 + 100.0 / abs(a), 2)
+    return None
+
+
+def _cena_pak(dyal):
+    """Първо вложената десетична, после плоското американско число на върха.
+
+    Сверено на живо 18.08.2026: 94 от 94 дяла домакин/гост дават ЕДНО И СЪЩО
+    число по двата пътя, НУЛА разминавания. Тоест падането назад не мени цена,
+    а само запълва дупка.
+    """
+    c = _cena(dyal)
+    if c is not None:
+        return c
+    if isinstance(dyal, dict):
+        return _amerikanski(dyal.get("moneyLine"))
+    return None
+
+
 def cena_za(sport_path, liga, ev_id):
     """(цена_домакин, цена_гост, цена_равен) — всяка може да е None."""
     if not ev_id or not liga or sport_path not in IMA_PAZAR:
@@ -88,9 +125,9 @@ def cena_za(sport_path, liga, ev_id):
     j = _json("%s/%s/leagues/%s/events/%s/competitions/%s/odds"
               % (CORE, sport_path, liga, ev_id, ev_id))
     for x in ((j or {}).get("items") or []):
-        dom = _cena(x.get("homeTeamOdds"))
-        gost = _cena(x.get("awayTeamOdds"))
-        raven = _cena(x.get("drawOdds"))
+        dom = _cena_pak(x.get("homeTeamOdds"))
+        gost = _cena_pak(x.get("awayTeamOdds"))
+        raven = _cena_pak(x.get("drawOdds"))
         if dom or gost:
             rez = (dom, gost, raven)
             break
@@ -199,6 +236,141 @@ def veroyatnost(cena):
     return (1.0 / c) if c > 1.0 else None
 
 
+# ============================== МАРЖЪТ НА БУКМЕЙКЪРА (18.08.2026)
+#
+# `1/цена` НЕ Е вероятността на пазара. Букмейкърът зарежда цените така, че
+# сборът по всички изходи да е НАД 100% — разликата е неговият дял.
+#
+# Измерено на живо, 18.08.2026, 50 събития:
+#   футбол      сбор 1.0738  (1.0557 – 1.0885)  ->  7.4% отгоре
+#   бейзбол     сбор 1.0192  (1.0173 – 1.0211)  ->  1.9% отгоре
+#   баскетбол   сбор 1.0476                     ->  4.8% отгоре
+#
+# Тоест суровото `1/цена` показва пазара по-уверен, отколкото е — до 3.4 точки
+# на изход при футбола. А прагът, с който мерим „не сме съгласни с пазара", е
+# ДВЕ точки. Без тази поправка кантарът е крив, преди да е претеглил първия път.
+#
+# НОРМАЛИЗИРАМЕ САМО ПРИ ПЪЛЕН НАБОР. Ако липсва изход, сборът пада ПОД 1 и
+# деленето би НАДУЛО останалите вместо да ги свие. Измерено при липсващ равен:
+# сбор 0.8151 средно — „поправката" щеше да е 4.5 пъти по-лоша от болестта.
+# „soccer" е името на ESPN, „football" — нашето. Един и същи спорт,
+# две азбуки: вторият източник (pinnacle.py) ползва нашето.
+IZHODI = {"soccer": 3, "football": 3}
+
+
+def bez_marzh(sport_path, dom, gost, raven=None):
+    """(p_дом, p_гост, p_равен) с махнат марж. (None,None,None) при непълен набор."""
+    n = IZHODI.get(str(sport_path or ""), 2)
+    p = []
+    for c in [dom, gost, raven][:n]:
+        v = veroyatnost(c)
+        if v is None:
+            return (None, None, None)
+        p.append(v)
+    sbor = sum(p)
+    # Сбор ПОД 1 значи липсващ изход въпреки проверката; над 1.6 значи боклук.
+    # И в двата случая по-добре без число, отколкото с грешно число.
+    if not (1.0 < sbor <= 1.6):
+        return (None, None, None)
+    out = [round(v / sbor, 4) for v in p]
+    return tuple(out + [None] * (3 - len(out)))
+
+
+# ============================== ЗАТВАРЯЩАТА ЦЕНА (18.08.2026)
+#
+# Единственото доказателство за ръб, което не зависи от късмет.
+#
+# 69% познати не значи нищо само по себе си: фаворит на цена 1.30, познат в
+# 69% от случаите, ГУБИ пари. Въпросът не е „колко често сме прави", а „движи
+# ли се пазарът към нас, след като сме казали".
+#
+# Затова: цената при ПУСКАНЕ вече се пази. Тук се взима цената при ЗАТВАРЯНЕ —
+# последната, преди мачът да тръгне. Ако нашият избор е поевтинял между двете,
+# пазарът е дошъл при нас. Това се нарича CLV и по него професионалистите се
+# съдят помежду си, защото работи и при 20 залога, докато „процент познати"
+# иска стотици.
+#
+# ESPN пази трите снимки в един и същ дял: open, current, close. Затова
+# затварящата НЕ струва нов вид заявка — само още едно питане, СЛЕД мача.
+def _cena_close(dyal):
+    """САМО затварящата цена. None, ако още я няма (мачът не е започнал)."""
+    if not isinstance(dyal, dict):
+        return None
+    v = dyal.get("close")
+    if not isinstance(v, dict):
+        return None
+    ml = v.get("moneyLine")
+    if isinstance(ml, dict):
+        ml = ml.get("value")
+    try:
+        c = float(ml)
+    except (TypeError, ValueError):
+        return _amerikanski(v.get("moneyLine")
+                            if not isinstance(v.get("moneyLine"), dict) else None)
+    if 1.01 <= c <= 100.0:
+        return round(c, 2)
+    return _amerikanski(ml)
+
+
+def cena_zatvarayashta(sport_path, liga, ev_id):
+    """(дом, гост, равен) при ЗАТВАРЯНЕ. Всяка може да е None."""
+    if not ev_id or not liga or sport_path not in IMA_PAZAR:
+        return (None, None, None)
+    kl = ("close", sport_path, liga, str(ev_id))
+    if kl in _kesh:
+        return _kesh[kl]
+    rez = (None, None, None)
+    j = _json("%s/%s/leagues/%s/events/%s/competitions/%s/odds"
+              % (CORE, sport_path, liga, ev_id, ev_id))
+    for x in ((j or {}).get("items") or []):
+        dom = _cena_close(x.get("homeTeamOdds"))
+        gost = _cena_close(x.get("awayTeamOdds"))
+        raven = _cena_close(x.get("drawOdds"))
+        if dom or gost:
+            rez = (dom, gost, raven)
+            break
+    _kesh[kl] = rez
+    return rez
+
+
+def ev_za_imena(sport_path, liga, ymd, dom, gost):
+    """Номерът на срещата, намерен по ИМЕНА. None, ако не се намери.
+
+    Ползва СЪЩИЯ кеширан индекс като cena_po_imena — тоест извикана веднага
+    след нея, не струва НИТО ЕДНА нова заявка. Съществува, за да може номерът
+    да влезе в дневника и оценителят после да вземе затварящата цена директно,
+    без пак да търси по имена.
+    """
+    if sport_path not in IMA_PAZAR or not liga or not ymd:
+        return None
+    kl = frozenset((_norm(dom), _norm(gost)))
+    if len(kl) != 2 or not all(kl):
+        return None
+    try:
+        from datetime import datetime as _dt, timedelta as _td
+        d0 = _dt.strptime(str(ymd), "%Y%m%d")
+        dati = [(d0 + _td(days=k)).strftime("%Y%m%d") for k in (0, -1, 1)]
+    except ValueError:
+        dati = [str(ymd)]
+    for den in dati:
+        kand = index_za_den(sport_path, liga, den).get(kl)
+        if kand:
+            return kand
+    return None
+
+
+def dvizhenie(nasha_cena, close_cena):
+    """Колко се е преместил пазарът към нас. Положително = дошъл е при нас.
+
+    Смята се във ВЕРОЯТНОСТИ, не в цени: разликата между 1.20 и 1.15 не е
+    същата като между 5.00 и 4.95, макар и двете да са „пет стотинки".
+    """
+    a, b = veroyatnost(nasha_cena), veroyatnost(close_cena)
+    if a is None or b is None:
+        return None
+    return round(b - a, 4)
+
+
 def red_za_karta(nasha_p, cena_nash_izhod):
     """Редът, който излиза на картата. Празен, ако няма цена.
 
@@ -248,6 +420,72 @@ def selftest():
     check("американски формат не се бърка за десетичен",
           _cena({"current": {"moneyLine": {"value": -110}}}) is None)
 
+    check("американско +310 значи 4.10", _amerikanski(310) == 4.10)
+    check("американско -145 значи 1.69", _amerikanski(-145) == 1.69)
+    check("американско +100 значи 2.00", _amerikanski(100) == 2.0)
+    check("между -100 и 100 не е американско",
+          _amerikanski(50) is None and _amerikanski(-99) is None)
+    check("боклук вместо американско не гърми",
+          _amerikanski("абв") is None and _amerikanski(None) is None)
+    check("плоският равен на ESPN се чете", _cena_pak({"moneyLine": 310.0}) == 4.10)
+    check("вложената десетична бие плоската",
+          _cena_pak({"moneyLine": -145, "current": {"moneyLine": {"value": 1.70}}}) == 1.70)
+    check("_cena остава строга за вложеното американско",
+          _cena({"current": {"moneyLine": {"value": -110}}}) is None)
+
+    _b = bez_marzh("soccer", 1.69, 4.50, 4.10)
+    check("маржът се маха при пълен набор", abs(sum(_b) - 1.0) < 0.001)
+    check("редът на трите се пази", _b[0] > _b[2] > _b[1])
+    check("свива, не надува", _b[0] < veroyatnost(1.69))
+    check("нашето име на футбола също е тройка",
+          bez_marzh("football", 1.69, 4.50, None) == (None, None, None)
+          and bez_marzh("football", 1.69, 4.50, 4.10)[2] is not None)
+    check("липсващ равен = футболът НЕ се пипа",
+          bez_marzh("soccer", 1.69, 4.50, None) == (None, None, None))
+    # 🔴 РЕДЪТ ОТДОЛУ НЕ Е ИЗЛИШЕН (18.08.2026). Горният минава и когато
+    # липсващият изход просто се ПРЕСКОЧИ, защото тогава сборът пада под 1 и
+    # го спира ДРУГИЯТ пазач. При тежък фаворит обаче два изхода вече дават
+    # сбор над 1 (0.909 + 0.100) и прескачането минава невидимо. Мутация,
+    # която сменя `return` с `continue`, оцеляваше без този ред.
+    check("липсващ равен не се заобикаля и при тежък фаворит",
+          bez_marzh("soccer", 1.10, 10.0, None) == (None, None, None))
+    _b2 = bez_marzh("baseball", 1.91, 2.01)
+    check("двупосочният се нормализира без равен",
+          abs(_b2[0] + _b2[1] - 1.0) < 0.001 and _b2[2] is None)
+    check("равният се пренебрегва при двупосочен",
+          bez_marzh("baseball", 1.91, 2.01, 4.0) == _b2)
+    check("сбор под 1 не се пипа", bez_marzh("baseball", 2.5, 2.5) == (None, None, None))
+    check("абсурден сбор не се пипа", bez_marzh("baseball", 1.05, 1.05) == (None, None, None))
+    check("боклук вместо цена не гърми",
+          bez_marzh("baseball", None, 2.0) == (None, None, None))
+
+    check("затварящата се чете", _cena_close({"close": {"moneyLine": {"value": 1.65}}}) == 1.65)
+    check("текущата НЕ минава за затваряща",
+          _cena_close({"current": {"moneyLine": {"value": 1.65}}}) is None)
+    check("отварящата НЕ минава за затваряща",
+          _cena_close({"open": {"moneyLine": {"value": 1.65}}}) is None)
+    check("американска затваряща също се чете",
+          _cena_close({"close": {"moneyLine": 310.0}}) == 4.10)
+    check("празен дял не гърми",
+          _cena_close({}) is None and _cena_close(None) is None)
+    check("боклук в затварящата не гърми",
+          _cena_close({"close": {"moneyLine": "абв"}}) is None)
+
+    check("поевтиняване значи пазарът е дошъл при нас",
+          dvizhenie(2.00, 1.80) > 0)
+    check("поскъпване значи пазарът се е отдалечил",
+          dvizhenie(2.00, 2.20) < 0)
+    check("същата цена значи нула движение", dvizhenie(2.00, 2.00) == 0)
+    check("движението се мери във вероятности, не в стотинки",
+          dvizhenie(1.20, 1.15) != dvizhenie(5.00, 4.95))
+    check("липсваща цена не дава движение",
+          dvizhenie(None, 1.8) is None and dvizhenie(1.8, None) is None)
+
+    check("затварящата не се пита за спорт без пазар",
+          cena_zatvarayashta("tennis", "atp", "123") == (None, None, None))
+    check("затварящата не се пита без номер",
+          cena_zatvarayashta("baseball", "mlb", "") == (None, None, None))
+
     check("спорт без пазар не се пита",
           cena_za("tennis", "atp", "123") == (None, None, None))
     check("липсващ номер не се пита",
@@ -277,6 +515,7 @@ def selftest():
 
     # Търсене по имена — без мрежа, с подхвърлен индекс.
     _star = globals().get("index_za_den")
+    _star_cena = globals().get("cena_za")
     try:
         globals()["index_za_den"] = lambda s, l, y: {
             frozenset(("tampabayrays", "torontobluejays")): "401"}
@@ -301,11 +540,23 @@ def selftest():
               == (None, None, None))
         check("спорт без пазар не се пита",
               cena_po_imena("tennis", "atp", "20260813", "A", "B") == (None, None, None))
+        check("номерът се вади по същите имена",
+              ev_za_imena("baseball", "mlb", "20260813",
+                          "Tampa Bay Rays", "Toronto Blue Jays") == "401")
+        check("номерът се намира и от съседната дата",
+              ev_za_imena("baseball", "mlb", "20260814",
+                          "Tampa Bay Rays", "Toronto Blue Jays") == "401")
+        check("непознат мач не дава номер",
+              ev_za_imena("baseball", "mlb", "20260813", "А", "Б") is None)
     finally:
+        # Подхвърленото се ВРЪЩА. Иначе след самопроверка в същия процес
+        # живият `cena_za` остава макет и цените изчезват мълчаливо.
         if _star is not None:
             globals()["index_za_den"] = _star
+        if _star_cena is not None:
+            globals()["cena_za"] = _star_cena
 
-    check("броят проверки е поне 25", ok >= 25)
+    check("броят проверки е поне 60", ok >= 60)
     print("САМОПРОВЕРКА НА ПАЗАРА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)

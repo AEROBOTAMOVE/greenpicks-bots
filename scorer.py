@@ -83,6 +83,12 @@ SPORT_PATH = {
     "mma": ("mma", "\U0001f94a"),
     "volleyball": (None, "\U0001f3d0"),      # FIVB, не ESPN — виж по-долу
     "tabletennis": (None, "\U0001f3d3"),     # WTT, не ESPN
+    # 🔴 ДОБАВЕН 18.08.2026. Липсваше. Днес е безобидно — спортът е
+    # затворен до септември — но щом се върне, резултатите му щяха да излизат
+    # с подразбиращото се 📌 вместо 🏈, защото sport_emo пада на
+    # резервата. Намерен чрез сверка на ВСИЧКИ списъци-по-спорт между трите
+    # файла: predictor.SPORTS, scorer.SPORT_BG/SPORT_PATH/SPORT_RED, zdrave.IME.
+    "amfootball": ("football", "🏈"),   # ESPN път football/nfl
 }
 
 # СПОРТОВЕ БЕЗ ИЗТОЧНИК НА РЕЗУЛТАТИ.
@@ -994,6 +1000,14 @@ def line(rec, hs, as_, ok):
             + "    посочихме: " + esc(rec.get("pick")))
 
 
+# Под този брой CLV е шум, не сигнал. Двайсет е долната граница, при която
+# средното движение изобщо започва да значи нещо.
+CLV_MIN = max(10, min(200, int((os.environ.get("SCORE_CLV_MIN") or "20").strip() or 20)))
+# Доходността е по-шумна от CLV: тя зависи и от резултатите, не само от
+# движението на цената. Затова прагът ѝ е по-висок.
+DOHOD_MIN = max(20, min(500, int((os.environ.get("SCORE_DOHOD_MIN") or "40").strip() or 40)))
+
+
 def bez_text(bez):
     """Един ред за прогнозите, които никой източник не може да отсъди.
 
@@ -1182,6 +1196,98 @@ def results_text(now, rows, total_all, hit_all, bez=None, vsichki=None):
 # всичко, което някога е излизало в 🤖 БОТА ПРЕДРИЧА.
 #
 # Излиза САМО вечер и САМО веднъж. Обядът си има своята междинна.
+# ============================== ЗАТВАРЯЩАТА ЦЕНА (18.08.2026)
+#
+# 69% познати не отговаря на въпроса, който има значение. Фаворит на 1.30,
+# познат в 69% от случаите, ГУБИ пари. Единственият честен въпрос е: движи ли
+# се пазарът КЪМ нас, след като сме казали?
+#
+# Предсказателят вече пази цената при ПУСКАНЕ и адреса на срещата. Тук, в мига
+# на присъдата, се взима цената при ЗАТВАРЯНЕ. Разликата между двете е CLV — и
+# тя работи при двайсет залога, докато „процент познати" иска стотици.
+#
+# ЕДНА заявка на запис, само за записи, които изобщо имат цена (три спорта).
+def hvani_zatvaryashta(r):
+    """Записва pazar_close и pazar_clv. True, ако е добавено нещо ново."""
+    if not r.get("pazar_cena") or r.get("pazar_close") is not None:
+        return False
+    ev, sp, lg = r.get("pazar_ev"), r.get("pazar_sport"), r.get("pazar_liga")
+    if not (ev and sp and lg):
+        return False
+    try:
+        import pazar as PZ
+    except Exception:                                        # noqa: BLE001
+        return False
+    try:
+        dom, gost, raven = PZ.cena_zatvarayashta(sp, lg, ev)
+    except Exception:                                        # noqa: BLE001
+        return False
+    pick = str(r.get("pick") or "")
+    cena = (dom if pick.startswith("1")
+            else gost if pick.startswith("2")
+            else raven if pick[:1] in ("Х", "X") else None)
+    if not cena:
+        return False
+    r["pazar_close"] = cena
+    # Движението се мери във ВЕРОЯТНОСТИ. Пет стотинки при 1.20 и пет при
+    # 5.00 са различни неща и събирането им би било безсмислица.
+    dv = PZ.dvizhenie(r.get("pazar_cena"), cena)
+    if dv is not None:
+        r["pazar_clv"] = dv
+    return True
+
+
+def dohodnost(rows, minimum=None):
+    """(редове, брой) — истинската доходност при РАВЕН залог. Празно при малка извадка.
+
+    Това е единственият ред, който отговаря на въпроса „струва ли си".
+    Процентът познати НЕ отговаря: фаворит на 1.30, познат в 69% от случаите,
+    връща 0.69 x 1.30 = 0.897, тоест ГУБИ 10 стотинки на лев.
+
+    Смята се на равен залог от 1, защото всяко друго разпределение е избор,
+    който ние нямаме право да правим вместо човека.
+    """
+    minimum = DOHOD_MIN if minimum is None else minimum
+    g = [r for r in (rows or [])
+         if r.get("hit") is not None and r.get("pazar_cena")
+         and int(r.get("pazar_v") or 0) >= 2]
+    if len(g) < minimum:
+        return [], len(g)
+    vlozheno = float(len(g))
+    varnato = sum((float(r["pazar_cena"]) if r.get("hit") else 0.0) for r in g)
+    roi = 100.0 * (varnato - vlozheno) / vlozheno
+    sr_cena = sum(float(r["pazar_cena"]) for r in g) / len(g)
+    poz = sum(1 for r in g if r.get("hit"))
+    out = ["  %-27s %3d" % ("мача с цена", len(g)),
+           "  %-27s %3d · %.0f%%" % ("познати", poz, 100.0 * poz / len(g)),
+           "  %-27s %.2f" % ("средна цена", sr_cena),
+           "  %-27s %+.1f%%" % ("доходност при равен залог", roi)]
+    return out, len(g)
+
+
+def pokritie(rows):
+    """(с цена, всички отсъдени) — за да не се крие обхватът на числото."""
+    ots = [r for r in (rows or []) if r.get("hit") is not None]
+    sc = [r for r in ots if r.get("pazar_cena") and int(r.get("pazar_v") or 0) >= 2]
+    return len(sc), len(ots)
+
+
+def clv_text(rows, minimum=None):
+    """Редовете за CLV. Празно, докато извадката е малка."""
+    minimum = CLV_MIN if minimum is None else minimum
+    g = [r for r in (rows or [])
+         if r.get("pazar_clv") is not None and int(r.get("pazar_v") or 0) >= 2]
+    if len(g) < minimum:
+        return [], len(g)
+    kum = [r for r in g if float(r["pazar_clv"]) > 0]
+    ot = [r for r in g if float(r["pazar_clv"]) < 0]
+    sr = sum(float(r["pazar_clv"]) for r in g) / len(g)
+    out = ["  %-27s %3d" % ("пазарът дойде при нас", len(kum)),
+           "  %-27s %3d" % ("пазарът се отдалечи", len(ot)),
+           "  %-27s %+.2f точки" % ("средно движение", 100.0 * sr)]
+    return out, len(g)
+
+
 def obshto_dosega_text(now, rows):
     """Равносметката на целия живот на бота. Едно съобщение, стая 9."""
     rows = list(rows or [])
@@ -1257,7 +1363,8 @@ def obshto_dosega_text(now, rows):
     # само ако сме прави ТОГАВА, КОГАТО се разминаваме с пазара. Ако сме
     # прави само там, където и той е прав, просто го повтаряме.
     pz = [r for r in rows if r.get("scored") and r.get("hit") is not None
-          and r.get("p") and r.get("pazar_p")]
+          and r.get("p") and r.get("pazar_p")
+          and int(r.get("pazar_v") or 0) >= 2]
     if len(pz) >= PAZAR_MIN_KARTA:
         smeli = [r for r in pz if float(r["p"]) > float(r["pazar_p"]) + 0.02]
         if len(smeli) >= 10:
@@ -1268,6 +1375,21 @@ def obshto_dosega_text(now, rows):
                      " шанс от пазара."),
                     ("  Той им даваше <b>" + ("%.0f" % paz) + "%</b>, сбъднаха се"
                      " <b>" + ("%.0f" % sbd) + "%</b>.")]
+
+    # 💰 СТРУВА ЛИ СИ — доходност при равен залог и движение на пазара.
+    # И двете носят ОБХВАТА си до себе си: числото без знаменател лъже, а
+    # цена имаме само за три от седемте спорта.
+    _dh, _n_dh = dohodnost(rows)
+    _clv, _n_clv = clv_text(rows)
+    if _dh or _clv:
+        _s_cena, _s_ots = pokritie(rows)
+        out += ["", "💰 <b>Струва ли си</b>",
+                ("  <i>мерено на " + str(_s_cena) + " от " + str(_s_ots)
+                 + " отсъдени — цена има само за футбол, баскетбол и бейзбол</i>")]
+        out += _dh
+        if _clv:
+            out += ["", "  <b>Движение на пазара след като кажем</b>"]
+            out += _clv
 
     out += ["", "🟢 THE GREEN ROOM"]
     return NL.join(out)
@@ -1310,18 +1432,41 @@ def den_finish_text(now, rows, den, mezhdinna=False):
                 "", "\U0001f7e2 THE GREEN ROOM"]
         return NL.join(out)
 
-    out += ["\U0001f4cb пуснати прогнози: <b>" + str(len(dnes)) + "</b>",
+    # 18.08.2026 — ДУМИТЕ, НЕ ЧИСЛАТА.
+    #
+    # Видяно с очи, като прочетох двете вечерни съобщения едно до друго:
+    #   ФИНИШ НА ДЕНЯ · 18.08  ->  отсъдени: 0 — мачовете още вървят
+    #   ОБЗОР НА ДЕНЯ  · 18.08  ->  4 познати · 2 сгрешени · 67%
+    # Една вечер, съща дата, две числа, които си противоречат пред очите на
+    # човека. И ДВЕТЕ са верни: финишът брои по деня на ПУБЛИКУВАНЕ, обзорът
+    # по деня на МАЧА. Картата за днешен мач често излиза предния ден.
+    #
+    # Числата не се пипат — правилни са. Пипат се думите, за да казват КОЕ
+    # точно броят.
+    out += ["\U0001f4cb пуснати ДНЕС: <b>" + str(len(dnes)) + "</b>",
             "  ✅ познати: <b>" + str(len(poznati)) + "</b>",
             "  ❌ загубени: <b>" + str(len(zagubeni)) + "</b>"]
     if otsadeni:
-        out.append("  \U0001f4c8 отсъдени: <b>" + str(len(otsadeni)) + "</b> · "
+        out.append("  \U0001f4c8 от тях отсъдени: <b>" + str(len(otsadeni)) + "</b> · "
                    + ("%.0f" % (100.0 * len(poznati) / len(otsadeni))) + "%")
     else:
-        out.append("  \U0001f4c8 отсъдени: <b>0</b> — мачовете още вървят")
+        out.append("  \U0001f4c8 от тях отсъдени: <b>0</b> — мачовете им още не са дошли")
     if chakat:
         out.append("  ⏳ чакат резултат: <b>" + str(len(chakat)) + "</b>")
     if bez:
         out.append("  \U0001f6ab без официален резултат: <b>" + str(len(bez)) + "</b>")
+
+    # Присъдите, дошли ДНЕС, но за карти, пуснати ПО-РАНО. Без този ред
+    # човекът чете „отсъдени 0" и решава, че оценителят не работи — а той
+    # тъкмо е отсъдил шест мача, просто пуснати предния ден.
+    _rano = [r for r in rows
+             if r.get("hit") is not None
+             and str(r.get("day") or "")[:10] == den
+             and str(r.get("posted") or "")[:10] != den]
+    if _rano:
+        out.append("  \U0001f5c2 отсъдени днес от по-раншни: <b>"
+                   + str(sum(1 for r in _rano if r.get("hit")))
+                   + " от " + str(len(_rano)) + "</b>")
 
     # Разбивка по спорт САМО за днес — това е „какво що" на деня.
     po_sport = {}
@@ -1481,7 +1626,12 @@ def save_log(rows):
 #
 # Нищо не се губи. Това е преместване, не чистене.
 ARHIV_FILE = (os.environ.get("SCORE_ARHIV_FILE") or "predict_log_arhiv.json").strip()
-ARHIV_DNI = max(30, min(400, int((os.environ.get("SCORE_ARHIV_DNI") or "120").strip())))
+# 🔴 120 → 60 НА 18.08.2026. Две причини, и двете измерени.
+# 1) Таванът на дневника трябва да е над MAX_DAY × ARHIV_DNI. При 120 дни и
+#    40 карти това е 4800 — на ръба на всяка разумна граница. При 60 е 2400.
+# 2) При 120 дни архивиращият код НЯМАШЕ да се пусне нито веднъж до 03.12 —
+#    тоест щеше да стои непроверен в бой още 107 дни. При 60 тръгва наесен.
+ARHIV_DNI = max(30, min(400, int((os.environ.get("SCORE_ARHIV_DNI") or "60").strip())))
 
 
 def cheti_arhiv():
@@ -1765,7 +1915,7 @@ def selftest():
     ]
     _fin = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA), _redove, _dn)
     check("финишът е озаглавен", "ФИНИШ НА ДЕНЯ" in _fin)
-    check("финишът брои само днешните", "пуснати прогнози: <b>4</b>" in _fin)
+    check("финишът брои само днешните", "пуснати ДНЕС: <b>4</b>" in _fin)
     check("финишът брои познатите", "познати: <b>1</b>" in _fin)
     check("финишът брои загубените", "загубени: <b>1</b>" in _fin)
     check("финишът брои чакащите", "чакат резултат: <b>1</b>" in _fin)
@@ -1780,7 +1930,8 @@ def selftest():
     check("празният ден не лъже с проценти", "%" not in _praz)
     _cql = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA),
                            [dict(_redove[2])], _dn)
-    check("ден без нито един отсъден го казва", "мачовете още вървят" in _cql)
+    check("ден без нито един отсъден го казва",
+          "мачовете им още не са дошли" in _cql)
 
     # --- 🕒 ОБЕДНАТА РАВНОСМЕТКА. Същите числа, ДРУГО заглавие — иначе два
     # еднакви „финиша" на ден правят и двата безсмислени.
@@ -1790,7 +1941,7 @@ def selftest():
     check("обедната НЕ се представя за финиш", "ФИНИШ НА ДЕНЯ" not in _obed)
     check("обедната казва, че денят тече", "денят още тече" in _obed)
     check("обедната не пожелава лека вечер", "Лека вечер" not in _obed)
-    check("обедната носи същите числа", "пуснати прогнози: <b>4</b>" in _obed)
+    check("обедната носи същите числа", "пуснати ДНЕС: <b>4</b>" in _obed)
     check("обедната е чиста", banned_word(_obed) is None)
     _obed_praz = den_finish_text(datetime(2026, 8, 11, 15, 30, tzinfo=SOFIA),
                                  [], _dn, mezhdinna=True)
@@ -1879,6 +2030,23 @@ def selftest():
     check("непознат спорт отива накрая",
           po_red(["зззз", "football"]) == ["football", "зззз"])
     check("името на спорта е на български", sport_ime("hockey") == "ХОКЕЙ")
+    # 🔴 ПАЗАЧ СРЕЩУ РАЗМИНАВАНЕ (18.08.2026). Три файла държат по един списък
+    # със спортове. Разминат ли се, спортът тихо губи име, емоджи или ред в
+    # отчета — точно така amfootball липсваше в SPORT_PATH и щеше да излезе с
+    # 📌 наесен. Списъкът се ЧЕТЕ от predictor.py, не се преписва тук.
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "predictor.py"), encoding="utf-8-sig") as f:
+            _psrc = f.read()
+        _i = _psrc.find("SPORT_ORDER = [")
+        _blok = _psrc[_i:_psrc.find("]", _i)] if _i >= 0 else ""
+        _sp = {m for m in SPORT_BG if ('"' + m + '"') in _blok}
+        check("списъкът със спортове се прочете от predictor", len(_sp) >= 7)
+        check("всеки спорт има път и емоджи", not (_sp - set(SPORT_PATH)))
+        check("всеки спорт има ред в отчета", not (_sp - set(SPORT_RED)))
+        check("всеки спорт има българско име", not (_sp - set(SPORT_BG)))
+    except Exception as e:                                   # noqa: BLE001
+        bad.append("не мога да сверя списъците със спортове: " + str(e)[:40])
     check("непознат спорт пак получава име", sport_ime("нещо") == "НЕЩО")
     # Дубликат: същият мач, същият резултат, вписан два пъти в дневника.
     _dubl = _mix + [({"home": "Левски", "away": "ЦСКА", "pick": "1",
@@ -2160,6 +2328,106 @@ def selftest():
     check("спрелият носи честната причина", _krug[0].get("why") == IZCHERPANO)
     check("таванът е точно три опита", MAKS_OPITI == 3)
 
+    # 💰 ДОХОДНОСТ И CLV (18.08.2026)
+    def _z(hit, cena, clv=None, v=2):
+        d = {"scored": True, "hit": hit, "pazar_cena": cena, "pazar_v": v,
+             "bucket": "baseball", "p": 0.55, "pazar_p": 0.54}
+        if clv is not None:
+            d["pazar_clv"] = clv
+        return d
+
+    check("малка извадка мълчи", dohodnost([_z(True, 2.0)] * 5)[0] == [])
+    # Равен залог, цена 2.00, точно половината познати -> нула доходност.
+    _rav = [_z(True, 2.0) for _ in range(20)] + [_z(False, 2.0) for _ in range(20)]
+    _rd, _rn = dohodnost(_rav)
+    check("40 залога стигат за число", _rn == 40 and _rd != [])
+    check("цена 2.00 и 50% познати дават НУЛА",
+          any("+0.0%" in x or "-0.0%" in x for x in _rd))
+    # 69% познати на цена 1.30 ГУБИ — това е целият смисъл на реда.
+    _slab = [_z(True, 1.30) for _ in range(69)] + [_z(False, 1.30) for _ in range(31)]
+    _sd, _ = dohodnost(_slab)
+    check("69% на цена 1.30 излиза ОТРИЦАТЕЛНО",
+          any("-" in x and "доходност" in x for x in _sd))
+    check("същите 69% не са отрицателни на цена 1.60",
+          not any("-" in x and "доходност" in x
+                  for x in dohodnost([_z(True, 1.60) for _ in range(69)]
+                                     + [_z(False, 1.60) for _ in range(31)])[0]))
+    check("стар запис без знак за версия не се брои",
+          dohodnost([_z(True, 2.0, None, 1) for _ in range(60)])[1] == 0)
+    check("запис без цена не се брои",
+          dohodnost([dict(_z(True, 2.0), pazar_cena=None) for _ in range(60)])[1] == 0)
+
+    check("малка извадка за CLV мълчи", clv_text([_z(True, 2.0, 0.03)] * 3)[0] == [])
+    _cl, _cn = clv_text([_z(True, 2.0, 0.03) for _ in range(15)]
+                        + [_z(False, 2.0, -0.01) for _ in range(10)])
+    check("CLV брои двете посоки", _cn == 25
+          and any("15" in x for x in _cl) and any("10" in x for x in _cl))
+    check("средното движение се изписва в точки",
+          any("точки" in x for x in _cl))
+    check("CLV пренебрегва запис без движение",
+          clv_text([_z(True, 2.0) for _ in range(40)])[1] == 0)
+
+    # 🔴 НОВИЯТ РАЗДЕЛ ДА НЕ УБИВА СЪОБЩЕНИЕТО. Портиерът реже цялото
+    # съобщение при една забранена дума. Ако утре някой напише „коефициент"
+    # в реда за доходността, вечерната равносметка спира ЦЯЛАТА — мълчаливо.
+    _sekcia = " ".join(dohodnost([_z(True, 2.0) for _ in range(30)]
+                                 + [_z(False, 2.0) for _ in range(30)])[0]
+                       + clv_text([_z(True, 2.0, 0.02) for _ in range(30)])[0])
+    check("разделът за доходността минава през портиера",
+          banned_word(_sekcia) is None)
+    check("разделът наистина има какво да каже", len(_sekcia) > 40)
+
+    check("обхватът брои и отсъдените без цена",
+          pokritie([_z(True, 2.0), {"scored": True, "hit": True}]) == (1, 2))
+    check("невисящите не влизат в обхвата",
+          pokritie([{"scored": False}]) == (0, 0))
+
+    # 🔴 ЗАТВАРЯЩАТА ЦЕНА — БЕЗ МРЕЖА, С ПОДХВЪРЛЕН ПАЗАР.
+    #
+    # Първата ми версия на тези проверки минаваше, защото ИСТИНСКАТА заявка към
+    # ESPN за измислен номер връщаше нищо. Тоест тестът беше зелен по грешна
+    # причина И правеше мрежово повикване насред самопроверката. Мутация,
+    # която маха пазача „вече хваната", го преживя без да мигне.
+    try:
+        import pazar as _PZ
+    except Exception:                                        # noqa: BLE001
+        _PZ = None
+    check("пазарът се внася", _PZ is not None)
+    if _PZ is not None:
+        _star_z = _PZ.cena_zatvarayashta
+        try:
+            _PZ.cena_zatvarayashta = lambda sp, lg, ev: (1.80, 2.10, 3.40)
+            _nov = {"pazar_cena": 2.00, "pazar_ev": "1", "pazar_sport": "baseball",
+                    "pazar_liga": "mlb", "pick": "1 · Домакин"}
+            check("затварящата се хваща",
+                  hvani_zatvaryashta(_nov) is True and _nov.get("pazar_close") == 1.80)
+            check("поевтиняването дава положително движение",
+                  float(_nov.get("pazar_clv") or 0) > 0)
+            _ima = {"pazar_cena": 2.00, "pazar_close": 1.95, "pazar_ev": "1",
+                    "pazar_sport": "baseball", "pazar_liga": "mlb", "pick": "1 · А"}
+            check("вече хваната НЕ се пипа втори път",
+                  hvani_zatvaryashta(_ima) is False and _ima["pazar_close"] == 1.95)
+            _g2 = {"pazar_cena": 2.00, "pazar_ev": "1", "pazar_sport": "baseball",
+                   "pazar_liga": "mlb", "pick": "2 · Гост"}
+            hvani_zatvaryashta(_g2)
+            check("изборът 2 взима цената на ГОСТА", _g2.get("pazar_close") == 2.10)
+            _gx = {"pazar_cena": 2.00, "pazar_ev": "1", "pazar_sport": "soccer",
+                   "pazar_liga": "x", "pick": "Х · равен"}
+            hvani_zatvaryashta(_gx)
+            check("изборът Х взима цената на РАВЕНСТВОТО",
+                  _gx.get("pazar_close") == 3.40)
+            _gp = {"pazar_cena": 2.00, "pazar_ev": "1", "pazar_sport": "baseball",
+                   "pazar_liga": "mlb", "pick": "Над 8.5 рънa"}
+            check("непознат избор не получава чужда цена",
+                  hvani_zatvaryashta(_gp) is False and "pazar_close" not in _gp)
+            check("без цена при пускане не се търси затваряща",
+                  hvani_zatvaryashta({"pazar_ev": "1", "pazar_sport": "baseball",
+                                      "pazar_liga": "mlb", "pick": "1 · А"}) is False)
+            check("без адрес не се търси затваряща",
+                  hvani_zatvaryashta({"pazar_cena": 2.0, "pick": "1 · А"}) is False)
+        finally:
+            _PZ.cena_zatvarayashta = _star_z
+
     # 🗄️ Архивът. Мести се само ПРИКЛЮЧЕНО; висящото остава, колкото и старо.
     _sega_a = datetime(2026, 8, 18, tzinfo=SOFIA)
     _r = [{"posted": "2026-01-05 10:00", "scored": True, "hit": True},
@@ -2413,6 +2681,13 @@ def main():
         r["scored"] = True
         r["hit"] = bool(ok_hit)
         r["score"] = str(hs) + ":" + str(as_)
+        # Мачът е свършил -> затварящата цена вече съществува. Сега е ЕДИН-
+        # СТВЕНИЯТ момент, в който може да се вземе: после записът се архивира.
+        try:
+            if hvani_zatvaryashta(r):
+                time.sleep(0.3)
+        except Exception:                                    # noqa: BLE001
+            pass
         fresh.append((r, hs, as_, bool(ok_hit)))
 
     print("Проверени " + str(checked) + " твърдения, отсъдени " + str(len(fresh)) + ".")

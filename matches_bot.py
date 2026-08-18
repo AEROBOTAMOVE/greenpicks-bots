@@ -33,6 +33,7 @@ THE GREEN ROOM — БОТ „АНАЛИЗАТОРЪТ" 📅🧠
 import html
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
@@ -58,10 +59,49 @@ VOLLEY_THREAD = (os.environ.get("VOLLEY_THREAD_ID") or "8").strip()
 COMBAT_THREAD = (os.environ.get("COMBAT_THREAD_ID") or "328").strip()
 PREDICT_THREAD = (os.environ.get("PREDICT_THREAD_ID") or "27").strip()
 
+# 🔴 ДОБАВЕНИ 18.08.2026 — ЗАРЕДЕНА МИНА, НЕ ЖИВ ДЕФЕКТ.
+#
+# predictor знае девет стаи по спорт; тук се знаеха ПЕТ. Тенисът (1963) и
+# бейзболът (1965) липсваха изцяло. Днес е безвредно, защото ROOM_LISTS е
+# изключен и този бот не праща в стаи по спорт — но включи ли се утре, два
+# спорта нямаше да получат нищо, а останалите да получат.
+#
+# Номерата се вливат и от rooms_state.json, точно както в predictor: закован
+# списък остарява в мига, в който се роди нова стая.
+TENNIS_THREAD = (os.environ.get("TENNIS_THREAD_ID") or "1963").strip()
+BASEBALL_THREAD = (os.environ.get("BASEBALL_THREAD_ID") or "1965").strip()
+
+
+def _stai_ot_sastoyanie():
+    """Номерата на стаите от rooms_state.json. Празно при липса или боклук."""
+    put = (os.environ.get("ROOMS_STATE_FILE") or "rooms_state.json").strip()
+    out = {}
+    try:
+        with open(put, encoding="utf-8-sig") as f:
+            d = json.load(f)
+        if isinstance(d, dict):
+            for sport, zapis in d.items():
+                n = (zapis or {}).get("thread")
+                if n and int(n) > 0:
+                    out[str(sport).strip()] = str(int(n))
+    except Exception:                                        # noqa: BLE001
+        pass
+    return out
+
+
+_ot_fayla = _stai_ot_sastoyanie()
+TENNIS_THREAD = _ot_fayla.get("tennis", TENNIS_THREAD)
+BASEBALL_THREAD = _ot_fayla.get("baseball", BASEBALL_THREAD)
+
 # 🚫 Стаята на човека и стаята на новините. Ботът няма работа там.
 FORBIDDEN_THREADS = {"4", "26"}
 ALLOWED_THREADS = {FOOTBALL_THREAD, BASKET_THREAD, TT_THREAD, VOLLEY_THREAD,
-                   COMBAT_THREAD, PREDICT_THREAD}
+                   COMBAT_THREAD, PREDICT_THREAD,
+                   TENNIS_THREAD, BASEBALL_THREAD}
+# И всяка стая, родена след последното качване — иначе новият спорт получава
+# карти от predictor и мълчание оттук.
+ALLOWED_THREADS |= {v for v in _ot_fayla.values()}
+ALLOWED_THREADS -= FORBIDDEN_THREADS
 
 SPORTSDB_KEY = os.environ.get("SPORTSDB_KEY") or "123"   # празен env = тест-ключ, не счупен URL
 FOOTBALL_DATA_KEY = (os.environ.get("FOOTBALL_DATA_KEY") or "").strip()
@@ -1105,6 +1145,27 @@ def selftest():
         check("разрешена стая минава", ok_pass is True and sent == [FOOTBALL_THREAD])
     finally:
         poster.send_message = real_send
+
+    # 🔴 ПАЗАЧ СРЕЩУ ДРЕЙФА НА СТАИТЕ (18.08.2026). predictor знае девет стаи
+    # по спорт, тук се знаеха пет — тенисът и бейзболът липсваха изцяло.
+    # Списъкът се ЧЕТЕ от predictor.py, не се преписва: препис остарява тихо.
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "predictor.py"), encoding="utf-8-sig") as f:
+            _ps = f.read()
+        _i = _ps.find("SPORT_ROOM = {")
+        _bl = _ps[_i:_ps.find("}", _i)] if _i >= 0 else ""
+        # Закованите номера са в кода; новите стаи живеят в
+        # rooms_state.json и се вливат в predictor по същия начин.
+        # Сверяваме и двете — иначе проверката гледа половин истина.
+        _nom = set(re.findall(r'or "(\d+)"', _bl)) | set(_stai_ot_sastoyanie().values())
+        check("стаите на predictor се прочетоха", len(_nom) >= 5)
+        _lip = sorted(_nom - ALLOWED_THREADS - FORBIDDEN_THREADS)
+        check("всяка стая по спорт е позната тук", not _lip)
+    except Exception as e:                                   # noqa: BLE001
+        check("сверката със стаите на predictor мина", False)
+        print("   (" + str(e)[:50] + ")")
+
 
     # 3) Часове: UTC -> Европа/София (лятото е UTC+3)
     check("SDB час в български", fmt_time_sdb({"strTime": "18:00:00", "dateEvent": "2026-07-28"}) == "21:00")
