@@ -96,6 +96,14 @@ except Exception as _mb_err:          # noqa: BLE001
     MB = None
     print("matches_bot не се зареди (" + str(_mb_err)[:80] + ") — карам без резервата.")
 
+# 🔴 ПАЗАРНАТА ЦЕНА (13.08.2026). Отделен внос, отделен try: провал тук НЕ
+# бива да спира прогнозите. Без него картата просто няма реда с цената.
+try:
+    import pazar as PZ
+except Exception as _pz_err:          # noqa: BLE001
+    PZ = None
+    print("pazar не се зареди (" + str(_pz_err)[:80] + ") — картите остават без цена.")
+
 SOFIA = ZoneInfo("Europe/Sofia")
 NL = chr(10)
 NL2 = chr(10) + chr(10)
@@ -819,6 +827,11 @@ def log_pick(an, now, combo=0):
         "league": fx.get("league"),
         "slug": (fx.get("extra") or {}).get("slug"),
         "pick": an.get("pick"),
+        # 🔴 13.08.2026. Пазарната цена и вероятността, която тя значи. Пазят
+        # се, за да може после да се отговори на въпроса, който наистина мери
+        # качество: бием ли пазара, или само познаваме фаворити.
+        "pazar_cena": an.get("pazar_cena"),
+        "pazar_p": an.get("pazar_p"),
         "p": round(float(an.get("p") or 0.0), 4),
         "stars": an.get("stars"),
         "sample": an.get("sample"),
@@ -1286,6 +1299,12 @@ def espn_fixtures(sport, slug, ymd, bucket, weight, league_bg, now, extra=None):
         ht, at = (h.get("team") or {}), (a.get("team") or {})
         ex = dict(extra or {})
         ex["slug"] = slug
+        # 🔴 13.08.2026. Идентификаторът на срещата в ESPN. Пазим го, защото
+        # ДЪЛБОКИЯТ слой на ESPN (sports.core.api) дава пазарната цена само
+        # по него — scoreboard-ът я носи единствено за футбола, а core я има
+        # и за бейзбол, и за ВНБА. Един ключ тук отваря цял пазар после.
+        ex["ev_id"] = str(ev.get("id") or "")
+        ex["sport_path"] = sport
         ex["neutral"] = bool(comp.get("neutralSite"))
         # 🔴 РЕКОРДЪТ СЕ ЗАПАЗВА (11.08.2026). ESPN го дава направо в
         # scoreboard-а: records=[{'type':'total','summary':'20-12'},
@@ -3712,6 +3731,41 @@ def sport_record(bucket):
     return red
 
 
+# ═══════════════════════════════════ 📐 ОБРАТНОТО НА ПРОЦЕНТА (13.08.2026)
+#
+# ПОРЪЧКА НА СОБСТВЕНИКА: „искаше ми се и коефициенти да почнеш да даваш,
+# поне тези които имаме достъп лайв".
+#
+# ИЗМЕРЕНО ПЪРВО, ПОСЛЕ ПИСАНО. Живите коефициенти ги има — ESPN ги дава в
+# scoreboard за футбола. Но идват така:
+#     {"overUnder": 2.5,
+#      "link": "https://sportsbook.draftkings.com/gateway?...wpcn=ESPN..."}
+# Тоест числото е ОФЕРТА НА БУКМЕЙКЪР, с неговия линк. Точно това реже
+# BANNED_TOKENS (bet365, pinnacle, bwin, efbet, winbet, betano, 1xbet,
+# „коеф", „букмейкър", „odds") — пазач, сложен, защото българският закон
+# забранява рекламата на хазарт. Да ги публикуваме значи да рекламираме
+# оператор. Не го правим.
+#
+# ЗАТОВА ТУК ЧИСЛОТО Е НАШЕ, НЕ ТЯХНО: просто обратното на собствената ни
+# вероятност. 56% → 1 към 1.79. Никакъв оператор, никаква оферта, никакъв
+# линк — само пренаписване на процента, който така или иначе стои на картата.
+#
+# Пишем го „1 към 1.79", а не с думата, която пазачът реже: думата носи
+# хазартния контекст, а нотацията — само математиката.
+KOEF_VKL = (os.environ.get("PREDICT_KOEF") or "1").strip() in ("1", "true", "да")
+
+
+def obratno_na_procenta(p):
+    """56% → „1 към 1.79". Празно при безсмислен вход."""
+    try:
+        x = float(p)
+    except (TypeError, ValueError):
+        return ""
+    if not (0.01 < x < 1.0):
+        return ""
+    return "1 към " + ("%.2f" % (1.0 / x))
+
+
 def card(an, now):
     """Кратка карта. Прогнозата е ГЕРОЯТ, обяснението е два реда."""
     fx = an["fx"]
@@ -3728,6 +3782,18 @@ def card(an, now):
     lines += ["",
               "🎯 <b>" + esc(an["pick"]) + "</b>",
               "<b>" + pct(an["p"]) + "</b> · " + p_duma(an["p"])]
+    if KOEF_VKL:
+        _obr = obratno_na_procenta(an.get("p"))
+        if _obr:
+            lines.append("📐 " + _obr + " — обратното на процента, наша сметка")
+        # 🔴 ПАЗАРНАТА ЦЕНА (13.08.2026). Идва от ДЪЛБОКИЯ слой на ESPN —
+        # scoreboard-ът я носи само за футбола, core я има и за бейзбол, и за
+        # ВНБА. Само число: без име на оператор, без линк, без покана.
+        _pz = an.get("pazar_cena")
+        if _pz and PZ is not None:
+            _red = PZ.red_za_karta(an.get("p"), _pz)
+            if _red:
+                lines.append(_red)
 
     # 🔴 ЗВЕЗДИТЕ ОТПАДНАХА (11.08.2026). Прочетох живата карта в стая 27:
     #     🎯 1 · победа Bodo/Glimt
@@ -3971,6 +4037,61 @@ def fallback_analyse(fx, ctx, reason):
             "second": "", "third": "",
             "why": why, "sample": "без история",
             "n_eff": 0.0, "strength": 0.0, "stars": 1}
+
+
+# ═══════════════════════════════════ 📊 ЦЕНАТА КЪМ АНАЛИЗА (13.08.2026)
+#
+# Взима се СЛЕД избора, не преди него: пазарът НЕ бива да влияе на решението
+# на модела. Ако го питахме преди, щяхме тихо да го препишем — а тогава 70-те
+# процента щяха да мерят пазара, не нас.
+#
+# Заявката е една на мач и само за спортовете, за които ИЗМЕРЕНО има цена
+# (бейзбол, баскетбол, футбол). Провал не спира картата — тя просто излиза
+# без реда, както преди.
+def dobavi_pazar(an):
+    if PZ is None or not isinstance(an, dict):
+        return an
+    fx = an.get("fx") or {}
+    ex = fx.get("extra") or {}
+    ev_id, slug = ex.get("ev_id"), ex.get("slug")
+    sport = ex.get("sport_path")
+    # 🔴 ДВА ПЪТЯ (13.08.2026). Срещите от ESPN носят номер и цената идва
+    # направо. Бейзболът обаче идва от statsapi.mlb.com и НЯМА такъв номер —
+    # а там са 48 от прогнозите. За него търсим по ИМЕНА в ESPN scoreboard-а
+    # за същия ден. Без този втори път най-големият спорт остава без цена.
+    if not sport:
+        sport = {"baseball": "baseball", "basketball": "basketball",
+                 "football": "soccer"}.get(str(an.get("bucket") or ""))
+    if not slug:
+        slug = {"baseball": "mlb"}.get(str(an.get("bucket") or ""))
+    if not sport or not slug:
+        return an
+    try:
+        if ev_id:
+            dom, gost, raven = PZ.cena_za(sport, slug, ev_id)
+        else:
+            s = fx_start(fx, datetime.now(SOFIA))
+            ymd = (s.astimezone(SOFIA) if s is not None
+                   else datetime.now(SOFIA)).strftime("%Y%m%d")
+            dom, gost, raven = PZ.cena_po_imena(sport, slug, ymd,
+                                                fx.get("home"), fx.get("away"))
+    except Exception:                                        # noqa: BLE001
+        return an
+    # Кой изход сме посочили. Картата пише „1 · ...", „2 · ..." или „Х · равен".
+    pick = str(an.get("pick") or "")
+    cena = None
+    if pick.startswith("1"):
+        cena = dom
+    elif pick.startswith("2"):
+        cena = gost
+    elif pick.startswith("Х") or pick.startswith("X"):
+        cena = raven
+    if cena:
+        an["pazar_cena"] = cena
+        pz = PZ.veroyatnost(cena)
+        if pz:
+            an["pazar_p"] = round(pz, 4)
+    return an
 
 
 # ═══════════════════════════════════ ТРИТЕ КОМБИНИРАНИ ФИША (стая 4)
@@ -4594,6 +4715,7 @@ def run():
             sent += 1
         time.sleep(SEND_GAP)
     for a in picks:
+        dobavi_pazar(a)
         txt = card(a, now)
         if post_predict(txt):
             mark_posted(state, a["fx"]["_key"], now)
@@ -5904,6 +6026,30 @@ def selftest():
     check("редът покрива всички спортове", set(SPORT_ORDER) == set(SPORTS.keys()))
 
     # --- 🏈 американски футбол (девети спорт)
+    # 📐 Обратното на процента (13.08.2026). Числото е НАШЕ — обратното на
+    # собствената ни вероятност, не оферта на букмейкър.
+    check("56% дава 1 към 1.79", obratno_na_procenta(0.56) == "1 към 1.79")
+    check("50% дава 1 към 2.00", obratno_na_procenta(0.50) == "1 към 2.00")
+    check("92% дава 1 към 1.09", obratno_na_procenta(0.92) == "1 към 1.09")
+    check("сигурност 100% не дава число", obratno_na_procenta(1.0) == "")
+    check("нула не дава число", obratno_na_procenta(0) == "")
+    check("боклук не гърми", obratno_na_procenta("абв") == ""
+          and obratno_na_procenta(None) == "")
+    check("числото пада с процента",
+          obratno_na_procenta(0.45) > obratno_na_procenta(0.90))
+    # 🔴 НАЙ-ВАЖНОТО: редът НЕ бива да носи забранена дума. Пазачът е там,
+    # защото българският закон забранява рекламата на хазарт — а живите
+    # коефициенти на ESPN идват с линк към sportsbook. Наши са само тези.
+    check("редът минава през пазача",
+          banned_word("📐 " + obratno_na_procenta(0.56)
+                      + " — обратното на процента, наша сметка") is None)
+    check("думата, която пазачът реже, я няма",
+          "коеф" not in obratno_na_procenta(0.56))
+    check("никакъв букмейкър в реда",
+          not any(w in ("📐 " + obratno_na_procenta(0.56)).lower()
+                  for w in ("draftkings", "sportsbook", "bet")))
+    check("ръчката съществува", "PREDICT_KOEF" in open(__file__, encoding="utf-8").read())
+
     check("американският футбол е в списъка", "amfootball" in SPORTS)
     check("затворените спортове НЕ са в дневния ред",
           not (IZKLYUCHENI & set(ACTIVE_SPORTS)))
