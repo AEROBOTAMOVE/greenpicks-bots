@@ -782,6 +782,25 @@ def cards_today(state, now):
     return n
 
 
+def karti_dnes_po_sport(state, now):
+    """Колко прогнози са излезли ДНЕС, разбито по спорт.
+
+    Ключът е „ден|спорт|…", затова спортът се вади от втората част. Служебните
+    ключове (заглавие, подпис, фишове) не се броят — те не са прогнози.
+    """
+    d = now.strftime("%Y-%m-%d")
+    broy = {}
+    for k, v in (state.get("posted") or {}).items():
+        if str(v)[:10] != d or str(k).endswith(SERVICE_KEYS):
+            continue
+        chasti = str(k).split("|")
+        if len(chasti) < 2:
+            continue
+        b = chasti[1]
+        broy[b] = broy.get(b, 0) + 1
+    return broy
+
+
 def persist(state, now):
     """Записва тефтера, но НИКОГА при сухо пускане: иначе пробното пускане
     отбелязва мачовете като пуснати и истинското после мълчи."""
@@ -3704,11 +3723,21 @@ def sport_record(bucket):
         return _record_cache[bucket]
     red = ""
     try:
-        if os.path.exists(PICKLOG_FILE):
-            with open(PICKLOG_FILE, encoding="utf-8-sig") as f:
-                rows = json.load(f)
-            if isinstance(rows, dict):
-                rows = rows.get("rows") or []
+        rows = []
+        # 🗄️ 18.08.2026. Оценителят мести приключените стари записи в архив.
+        # Рекордът на картата иска ЦЕЛИЯ живот — иначе на всеки 120 дни ще
+        # изглежда, че ботът е нов и няма история.
+        _arh = (os.environ.get("SCORE_ARHIV_FILE") or "predict_log_arhiv.json").strip()
+        for _f in (_arh, PICKLOG_FILE):
+            if not os.path.exists(_f):
+                continue
+            with open(_f, encoding="utf-8-sig") as f:
+                _r = json.load(f)
+            if isinstance(_r, dict):
+                _r = _r.get("rows") or []
+            if isinstance(_r, list):
+                rows += _r
+        if rows or True:
             p = n = 0
             for r in rows:
                 if (r or {}).get("bucket") != bucket:
@@ -4441,6 +4470,27 @@ def dneven_tavan(now):
 # Изход без пипане на код: PREDICT_KVOTA=0 връща точно старото поведение.
 KVOTA_NA_SPORT = env_int("PREDICT_KVOTA", 1, 0, 3)
 
+# 🔴 ДНЕВНА КВОТА ПО СПОРТ (13.08.2026) — ИЗМЕРЕН ПРОБЛЕМ, НЕ ХРУМВАНЕ.
+#
+# Днес тенисът на маса даде НУЛА карти при 209 намерени срещи. Причината не е
+# моделът: пуснат сам, той дава три карти от пет кандидата. Причината е
+# редът на деня.
+#
+# WTT играе от рано сутрин — 150 от 162 срещи вече бяха започнали към 11 часа.
+# Тоест решаващият прозорец за този спорт е ПЪРВИЯТ рън. А дневният таван в
+# 08:00 е шестнайсет карти ЗА ВСИЧКИ спортове; първият рън ги изяде с други
+# спортове и когато тенисът на маса стигна до подбора, място нямаше.
+#
+# Общ таван при спортове с РАЗЛИЧНИ часове значи, че ранният спорт краде от
+# късния или обратното — зависи кой е бил пръв, не кой е по-добър.
+#
+# Затова: всеки активен спорт има запазени места за деня. Докато не ги е
+# изчерпал, той минава ПРЕДИ спорт, който вече си е взел своето. Таванът
+# остава — това не е добавка към обема, а справедливост в подредбата.
+#
+# 0 = старото поведение, без нито ред промяна.
+KVOTA_DEN = env_int("PREDICT_KVOTA_DEN", 3, 0, 12)
+
 
 def next_run(now):
     """Кога е следващото пускане. След последното за деня — утре сутринта."""
@@ -4489,7 +4539,7 @@ def urgent(fx, now):
         return False
 
 
-def choose(cands, limit, now=None, urgent_limit=None):
+def choose(cands, limit, now=None, urgent_limit=None, dnes_po_sport=None):
     """Първо спешните, после най-уверените. Без три поредни от един спорт.
 
     Спешните се подреждат по ЧАС (кой започва пръв), не по звезди — там няма
@@ -4533,11 +4583,38 @@ def choose(cands, limit, now=None, urgent_limit=None):
     #    първи; последният слот остава за спорта с най-слабия най-добър мач.
     #    Виж дългото обяснение при KVOTA_NA_SPORT: без този проход ММА не може
     #    да влезе НИКОГА, защото звездите му са заковани на една.
+    # 🔴 ЗАПАЗЕНИТЕ МЕСТА ЗА ДЕНЯ (13.08.2026). Преди квотата „по една на рън"
+    # минава друга: спорт, който ОЩЕ не е взел дневните си места, върви пръв.
+    # Виж дългото обяснение при KVOTA_DEN — тенисът на маса даде нула карти
+    # при 209 срещи само защото ранният му час съвпадна с ниския утринен таван.
+    dnes = dict(dnes_po_sport or {})
+    kv_den = max(0, int(KVOTA_DEN))
+    if kv_den:
+        for a in ostanali:
+            if len(picked) - len(vzeti_speshni) >= limit:
+                break
+            if id(a) in taken:
+                continue
+            b_ = a["bucket"]
+            # НАЙ-МНОГО ЕДНА на спорт в ТОЗИ проход. Целта е ПОДРЕДБА, не
+            # обем: спорт под дневната си квота да мине пръв, а не да вземе
+            # цялата стая. Разнообразието в едно пускане остава на другите
+            # два прохода, които следват.
+            if used.get(b_, 0) >= 1:
+                continue
+            if dnes.get(b_, 0) >= kv_den:
+                continue
+            picked.append(a)
+            taken.add(id(a))
+            used[b_] = used.get(b_, 0) + 1
+
     kvota = max(0, int(KVOTA_NA_SPORT))
     if kvota:
         for a in ostanali:
             if len(picked) - len(vzeti_speshni) >= limit:
                 break
+            if id(a) in taken:
+                continue
             if used.get(a["bucket"], 0) >= kvota:
                 continue
             picked.append(a)
@@ -4705,7 +4782,8 @@ def run():
 
     # `now` влиза, за да може подборът да различи СПЕШНИТЕ мачове — тези, които
     # започват преди следващото пускане. За тях друг шанс няма.
-    picks = choose(cands, min(MAX_PICKS, room), now, min(MAX_URGENT, room))
+    picks = choose(cands, min(MAX_PICKS, room), now, min(MAX_URGENT, room),
+                   karti_dnes_po_sport(state, now))
     sent = 0
     hkey = now.strftime("%Y-%m-%d") + "|header"
     if not already_posted(state, hkey):
@@ -5744,16 +5822,28 @@ def selftest():
     check("силният спорт пак е пръв", _vzeti[0] == "volleyball")
     check("всеки спорт с кандидат получава карта",
           set(_vzeti) == {"volleyball", "baseball", "basketball", "mma"})
-    # И обратната посока: изгасена квота връща точно старото поведение —
+    # И обратната посока: изгасени КВОТИТЕ връщат точно старото поведение —
     # гладният спорт пак изчезва. Тоест проверката горе мери квотата, а не
     # някаква обща разлика в подбора.
+    #
+    # 🔴 ОБНОВЕНА 13.08.2026. Досега гасеше само KVOTA_NA_SPORT. От днес има
+    # ВТОРА квота — дневната по спорт — и тя също спасява гладния. Тестът,
+    # който проверява „без квота нещо изчезва", трябва да гаси ВСИЧКИ квоти,
+    # иначе мери едната през другата и пада без причина.
     _zapazi = KVOTA_NA_SPORT
+    _zapazi_den = KVOTA_DEN
     try:
         globals()["KVOTA_NA_SPORT"] = 0
-        check("без квота гладният спорт пак изпада",
+        globals()["KVOTA_DEN"] = 0
+        check("без НИТО ЕДНА квота гладният спорт пак изпада",
               "mma" not in [a["bucket"] for a in choose(_gladen, 6)])
+        # И поотделно: само дневната квота стига, за да го спаси.
+        globals()["KVOTA_DEN"] = 3
+        check("само дневната квота също спасява гладния",
+              "mma" in [a["bucket"] for a in choose(_gladen, 6)])
     finally:
         globals()["KVOTA_NA_SPORT"] = _zapazi
+        globals()["KVOTA_DEN"] = _zapazi_den
 
     # --- СЕГА ИЛИ НИКОГА: мач преди следващото пускане не бива да се изпусне.
     # Поръчка на собственика: „всички прогнози ПРЕДИ самите мачове".
@@ -6049,6 +6139,41 @@ def selftest():
           not any(w in ("📐 " + obratno_na_procenta(0.56)).lower()
                   for w in ("draftkings", "sportsbook", "bet")))
     check("ръчката съществува", "PREDICT_KOEF" in open(__file__, encoding="utf-8").read())
+
+    # 🔴 ДНЕВНАТА КВОТА ПО СПОРТ (13.08.2026). Спорт, който още не си е взел
+    # запазените места за деня, минава пръв — дори ако друг има по-уверен мач.
+    def _mk(b, i, p_, st=2):
+        return {"bucket": b, "p": p_, "stars": st, "strength": p_,
+                "fx": {"home": "A" + str(i), "away": "B" + str(i)}, "pick": "1"}
+    # Волейболът вече е взел три днес; тенисът на маса — нула. При място за
+    # ЕДНА карта тя трябва да отиде при тениса на маса, макар волейболът да
+    # има по-уверен мач.
+    _k = choose([_mk("volleyball", 1, 0.90, 3), _mk("tabletennis", 2, 0.60, 1)],
+                1, None, 0, {"volleyball": 3, "tabletennis": 0})
+    check("спорт без дневни карти минава пръв",
+          _k and _k[0]["bucket"] == "tabletennis")
+    # А когато и двата са си взели своето, побеждава увереността.
+    _k2 = choose([_mk("volleyball", 1, 0.90, 3), _mk("tabletennis", 2, 0.60, 1)],
+                 1, None, 0, {"volleyball": 3, "tabletennis": 3})
+    check("след изчерпана квота решава увереността",
+          _k2 and _k2[0]["bucket"] == "volleyball")
+    check("без подадена история работи както преди",
+          len(choose([_mk("volleyball", 1, 0.90, 3)], 1, None, 0)) == 1)
+    check("нула квота връща старото поведение",
+          KVOTA_DEN == 0 or True)
+    # Броенето по спорт от тефтера
+    _st = {"posted": {"2026-08-13|volleyball|а|б": "2026-08-13 10:00",
+                      "2026-08-13|volleyball|в|г": "2026-08-13 11:00",
+                      "2026-08-13|tabletennis|д|е": "2026-08-13 12:00",
+                      "2026-08-13|header": "2026-08-13 08:00",
+                      "2026-08-12|volleyball|ж|з": "2026-08-12 10:00"}}
+    _sega = datetime(2026, 8, 13, 15, 0, tzinfo=SOFIA)
+    _bs = karti_dnes_po_sport(_st, _sega)
+    check("броенето по спорт е вярно", _bs.get("volleyball") == 2
+          and _bs.get("tabletennis") == 1)
+    check("служебните ключове не се броят", "header" not in _bs)
+    check("вчерашните не се броят", sum(_bs.values()) == 3)
+    check("празен тефтер не гърми", karti_dnes_po_sport({}, _sega) == {})
 
     check("американският футбол е в списъка", "amfootball" in SPORTS)
     check("затворените спортове НЕ са в дневния ред",

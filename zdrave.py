@@ -148,6 +148,78 @@ def kalibraciya(log, bucket=None):
     return out, len(ots)
 
 
+# ═══════════════════════════════════ 📊 СРЕЩУ ПАЗАРА (13.08.2026)
+#
+# Единственият въпрос, който отличава истински бот от познавач на фаворити:
+# когато пазарът казва 55%, а ние казваме 62% — кой е прав?
+#
+# Мери се така: взимат се само прогнозите, които имат И наша вероятност, И
+# пазарна. Разделят се на две купчини — там, където сме БИЛИ ПО-СМЕЛИ от
+# пазара, и там, където сме били по-предпазливи. После се гледа коя купчина
+# е сбъднала повече от обещаното си.
+#
+# Ако сме прави, когато се разминаваме с пазара, имаме ръб. Ако не сме —
+# просто повтаряме пазара с шум отгоре, а това е скъпо нищо.
+#
+# Измервателят се пише ПРЕДИ данните, за да не се нагажда после към тях.
+PAZAR_MIN = 30          # под толкова двойки не се произнасяме
+
+
+def sreshtu_pazara(log):
+    """(редове за печат, брой сравними). Празно, ако още няма данни."""
+    dvoyki = [r for r in (log or [])
+              if r.get("scored") and r.get("hit") is not None
+              and r.get("p") and r.get("pazar_p")]
+    if len(dvoyki) < PAZAR_MIN:
+        return [], len(dvoyki)
+    smeli = [r for r in dvoyki if float(r["p"]) > float(r["pazar_p"]) + 0.02]
+    plahi = [r for r in dvoyki if float(r["p"]) < float(r["pazar_p"]) - 0.02]
+    ednakvi = len(dvoyki) - len(smeli) - len(plahi)
+    out = []
+    for ime, g in (("по-смели от пазара", smeli), ("по-предпазливи", plahi)):
+        if len(g) < 10:
+            continue
+        sbd = 100.0 * sum(1 for r in g if r["hit"]) / len(g)
+        nash = 100.0 * sum(float(r["p"]) for r in g) / len(g)
+        paz = 100.0 * sum(float(r["pazar_p"]) for r in g) / len(g)
+        out.append("   %-20s %3d · ние %.0f%% · пазарът %.0f%% · сбъдна се %.0f%%"
+                   % (ime, len(g), nash, paz, sbd))
+    out.append("   %-20s %3d" % ("почти еднакви", ednakvi))
+    return out, len(dvoyki)
+
+
+def koga_pak(sportove, now, napred_dni=7):
+    """{спорт: след колко дни има мач}. Празно, ако няма или не се чете.
+
+    Пита самия предсказател, не измисля. Всяка грешка е тишина, не тревога —
+    целта е да НЕ вдигаме фалшив флаг, а не да гадаем календари.
+    """
+    out = {}
+    try:
+        import predictor as P
+    except Exception:                                        # noqa: BLE001
+        return out
+    fn = {"volleyball": lambda d: P.vol_fixtures(d, d.strftime("%Y-%m-%d")),
+          "tabletennis": lambda d: P.tt_fixtures(d, d.strftime("%Y-%m-%d")),
+          "tennis": lambda d: P.tennis_fixtures(d, d.strftime("%Y%m%d")),
+          "basketball": lambda d: P.basketball_fixtures(d, d.strftime("%Y%m%d")),
+          "football": lambda d: P.football_fixtures(d, d.strftime("%Y%m%d")),
+          "baseball": lambda d: P.baseball_fixtures(d, d.strftime("%Y-%m-%d")),
+          "mma": lambda d: P.mma_fixtures(d)}
+    for b in sportove:
+        f = fn.get(b)
+        if not f:
+            continue
+        for k in range(1, max(1, int(napred_dni)) + 1):
+            try:
+                if f(now + timedelta(days=k)):
+                    out[b] = k
+                    break
+            except Exception:                                # noqa: BLE001
+                break
+    return out
+
+
 def main():
     kratko = "--kratko" in sys.argv
     now = datetime.now(SOFIA)
@@ -157,6 +229,15 @@ def main():
     log = ot_github("predict_log.json")
     if log is None:
         log = chetiv("predict_log.json", [])
+    # 🗄️ 18.08.2026. Приключените стари записи вече живеят в архив, за да не
+    # расте горещият дневник без таван. Статистиката обаче иска ЦЕЛИЯ живот —
+    # иначе успеваемостта ще се „нулира" на всеки 120 дни без причина.
+    arhiv = ot_github("predict_log_arhiv.json")
+    if arhiv is None:
+        arhiv = chetiv("predict_log_arhiv.json", [])
+    if isinstance(arhiv, list) and arhiv:
+        log = arhiv + list(log or [])
+        print("   (плюс " + str(len(arhiv)) + " архивни записа)")
     st = ot_github("predict_state.json")
     if st is None:
         st = chetiv("predict_state.json", {})
@@ -165,8 +246,18 @@ def main():
 
     problemi = []
     redove = []
+    # Кой спорт има мачове НАПРЕД. Пълни се само за спортовете, които днес са
+    # празни — иначе е излишна заявка. Стойността е „след колко дни".
+    napred = {}
 
     # ---------- 1. ПО СПОРТ ----------
+    # Първо: за кои спортове изворът е празен днес? Само тях питаме напред.
+    _diag = diag or {}
+    _prazni = [b for b in IME
+               if b not in ZATVORENI and (_diag.get(b) or {}).get("surovi") == 0]
+    if _prazni:
+        napred = koga_pak(_prazni, now)
+
     for b in sorted(IME, key=lambda x: IME[x]):
         if b in ZATVORENI:
             redove.append("%-17s %-46s %s"
@@ -221,6 +312,16 @@ def main():
                 sast = "празно от %d дни — това вече е много" % dni_bez
                 problemi.append(IME[b] + ": %d дни без нито една карта (таван %d)"
                                 % (dni_bez, tavan))
+        elif surovi == 0 and napred.get(b):
+            # 🔴 ПАУЗА, НЕ ПОВРЕДА (18.08.2026). Измерено: FIVB дава нула мача
+            # за 16, 17 и 18 август, а от 19-и — 5, 5, 12, 12. WTT има 100
+            # турнира, активни днес нула, следващият от края на ноември.
+            # Тоест източникът работи, а спортът е в пауза между сериите.
+            # Прегледът не може да различи двете по мълчанието — затова пита
+            # НАПРЕД. Има ли мачове след днес, това е календар, не дефект.
+            _d = napred[b]
+            sast = ("пауза — мачове има от утре" if _d == 1
+                    else "пауза — следващите мачове са след %d дни" % _d)
         elif surovi == 0:
             # 🔴 12.08.2026. Тук пак крещеше напразно. „Нула срещи" се чете от
             # ПОСЛЕДНИЯ рън — а последният рън на деня е в 22:00, когато
@@ -297,6 +398,21 @@ def main():
             print("      последните %d рънa в CI: %d червени" % (len(rr), len(cherveni)))
             for w in cherveni[:3]:
                 print("         🔴 %s · %s" % (w.get("name", "")[:26], w.get("run_started_at", "")))
+        print("")
+
+    # ---------- 5. СРЕЩУ ПАЗАРА ----------
+    pz_redove, n_pz = sreshtu_pazara(log)
+    s_cena = sum(1 for r in log if r.get("pazar_cena"))
+    if not kratko:
+        print("📊 СРЕЩУ ПАЗАРА · когато се разминаваме, кой е прав?")
+        if not pz_redove:
+            print("   %d прогнози с пазарна цена · %d вече отсъдени"
+                  % (s_cena, n_pz))
+            print("   трябват поне %d отсъдени с цена, за да има смисъл"
+                  % PAZAR_MIN)
+        else:
+            for r in pz_redove:
+                print(r)
         print("")
 
     # ---------- 4. КАЛИБРАЦИЯ ----------

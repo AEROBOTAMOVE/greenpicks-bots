@@ -1444,6 +1444,70 @@ def save_log(rows):
         return False
 
 
+# ═══════════════════════════════════ 🗄️ АРХИВЪТ (18.08.2026)
+#
+# ИЗМЕРЕНО, НЕ ПРЕДПОЛОЖЕНО: 460 байта на запис, 18.6 записа на ден. Наесен
+# обемът се удвоява (връщат се хокеят и амер. футбол, тръгват НБА и евролигите).
+#   след  3 месеца ·  3 616 записа ·  1.6 MB
+#   след 12 месеца · 13 870 записа ·  6.1 MB
+#   след 24 месеца · 27 479 записа · 12.0 MB
+#
+# А файлът се ЧЕТЕ И ЗАПИСВА ЦЯЛ при всеки рън — 30 пъти на ден, всеки път
+# нов комит в хранилището. Това не е „някой ден проблем", а сигурен.
+#
+# Затова: приключените записи, по-стари от ARHIV_DNI, се местят в отделен
+# файл. Горещият дневник остава малък и бърз. Архивът е append-only и НЕ се
+# чете от оценяването — само от статистиката, която го иска цял.
+#
+# Нищо не се губи. Това е преместване, не чистене.
+ARHIV_FILE = (os.environ.get("SCORE_ARHIV_FILE") or "predict_log_arhiv.json").strip()
+ARHIV_DNI = max(30, min(400, int((os.environ.get("SCORE_ARHIV_DNI") or "120").strip())))
+
+
+def cheti_arhiv():
+    """Архивните записи. Празно при липса или боклук — статистиката не спира."""
+    try:
+        with open(ARHIV_FILE, encoding="utf-8-sig") as f:
+            r = json.load(f)
+        return r if isinstance(r, list) else []
+    except Exception:                         # noqa: BLE001
+        return []
+
+
+def cyal_dnevnik(rows=None):
+    """Архивът + горещият дневник. За статистика, която иска ЦЕЛИЯ живот."""
+    return cheti_arhiv() + list(rows if rows is not None else load_log())
+
+
+def arhiviray(rows, now):
+    """Мести приключените стари записи в архива. Връща (горещи, преместени).
+
+    Мести се САМО запис, който е приключен (scored) — висящите остават, докато
+    не получат присъда, колкото и стари да са. Иначе архивът щеше да поглъща
+    точно това, което още чакаме.
+    """
+    granica = (now - timedelta(days=ARHIV_DNI)).strftime("%Y-%m-%d")
+    stari, goreshti = [], []
+    for r in rows:
+        den = str(r.get("posted") or r.get("day") or "")[:10]
+        (stari if (r.get("scored") and len(den) == 10 and den < granica)
+         else goreshti).append(r)
+    if not stari or DRY_RUN:
+        return rows, 0
+    try:
+        vsi = cheti_arhiv() + stari
+        tmp = ARHIV_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(vsi, f, ensure_ascii=False, indent=1)
+        os.replace(tmp, ARHIV_FILE)
+    except Exception as e:                    # noqa: BLE001
+        # Архивът не се записа — НЕ пипаме горещия дневник. По-добре голям
+        # файл, отколкото изгубени записи.
+        print("архивът не се записа (" + str(e)[:60] + ") — оставям всичко.")
+        return rows, 0
+    return goreshti, len(stari)
+
+
 def _bez_samoproverkata(src):
     """Изходният текст БЕЗ тялото на самопроверката.
 
@@ -1633,8 +1697,12 @@ def selftest():
     # минава винаги. Тоест иглата се намира само в ЖИВИЯ main().
     _ziv = _bez_samoproverkata(open(__file__, encoding="utf-8").read())
     _telo_main = _ziv[_ziv.find("def " + "main("):] if ("def " + "main(") in _ziv else ""
+    # 🔴 ОБНОВЕНА 18.08.2026. Подписът се смени: равносметката вече получава
+    # ЦЕЛИЯ живот (архив + горещ дневник), не само горещия. Тестът, който
+    # пази извикването, се обновява с него — иначе пази вчерашния подпис.
     check("равносметката се праща от main",
-          ("obshto_dosega" + "_text(now, rows)") in _telo_main)
+          ("obshto_dosega" + "_text(now, cyal_dnevnik(rows))") in _telo_main)
+    check("равносметката гледа и архива", "cyal_dnev" + "nik(rows)" in _telo_main)
     check("равносметката е зад условие за вечер", _telo_main.count("if vecher:") >= 2)
     check("равносметката отива в стая 9, не в канала",
           ("post_channel(obshto" + "_dosega") not in _telo_main)
@@ -2072,6 +2140,23 @@ def selftest():
     check("спрелият носи честната причина", _krug[0].get("why") == IZCHERPANO)
     check("таванът е точно три опита", MAKS_OPITI == 3)
 
+    # 🗄️ Архивът. Мести се само ПРИКЛЮЧЕНО; висящото остава, колкото и старо.
+    _sega_a = datetime(2026, 8, 18, tzinfo=SOFIA)
+    _r = [{"posted": "2026-01-05 10:00", "scored": True, "hit": True},
+          {"posted": "2026-01-07 10:00", "scored": False},
+          {"posted": "2026-08-17 10:00", "scored": True, "hit": True}]
+    _st = DRY_RUN
+    try:
+        globals()["DRY_RUN"] = True          # без запис по диска
+        _g, _n = arhiviray(_r, _sega_a)
+        check("при сухо пускане нищо не се мести", _n == 0 and len(_g) == 3)
+    finally:
+        globals()["DRY_RUN"] = _st
+    _star_p = str(ARHIV_DNI)
+    check("прагът е разумен", 30 <= ARHIV_DNI <= 400)
+    check("архивът е отделен файл", ARHIV_FILE != LOG_FILE)
+    check("липсващ архив не гърми", isinstance(cheti_arhiv(), list))
+
     # 🔴 ПАЗАЧИ ЗА ДВЕТЕ ПОПРАВКИ ОТ 12.08.2026 ВЕЧЕРТА.
     #
     # 1) ВЪЗРАСТТА НЕ БИЕ ПРЕОТВАРЯНЕТО. Измерено на живо: otvori_nanovo
@@ -2234,6 +2319,14 @@ def main():
     #     Затова всеки опит се БРОИ (полето „opit"). Три опита стигат: ако
     #     източникът не помни мача след три пускания, няма да си го спомни.
     #     След това записът остава затворен с ЧЕСТНА причина, не с мълчание.
+    # 🗄️ Приключените стари записи излизат от горещия дневник. Виж дългото
+    # обяснение при ARHIV_DNI: 12 MB за две години, четени и записвани 30 пъти
+    # на ден. Мести се само приключено — висящото остава, колкото и старо да е.
+    rows, _preseleni = arhiviray(rows, now)
+    if _preseleni:
+        print("Архивирани " + str(_preseleni) + " приключени записа → "
+              + ARHIV_FILE + " (горещият дневник остава " + str(len(rows)) + ").")
+
     otvoreni, izcherpani = otvori_nanovo(rows)
     if otvoreni:
         print("Отворени наново (спортът вече има източник): "
@@ -2326,7 +2419,7 @@ def main():
             # обядът си има междинната, а трето съобщение по обяд е шум.
             if vecher:
                 time.sleep(1.5)
-                post(RESULTS_THREAD, obshto_dosega_text(now, rows))
+                post(RESULTS_THREAD, obshto_dosega_text(now, cyal_dnevnik(rows)))
             # 🔴 ТУК СЕ ВРЪЩАШЕ КОД 1 — ХВАНАТО НА ЖИВО 11.08.2026 в CI.
             # Обедното пускане свърши точно каквото трябва (пусна „ДОКЪДЕ СМЕ
             # ДНЕС", 39 прогнози, 0 отсъдени — мачовете още вървят) и въпреки
@@ -2386,7 +2479,7 @@ def main():
         # 🧾 И веднага след него — целият живот на бота. Виж близнака по-горе.
         if vecher:
             time.sleep(1.5)
-            post(RESULTS_THREAD, obshto_dosega_text(now, rows))
+            post(RESULTS_THREAD, obshto_dosega_text(now, cyal_dnevnik(rows)))
 
     # ОБЗОР НА ФИШОВЕТЕ → стая 10 „🏆 Печеливши фишове".
     #
