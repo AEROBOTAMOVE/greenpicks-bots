@@ -1,25 +1,5 @@
 [
  {
-  "key": "2026-08-06|basketball|newyorkliberty|seattlestorm",
-  "combo": 0,
-  "posted": "2026-08-05 19:12",
-  "day": "2026-08-06",
-  "bucket": "basketball",
-  "home": "New York Liberty",
-  "away": "Seattle Storm",
-  "home_id": "136438",
-  "away_id": "136448",
-  "league": "WNBA",
-  "slug": null,
-  "pick": "1 · победа New York Liberty",
-  "p": 0.6,
-  "stars": 1,
-  "sample": "без история",
-  "scored": true,
-  "hit": true,
-  "score": "92:86"
- },
- {
   "key": "2026-08-06|tabletennis|yangziliu|yitianyeh",
   "combo": 0,
   "posted": "2026-08-05 19:55",
@@ -8090,6 +8070,26 @@
   "p": 0.5518,
   "stars": 2,
   "sample": "гледани 79 мача на единия и 84 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-08-19|tennis|flaviocobolli|rafaeljodar",
+  "combo": 0,
+  "posted": "2026-08-18 19:32",
+  "day": "2026-08-19",
+  "bucket": "tennis",
+  "home": "Flavio Cobolli",
+  "away": "Rafael Jodar",
+  "home_id": "7602",
+  "away_id": "12657",
+  "league": "Cincinnati Open · ATP",
+  "slug": null,
+  "pick": "2 · Rafael Jodar",
+  "pazar_cena": null,
+  "pazar_p": null,
+  "p": 0.5454,
+  "stars": 1,
+  "sample": "ранглиста и 16 скорошни мача",
   "scored": false
  }
 ]
