@@ -226,7 +226,7 @@ jobs:
           # връща и НЕГОВИТЕ тефтери. Иначе будилникът мери стар час и след
           # 15 минути буди пак. Един по един: `git add a b липсващ` не добавя
           # НИЩО (проверено в истинско repo), а `|| true` крие изход 128.
-          for f in support_state.json predict_state.json predict_log.json                    budilnik_state.json; do
+          for f in support_state.json predict_state.json predict_log.json                    budilnik_state.json predict_log_arhiv.json; do
             [ -f "$f" ] && git add "$f"
           done
           if ! git diff --cached --quiet; then

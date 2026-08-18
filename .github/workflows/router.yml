@@ -234,7 +234,7 @@ jobs:
           # budilnik_state.json още не съществува в хранилището, тоест всеки
           # рън, в който будилникът не буди, мълчаливо губеше offset-а на
           # Telegram, тефтера на предсказателя И дневника — и излизаше ЗЕЛЕН.
-          for f in router_state.json support_state.json predict_state.json                    predict_log.json budilnik_state.json hub_state.json; do
+          for f in router_state.json support_state.json predict_state.json                    predict_log.json budilnik_state.json hub_state.json predict_log_arhiv.json; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then

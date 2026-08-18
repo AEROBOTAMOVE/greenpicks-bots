@@ -129,7 +129,15 @@ jobs:
         run: |
           git config user.name "greenpicks-bot"
           git config user.email "bot@greenpicks"
-          git add predict_log.json 2>/dev/null || true
+          # 🔴 АРХИВЪТ ВЪРВИ ЗАЕДНО С ДНЕВНИКА (18.08.2026) — ИНАЧЕ ЗАГУБА.
+          # Оценителят мести приключените стари записи в predict_log_arhiv.json
+          # и връща дневника СВИТ. Комитне ли се само свитият дневник, без
+          # архива, преместените записи изчезват ЗАВИНАГИ. Двата файла са едно
+          # цяло и се добавят заедно, един по един (липсващ файл не бива да
+          # изхвърля другия — виж 12.08).
+          for f in predict_log.json predict_log_arhiv.json; do
+            [ -f "$f" ] && git add "$f"
+          done
           if git diff --cached --quiet; then
             echo "Дневникът е без промяна."
             exit 0
