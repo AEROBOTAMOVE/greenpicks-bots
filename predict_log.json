@@ -8091,5 +8091,32 @@
   "stars": 1,
   "sample": "ранглиста и 16 скорошни мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-19|tennis|christopheroconnell|taylorfritz",
+  "combo": 0,
+  "posted": "2026-08-18 21:32",
+  "day": "2026-08-19",
+  "bucket": "tennis",
+  "home": "Christopher O'Connell",
+  "away": "Taylor Fritz",
+  "home_id": "3301",
+  "away_id": "2946",
+  "league": "Cincinnati Open · ATP",
+  "slug": null,
+  "pick": "2 · Taylor Fritz",
+  "pazar_cena": null,
+  "pazar_p": null,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "p": 0.8694,
+  "stars": 3,
+  "sample": "ранглиста и 16 скорошни мача",
+  "scored": false
  }
 ]
