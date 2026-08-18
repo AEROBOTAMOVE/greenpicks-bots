@@ -7714,7 +7714,8 @@
   "sample": "гледани по 35 мача на всеки",
   "scored": true,
   "hit": true,
-  "score": "0:7"
+  "score": "0:7",
+  "combo_done": true
  },
  {
   "key": "2026-08-18|tennis|danielmerida|taylorfritz",
@@ -7732,7 +7733,10 @@
   "p": 0.724,
   "stars": 3,
   "sample": "ранглиста и 20 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "combo_done": true
  },
  {
   "key": "2026-08-18|basketball|goldenstatevalkyries|dallaswings",
@@ -7752,7 +7756,8 @@
   "sample": "гледани по 79 мача на всеки",
   "scored": true,
   "hit": true,
-  "score": "78:70"
+  "score": "78:70",
+  "combo_done": true
  },
  {
   "key": "2026-08-18|baseball|tampabayrays|baltimoreorioles",
@@ -7792,7 +7797,8 @@
   "sample": "ранглиста и 9 скорошни мача",
   "scored": true,
   "hit": true,
-  "score": "0:2"
+  "score": "0:2",
+  "combo_done": true
  },
  {
   "key": "2026-08-17|football|deportivo|elche",
