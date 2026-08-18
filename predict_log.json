@@ -1,25 +1,5 @@
 [
  {
-  "key": "2026-08-06|basketball|atlantadream|phoenixmercury",
-  "combo": 0,
-  "posted": "2026-08-05 19:12",
-  "day": "2026-08-06",
-  "bucket": "basketball",
-  "home": "Atlanta Dream",
-  "away": "Phoenix Mercury",
-  "home_id": "136447",
-  "away_id": "136444",
-  "league": "WNBA",
-  "slug": null,
-  "pick": "1 · победа Atlanta Dream",
-  "p": 0.6,
-  "stars": 1,
-  "sample": "без история",
-  "scored": true,
-  "hit": true,
-  "score": "96:82"
- },
- {
   "key": "2026-08-06|basketball|newyorkliberty|seattlestorm",
   "combo": 0,
   "posted": "2026-08-05 19:12",
@@ -8064,6 +8044,26 @@
   "p": 0.793,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-08-19|basketball|chicagosky|newyorkliberty",
+  "combo": 0,
+  "posted": "2026-08-18 09:56",
+  "day": "2026-08-19",
+  "bucket": "basketball",
+  "home": "Chicago Sky",
+  "away": "New York Liberty",
+  "home_id": "19",
+  "away_id": "9",
+  "league": "WNBA",
+  "slug": "wnba",
+  "pick": "2 · победа New York Liberty",
+  "pazar_cena": 1.54,
+  "pazar_p": 0.6494,
+  "p": 0.5518,
+  "stars": 2,
+  "sample": "гледани 79 мача на единия и 84 на другия",
   "scored": false
  }
 ]
