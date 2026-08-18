@@ -187,6 +187,37 @@ jobs:
           PREDICT_LEAD_MIN: ${{ vars.PREDICT_LEAD_MIN }}
         run: python predictor.py
 
+      # ══════════════════════════════════════════════════════════════
+      #  🧱 СТЕНИТЕ ДА НЕ ЧАКАТ КРОН, КОЙТО МОЖЕ ДА НЕ УДАРИ (13.08.2026)
+      #
+      #  hub.yml има крон в 06:30. На 13.08 GitHub го ПРОПУСНА напълно —
+      #  нула пускания за целия ден. Кодът беше верен, часовникът не удари.
+      #  Изводът е по-широк от хъба: всеки крон „веднъж на ден" има реален
+      #  шанс изобщо да не тръгне.
+      #
+      #  steni.py решава БЕЗ НИТО ЕДНА МРЕЖОВА ЗАЯВКА: сравнява текущите
+      #  текстове с това, което hub_state.json казва, че вече стои в стаите.
+      #  Съвпадат ли — не се пипа нищо и цената е няколко милисекунди.
+      #  Различават ли се — тогава и само тогава тръгва setup_hub в режим
+      #  rooms, а той сам опреснява само сменените, НА МЯСТО.
+      - name: Стените искат ли опресняване
+        id: steni
+        run: python steni.py
+
+      - name: Опресни стените
+        if: steps.steni.outputs.nuzhno == '1'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
+          SUPPORT: ${{ vars.SUPPORT || '@green_picks_info_bot' }}
+          GROUP_LINK: "${{ vars.GROUP_LINK || 'https://t.me/+_oYsaYaVKU80Yjc0' }}"
+          # rooms, не all: каналът има свой ритъм и не се пипа оттук.
+          HUB_MODE: rooms
+        run: |
+          python setup_hub.py --selftest
+          python setup_hub.py
+
       # Рънът е на всеки 10 мин и се засича с другите state-комитъри,
       # затова push-ът е с rebase-retry цикъл, не гол опит.
       - name: Save state
@@ -203,7 +234,7 @@ jobs:
           # budilnik_state.json още не съществува в хранилището, тоест всеки
           # рън, в който будилникът не буди, мълчаливо губеше offset-а на
           # Telegram, тефтера на предсказателя И дневника — и излизаше ЗЕЛЕН.
-          for f in router_state.json support_state.json predict_state.json                    predict_log.json budilnik_state.json; do
+          for f in router_state.json support_state.json predict_state.json                    predict_log.json budilnik_state.json hub_state.json; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then
