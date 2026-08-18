@@ -761,7 +761,16 @@ def mark_posted(state, key, now):
     state.setdefault("posted", {})[key] = now.strftime("%Y-%m-%d %H:%M")
 
 
-SERVICE_KEYS = ("|header", "|footer", "|nothing")
+# 🔴 РАЗШИРЕН 18.08.2026 — ИЗМЕРЕНО В ЖИВИЯ ТЕФТЕР.
+# Тук стояха само три служебни ключа. Но фишовете също пишат в тефтера:
+# „ден|combos" отдавна, а от 12.08 и „ден|combo1/2/3" (собствен ключ на всеки
+# фиш, за да може убит рън да се възобнови). Нито един от тях не беше обявен
+# за служебен — значи cards_today ги броеше за ПРОГНОЗИ и те ядяха от дневния
+# таван. Проверено на живо: за 16.08 тефтерът дава combo1, combo2, combo3 и
+# combos — четири „карти", които никога не са били карти.
+# И вторият ефект: karti_dnes_po_sport ги виждаше като СПОРТОВЕ.
+SERVICE_KEYS = ("|header", "|footer", "|nothing", "|combos",
+                "|combo1", "|combo2", "|combo3", "|combo4", "|combo5")
 
 
 def posted_today(state, now):
@@ -780,6 +789,24 @@ def cards_today(state, now):
             continue
         n += 1
     return n
+
+
+def nepoznati_klyuchove(state):
+    """Кои видове ключове в тефтера НЕ са нито спорт, нито обявени за служебни.
+
+    🔴 18.08.2026. Точно това ни ухапа: „|combos" и „|combo1..3" не бяха в
+    служебния списък, значи се брояха за прогнози и ядяха от дневния таван —
+    четири места на ден при утринен таван шестнайсет. Никой тест не гръмна,
+    защото никой не сравняваше ВИДОВЕТЕ ключове с двата известни списъка.
+    Сега се сравняват. Нов вид ключ утре ще се обади сам.
+    """
+    vidove = set()
+    for k in (state.get("posted") or {}):
+        chasti = str(k).split("|")
+        if len(chasti) > 1:
+            vidove.add(chasti[1])
+    izvestni = set(SPORTS) | {s.lstrip("|") for s in SERVICE_KEYS}
+    return sorted(vidove - izvestni)
 
 
 def karti_dnes_po_sport(state, now):
@@ -4767,6 +4794,15 @@ def run():
         persist(state, now)
         return
 
+    # 🔴 18.08.2026. Живият тефтер се проверява ПРИ ВСЯКО ПУСКАНЕ, не само в
+    # самопроверката. Тестът работи със синтетични данни; истината живее в
+    # предния тефтер. Точно така се откри, че фишовете се броят за спорт —
+    # синтетичният тест мълчеше, живият тефтер го каза от първия поглед.
+    _neposn = nepoznati_klyuchove(state)
+    if _neposn:
+        print("   ⚠ непознат вид ключ в тефтера: " + ", ".join(_neposn[:5])
+              + " — броят се за прогнози и ядат от дневния таван.")
+
     _tavan = dneven_tavan(now)
     room = _tavan - cards_today(state, now)
     if room <= 0:
@@ -5120,6 +5156,18 @@ def selftest():
         mark_posted(st3, now.strftime("%Y-%m-%d") + "|header", now)
         mark_posted(st3, now.strftime("%Y-%m-%d") + "|footer", now)
         check("заглавие и подпис не ядат от тавана", cards_today(st3, now) == 0)
+        # 🔴 18.08.2026. И ФИШОВЕТЕ не са карти. Ключовете им („|combos" и
+        # „|combo1..3") стояха ИЗВЪН служебния списък — значи ядяха от дневния
+        # таван и се брояха за спорт. Измерено в живия тефтер за 16.08.
+        for _sk in ("combos", "combo1", "combo2", "combo3"):
+            st3["posted"][now.strftime("%Y-%m-%d") + "|" + _sk] =                 now.strftime("%Y-%m-%d %H:%M")
+        check("фишовете не ядат от тавана", cards_today(st3, now) == 0)
+        check("фишовете не се броят за спорт",
+              not karti_dnes_po_sport(st3, now))
+        check("няма непознат вид ключ", not nepoznati_klyuchove(st3))
+        check("непознат ключ СЕ обажда",
+              nepoznati_klyuchove({"posted": {"2026-01-01|нещо_ново|а|б": "x"}})
+              == ["нещо_ново"])
         check("но денят вече е започнал", posted_today(st3, now))
         mark_posted(st3, "x|football|алфа|бета", now)
         check("прогнозата се брои", cards_today(st3, now) == 1)
