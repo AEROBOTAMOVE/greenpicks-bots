@@ -2386,9 +2386,21 @@ def mma_index(league, now):
 
 def mma_fixtures(now):
     out = []
+    # 🔴 С ДИАПАЗОН, НЕ НА ГОЛ АДРЕС (19.08.2026) — ПОПРАВКА НА ГОЛЯМ ДЕФЕКТ.
+    #
+    # Коментарът тук твърдеше, че голият адрес винаги дава предстоящата гала и
+    # никога не е празен. Измерено на живо същия ден: ВЯРНО за PFL и ГРЕШНО за
+    # UFC — най-важната организация:
+    #     /mma/ufc/scoreboard                      -> 1 събитие, 5 боя, 5 ЗАВЪРШЕНИ
+    #     /mma/ufc/scoreboard?dates=20260819-20260829 -> 3 събития, 27 боя, 0 завършени
+    # Тоест голият адрес връщаше ВЧЕРАШНАТА приключила гала, тя падаше на
+    # филтъра по дата, и UFC даваше НУЛА. Стаята 🥊 се хранеше само от PFL —
+    # организацията, която пазарът изобщо не търгува.
+    _ot = now.strftime("%Y%m%d")
+    _do = (now + timedelta(days=int(MMA_DAYS_AHEAD) + 1)).strftime("%Y%m%d")
     for league, w, label in MMA_LEAGUES:
-        # БЕЗ ?dates= — голият адрес връща СЛЕДВАЩАТА гала и никога не е празен.
-        j = http_json(ESPN_SITE + "/mma/" + league + "/scoreboard")
+        j = http_json(ESPN_SITE + "/mma/" + league + "/scoreboard?dates="
+                      + _ot + "-" + _do)
         if not isinstance(j, dict):
             continue
         for ev in (j.get("events") or []):
@@ -2866,6 +2878,36 @@ TT_SCALE = env_float("PREDICT_TT_SCALE", 2.2, 0.3, 4.5)
 # старата ширина, а разширяването им беше мерено и излезе ПО-ЛОШО. Тесният
 # процент не идваше от стените, а от ширината.
 TT_P_MIN, TT_P_MAX = 0.15, 0.85
+
+# 🔴 ШИРИНАТА ВАЖИ САМО ТАМ, КЪДЕТО Е ИЗМЕРЕНА (19.08.2026).
+#
+# Намерено с ЧЕТЕНЕ НА СТАЯТА, не от тест. Излязла карта:
+#   „Martin BUCH — 77% · ясен фаворит"
+#   „Martin BUCH: 18 победи и 19 загуби" (тоест ОТРИЦАТЕЛЕН баланс)
+# Обяснението под числото оборваше самото число пред очите на читателя.
+#
+# Причината: 2.2 е нагласена върху 114 съдени мача от Europe Smash и WTT
+# Champions, където играчите имат по 40-150 мача. Разбито по извадка:
+#     по-малката извадка 50+   →  62 мача, +18.8 т подценяване
+#     по-малката извадка 20-49 →  51 мача, +16.9 т подценяване
+#     по-малката извадка под 20 →  1 мач  (и той загубен)
+# Тоест под 20 мача ширината 2.2 НЕ Е ИЗМЕРЕНА НИКОГА. При Feeder турнирите
+# играчите имат по 8-11 мача и тя произвежда 77-79% от нищо.
+#
+# Лекарството е стъпка, не измислена крива: над прага важи измереното, под
+# него се връщаме към предпазливото старо. Интерполацията между двете би била
+# съчинена математика — а за нея нямаме нито едно число.
+TT_PALNA_N = env_int("PREDICT_TT_PALNA_N", 20, 5, 100)
+TT_SCALE_MALKO = env_float("PREDICT_TT_SCALE_MALKO", 0.55, 0.2, 2.5)
+
+
+def tt_shirina(n_malka):
+    """Коя ширина важи за тази извадка. Пълната — само където е измерена."""
+    try:
+        n = int(n_malka)
+    except (TypeError, ValueError):
+        return TT_SCALE_MALKO
+    return TT_SCALE if n >= TT_PALNA_N else TT_SCALE_MALKO
 _tt_stats = {}
 
 
@@ -3105,12 +3147,17 @@ def model_tabletennis(fx, now):
         return None
     ra = (a["w"] + 3.0) / (a["w"] + a["l"] + 6.0)
     rb = (b["w"] + 3.0) / (b["w"] + b["l"] + 6.0)
-    p = clampf(logistic((logit(ra) - logit(rb)) * TT_SCALE), TT_P_MIN, TT_P_MAX)
+    # Ширината се избира по ПО-МАЛКАТА от двете извадки: сигурността на
+    # сравнението е толкова, колкото е по-слабо познатият играч.
+    _n_malka = min(a["w"] + a["l"], b["w"] + b["l"])
+    _sh = tt_shirina(_n_malka)
+    p = clampf(logistic((logit(ra) - logit(rb)) * _sh), TT_P_MIN, TT_P_MAX)
     to_win = 4 if int((fx.get("extra") or {}).get("best_of") or 5) >= 7 else 3
     p_game = invert_bo(p, to_win)
     return {"p_home": p, "p_away": 1.0 - p, "a": a, "b": b, "ra": ra, "rb": rb,
             "to_win": to_win, "dist_h": bo_distribution(p_game, to_win),
             "dist_a": bo_distribution(1.0 - p_game, to_win),
+            "n_malka": _n_malka, "shirina": _sh,
             "ok": (a["w"] + a["l"]) >= 5 and (b["w"] + b["l"]) >= 5}
 
 
@@ -4585,6 +4632,81 @@ COMBO_MAX_SAME_LEAGUE = env_int("PREDICT_COMBO_SAME_LEAGUE", 2, 1, 5)
 # Таван 3 при дължина 4: най-много три крака от един спорт, четвъртият е чужд.
 COMBO_MAX_SAME_SPORT = env_int("PREDICT_COMBO_SAME_SPORT", 3, 1, 6)
 
+# ═══════════ КАРТА БЕЗ ПАЗАР НЕ ИЗЛИЗА (19.08.2026) ═══════════
+#
+# ИЗРИЧНА ПОРЪЧКА НА СОБСТВЕНИКА: „искам всички прогнози да ги има в
+# букмейкъра". Правилото е просто и строго: ако за един мач НИКОЙ не предлага
+# пазар, прогнозата за него е упражнение, не продукт. Човекът не може да
+# направи нищо с нея.
+#
+# Това мълчаливо затваря и една стара дупка: 64 от 116-те ни волейболни карти
+# бяха „FIVB Girls' U17 World Championship" — юношески турнир, за който пазар
+# НЕ СЪЩЕСТВУВА при никой букмейкър. Тези карти вече няма да излизат.
+#
+# ДВА ПЪТЯ ЗА ДОКАЗАТЕЛСТВО, защото един не стига:
+#   1. Има цена за ТОЧНО ТОЗИ мач — най-силното доказателство.
+#   2. Няма цена, но лигата е в списъка на ИЗМЕРЕНО търгуваните. Търсенето по
+#      имена бърка (тенис 78%, ММА 28%) и без този втори път бихме млъквали
+#      за истински мачове заради разминато име.
+# Липсват ли и двете — картата не излиза и се БРОИ, за да се вижда.
+#
+# Път назад: PREDICT_ISKAM_PAZAR=0 връща старото поведение.
+ISKAM_PAZAR = (os.environ.get("PREDICT_ISKAM_PAZAR") or "1").strip() not in (
+    "0", "false", "no", "не")
+
+# Лиги, за които е ИЗМЕРЕНО, че се търгуват (19.08.2026, чрез питане по имена
+# на отборите в живия пазар). Мачове от тях излизат дори когато конкретното
+# име не се е разпознало.
+TARGUVANI = {
+    "baseball": {"МЛБ"},
+    "basketball": {"НБА", "WNBA", "НБЛ, Австралия", "Джи лига"},
+    "tennis": {"ATP", "WTA"},
+    "mma": {"ufc", "pfl", "bellator", "rizin", "ksw"},
+}
+
+
+def pazarat_otgovarya():
+    """Работят ли изобщо източниците на цена в това пускане.
+
+    🔴 БЕЗ ТОВА ПОРТИЕРЪТ Е ОПАСЕН (19.08.2026). „Няма пазар" и „доставчикът е
+    долу" изглеждат еднакво: и в двата случая цена няма. Ако Pinnacle капне за
+    половин час, портиерът щеше да СПРЕ ЦЕЛИЯ БОТ — мълчание, при което нищо
+    не е червено и никой не разбира. Точно този клас провал ни е хапал вече
+    (сляп одитор, задавен WTT, празен календар).
+
+    Затова: питаме дали пазарът е върнал ИЗОБЩО нещо. Върне ли нула за всички
+    спортове, това е повреда, не липса на пазар — и портиерът се отваря.
+    """
+    if PIN is None:
+        return False
+    try:
+        for b in ("football", "tennis", "baseball", "basketball"):
+            if PIN.machove(b):
+                return True
+    except Exception:                                        # noqa: BLE001
+        return False
+    return False
+
+
+def ima_pazar(an):
+    """Може ли човек да намери този мач при букмейкър. (може_ли, защо)."""
+    if an.get("pazar_cena"):
+        return True, "цена"
+    b = str(an.get("bucket") or "")
+    lg = str(((an.get("fx") or {}).get("league")) or "")
+    for known in TARGUVANI.get(b, ()):  # noqa: SIM110
+        if known and known.lower() in lg.lower():
+            return True, "търгувана лига"
+    # 🔴 ТЕНИСЪТ НА МАСА СЕ СЪДИ ПО РАНГА НА ТУРНИРА (19.08.2026).
+    # Pinnacle не търгува WTT Feeder-ите — техният guest слой днес дава нула
+    # мача по този спорт. Витрините обаче ги предлагат. Затова тук не искам
+    # цена, а ТУРНИР ОТ ВЪЗРАСТНОТО НИВО: Feeder (55) и нагоре.
+    # Юношеските и ветеранските падат на 10-12 и НЕ минават — там пазар
+    # наистина няма, същото важи и за волейбола при момичета до 17.
+    if b == "tabletennis" and _tt_rang(lg) >= 55:
+        return True, "възрастен турнир от WTT"
+    return False, "няма пазар"
+
 COMBO_DUMI = ((0.45, "🟢 стегнат фиш — малко крака, но здрави"),
               (0.30, "🟢 разумен фиш"),
               (0.22, "🟡 смел фиш — иска късмет в един от краката"),
@@ -5215,6 +5337,40 @@ def run():
         maybe_footer(state, now, seen, thin, weak)
         persist(state, now)
         return
+
+    # 🔴 ПАЗАРНИЯТ ПОРТИЕР (19.08.2026). Цената се търси ПРЕДИ подбора, а не
+    # при пращането — инак карта без пазар би заела мястото на карта с пазар.
+    if ISKAM_PAZAR:
+        bez, s_pazar = [], []
+        for a in cands:
+            dobavi_pazar(a)
+            ok, _z = ima_pazar(a)
+            (s_pazar if ok else bez).append(a)
+        if bez:
+            _ps = {}
+            for a in bez:
+                _b = a.get("bucket") or "?"
+                _ps[_b] = _ps.get(_b, 0) + 1
+            print("   🚫 без пазар при букмейкър: " + str(len(bez)) + " ("
+                  + ", ".join(k + " " + str(v) for k, v in sorted(_ps.items()))
+                  + ") — не излизат.")
+        if s_pazar:
+            cands = s_pazar
+        elif not pazarat_otgovarya():
+            # Нула цени И нула отговори от пазара = ПОВРЕДА, не липса на пазар.
+            # Портиерът се отваря: по-добре карта без потвърден пазар, отколкото
+            # мълчалив бот, при който нищо не е червено.
+            print("   ⚠ пазарът не отговаря изобщо — портиерът се отваря за "
+                  "това пускане (иначе повреда би спряла целия бот).")
+        else:
+            # Пазарът работи и въпреки това нито един мач няма пазар.
+            # Значи денят наистина е такъв. Мълчим — прогноза, с която човекът
+            # няма какво да прави, не е продукт.
+            print("   🚫 пазарът работи, но нито един от днешните мачове не се "
+                  "предлага — мълча.")
+            maybe_footer(state, now, seen, thin, weak)
+            persist(state, now)
+            return
 
     # `now` влиза, за да може подборът да различи СПЕШНИТЕ мачове — тези, които
     # започват преди следващото пускане. За тях друг шанс няма.
@@ -6546,6 +6702,93 @@ def selftest():
     check("всяка баскетболна лига има четири полета",
           all(len(x) == 4 for x in BASK_LEAGUES))
 
+    # 🔴 ПАЗАРНИЯТ ПОРТИЕР (19.08.2026) — поръчка на собственика:
+    # „искам всички прогнози да ги има в букмейкъра".
+    check("цена значи пазар",
+          ima_pazar({"pazar_cena": 1.8, "bucket": "volleyball",
+                     "fx": {"league": "Girls U17"}})[0] is True)
+    check("търгувана лига минава и без цена",
+          ima_pazar({"bucket": "baseball", "fx": {"league": "МЛБ"}})[0] is True)
+    check("юношеският волейбол НЕ минава",
+          ima_pazar({"bucket": "volleyball",
+                     "fx": {"league": "FIVB Volleyball Girls' U17 World Championship"}})[0]
+          is False)
+    check("непознат спорт без цена НЕ минава",
+          ima_pazar({"bucket": "кърлинг", "fx": {"league": "нещо"}})[0] is False)
+    check("празен запис не гърми", ima_pazar({})[0] is False)
+    check("възрастен WTT Feeder минава без цена",
+          ima_pazar({"bucket": "tabletennis",
+                     "fx": {"league": "WTT Feeder Berlin 2026 · Men's Singles"}})[0] is True)
+    check("WTT Champions минава", ima_pazar(
+        {"bucket": "tabletennis", "fx": {"league": "WTT Champions Macao 2026"}})[0] is True)
+    check("юношеският WTT НЕ минава",
+          ima_pazar({"bucket": "tabletennis",
+                     "fx": {"league": "WTT Youth Contender Otocec 2026"}})[0] is False)
+    check("ветеранският НЕ минава",
+          ima_pazar({"bucket": "tabletennis",
+                     "fx": {"league": "ITTF-Americas Masters Championships Caracas 2026"}})[0]
+          is False)
+    check("причината се връща",
+          ima_pazar({"pazar_cena": 2.0})[1] == "цена")
+    check("правилото е ВКЛЮЧЕНО по подразбиране", ISKAM_PAZAR is True)
+    check("има път назад", "PREDICT_ISKAM_PAZAR" in open(__file__, encoding="utf-8").read())
+    # Портиерът трябва да е ВЪРЗАН в потока, не само написан.
+    _src = open(__file__, encoding="utf-8").read()
+    check("портиерът се вика в run()",
+          _src.count("ima_pazar(") >= 3 and "if ISKAM_PAZAR:" in _src)
+    # 🔴 ПОВРЕДА ≠ ЛИПСА НА ПАЗАР. Портиерът трябва да се ОТВАРЯ при повреда,
+    # иначе един капнал доставчик спира целия бот мълчаливо.
+    _st_pin = globals().get("PIN")
+    try:
+        globals()["PIN"] = None
+        check("без модул за цени пазарът НЕ отговаря", pazarat_otgovarya() is False)
+
+        class _Praz(object):
+            SPORT_ID = {"football": 29}
+
+            @staticmethod
+            def machove(b):
+                return {}
+
+            @staticmethod
+            def ceni_za(sp, d, g):
+                return (None, None, None)
+
+        globals()["PIN"] = _Praz
+        check("празен пазар значи повреда", pazarat_otgovarya() is False)
+
+        class _Ima(_Praz):
+            @staticmethod
+            def machove(b):
+                return {"1": ("А", "Б", "лига", "")} if b == "football" else {}
+
+        globals()["PIN"] = _Ima
+        check("един отговорил спорт стига", pazarat_otgovarya() is True)
+
+        class _Grymva(_Praz):
+            @staticmethod
+            def machove(b):
+                raise RuntimeError("долу")
+
+        globals()["PIN"] = _Grymva
+        check("гръмнал пазар не гърми бота", pazarat_otgovarya() is False)
+    finally:
+        globals()["PIN"] = _st_pin
+    # 🔴 ИГЛАТА ТЪРСЕШЕ ДЕФИНИЦИЯТА, НЕ ПОВИКВАНЕТО (хванато с мутация,
+    # 19.08.2026). „pazarat_otgovarya()" се съдържа и в реда `def
+    # pazarat_otgovarya():` — тоест проверката минаваше дори когато махнах
+    # ЕДИНСТВЕНОТО повикване в run(). Сега иглата е самият клон.
+    _s2 = open(__file__, encoding="utf-8").read()
+    check("отварянето при повреда е ВЪРЗАНО в потока",
+          "elif not pazarat_otgovarya():" in _s2)
+    check("повикването е ВЪТРЕ в портиера",
+          _s2.find("if ISKAM_PAZAR:")
+          < _s2.find("elif not pazarat_otgovarya():")
+          < _s2.find("picks = choose("))
+
+    check("портиерът е ПРЕДИ подбора",
+          _src.find("if ISKAM_PAZAR:") < _src.find("picks = choose("))
+
     # 🔴 РАЗПРЪСКВАНЕТО (19.08.2026)
     _sto = list(range(100))
     _r = razpredeli(_sto, 5)
@@ -6786,6 +7029,91 @@ def selftest():
         check("без втори източник картата пак излиза", "pazar_cena" not in _t3)
     finally:
         globals()["PIN"] = _st_pin
+
+    # 🔴 ММА СЕ ПИТА С ДИАПАЗОН (19.08.2026).
+    #
+    # Измерено на живо: голият адрес дава за UFC вчерашната ПРИКЛЮЧИЛА гала —
+    # 5 боя, 5 завършени, нула използваеми. С диапазон: 27 боя, нула
+    # завършени. Стаята 🥊 се хранеше само от PFL, който пазарът не търгува.
+    #
+    # 🔴 И ТЕСТЪТ Е ПОВЕДЕНЧЕСКИ, НЕ ТЕКСТОВ. Три пъти подред се опитах да го
+    # хвана с търсене на низ в кода и трите пъти иглата се оказваше в самата
+    # проверка или в коментара до нея — тоест тестът минаваше и върху счупен
+    # файл. Тук се записва КАКВО НАИСТИНА СЕ ПИТА по мрежата.
+    _pitani = []
+    _st_hj = globals().get("http_json")
+    try:
+        globals()["http_json"] = lambda u, **kw: (_pitani.append(u), {})[1]
+        mma_fixtures(now)
+        check("ММА пита изобщо нещо", len(_pitani) >= 1)
+        check("всеки ММА адрес носи диапазон от дати",
+              _pitani and all("dates=" in u and "-" in u.split("dates=")[-1]
+                              for u in _pitani))
+        check("диапазонът почва от днес",
+              _pitani and now.strftime("%Y%m%d") in _pitani[0])
+        check("диапазонът стига до края на хоризонта",
+              _pitani and (now + timedelta(days=int(MMA_DAYS_AHEAD) + 1)
+                           ).strftime("%Y%m%d") in _pitani[0])
+    finally:
+        if _st_hj is not None:
+            globals()["http_json"] = _st_hj
+
+    # 🔴 ШИРИНАТА ВАЖИ САМО КЪДЕТО Е ИЗМЕРЕНА (19.08.2026).
+    # Намерено с ЧЕТЕНЕ НА СТАЯТА: карта „Martin BUCH — 77% · ясен фаворит",
+    # а обяснението под нея — „18 победи и 19 загуби". Числото и доводът се
+    # биеха пред очите на читателя.
+    check("голяма извадка получава измерената ширина",
+          tt_shirina(60) == TT_SCALE and TT_SCALE > 1.0)
+    check("тънка извадка получава предпазливата", tt_shirina(8) == TT_SCALE_MALKO)
+    check("точно на прага важи пълната", tt_shirina(TT_PALNA_N) == TT_SCALE)
+    check("едно под прага — вече не", tt_shirina(TT_PALNA_N - 1) == TT_SCALE_MALKO)
+    check("боклук дава предпазливата",
+          tt_shirina(None) == TT_SCALE_MALKO and tt_shirina("абв") == TT_SCALE_MALKO)
+    check("прагът е там, където има данни", TT_PALNA_N >= 20)
+    check("предпазливата е по-малка от пълната", TT_SCALE_MALKO < TT_SCALE)
+
+    def _tt_p(w1, l1, w2, l2):
+        _ra = (w1 + 3.0) / (w1 + l1 + 6.0)
+        _rb = (w2 + 3.0) / (w2 + l2 + 6.0)
+        _sh = tt_shirina(min(w1 + l1, w2 + l2))
+        return clampf(logistic((logit(_ra) - logit(_rb)) * _sh), TT_P_MIN, TT_P_MAX)
+
+    # Истинската карта, която ме прати да търся: 18-19 срещу 2-6.
+    check("играч с отрицателен баланс НЕ става ясен фаворит",
+          _tt_p(18, 19, 2, 6) < 0.65)
+    check("богатата извадка ПАК дава силно число",
+          _tt_p(66, 22, 38, 29) > 0.75)
+    check("тънка и богата дават РАЗЛИЧНО при еднакво съотношение",
+          abs(_tt_p(4, 4, 2, 6) - _tt_p(50, 50, 25, 75)) > 0.05)
+
+    # 🔴 ПРЕЗ САМИЯ МОДЕЛ, НЕ ПРЕЗ ПОДРАЖАНИЕ (хванато с мутация 19.08.2026).
+    # Горните проверки викаха `tt_shirina` направо. Мутация, която НАПЪЛНО
+    # разкачи модела от нея (`_sh = TT_SCALE`), ги преживя — тестваше се
+    # функцията, не че моделът я ползва.
+    _st_tp = globals().get("tt_player")
+    try:
+        _bank = {"тънък": {"w": 18, "l": 19, "n": 37, "best": 200},
+                 "мъничък": {"w": 2, "l": 6, "n": 8, "best": 300},
+                 "богат1": {"w": 66, "l": 22, "n": 88, "best": 5},
+                 "богат2": {"w": 38, "l": 29, "n": 67, "best": 20}}
+        globals()["tt_player"] = lambda pid, now: _bank.get(str(pid))
+        _fx_t = {"home_id": "тънък", "away_id": "мъничък", "extra": {"best_of": 5}}
+        _fx_b = {"home_id": "богат1", "away_id": "богат2", "extra": {"best_of": 5}}
+        _mt = model_tabletennis(_fx_t, now)
+        _mb = model_tabletennis(_fx_b, now)
+        check("моделът вижда по-малката извадка",
+              _mt and _mt.get("n_malka") == 8 and _mb and _mb.get("n_malka") == 67)
+        check("моделът ПОЛЗВА предпазливата при тънка извадка",
+              _mt and abs(_mt["shirina"] - TT_SCALE_MALKO) < 1e-9)
+        check("моделът ползва измерената при богата извадка",
+              _mb and abs(_mb["shirina"] - TT_SCALE) < 1e-9)
+        check("тънката карта не става ясен фаворит ПРЕЗ МОДЕЛА",
+              _mt and _mt["p_home"] < 0.65)
+        check("богатата карта пак е силна ПРЕЗ МОДЕЛА",
+              _mb and _mb["p_home"] > 0.75)
+    finally:
+        if _st_tp is not None:
+            globals()["tt_player"] = _st_tp
 
     # 🔴 НАПИСАНА, НО НЕВЪРЗАНА (поуката от `golyama_liga`, 12.08.2026).
     # `tt_turnir_sled` съществува само за да махне фалшивата тревога в
