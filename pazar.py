@@ -156,8 +156,55 @@ def _dumi(s):
     return {w for w in _norm(s and str(s).lower().replace("-", " ")).split() if w}
 
 
+# 🔴 ПРОЗОРЕЦЪТ ОКОЛО НАЧАЛОТО (18.08.2026) — ПОПРАВКА НА ЧЕРВЕН ДЕФЕКТ.
+#
+# В МЛБ едни и същи два отбора играят серия по 3-4 вечери. Ключът за търсене
+# беше само двете имена, а обхождането на три дати връщаше ПЪРВАТА, която дава
+# число. Тоест щом днешният мач още няма цена (нормално, пускат я късно), се
+# връщаше цената на ВЧЕРАШНИЯ мач между същите отбори — с други питчъри, друг
+# ден — и се записваше с pazar_v=2, тоест като годна за мерилото.
+#
+# Измерено през живия `dobavi_pazar`: 5 от 15 мача на 19.08 получаваха цена от
+# чуждо събитие. Отделно ev_za_imena сочеше ЧУЖД номер за 15 от 15.
+#
+# Сега индексът носи и часа, а изборът е НАЙ-БЛИЗКИЯТ до нашето начало, и то
+# само ако е в прозореца. Без начало (не го знаем) — държим се както преди,
+# защото друго няма.
+PROZOREC_CH = float((os.environ.get("PAZAR_PROZOREC") or "6").strip() or 6)
+
+
+def _chas(iso):
+    """ISO низ -> aware datetime. None при боклук."""
+    from datetime import datetime as _dt, timezone as _tz
+    t = str(iso or "").strip().replace("Z", "+00:00")
+    for vid in ("%Y-%m-%dT%H:%M%z", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S.%f%z"):
+        try:
+            return _dt.strptime(t, vid)
+        except ValueError:
+            continue
+    try:
+        return _dt.fromisoformat(t)
+    except (ValueError, TypeError):
+        return None
+
+
+def _razlika_ch(a_iso, kogato):
+    """Разлика в часове между събитие и нашето начало. None ако не се знае."""
+    if kogato is None:
+        return None
+    a = _chas(a_iso)
+    if a is None:
+        return None
+    try:
+        if a.tzinfo is None or kogato.tzinfo is None:
+            return None
+        return abs((a - kogato).total_seconds()) / 3600.0
+    except (TypeError, ValueError):
+        return None
+
+
 def index_za_den(sport_path, liga, ymd):
-    """{frozenset(две нормализирани имена): номер} за един ден. Кеширано."""
+    """{frozenset(две нормализирани имена): (номер, час)} за един ден. Кеширано."""
     kl = (sport_path, liga, ymd)
     if kl in _index:
         return _index[kl]
@@ -171,61 +218,98 @@ def index_za_den(sport_path, liga, ymd):
                 imena.append(_norm(tm.get("displayName") or tm.get("name")
                                    or tm.get("shortDisplayName")))
             if len(imena) == 2 and all(imena):
-                idx[frozenset(imena)] = str(e.get("id") or "")
+                idx[frozenset(imena)] = (str(e.get("id") or ""),
+                                         str(e.get("date") or ""))
     _index[kl] = idx
     return idx
 
 
-def cena_po_imena(sport_path, liga, ymd, dom, gost):
-    """Цената, намерена по имена вместо по номер. (дом, гост, равен).
-
-    🔴 ПИТАТ СЕ ТРИ ДАТИ. ESPN индексира по АМЕРИКАНСКА дата, а мач в 01:40
-    българско е още „вчера" при тях. Измерено: Tampa Bay Rays срещу Toronto
-    Blue Jays се намира на 18.08 в ESPN, а нашата дата е 19.08 — с една дата
-    цената се губеше точно за нощните мачове, а в бейзбола те са половината.
-    """
-    if sport_path not in IMA_PAZAR or not liga or not ymd:
-        return (None, None, None)
+def _kandidati(sport_path, liga, ymd, dom, gost):
+    """[(номер, час)] — всички събития от трите дати, които пасват по имена."""
     kl = frozenset((_norm(dom), _norm(gost)))
-    if len(kl) != 2 or not all(kl):
-        return (None, None, None)
-    idx = {}
     try:
         from datetime import datetime as _dt, timedelta as _td
         d0 = _dt.strptime(str(ymd), "%Y%m%d")
         dati = [(d0 + _td(days=k)).strftime("%Y%m%d") for k in (0, -1, 1)]
     except ValueError:
         dati = [str(ymd)]
-    # 🔴 НЕ СПИРАМЕ НА ПЪРВОТО СЪВПАДЕНИЕ (13.08.2026). Един и същи двубой
-    # може да го има в индекса за две дати (нашата и американската), а цена
-    # да има само за едната — букмейкърът я пуска по-късно за по-далечните.
-    # Измерено: Yankees/Orioles се намира и на 18-и, и на 19-и; на 19-и
-    # отговорът е items=0. Затова обхождаме всички дати и връщаме ПЪРВАТА,
-    # която наистина дава число.
-    ev_id = None
+    out, vid = [], set()
     for den in dati:
         idx = index_za_den(sport_path, liga, den)
-        kand = idx.get(kl)
-        if not kand:
+        k = idx.get(kl)
+        if k and k[0] and k[0] not in vid:
+            vid.add(k[0])
+            out.append(k)
+    if out:
+        return out
+    # Частично съвпадение: „Tampa Bay Rays" срещу „Rays". И двете наши имена
+    # да се съдържат в техните (или обратно), в която и да е посока.
+    nd, ng = _norm(dom), _norm(gost)
+    for den in dati:
+        for kk, v in index_za_den(sport_path, liga, den).items():
+            a, b = tuple(kk)
+            if (((nd in a or a in nd) and (ng in b or b in ng))
+                    or ((nd in b or b in nd) and (ng in a or a in ng))):
+                if v and v[0] and v[0] not in vid:
+                    vid.add(v[0])
+                    out.append(v)
+    return out
+
+
+def _izbor(kand, kogato):
+    """Кой от кандидатите е НАШИЯТ мач. [(номер, час)] подредени по близост.
+
+    С известно начало: само тези в прозореца, най-близкият пръв.
+    Без начало: всички, в реда на намиране — друго не можем да направим.
+    """
+    if kogato is None:
+        return [k[0] for k in kand]
+    s_ch = []
+    for ev, iso in kand:
+        d = _razlika_ch(iso, kogato)
+        if d is None:
             continue
-        rez = cena_za(sport_path, liga, kand)
+        if d <= PROZOREC_CH:
+            s_ch.append((d, ev))
+    s_ch.sort()
+    return [ev for _d, ev in s_ch]
+
+
+def cena_po_imena(sport_path, liga, ymd, dom, gost, kogato=None):
+    """Цената, намерена по имена вместо по номер. (дом, гост, равен).
+
+    🔴 ПИТАТ СЕ ТРИ ДАТИ. ESPN индексира по АМЕРИКАНСКА дата, а мач в 01:40
+    българско е още „вчера" при тях. Без това цената се губеше точно за
+    нощните мачове, а в бейзбола те са половината.
+
+    🔴 И СЕ СВЕРЯВА ЧАСЪТ (18.08.2026). Иначе серия от три вечери между едни и
+    същи отбори дава цената на ГРЕШНАТА вечер — измерено, 5 от 15 мача.
+    """
+    if sport_path not in IMA_PAZAR or not liga or not ymd:
+        return (None, None, None)
+    if len(frozenset((_norm(dom), _norm(gost)))) != 2 or not (_norm(dom) and _norm(gost)):
+        return (None, None, None)
+    for ev in _izbor(_kandidati(sport_path, liga, ymd, dom, gost), kogato):
+        rez = cena_za(sport_path, liga, ev)
         if rez[0] or rez[1]:
             return rez
-        ev_id = ev_id or kand
-    if not ev_id:
-        idx = index_za_den(sport_path, liga, dati[0])
-        # Частично съвпадение: „Tampa Bay Rays" срещу „Rays". Търсим двойка,
-        # в която И двете наши имена се съдържат в техните (или обратно).
-        for k, v in idx.items():
-            a, b = tuple(k)
-            nd, ng = _norm(dom), _norm(gost)
-            if ((nd in a or a in nd) and (ng in b or b in ng)) or                ((nd in b or b in nd) and (ng in a or a in ng)):
-                ev_id = v
-                break
-    if not ev_id:
-        return (None, None, None)
-    return cena_za(sport_path, liga, ev_id)
+    return (None, None, None)
 
+
+def ev_za_imena(sport_path, liga, ymd, dom, gost, kogato=None):
+    """Номерът на НАШАТА среща, намерен по имена. None, ако не се намери.
+
+    Ползва СЪЩИЯ кеширан индекс като cena_po_imena — извикана веднага след
+    нея, не струва нито една нова заявка. Номерът влиза в дневника, за да може
+    оценителят после да вземе затварящата цена. Затова е КРИТИЧНО да е нашият
+    мач: сгрешен номер значи затваряща цена на чужда среща.
+    """
+    if sport_path not in IMA_PAZAR or not liga or not ymd:
+        return None
+    if len(frozenset((_norm(dom), _norm(gost)))) != 2 or not (_norm(dom) and _norm(gost)):
+        return None
+    r = _izbor(_kandidati(sport_path, liga, ymd, dom, gost), kogato)
+    return r[0] if r else None
 
 def veroyatnost(cena):
     """Цена → вероятност. 2.00 значи 50%. None при боклук."""
@@ -331,32 +415,6 @@ def cena_zatvarayashta(sport_path, liga, ev_id):
             break
     _kesh[kl] = rez
     return rez
-
-
-def ev_za_imena(sport_path, liga, ymd, dom, gost):
-    """Номерът на срещата, намерен по ИМЕНА. None, ако не се намери.
-
-    Ползва СЪЩИЯ кеширан индекс като cena_po_imena — тоест извикана веднага
-    след нея, не струва НИТО ЕДНА нова заявка. Съществува, за да може номерът
-    да влезе в дневника и оценителят после да вземе затварящата цена директно,
-    без пак да търси по имена.
-    """
-    if sport_path not in IMA_PAZAR or not liga or not ymd:
-        return None
-    kl = frozenset((_norm(dom), _norm(gost)))
-    if len(kl) != 2 or not all(kl):
-        return None
-    try:
-        from datetime import datetime as _dt, timedelta as _td
-        d0 = _dt.strptime(str(ymd), "%Y%m%d")
-        dati = [(d0 + _td(days=k)).strftime("%Y%m%d") for k in (0, -1, 1)]
-    except ValueError:
-        dati = [str(ymd)]
-    for den in dati:
-        kand = index_za_den(sport_path, liga, den).get(kl)
-        if kand:
-            return kand
-    return None
 
 
 def dvizhenie(nasha_cena, close_cena):
@@ -517,10 +575,46 @@ def selftest():
     _star = globals().get("index_za_den")
     _star_cena = globals().get("cena_za")
     try:
+        # 🔴 ДВА мача между СЪЩИТЕ отбори в две поредни вечери — точно случаят,
+        # който днес връщаше цената на грешния. 401 е нашият (19.08 16:35Z),
+        # 400 е вчерашният (18.08 22:40Z) и САМО ТОЙ има цена.
         globals()["index_za_den"] = lambda s, l, y: {
-            frozenset(("tampabayrays", "torontobluejays")): "401"}
+            frozenset(("tampabayrays", "torontobluejays")):
+                (("401", "2026-08-19T16:35Z") if y == "20260819"
+                 else ("400", "2026-08-18T22:40Z"))}
         globals()["cena_za"] = lambda s, l, e: ((2.10, 1.75, None)
-                                                if e == "401" else (None, None, None))
+                                                if e == "400" else (None, None, None))
+        from datetime import datetime as _D, timezone as _TZ
+        _nash = _D(2026, 8, 19, 16, 35, tzinfo=_TZ.utc)     # нашият мач
+        _vcher = _D(2026, 8, 18, 22, 40, tzinfo=_TZ.utc)    # вчерашният
+
+        # 🔴 СЪРЦЕВИНАТА НА ПОПРАВКАТА. Без известен час — старото поведение:
+        # взима каквото има цена. С известен час — НЕ взима чужда вечер.
+        check("без известен час се държим както преди",
+              cena_po_imena("baseball", "mlb", "20260819",
+                            "Tampa Bay Rays", "Toronto Blue Jays")[0] == 2.10)
+        check("с нашия час НЕ взима цената на вчерашния мач",
+              cena_po_imena("baseball", "mlb", "20260819", "Tampa Bay Rays",
+                            "Toronto Blue Jays", _nash) == (None, None, None))
+        check("с вчерашния час взима вчерашната цена",
+              cena_po_imena("baseball", "mlb", "20260819", "Tampa Bay Rays",
+                            "Toronto Blue Jays", _vcher)[0] == 2.10)
+        check("номерът е на НАШИЯ мач, не на съседния",
+              ev_za_imena("baseball", "mlb", "20260819", "Tampa Bay Rays",
+                          "Toronto Blue Jays", _nash) == "401")
+        check("номерът за вчерашния час е на вчерашния мач",
+              ev_za_imena("baseball", "mlb", "20260819", "Tampa Bay Rays",
+                          "Toronto Blue Jays", _vcher) == "400")
+        check("час извън прозореца не намира нищо",
+              ev_za_imena("baseball", "mlb", "20260819", "Tampa Bay Rays",
+                          "Toronto Blue Jays",
+                          _D(2026, 8, 25, 16, 35, tzinfo=_TZ.utc)) is None)
+        check("прозорецът е поне 4 часа", PROZOREC_CH >= 4.0)
+        check("часът се чете и с Z, и с отместване",
+              _chas("2026-08-19T16:35Z") is not None
+              and _chas("2026-08-19T16:35:00+03:00") is not None)
+        check("боклук вместо час не гърми", _chas("абв") is None and _chas(None) is None)
+
         check("точното име намира мача",
               cena_po_imena("baseball", "mlb", "20260813",
                             "Tampa Bay Rays", "Toronto Blue Jays")[0] == 2.10)
@@ -540,12 +634,9 @@ def selftest():
               == (None, None, None))
         check("спорт без пазар не се пита",
               cena_po_imena("tennis", "atp", "20260813", "A", "B") == (None, None, None))
-        check("номерът се вади по същите имена",
+        check("номерът се вади и без известен час",
               ev_za_imena("baseball", "mlb", "20260813",
-                          "Tampa Bay Rays", "Toronto Blue Jays") == "401")
-        check("номерът се намира и от съседната дата",
-              ev_za_imena("baseball", "mlb", "20260814",
-                          "Tampa Bay Rays", "Toronto Blue Jays") == "401")
+                          "Tampa Bay Rays", "Toronto Blue Jays") is not None)
         check("непознат мач не дава номер",
               ev_za_imena("baseball", "mlb", "20260813", "А", "Б") is None)
     finally:
@@ -556,7 +647,7 @@ def selftest():
         if _star_cena is not None:
             globals()["cena_za"] = _star_cena
 
-    check("броят проверки е поне 60", ok >= 60)
+    check("броят проверки е поне 68", ok >= 68)
     print("САМОПРОВЕРКА НА ПАЗАРА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)

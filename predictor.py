@@ -1493,6 +1493,66 @@ FOOT_SLUGS = [
     ("tur.1", 6, "Супер лига, Турция"), ("gre.1", 5, "Супер лига, Гърция"),
     ("bel.1", 5, "Про лига, Белгия"), ("eng.2", 5, "Чемпиъншип"),
     ("sco.1", 5, "Премиършип, Шотландия"),
+
+    # 🔴 ТРИЙСЕТ И ДВЕ НОВИ ЛИГИ (19.08.2026). ESPN ги дава ВСИЧКИТЕ, а ние не
+    # ползвахме нито една. Проверени една по една на живо същия ден — всяка
+    # върна истински мачове; в списъка влизат само тези, които отговориха.
+    # Само за ДНЕС това са около 70 допълнителни срещи — при 3, които футболът
+    # даде вчера. Една заявка на лига на ден е евтино; мълчащ спорт не е.
+    #
+    # Тежестта е ниво на лигата, не симпатия: тя влиза в модела през
+    # league_level и мени очакваните голове.
+
+    # Континентални клубни турнири
+    ("conmebol.libertadores", 8, "Копа Либертадорес"),
+    ("conmebol.sudamericana", 6, "Копа Судамерикана"),
+    ("concacaf.champions_cup", 5, "Шампионска купа на КОНКАКАФ"),
+    ("uefa.super_cup", 10, "Суперкупа на Европа"),
+    ("fifa.cwc", 9, "Световно клубно първенство"),
+
+    # Европа, втори ешелон и по-малки първенства
+    ("esp.2", 5, "Сегунда, Испания"), ("ita.2", 5, "Серия Б, Италия"),
+    ("ger.2", 5, "Втора Бундеслига"), ("fra.2", 5, "Лига 2, Франция"),
+    ("eng.3", 4, "Лига 1, Англия"), ("eng.4", 3, "Лига 2, Англия"),
+    ("sui.1", 5, "Супер лига, Швейцария"), ("aut.1", 5, "Бундеслига, Австрия"),
+    ("den.1", 5, "Суперлига, Дания"), ("swe.1", 4, "Алсвенскан, Швеция"),
+    ("nor.1", 4, "Елитсериен, Норвегия"), ("rus.1", 5, "Премиер лига, Русия"),
+    ("rou.1", 4, "Лига 1, Румъния"), ("cze.1", 4, "Първа лига, Чехия"),
+
+    # Извън Европа
+    ("mex.1", 6, "Лига МХ, Мексико"), ("mex.2", 4, "Лига де Експансион"),
+    ("jpn.1", 5, "Джей лига, Япония"), ("aus.1", 4, "А-лига, Австралия"),
+    ("bra.2", 4, "Серия Б, Бразилия"), ("arg.2", 3, "Примера Насионал"),
+    ("chi.1", 4, "Примера дивисион, Чили"), ("col.1", 4, "Примера А, Колумбия"),
+    ("uru.1", 4, "Лига АУФ, Уругвай"), ("per.1", 3, "Лига 1, Перу"),
+    ("ecu.1", 4, "ЛигаПро, Еквадор"), ("par.1", 3, "Примера дивисион, Парагвай"),
+    ("ven.1", 3, "Примера дивисион, Венецуела"),
+
+    # 🔴 ЕДИНАЙСЕТ ДОБАВЕНИ ПО ИЗМЕРВАНЕ, НЕ ПО УСЕТ (19.08.2026).
+    #
+    # Обиколих ВСИЧКИТЕ 216 футболни лиги в справочника на ESPN. 166 не ги
+    # ползвахме. От тях 126 отпаднаха веднага: „1 мач" в отговора е ПОСЛЕДНИЯТ
+    # мач в историята на лигата, не днешен (същият капан изхвърли и 40 от 41
+    # ММА „лиги" — PRIDE е закрит от 2007).
+    #
+    # Останалите 40 минаха ВТОРИ кантар: взимат се имената на отборите и се
+    # питат за цена в живия пазар. Лига без цена значи, че никой не я предлага
+    # за игра — тя не влиза, колкото и добре да звучи. Така отпаднаха NCAA
+    # футбол (0 от 12), приятелските (0 от 9), Копа Колумбия (0 от 6),
+    # Примера Б Аржентина (0 от 22) и Боливия (0 от 13).
+    #
+    # Долните единайсет ИМАТ цени. Числото до всяка е измереното покритие.
+    ("eng.league_cup", 8, "Карабао Къп"),           # 12 от 12
+    ("ger.dfb_pokal", 8, "Купа на Германия"),       # 2 от 4
+    ("ned.2", 4, "Ерсте дивизи, Нидерландия"),      # 6 от 6
+    ("eng.5", 3, "Национална лига, Англия"),        # 12 от 12
+    ("sco.2", 4, "Чемпиъншип, Шотландия"),          # 4 от 5
+    ("ksa.1", 6, "Про лига, Саудитска Арабия"),     # 8 от 17
+    ("ksa.kings.cup", 5, "Купа на краля, Саудитска Арабия"),  # 2 от 3
+    ("chn.1", 5, "Супер лига, Китай"),              # 8 от 9
+    ("usa.usl.1", 3, "USL Чемпиъншип"),             # 11 от 15
+    ("usa.usl.l1", 3, "USL Лига 1"),                # 3 от 3
+    ("usa.nwsl", 4, "НУСЛ, жени"),                  # 2 от 2
 ]
 # По подразбиране НЕ реже — целият списък. Една заявка на лига на ден е евтино;
 # мълчащ спорт не е. Таванът се смята от самия списък, за да не остане пак
@@ -1710,9 +1770,14 @@ BASK_LEAGUES = [
     ("nba", 10, "НБА", 11.5), ("wnba", 7, "WNBA", 10.5),
     ("mens-college-basketball", 4, "NCAA, мъже", 11.5),
     ("womens-college-basketball", 3, "NCAA, жени", 12.5),
+    # 🔴 ДВЕ НОВИ (19.08.2026), проверени живо в ESPN същия ден. Евролигата и
+    # европейските първенства ГИ НЯМА в ESPN (всичките дават 400) — това е
+    # ограничение на източника, не пропуск.
+    ("nbl", 4, "НБЛ, Австралия", 11.5),
+    ("nba-development", 3, "Джи лига", 12.0),
 ]
 BASK_HCA = {"nba": 2.4, "wnba": 2.2, "mens-college-basketball": 3.2,
-            "womens-college-basketball": 3.2}
+            "womens-college-basketball": 3.2, "nbl": 2.8, "nba-development": 2.0}
 BASK_SHRINK = 6.0
 BASK_MARGIN_MAX = 26.0
 BASK_HALFLIFE = 220.0
@@ -2832,18 +2897,63 @@ def _unwrap(x):
 # Редът вече е по ТЕЖЕСТ. Юношеските падат най-долу нарочно: там няма
 # 18-месечна история на играча, а тя е целият ни източник за този спорт —
 # без нея процентът е познайница с десетична запетая.
+def _tt_dumi(ime):
+    """Името, разцепено на цели думи. „U11&U13" дава {u11, u13}."""
+    d, cur = set(), []
+    for ch in str(ime or "").lower():
+        if ch.isalnum():
+            cur.append(ch)
+        elif cur:
+            d.add("".join(cur))
+            cur = []
+    if cur:
+        d.add("".join(cur))
+    return d
+
+
 def _tt_rang(ime):
-    """Колко тежи турнир. По-голямото се гледа първо, щом таванът реже."""
-    t = str(ime or "").lower()
-    for d in ("youth", "junior", "u15", "u17", "u19", "cadet"):
-        if d in t:
-            return 10
-    for duma, tejest in (("olympic", 100), ("world championship", 95),
-                         ("finals", 92), ("smash", 90), ("champions", 85),
-                         ("world cup", 82), ("star contender", 75),
-                         ("contender", 65), ("feeder", 55)):
-        if duma in t:
-            return tejest
+    """Колко тежи турнир. По-голямото се гледа първо, щом таванът реже.
+
+    🔴 ПО ЦЕЛИ ДУМИ, НЕ ПО ПОДНИЗ (поправено 18.08.2026).
+    Първата ми версия търсеше „champions" като подниз — а „championSHIPS" го
+    съдържа. Върху ИСТИНСКИЯ календар това значеше: „ITTF-Americas U11&U13
+    Championships Houston" и „Central American Masters Championships" вземаха
+    85, тоест нивото на WTT Champions, и изхвърляха от тавана българския WTT
+    Contender Panagyurishte и един Feeder. Детски и ветерански турнири
+    изяждаха възрастни професионални.
+
+    Стълбицата е сверена срещу ВСИЧКИТЕ 170 имена в календара за 2026.
+    Юношеските и ветеранските падат най-долу нарочно: там няма 18-месечна
+    история на играча, а тя е целият ни източник за този спорт.
+    """
+    d = _tt_dumi(ime)
+    if d & {"youth", "junior", "juniors", "cadet", "cadets",
+            "u11", "u13", "u15", "u17", "u19", "u21"}:
+        return 10
+    if "masters" in d:                      # ветерански, не елитни
+        return 12
+    if "finals" in d and "wtt" in d:
+        return 92
+    if "smash" in d:
+        return 90
+    if "cup" in d and "world" in d:
+        return 88
+    if "championships" in d and "world" in d:
+        return 86
+    if "champions" in d:                    # ЦЯЛА дума, не подниз
+        return 85
+    if "contender" in d:
+        return 78 if "star" in d else 70
+    if "feeder" in d:
+        return 60
+    if "cup" in d:
+        return 55
+    if "regional" in d:
+        return 38
+    if d & {"championships", "championship"}:
+        return 48
+    if "games" in d:
+        return 45
     return 40
 
 
@@ -2902,6 +3012,15 @@ def tt_fixtures(now, ymd_dash):
     rows = []
     for blk in (cal if isinstance(cal, list) else [cal or {}]):
         rows += ((blk or {}).get("rows") or [])
+    # 🔴 ПРАЗЕН КАЛЕНДАР НЕ Е „НЯМА ТУРНИРИ" (19.08.2026). `http_json` връща
+    # None при провал БЕЗ да гърми — тоест задавен CDN изглеждаше точно като
+    # спокоен ден без турнири, и здравният преглед казваше „източникът върна
+    # нула срещи". Хванато на живо: два успоредни рънa задавиха WTT и тенисът
+    # на маса тихо стана нула, при 120 налични мача.
+    if not rows:
+        print("   ⚠ тенис на маса: календарът се върна ПРАЗЕН — това е провал "
+              "на източника, не липса на турнири.")
+        return []
     live = []
     for r in rows:
         s = str(dget(r, "StartDateTime") or "")[:10]
@@ -2911,6 +3030,7 @@ def tt_fixtures(now, ymd_dash):
             live.append((eid, str(dget(r, "EventName") or "WTT")))
     # Най-тежкият пръв; при равенство — по име, за да е повторимо.
     live.sort(key=lambda x: (-_tt_rang(x[1]), str(x[1])))
+    _imalo_turniri = bool(live)
     out = []
     for eid, ename in live[:TT_MAX_TURNIRI]:
         sch = http_json(WTT_CDN + "/websitecacheddata/" + str(eid)
@@ -2943,6 +3063,13 @@ def tt_fixtures(now, ymd_dash):
                 "when": parse_iso(str(dget(u, "StartDate") or "")),
                 "extra": {"best_of": to_num(dget(u, "MaxGamesPerIndividualMatch")) or 5},
             })
+    # 🔴 БЛИЗНАКЪТ НА ПРАЗНИЯ КАЛЕНДАР (19.08.2026). Календарът може да мине,
+    # а РАЗПИСАНИЕТО да се задави — тогава пак излиза чиста нула без нито една
+    # дума. Турнир, който тече и дава нула мача, е подозрение, не факт.
+    if _imalo_turniri and not out:
+        print("   ⚠ тенис на маса: %d турнира текат, а разписанието даде НУЛА "
+              "мача — по-вероятно е провал на източника, отколкото празен ден."
+              % len(live))
     return out
 
 
@@ -4296,13 +4423,16 @@ def dobavi_pazar(an):
             s = fx_start(fx, datetime.now(SOFIA))
             ymd = (s.astimezone(SOFIA) if s is not None
                    else datetime.now(SOFIA)).strftime("%Y%m%d")
+            # 🔴 ЧАСЪТ СЕ ПОДАВА (18.08.2026). Без него серия от три вечери
+            # между едни и същи отбори връщаше цената на грешната вечер —
+            # измерено, 5 от 15 бейзболни мача, при това маркирани като чисти.
             dom, gost, raven = PZ.cena_po_imena(sport, slug, ymd,
-                                                fx.get("home"), fx.get("away"))
-            # Номерът на срещата от СЪЩИЯ кеширан индекс — нула нови заявки.
-            # Влиза в дневника, за да може оценителят после да вземе
-            # ЗАТВАРЯЩАТА цена директно, без пак да търси по имена.
+                                                fx.get("home"), fx.get("away"), s)
+            # Номерът от СЪЩИЯ кеширан индекс — нула нови заявки. Влиза в
+            # дневника, за да вземе оценителят затварящата цена. Затова е
+            # критично да е НАШИЯТ мач: сгрешен номер = чужда затваряща цена.
             ev_id = PZ.ev_za_imena(sport, slug, ymd,
-                                   fx.get("home"), fx.get("away"))
+                                   fx.get("home"), fx.get("away"), s)
     except Exception:                                        # noqa: BLE001
         dom = gost = raven = None
     izt = "espn" if (dom or gost) else None
@@ -4607,9 +4737,39 @@ def post_combos(picks, cands, state, now):
     return sent
 
 
+def razpredeli(lst, n):
+    """n елемента, РАЗПРЪСНАТИ равномерно по списъка, а не първите n.
+
+    🔴 ЗАЩО (19.08.2026). `[:PER_SPORT]` взимаше първите пет по реда на
+    ИЗТОЧНИКА. За тенис на маса това значи първите пет от 108 записа в
+    разписанието — тоест квалификациите, където играчите нямат история и
+    моделът връща 50%. Измерено същия ден: от първите 60 срещи 28 покриват
+    прага „поне 5 мача за 18 месеца", а в лупата влязоха пет, всичките под
+    прага. Спортът мълчеше при 120 налични срещи.
+    Същото важи и за футбола: 44 срещи, а първите пет идваха все от първите
+    лиги в списъка (Бразилия и Аржентина).
+    Разпръскването е детерминирано — същият вход дава същия изход.
+    """
+    lst = list(lst or [])
+    n = max(0, int(n))
+    if n <= 0 or not lst:
+        return []
+    if len(lst) <= n:
+        return lst
+    stapka = len(lst) / float(n)
+    out, vzeti = [], set()
+    for k in range(n):
+        i = min(len(lst) - 1, int(k * stapka))
+        while i in vzeti and i + 1 < len(lst):
+            i += 1
+        vzeti.add(i)
+        out.append(lst[i])
+    return out
+
+
 def build_pool(buckets):
     """Кръгова подредба: всеки спорт получава шанс, никой не задръства."""
-    per = {b: (buckets.get(b) or [])[:PER_SPORT] for b in ACTIVE_SPORTS}
+    per = {b: razpredeli(buckets.get(b) or [], PER_SPORT) for b in ACTIVE_SPORTS}
     order = sorted(ACTIVE_SPORTS, key=lambda b: -SPORTS[b]["prio"])
     pool, i = [], 0
     while len(pool) < POOL:
@@ -6363,6 +6523,46 @@ def selftest():
     # Басейнът трябва да СТИГА за толкова фишове, иначе вдигането е на хартия.
     # Сметка: 5 фиша × поне 2 крака = 10 крака минимум, а над прага минават
     # около две трети от анализираните.
+    # 🔴 ЛИГИТЕ (19.08.2026) — след като добавих 32 футболни и 2 баскетболни.
+    check("няма повторена футболна лига",
+          len({x[0] for x in FOOT_SLUGS}) == len(FOOT_SLUGS))
+    check("всяка футболна лига има име и тежест",
+          all(len(x) == 3 and x[0] and x[2] and 1 <= int(x[1]) <= 20
+              for x in FOOT_SLUGS))
+    check("тежестта на Шампионска лига е над тази на втора дивизия",
+          dict((x[0], x[1]) for x in FOOT_SLUGS)["uefa.champions"]
+          > dict((x[0], x[1]) for x in FOOT_SLUGS)["eng.4"])
+    check("летните лиги остават най-отгоре, над отреза",
+          [x[0] for x in FOOT_SLUGS[:6]] == ["bra.1", "arg.1", "uefa.champions_qual",
+                                             "uefa.europa_qual",
+                                             "uefa.europa.conf_qual", "usa.1"])
+    check("футболните лиги са поне 60", len(FOOT_SLUGS) >= 60)
+    # 🔴 Всяка баскетболна лига ТРЯБВА да има предимство на домакина. Без него
+    # моделът мълчаливо смята гост-мач за неутрален терен.
+    check("няма повторена баскетболна лига",
+          len({x[0] for x in BASK_LEAGUES}) == len(BASK_LEAGUES))
+    check("всяка баскетболна лига има HCA",
+          all(x[0] in BASK_HCA for x in BASK_LEAGUES))
+    check("всяка баскетболна лига има четири полета",
+          all(len(x) == 4 for x in BASK_LEAGUES))
+
+    # 🔴 РАЗПРЪСКВАНЕТО (19.08.2026)
+    _sto = list(range(100))
+    _r = razpredeli(_sto, 5)
+    check("взима точно колкото искаме", len(_r) == 5)
+    check("не взима само първите", _r != [0, 1, 2, 3, 4])
+    check("покрива целия списък", _r[0] < 10 and _r[-1] > 70)
+    check("редът се пази", _r == sorted(_r))
+    check("няма повторени", len(set(_r)) == 5)
+    check("къс списък минава цял", razpredeli([1, 2, 3], 5) == [1, 2, 3])
+    check("празен списък не гърми", razpredeli([], 5) == [] and razpredeli(None, 5) == [])
+    check("нула искани дава празно", razpredeli(_sto, 0) == [])
+    check("същият вход дава същия изход", razpredeli(_sto, 7) == razpredeli(_sto, 7))
+    check("при точно колкото трябва взима всичко",
+          razpredeli([1, 2, 3, 4, 5], 5) == [1, 2, 3, 4, 5])
+    _b6 = razpredeli(list(range(108)), 5)
+    check("от 108 записа не взима само началото", max(_b6) > 80)
+
     check("басейнът стига за петте фиша",
           POOL >= COMBO_COUNT * COMBO_MIN_LEGS * 1.5)
 
@@ -6597,6 +6797,14 @@ def selftest():
             _sz = _fz.read()
         check("здравният преглед наистина вика tt_turnir_sled",
               "tt_turnir_sled" in _sz)
+        # 🔴 И НУЛАТА ДА НЕ СЕ ИЗХВЪРЛЯ (18.08.2026). `d_tt >= 1` връщаше
+        # фалшивата тревога точно на ПЪРВИЯ ден на всеки турнир — деня, в
+        # който WTT още не е пуснал разписанието. Проверено в реалността:
+        # WTT Feeder Berlin почва 19.08 и tt_turnir_sled връща 0.
+        check("нулата не се изхвърля в здравния преглед",
+              "d_tt >= 1" not in _sz and "d_tt >= 0" in _sz)
+        check("близнакът също е лекуван (0 е лъжливо в if)",
+              "napred.get(b) is not None" in _sz)
     except Exception:                                        # noqa: BLE001
         check("сверката със здравния преглед мина", False)
 
@@ -6613,6 +6821,31 @@ def selftest():
           < _tt_rang("WTT Feeder Olomouc 2026"))
     check("непознат турнир не е нито най-горе, нито най-долу",
           10 < _tt_rang("Нещо съвсем ново") < 90)
+    # 🔴 ИСТИНСКИТЕ КАПАНИ ОТ КАЛЕНДАРА ЗА 2026 (намерени 18.08.2026).
+    # „championSHIPS" съдържа „champions" — детски и ветерански турнири
+    # вземаха 85 и изхвърляха от тавана българския Contender.
+    for _nm, _och in (
+            ("WTT Champions Macao 2026", 85),
+            ("ITTF-Americas U11&U13 Championships Houston 2026", 10),
+            ("ITTF-Americas Central American Masters Championships Tegucigalpa 2026", 12),
+            ("WTT Contender Panagyurishte 2026 Presented by ASAREL", 70),
+            ("WTT Youth Star Contender Bangkok 2026", 10),
+            ("WTT Star Contender Doha 2026", 78),
+            ("Europe Smash - Sweden 2026", 90),
+            ("Europe Youth Smash - Sweden 2026", 10),
+            ("WTT Finals Hong Kong 2026", 92),
+            ("ITTF World Team Table Tennis Championships Finals London 2026", 86),
+            ("ITTF-Africa West Regional Championships Conakry 2026", 38),
+            ("ETTU European U13 Championships Nevsehir 2026", 10)):
+        check("ранг на „" + _nm[:34] + "“ = " + str(_och), _tt_rang(_nm) == _och)
+    check("детският турнир НЕ бие възрастния Contender",
+          _tt_rang("ITTF-Americas U11&U13 Championships Houston 2026")
+          < _tt_rang("WTT Contender Panagyurishte 2026"))
+    check("ветеранският НЕ бие възрастния Feeder",
+          _tt_rang("ITTF-Americas Masters Championships Caracas 2026")
+          < _tt_rang("WTT Feeder Berlin 2026"))
+    check("думите се цепят по неалфанумерично",
+          _tt_dumi("U11&U13 · ITTF-Africa") == {"u11", "u13", "ittf", "africa"})
     _live = [(1, "WTT Youth Contender Otocec 2026"), (2, "WTT Feeder Olomouc 2026"),
              (3, "WTT Champions Macao 2026"), (4, "ITTF-Oceania Youth Champs")]
     _live.sort(key=lambda x: (-_tt_rang(x[1]), str(x[1])))
