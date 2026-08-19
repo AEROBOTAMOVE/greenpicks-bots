@@ -8765,5 +8765,32 @@
   "stars": 2,
   "sample": "гледани 61 мача на единия и 9 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-19|tennis|mariebouzkova|cocogauff",
+  "combo": 0,
+  "posted": "2026-08-19 18:10",
+  "day": "2026-08-19",
+  "bucket": "tennis",
+  "home": "Marie Bouzkova",
+  "away": "Coco Gauff",
+  "home_id": "2392",
+  "away_id": "3626",
+  "league": "Cincinnati Open · ATP",
+  "slug": null,
+  "pick": "2 · Coco Gauff",
+  "pazar_cena": 1.28,
+  "pazar_p": 0.7607,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "pinnacle",
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "p": 0.5646,
+  "stars": 1,
+  "sample": "ранглиста и 10 скорошни мача",
+  "scored": false
  }
 ]
