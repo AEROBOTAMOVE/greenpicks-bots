@@ -108,6 +108,15 @@ try:
 except Exception as _pin_err:                                # noqa: BLE001
     PIN = None
     print("вторият източник не се зареди (" + str(_pin_err)[:70] + ").")
+# 🔴 ВОЛЕЙБОЛНОТО СИТО (19.08.2026). Портиерът „карта без пазар не излиза"
+# режеше ВСИЧКИ волейболни карти, защото волейболът няма нито един път до
+# цена: ESPN няма адрес за спорта, а Pinnacle не го търгува изобщо.
+# Отделен внос в отделен try — провал тук НЕ бива да спира прогнозите.
+try:
+    import volley_evro as VOL
+except Exception as _vol_err:                                # noqa: BLE001
+    VOL = None
+    print("волейболното сито не се зареди (" + str(_vol_err)[:70] + ").")
 
 SOFIA = ZoneInfo("Europe/Sofia")
 NL = chr(10)
@@ -2676,7 +2685,14 @@ def vol_fixtures(now, ymd_dash):
             "bucket": "volleyball", "emoji": "🏐", "src": "fivb",
             "home": bg_name(na), "away": bg_name(nb),
             "home_id": ca, "away_id": cb,
-            "league": tname, "weight": 8, "when": parse_iso(m.get("DateTimeUtc")),
+            "league": tname,
+            # 🔴 ТЕЖЕСТТА ВЕЧЕ НЕ Е ЕДНА ЗА ВСИЧКИ (19.08.2026). Беше твърдо 8,
+            # заради което юношеското световно и EuroVolley се подреждаха
+            # РАВНОСТОЙНО и таванът се пълнеше по случаен ред.
+            "weight": (12 if (VOL is not None
+                              and VOL.vol_rang(tname) >= VOL.VOL_PRAG
+                              and not str(vb).endswith("-you")) else 4),
+            "when": parse_iso(m.get("DateTimeUtc")),
             "extra": {"vb": vb, "id_h": vol_ident(na), "id_a": vol_ident(nb)},
         })
     if no_bucket:
@@ -4507,6 +4523,23 @@ def dobavi_pazar(an):
                     sport = _b            # маржът се маха по НАШЕТО име
         except Exception:                                    # noqa: BLE001
             pass
+    # 🔴 ТРЕТИЯТ ИЗТОЧНИК — САМО ЗА ВОЛЕЙБОЛ (19.08.2026).
+    # Волейболът няма нито един друг път до цена. Измерено: 5 от 8-те
+    # EuroVolley срещи на 21.08 получиха цена (другите три са със затворена
+    # линия и нарочно нямат). Питаме с КОДА на държавата — той е един и същ
+    # при двата източника, докато името е „Türkiye" тук и „Turkey W" там.
+    if not (dom or gost) and VOL is not None             and str(an.get("bucket") or "") == "volleyball":
+        try:
+            _vbk = str(ex.get("vb") or "")
+            _c = VOL.cena(fx.get("home_id"), fx.get("away_id"),
+                          _vbk[:1] if _vbk[:1] in ("m", "w") else None)
+            if _c:
+                dom, gost, raven = _c["dom"], _c["gost"], None
+                izt = "vitrina"
+                sport = "volleyball"
+        except Exception:                                    # noqa: BLE001
+            pass
+
     if not (dom or gost):
         return an
 
@@ -4705,6 +4738,25 @@ def ima_pazar(an):
     # наистина няма, същото важи и за волейбола при момичета до 17.
     if b == "tabletennis" and _tt_rang(lg) >= 55:
         return True, "възрастен турнир от WTT"
+    # 🔴 ВОЛЕЙБОЛЪТ СЕ СЪДИ ПО СЪЩАТА ЛОГИКА (19.08.2026).
+    # Измерено на живо: в 14-дневния прозорец имаме 173 волейболни срещи, от
+    # които 41 са „FIVB Boys' U17 World Championship" и 20 са американска
+    # зонална лига — 61 карти, за които пазар няма никъде. Ситото пуска 112,
+    # от тях 60 са CEV EuroVolley (всичките оцеляват, 9 с ИЗМЕРЕНА цена).
+    #
+    # ЧЕСТНО: 52 от 112-те (NORCECA и AVC) са ПРЕДПОЛОЖЕНИЕ — вътре в
+    # прозореца на витрината дадоха 0 с цена. Не ги режа, защото една
+    # затворена врата не е всички врати (същата грешка вече направих с
+    # волейбола при Pinnacle), но и не ги обявявам за доказани.
+    #
+    # Юношеската кошница (`vb` завършва на „-you") реже ВТОРИ ПЪТ, независимо
+    # от името: тя идва от полето на FIVB и не се лъже от заглавието.
+    if b == "volleyball" and VOL is not None:
+        _vb = str(((an.get("fx") or {}).get("extra") or {}).get("vb") or "")
+        if _vb.endswith("-you"):
+            return False, "няма пазар"
+        if VOL.vol_rang(lg) >= VOL.VOL_PRAG:
+            return True, "възрастен волейболен турнир"
     return False, "няма пазар"
 
 COMBO_DUMI = ((0.45, "🟢 стегнат фиш — малко крака, но здрави"),
@@ -6716,6 +6768,32 @@ def selftest():
     check("непознат спорт без цена НЕ минава",
           ima_pazar({"bucket": "кърлинг", "fx": {"league": "нещо"}})[0] is False)
     check("празен запис не гърми", ima_pazar({})[0] is False)
+    # 🔴 ВОЛЕЙБОЛНОТО СИТО (19.08.2026). Измерено: 41 от 173 срещи в
+    # 14-дневния прозорец са „Boys' U17 World Championship" — пазар за тях
+    # няма никъде. EuroVolley: 60 от 60 оцеляват, 9 с измерена цена.
+    if VOL is not None:
+        _euro = {"bucket": "volleyball",
+                 "fx": {"league": "CEV EuroVolley 2026 | Women",
+                        "extra": {"vb": "w-sen"}}}
+        _u17 = {"bucket": "volleyball",
+                "fx": {"league": "FIVB Volleyball Boys' U17 World Championship 2026",
+                       "extra": {"vb": "m-you"}}}
+        check("EuroVolley минава ситото", ima_pazar(_euro)[0] is True)
+        check("юношеското световно НЕ минава", ima_pazar(_u17)[0] is False)
+        # Кошницата реже ВТОРИ ПЪТ — дори турнирът да се казва като възрастен.
+        _mask = {"bucket": "volleyball",
+                 "fx": {"league": "CEV EuroVolley 2026 | Women",
+                        "extra": {"vb": "w-you"}}}
+        check("юношеска кошница реже дори под възрастно име",
+              ima_pazar(_mask)[0] is False)
+        check("волейбол с истинска цена минава винаги",
+              ima_pazar({"bucket": "volleyball", "pazar_cena": 1.8,
+                         "fx": {"league": "какъвто и да е", "extra": {}}})[0] is True)
+        check("стълбицата слага EuroVolley над юношеското",
+              VOL.vol_rang("CEV EuroVolley 2026 | Women")
+              > VOL.vol_rang("FIVB Volleyball Boys' U17 World Championship 2026"))
+        check("прагът е над юношеското ниво", VOL.VOL_PRAG > 10)
+
     check("възрастен WTT Feeder минава без цена",
           ima_pazar({"bucket": "tabletennis",
                      "fx": {"league": "WTT Feeder Berlin 2026 · Men's Singles"}})[0] is True)
