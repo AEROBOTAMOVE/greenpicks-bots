@@ -8738,5 +8738,32 @@
   "stars": 2,
   "sample": "гледани 139 мача на единия и 6 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-20|tabletennis|tomclosset|nazartretiak",
+  "combo": 0,
+  "posted": "2026-08-19 16:35",
+  "day": "2026-08-20",
+  "bucket": "tabletennis",
+  "home": "Tom CLOSSET",
+  "away": "Nazar TRETIAK",
+  "home_id": "134817",
+  "away_id": "135966",
+  "league": "WTT Feeder Berlin 2026 · Men's Singles",
+  "slug": null,
+  "pick": "1 · Tom CLOSSET",
+  "pazar_cena": null,
+  "pazar_p": null,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "p": 0.5838,
+  "stars": 2,
+  "sample": "гледани 61 мача на единия и 9 на другия",
+  "scored": false
  }
 ]
