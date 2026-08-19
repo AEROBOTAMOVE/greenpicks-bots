@@ -8610,5 +8610,32 @@
   "stars": 1,
   "sample": "ранглиста и 12 скорошни мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-20|tabletennis|aidoskenzhigulov|tzuyutseng",
+  "combo": 0,
+  "posted": "2026-08-19 10:30",
+  "day": "2026-08-20",
+  "bucket": "tabletennis",
+  "home": "Aidos KENZHIGULOV",
+  "away": "Tzu-Yu TSENG",
+  "home_id": "131150",
+  "away_id": "136984",
+  "league": "WTT Feeder Berlin 2026 · Men's Singles",
+  "slug": null,
+  "pick": "2 · Tzu-Yu TSENG",
+  "pazar_cena": null,
+  "pazar_p": null,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "p": 0.7914,
+  "stars": 2,
+  "sample": "гледани 20 мача на единия и 11 на другия",
+  "scored": false
  }
 ]
