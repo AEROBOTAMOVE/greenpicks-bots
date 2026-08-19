@@ -7856,7 +7856,9 @@
   "p": 0.8082,
   "stars": 2,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-08-17|tennis|alejandrotabilo|rafaeljodar",
@@ -7936,7 +7938,9 @@
   "p": 0.5136,
   "stars": 3,
   "sample": "гледани 43 мача на единия и 36 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1"
  },
  {
   "key": "2026-08-19|basketball|torontotempo|indianafever",
@@ -7956,7 +7960,9 @@
   "p": 0.6202,
   "stars": 3,
   "sample": "гледани 33 мача на единия и 88 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "95:101"
  },
  {
   "key": "2026-08-19|tennis|alexdeminaur|arthurfils",
@@ -7996,7 +8002,9 @@
   "p": 0.5539,
   "stars": 2,
   "sample": "гледани 145 мача на единия и 143 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:10"
  },
  {
   "key": "2026-08-19|tennis|felixaugeraliassime|juanmanuelcerundolo",
@@ -8016,7 +8024,9 @@
   "p": 0.8082,
   "stars": 2,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-08-19|basketball|lasvegasaces|atlantadream",
@@ -8036,7 +8046,9 @@
   "p": 0.562,
   "stars": 2,
   "sample": "гледани 93 мача на единия и 81 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "82:97"
  },
  {
   "key": "2026-08-19|tennis|tommypaul|alexanderzverev",
@@ -8076,7 +8088,9 @@
   "p": 0.5518,
   "stars": 2,
   "sample": "гледани 79 мача на единия и 84 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "93:86"
  },
  {
   "key": "2026-08-19|tennis|flaviocobolli|rafaeljodar",
@@ -8231,7 +8245,9 @@
   "p": 0.5606,
   "stars": 2,
   "sample": "гледани 147 мача на единия и 150 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "9:4"
  },
  {
   "key": "2026-08-19|football|селтик|lasklinz",
@@ -8366,7 +8382,9 @@
   "p": 0.5451,
   "stars": 1,
   "sample": "гледани 150 мача на единия и 147 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:3"
  },
  {
   "key": "2026-08-19|volleyball|myou|испания|türkiye",
@@ -8447,7 +8465,9 @@
   "p": 0.5347,
   "stars": 1,
   "sample": "гледани 148 мача на единия и 150 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "4:1"
  },
  {
   "key": "2026-08-19|football|atléticomadrid|málaga",
