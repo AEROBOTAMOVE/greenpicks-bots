@@ -8711,5 +8711,32 @@
   "stars": 1,
   "sample": "гледани 9 мача на единия и 6 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-19|tabletennis|thitaphatpreechayan|antonlimonov",
+  "combo": 0,
+  "posted": "2026-08-19 14:24",
+  "day": "2026-08-19",
+  "bucket": "tabletennis",
+  "home": "Thitaphat PREECHAYAN",
+  "away": "Anton LIMONOV",
+  "home_id": "202414",
+  "away_id": "124147",
+  "league": "WTT Feeder Berlin 2026 · Men's Singles",
+  "slug": null,
+  "pick": "1 · Thitaphat PREECHAYAN",
+  "pazar_cena": null,
+  "pazar_p": null,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "p": 0.6353,
+  "stars": 2,
+  "sample": "гледани 139 мача на единия и 6 на другия",
+  "scored": false
  }
 ]
