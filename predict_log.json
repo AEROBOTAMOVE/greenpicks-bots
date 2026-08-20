@@ -8774,7 +8774,9 @@
   "p": 0.5918,
   "stars": 1,
   "sample": "гледани 9 мача на единия и 6 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-19|tabletennis|thitaphatpreechayan|antonlimonov",
@@ -8917,7 +8919,9 @@
   "p": 0.5368,
   "stars": 1,
   "sample": "гледани 52 мача на единия и 19 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-19|tennis|amandaanisimova|lindanoskova",
@@ -9033,7 +9037,9 @@
   "p": 0.7995,
   "stars": 2,
   "sample": "гледани 35 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-20|tennis|lorenzomusetti|jaimefaria",
@@ -9491,7 +9497,11 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:0",
+  "pazar_close": 1.46,
+  "pazar_clv": 0.0398
  },
  {
   "key": "2026-08-21|tennis|madisonkeys|sarabejlek",
@@ -9603,7 +9613,9 @@
   "p": 0.5483,
   "stars": 1,
   "sample": "гледани 15 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-08-20|tabletennis|nathalyparedes|emikotaguchi",
@@ -9659,7 +9671,9 @@
   "p": 0.7966,
   "stars": 2,
   "sample": "гледани 43 мача на единия и 65 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-20|tabletennis|loicstoll|tomclosset",
@@ -9686,7 +9700,9 @@
   "p": 0.5492,
   "stars": 1,
   "sample": "гледани 16 мача на единия и 62 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-20|tabletennis|amirmahdikeshavarzi|alessimassart",
@@ -9713,7 +9729,9 @@
   "p": 0.5856,
   "stars": 1,
   "sample": "гледани 11 мача на единия и 10 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-20|football|lincolnredimps|larne",
@@ -9740,7 +9758,11 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:2",
+  "pazar_close": 1.95,
+  "pazar_clv": -0.0135
  },
  {
   "key": "2026-08-20|football|fcnordsjælland|stgallen",
@@ -9767,7 +9789,11 @@
   "p": 0.4889,
   "stars": 3,
   "sample": "гледани 39 мача на единия и 53 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.46,
+  "pazar_clv": -0.0193
  },
  {
   "key": "2026-08-20|football|аталанта|hapoeltelaviv",
@@ -9848,7 +9874,11 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3",
+  "pazar_close": 3.15,
+  "pazar_clv": 0.0233
  },
  {
   "key": "2026-08-20|football|панатинайкос|fchradeckrálové",
