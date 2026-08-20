@@ -9714,5 +9714,32 @@
   "stars": 1,
   "sample": "гледани 11 мача на единия и 10 на другия",
   "scored": false
+ },
+ {
+  "key": "2026-08-20|football|lincolnredimps|larne",
+  "combo": 0,
+  "posted": "2026-08-20 18:29",
+  "day": "2026-08-20",
+  "bucket": "football",
+  "home": "Lincoln Red Imps",
+  "away": "Larne",
+  "home_id": "17856",
+  "away_id": "20039",
+  "league": "Квалификации за Лига на конференциите",
+  "slug": "uefa.europa.conf_qual",
+  "pick": "1 · победа Lincoln Red Imps",
+  "pazar_cena": 1.9,
+  "pazar_p": 0.4853,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "401910970",
+  "pazar_izt": "espn",
+  "pazar_sport": "soccer",
+  "pazar_liga": "uefa.europa.conf_qual",
+  "p": 0.45,
+  "stars": 1,
+  "sample": "без история",
+  "scored": false
  }
 ]
