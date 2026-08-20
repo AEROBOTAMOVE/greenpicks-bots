@@ -9431,5 +9431,32 @@
   "stars": 1,
   "sample": "ранглиста и 12 скорошни мача",
   "scored": false
+ },
+ {
+  "key": "2026-08-20|tabletennis|liloumassart|sophiaklee",
+  "combo": 0,
+  "posted": "2026-08-20 09:55",
+  "day": "2026-08-20",
+  "bucket": "tabletennis",
+  "home": "Lilou MASSART",
+  "away": "Sophia KLEE",
+  "home_id": "136258",
+  "away_id": "132978",
+  "league": "WTT Feeder Berlin 2026 · Women's Singles",
+  "slug": null,
+  "pick": "1 · Lilou MASSART",
+  "pazar_cena": null,
+  "pazar_p": null,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "p": 0.5907,
+  "stars": 2,
+  "sample": "гледани 66 мача на единия и 30 на другия",
+  "scored": false
  }
 ]
