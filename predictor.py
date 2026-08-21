@@ -2214,7 +2214,20 @@ def hockey_fixtures(now, ymd_dash):
             "home": bg_name(hn), "away": bg_name(an),
             "home_id": h.get("abbrev"), "away_id": a.get("abbrev"),
             "league": "НХЛ", "weight": 7, "when": parse_iso(g.get("startTimeUTC")),
-            "extra": {},
+            # 🔴 ОРИГИНАЛНОТО ИМЕ (21.08.2026) — ПОПРАВКА ПРЕДИ СТАРТА.
+            #
+            # Хокеят НЕ минава през espn_fixtures — ползва собственото API на
+            # НХЛ и досега оставяше `extra` празно. Затова търсенето на цена
+            # по имена щеше да пита с ПРЕВЕДЕНОТО име: BG_NAME държи
+            # „Rangers" -> „Рейнджърс", а пазарът знае само латиница.
+            #
+            # Същият дефект вече ни ухапа с футбола („Фенербахче" срещу
+            # „Fenerbahce") и щеше да мине НЕЗАБЕЛЯЗАН до 29.09, когато НХЛ
+            # тръгва — защото днес спортът е затворен и нищо не гърми.
+            #
+            # Сверено: тенисът и ММА НЕ превеждат имена, значи нямат нужда;
+            # бейзболът и всичко през ESPN вече го имат.
+            "extra": {"home_en": str(hn), "away_en": str(an)},
         })
     if not out:
         sch = http_json(NHL_WEB + "/schedule/" + ymd_dash, quiet=True)
@@ -5254,6 +5267,48 @@ def pazarat_otgovarya():
     return False
 
 
+# ═══════════ НЕЗНАНИЕ, КОЕТО СПОРИ С ПАЗАРА (19.08.2026) ═══════════
+#
+# Намерено с четене на живия дневник, не с тест. Излязла карта:
+#     „1 · победа Atlético Madrid — 45%", извадка: „без история"
+# а и ДВАТА независими източника даваха на Атлетико 1.33 и 1.37 = 73%.
+# Ла Лига току-що почваше, моделът нямаше нито един мач, падаше на
+# резервната сметка и излизаше с почти монета — облечена като прогноза.
+#
+# ИЗМЕРЕНО върху целия дневник (424 записа тогава):
+#     карти БЕЗ история:  49 (11.6%) · сбъдват 60%
+#     карти С история:   352         · сбъдват 70%
+# Десет точки разлика. Не режа всичките — 11.6% обем е много, а сами по
+# себе си не са катастрофа (обявяват 54%, сбъдват 60%).
+#
+# Режа само където незнанието СПОРИ с пазара. Нямаме история И се
+# разминаваме над прага -> грешащият сме ние: той знае нещо, което ние
+# дори не сме гледали. Отряза точно 1 карта от 424 — хирургично.
+#
+# 🔴 ВЪЗСТАНОВЕНО 21.08.2026. Патч, построен върху КОПИЕ ОТПРЕДИ този
+# пазач, го върна назад МЪЛЧАЛИВО — заедно с тестовете му, затова нищо
+# не почервеня. Поука: патч от чуждо копие се сверява какво МАХА, не само
+# какво добавя.
+BEZ_ISTORIA_RAZLIKA = env_float("PREDICT_SLYAPA_RAZLIKA", 0.20, 0.05, 0.60)
+
+
+def slyapa_karta(an):
+    """Карта без история, която спори с пазара. (сляпа_ли, защо)."""
+    if "без история" not in str(an.get("sample") or ""):
+        return False, ""
+    pp = an.get("pazar_p")
+    if not pp:
+        # Без цена няма с какво да се спори — пускаме я както досега.
+        return False, ""
+    try:
+        d = abs(float(an.get("p") or 0) - float(pp))
+    except (TypeError, ValueError):
+        return False, ""
+    if d > BEZ_ISTORIA_RAZLIKA:
+        return True, ("без история и %.0f точки от пазара" % (100.0 * d))
+    return False, ""
+
+
 def ima_pazar(an):
     """Може ли човек да намери този мач при букмейкър. (може_ли, защо)."""
     if an.get("pazar_cena"):
@@ -5998,11 +6053,21 @@ def run():
     # 🔴 ПАЗАРНИЯТ ПОРТИЕР (19.08.2026). Цената се търси ПРЕДИ подбора, а не
     # при пращането — инак карта без пазар би заела мястото на карта с пазар.
     if ISKAM_PAZAR:
-        bez, s_pazar = [], []
+        bez, s_pazar, slepi = [], [], []
         for a in cands:
             dobavi_pazar(a)
+            _sl, _zsl = slyapa_karta(a)
+            if _sl:
+                slepi.append((a, _zsl))
+                continue
             ok, _z = ima_pazar(a)
             (s_pazar if ok else bez).append(a)
+        if slepi:
+            print("   🚫 незнание, което спори с пазара: " + str(len(slepi)))
+            for _a, _zsl in slepi[:4]:
+                print("      • " + str((_a.get("fx") or {}).get("home"))[:18]
+                      + " - " + str((_a.get("fx") or {}).get("away"))[:16]
+                      + ": " + _zsl)
         if bez:
             _ps = {}
             for a in bez:
@@ -7759,6 +7824,40 @@ def selftest():
     check("непознат спорт без цена НЕ минава",
           ima_pazar({"bucket": "кърлинг", "fx": {"league": "нещо"}})[0] is False)
     check("празен запис не гърми", ima_pazar({})[0] is False)
+    # 🔴 НЕЗНАНИЕ, КОЕТО СПОРИ С ПАЗАРА (възстановено 21.08.2026).
+    # Истинската карта: Atlético Madrid — Málaga, „без история", 45%,
+    # а двата източника даваха 73%.
+    check("без история + голямо разминаване = не излиза",
+          slyapa_karta({"sample": "без история", "p": 0.45,
+                        "pazar_p": 0.7137})[0] is True)
+    check("без история, но СЪГЛАСНИ с пазара = излиза",
+          slyapa_karta({"sample": "без история", "p": 0.68,
+                        "pazar_p": 0.71})[0] is False)
+    check("с история и разминаване = ИЗЛИЗА (това е ръб, не незнание)",
+          slyapa_karta({"sample": "гледани по 35 мача на всеки", "p": 0.45,
+                        "pazar_p": 0.71})[0] is False)
+    check("без история и без цена = не се пипа",
+          slyapa_karta({"sample": "без история", "p": 0.45})[0] is False)
+    check("боклук не гърми",
+          slyapa_karta({})[0] is False
+          and slyapa_karta({"sample": "без история", "p": "абв",
+                            "pazar_p": 0.7})[0] is False)
+    check("причината носи числото",
+          "26" in slyapa_karta({"sample": "без история", "p": 0.45,
+                                "pazar_p": 0.7137})[1])
+    check("прагът е разумен", 0.10 <= BEZ_ISTORIA_RAZLIKA <= 0.40)
+    # Пазачът трябва да е ВЪРЗАН В САМИЯ ПОТОК. Броят се повикванията в
+    # run(), не в теста — иначе тестовете си правят кворум сами.
+    import ast as _a3
+    _d3 = _a3.parse(open(__file__, encoding="utf-8").read())
+    _v3 = []
+    for _f3 in _a3.walk(_d3):
+        if isinstance(_f3, _a3.FunctionDef) and _f3.name == "run":
+            _v3 = [n for n in _a3.walk(_f3)
+                   if isinstance(n, _a3.Call) and isinstance(n.func, _a3.Name)
+                   and n.func.id == "slyapa_karta"]
+    check("сляпата карта се проверява В ПОТОКА, не само в теста", len(_v3) >= 1)
+
     # 🔴 ВОЛЕЙБОЛНОТО СИТО (19.08.2026). Измерено: 41 от 173 срещи в
     # 14-дневния прозорец са „Boys' U17 World Championship" — пазар за тях
     # няма никъде. EuroVolley: 60 от 60 оцеляват, 9 с измерена цена.
@@ -8098,6 +8197,31 @@ def selftest():
         check("без втори източник картата пак излиза", "pazar_cena" not in _t3)
     finally:
         globals()["PIN"] = _st_pin
+
+    # 🔴 ХОКЕЯТ ПАЗИ ОРИГИНАЛНОТО ИМЕ (21.08.2026). Той не минава през
+    # ESPN и досега оставяше extra празно — а имената му СЕ ПРЕВЕЖДАТ.
+    # Проверката е поведенческа: подхвърлям отговора на НХЛ и гледам
+    # какво влиза в записа.
+    _st_hj2 = globals().get('http_json')
+    try:
+        globals()['http_json'] = lambda u, **kw: ({
+            'games': [{'gameState': 'FUT', 'gameType': 2,
+                       'homeTeam': {'name': {'default': 'Rangers'}, 'abbrev': 'NYR'},
+                       'awayTeam': {'name': {'default': 'Bruins'}, 'abbrev': 'BOS'},
+                       'startTimeUTC': '2026-09-29T23:00:00Z'}]}
+            if '/score/' in u else {})
+        _hx = hockey_fixtures(now, now.strftime('%Y-%m-%d'))
+        check('хокеят дава срещи от подхвърления отговор', len(_hx) == 1)
+        _hex = (_hx[0].get('extra') or {}) if _hx else {}
+        check('хокеят пази оригиналното име на домакина',
+              _hex.get('home_en') == 'Rangers')
+        check('хокеят пази оригиналното име на госта',
+              _hex.get('away_en') == 'Bruins')
+        check('показваното име Е преведено, значи оригиналът ТРЯБВА',
+              _hx and _hx[0].get('home') != _hex.get('home_en'))
+    finally:
+        if _st_hj2 is not None:
+            globals()['http_json'] = _st_hj2
 
     # 🔴 ММА СЕ ПИТА С ДИАПАЗОН (19.08.2026).
     #
