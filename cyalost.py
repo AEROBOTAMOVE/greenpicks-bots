@@ -323,6 +323,40 @@ def selftest():
     check("всеки ред носи ЗАЩО е в списъка",
           all(len(r) == 3 and r[1] and r[2]
               for sp in ZADALZHITELNI.values() for r in sp))
+    # 🔴 КЪДЕ СПИРА И КЪДЕ САМО ДОКЛАДВА (21.08.2026).
+    #
+    # В предсказателя и оценителя цялостта е ПОРТИЕР — липсва ли защита,
+    # по-добре мълчание, отколкото крива карта.
+    #
+    # В РУТЕРА обаче спирането е КАСКАДА: той разнася опашката на Telegram,
+    # обслужва съпорта И носи будилника. Падне ли, предсказателят не се буди
+    # изобщо и целият бот замлъква заради едно липсващо име.
+    #
+    # Тази проверка пази решението да не бъде върнато обратно по невнимание.
+    _wf = os.path.join(TUK, ".github", "workflows")
+    if os.path.isdir(_wf):
+        def _stapka(fajl):
+            try:
+                with io.open(os.path.join(_wf, fajl), encoding="utf-8") as f:
+                    redove = f.read().split(chr(10))
+            except Exception:                                # noqa: BLE001
+                return None
+            for i, r in enumerate(redove):
+                if "cyalost.py" in r:
+                    # Гледаме БЛОКА на стъпката: пет реда назад стигат.
+                    blok = chr(10).join(redove[max(0, i - 5):i + 1])
+                    return "continue-on-error" in blok
+            return None
+        _r = _stapka("router.yml")
+        _p = _stapka("predict.yml")
+        _s = _stapka("score.yml")
+        check("рутерът пуска цялостта", _r is not None)
+        check("рутерът САМО ДОКЛАДВА (не спира каскадно)", _r is True)
+        check("предсказателят пуска цялостта", _p is not None)
+        check("предсказателят СПИРА при нарушена цялост", _p is False)
+        check("оценителят пуска цялостта", _s is not None)
+        check("оценителят СПИРА при нарушена цялост", _s is False)
+
     check("броят проверки е поне 10", ok >= 10)
 
     lip = provери()
