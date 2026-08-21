@@ -199,6 +199,20 @@ jobs:
           PREDICT_MAX_DAY: ${{ vars.PREDICT_MAX_DAY }}
           PREDICT_HORIZON_H: ${{ vars.PREDICT_HORIZON_H }}
           PREDICT_LEAD_MIN: ${{ vars.PREDICT_LEAD_MIN }}
+          # 🔴 ВТОРАТА ПРОГНОЗА ОТ СЪЩИЯ МАЧ (19.08.2026): над/под ЛИНИЯТА
+          # НА ПАЗАРА, с неговата цена. Нула нови източника и нула нови
+          # заявки — чете се същият отговор, от който идва 1/Х/2.
+          #   PREDICT_TOTAL_PAZAR  0 изключва всичко, без пипане на код
+          #   PREDICT_TOTAL_MAX    най-много тотал-карти от едно пускане
+          #   PREDICT_TOTAL_MIN    праг; празно = прагът на двоичните
+          PREDICT_TOTAL_PAZAR: ${{ vars.PREDICT_TOTAL_PAZAR }}
+          PREDICT_TOTAL_MAX: ${{ vars.PREDICT_TOTAL_MAX }}
+          PREDICT_TOTAL_MIN: ${{ vars.PREDICT_TOTAL_MIN }}
+          # 🔴 ТАВАНЪТ ЗАЯВКИ СЛЕДВА ШИРОКАТА ЛУПА (19.08.2026). Измерено:
+          # лупа 17 срещи → 168 заявки, лупа 34 → 205. Пълен басейн иска
+          # ~227, тоест старите 220 щяха да се скъсат, а скъсването сваля
+          # целия рън.
+          PREDICT_HTTP_BUDGET: ${{ vars.PREDICT_HTTP_BUDGET }}
           # Празно при разписание, 'true' само когато човек натисне бутона.
           PREDICT_DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: python predictor.py
