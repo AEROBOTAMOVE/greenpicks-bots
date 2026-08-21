@@ -54,6 +54,9 @@ jobs:
       - name: Модулът за тениса на маса
         run: python -m pip install --quiet --disable-pip-version-check brotli
 
+      - name: Цялост — всичко ли е тук
+        run: python cyalost.py
+
       - name: Самопроверка на рутера
         run: python router_bot.py --selftest
 
