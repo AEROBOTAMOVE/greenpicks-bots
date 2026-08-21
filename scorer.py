@@ -47,6 +47,17 @@ import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+# 🎾 МАЛКИЯТ ТЕНИС ТУР (19.08.2026). Предсказателят вече пуска и ITF/Challenger
+# карти. ESPN не знае, че тези мачове съществуват — значи без този внос всяка
+# такава карта виси до изтичане на срока и се затваря без присъда.
+# Отделен try: паднал модул НЕ бива да спира отсъждането на другите спортове.
+try:
+    import itf as ITF
+except Exception as _itf_err:                                # noqa: BLE001
+    ITF = None
+    print("малкият тенис тур не се зареди (" + str(_itf_err)[:70]
+          + ") — ITF картите остават неотсъдени.")
+
 NL = chr(10)
 SOFIA = ZoneInfo("Europe/Sofia")
 
@@ -285,6 +296,9 @@ def espn_result(rec):
                 continue
             comp = comps[0] or {}
             st = ((comp.get("status") or {}).get("type") or {})
+            if espn_otlozhen(st):
+                # Мачът е отложен или отменен — резултат НЯМА да има.
+                return OTLOZHEN
             if not st.get("completed"):
                 continue                      # още не е свършил
             got = {}
@@ -458,6 +472,8 @@ def tennis_day(day):
             for g in (ev.get("groupings") or []):
                 for c in (g.get("competitions") or []):
                     st = ((c.get("status") or {}).get("type") or {})
+                    if espn_otlozhen(st):
+                        return OTLOZHEN
                     if not st.get("completed"):
                         continue
                     sides = []
@@ -500,6 +516,54 @@ def tennis_result(rec):
             if same_team(na, hb) and same_team(nb, ha):
                 return pb, pa
     return None
+
+
+# ═══════════════════════ 🎾 ITF И CHALLENGER: РЕЗУЛТАТ ОТ СВОЯ ФИЙД
+#
+# ЗАЩО ОТДЕЛНО (19.08.2026): tennis_day() пита САМО ESPN atp/wta таблата.
+# Мач от M25 Lesa го няма там и никога няма да го има — тоест tennis_result()
+# връща None при всяко пускане, а записът виси, докато MAX_AGE (5 дни) не го
+# затвори с „hit: None". Карта без път до присъда не е неутрална: тя изяжда
+# ред в дневника и НЕ влиза в процента, с който ботът се отчита.
+#
+# ЦЕНАТА В ЗАЯВКИ: itf.rezultat() чете ДНЕВНИЯ фийд, не мача — един ден носи
+# всички резултати наведнъж и се кешира. Тоест 100 висящи ITF карти струват
+# толкова, колкото една.
+#
+# ЗАЩО ПОБЕДИТЕЛЯТ НЕ СЕ ЧЕТЕ ОТ СЕТОВЕТЕ: при отказал се играч сетовете
+# могат да са 1:1, а при служебна победа изобщо няма сетове. Измерено от
+# itf.py върху 211 вчерашни мача: по сетовете 5 се отсъждат ГРЕШНО и още 1
+# остава без победител; по полето „кой спечели" — 205 от 211, а шестте
+# неотсъдени са ОТМЕНЕНИ мачове, където победител наистина няма.
+def itf_result(rec):
+    """(1,0) или (0,1) за ITF/Challenger. None = още не знаем.
+
+    Връща спечелени МАЧОВЕ, не сетове — единица за победителя. Това стига:
+    verdict() чете само кой от двамата има повече, а сетовете при отказал се
+    лъжат (виж по-горе).
+    """
+    if ITF is None:
+        return None
+    mid = str(rec.get("itf_id") or "")
+    if not mid:
+        return None
+    try:
+        r = ITF.rezultat({"id": mid})
+    except Exception:                                        # noqa: BLE001
+        return None
+    if not r.get("gotov"):
+        return None                       # още тече или още не е в фийда
+    pob = r.get("pobeditel")
+    if pob in (1, 2):
+        return (1, 0) if pob == 1 else (0, 1)
+    # 🔴 ОТМЕНЕНИЯТ МАЧ ПОЛЗВА ЧУЖДИЯ СЕНТИНЕЛ, А НЕ СВОЙ ПЪТ.
+    # Фийдът го е обявил за приключил, но победител НЯМА и няма да има.
+    # Първо го написах да пипа сам записа (scored/hit/why) — после видях, че
+    # в същия файл вече има точно този механизъм за отложените мачове от
+    # ESPN. Два начина да се затвори един запис значат два начина да се
+    # сгреши. Тук се връща СЪЩИЯТ сентинел и главният цикъл го затваря на
+    # едно-единствено място. Измерено от itf.py: 6 от 211 вчерашни мача.
+    return OTLOZHEN
 
 
 # ═══════════════════════════ ⚾ БЕЙЗБОЛ: РЕЗУЛТАТИ ОТ MLB
@@ -839,6 +903,34 @@ MMA_LIGI = ("ufc", "pfl", "bellator", "rizin", "ksw", "lfa", "cage-warriors")
 _mma_kesh = {}
 
 
+# 🔴 ОТЛОЖЕН МАЧ НЕ Е „ЧАКАЩ РЕЗУЛТАТ" (19.08.2026).
+#
+# Намерено с четене на живия дневник: „Braga — Gil Vicente" от 16.08 висеше
+# ТРЕТИ ДЕН в „чакат резултат". Мачът е STATUS_POSTPONED — резултат няма и
+# няма да има. Оценителят обаче гледаше САМО полето `completed` и затова го
+# питаше слепешком всеки ден, докато възрастовата граница го затвори.
+#
+# Два разхода от това: излишни заявки, и — по-лошо — числото „чакат резултат"
+# в дневната равносметка лъже читателя, че нещо предстои.
+#
+# Затова: отложеното и отмененото се разпознават и картата се затваря ЧЕСТНО,
+# без присъда. Мач, който не се е състоял, не е нито познат, нито сгрешен.
+OTLOZHENI = ("postponed", "canceled", "cancelled", "suspended", "forfeit",
+             "abandoned")
+# Сентинел, а не гол низ: „ОТЛОЖЕН" като текст може случайно да се сравни с
+# нещо друго, обект — не може. Същата поука като с _NEPODADEN в будилника.
+OTLOZHEN = object()
+
+
+def espn_otlozhen(st):
+    """Отложен/отменен ли е мачът според ESPN. st е status.type."""
+    if not isinstance(st, dict):
+        return False
+    t = (str(st.get("name") or "") + " " + str(st.get("state") or "")
+         + " " + str(st.get("description") or "")).lower()
+    return any(d in t for d in OTLOZHENI)
+
+
 def _mma_gala(liga, ymd):
     """Боевете от една гала. Кеширано по (лига, дата) — не питаме два пъти."""
     kl = (liga, ymd)
@@ -907,6 +999,14 @@ def sport_result(rec):
     if b == "volleyball":
         return volley_result(rec)
     if b == "tennis":
+        # 🔴 ЕДНА КОШНИЦА, ДВА ИЗТОЧНИКА (19.08.2026). ATP/WTA идват от ESPN,
+        # ITF/Challenger — от своя фийд. Разпознават се по `src`; `itf_id` е
+        # втората врата, защото един от двата белега стига, а и двата се
+        # пишат от едно и също място в predictor.log_pick.
+        # Старите тенис записи нямат нито едно от двете и си минават по
+        # стария път — тоест вграждането не пипа нищо, което вече работи.
+        if str(rec.get("src") or "") == "itf" or rec.get("itf_id"):
+            return itf_result(rec)
         return tennis_result(rec)
     if b == "baseball":
         return baseball_result(rec)
@@ -942,6 +1042,28 @@ def market_code(pick):
             "Х": "X", "1": "1", "2": "2"}.get(glava, "")
 
 
+def total_line(pick):
+    """Линията от избор „Над 2.5 гола" / „Под 8.5 рънове". None = не е тотал.
+
+    Приема САМО линия на половинка. Цяло число (Над 8) би значело, че сборът
+    може да падне ТОЧНО на линията, а тогава изходът не е нито да, нито не —
+    и присъдата би била измислена. Предсказателят и без това пуска само
+    половинки, но проверката стои тук, защото тук се произнася присъдата.
+    """
+    s = str(pick or "").strip()
+    low = s.lower()
+    if not (low.startswith("над ") or low.startswith("под ")):
+        return None
+    parche = s.split()[1] if len(s.split()) > 1 else ""
+    try:
+        ln = float(parche.replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+    if abs(ln - int(ln)) < 0.4:
+        return None                  # цяла линия — не се отсъжда
+    return ln
+
+
 def verdict(rec, hs, as_):
     """Позна ли прогнозата. Връща True / False / None (не можем да отсъдим).
 
@@ -957,6 +1079,20 @@ def verdict(rec, hs, as_):
     home = (rec.get("home") or "")
     away = (rec.get("away") or "")
     low = pick.lower().strip()
+
+    # 🔴 ТОТАЛЪТ СЕ ОТСЪЖДА ПО СБОРА (19.08.2026). От днес един мач може да
+    # даде ВТОРА карта — над/под линията на пазара. Без този клон тя падаше в
+    # пътя по имена, там не намираше нито домакин, нито гост, и се връщаше
+    # None: картата излиза в стаята, а статистиката не я вижда НИКОГА.
+    # Линията е винаги на половинка (виж pinnacle.polovinka), затова равен
+    # изход няма — сборът е или над нея, или под нея.
+    ln = total_line(pick)
+    if ln is not None:
+        try:
+            sbor = float(hs) + float(as_)
+        except (TypeError, ValueError):
+            return None
+        return sbor > ln if pick.strip().lower().startswith("над") else sbor < ln
 
     kod = market_code(pick)
     if kod == "1":
@@ -1111,8 +1247,16 @@ def results_text(now, rows, total_all, hit_all, bez=None, vsichki=None):
     grupi = {}
     vidyani = set()
     for rec, hs, as_, ok in rows:
+        # 🔴 И ИЗБОРЪТ ВЛИЗА В КЛЮЧА (19.08.2026). От днес един мач може да
+        # даде ДВЕ различни карти: победителя и тотала. Без избора в ключа
+        # пазачът срещу дубликати ги смяташе за един и същи ред и ГЪЛТАШЕ
+        # втория — той излиза в стаята, а в обзора го няма и в числото го
+        # няма. Тоест пазач срещу повторение произвеждаше изчезване.
+        # Истинският дубликат (същият мач, същият избор, същият резултат) си
+        # остава слят — точно затова и трите части са в ключа.
         kl = (str(rec.get("home") or "").strip().lower(),
               str(rec.get("away") or "").strip().lower(),
+              str(rec.get("pick") or "").strip().lower(),
               str(hs), str(as_))
         if kl in vidyani:
             continue
@@ -1755,6 +1899,32 @@ def selftest():
     r5 = {"home": "Милан", "away": "Интер", "pick": "победа Милан и Интер"}
     check("двусмислено твърдение без код не се съди", verdict(r5, 2, 0) is None)
 
+    # --- ТОТАЛЪТ (втората карта от същия мач, 19.08.2026)
+    check("линията се чете от избора", total_line("Над 2.5 гола") == 2.5)
+    check("линията се чете и при Под", total_line("Под 8.5 рънове") == 8.5)
+    check("трицифрената линия се чете", total_line("Над 167.5 точки") == 167.5)
+    check("цяла линия НЕ се отсъжда", total_line("Над 8 рънове") is None)
+    check("победа не е тотал", total_line("1 · победа Милан") is None)
+    check("празното не е тотал", total_line("") is None and total_line(None) is None)
+    check("боклук след думата не е тотал", total_line("Над много гола") is None)
+    tn = {"home": "Левски", "away": "ЦСКА", "pick": "Над 2.5 гола"}
+    check("над 2.5 печели при 2:1", verdict(tn, 2, 1) is True)
+    check("над 2.5 губи при 1:1", verdict(tn, 1, 1) is False)
+    check("над 2.5 губи при 0:0", verdict(tn, 0, 0) is False)
+    tp = {"home": "Левски", "away": "ЦСКА", "pick": "Под 2.5 гола"}
+    check("под 2.5 печели при 1:1", verdict(tp, 1, 1) is True)
+    check("под 2.5 губи при 2:1", verdict(tp, 2, 1) is False)
+    tb = {"home": "A", "away": "B", "pick": "Под 8.5 рънове"}
+    check("под 8.5 печели при 4:4", verdict(tb, 4, 4) is True)
+    check("под 8.5 губи при 5:4", verdict(tb, 5, 4) is False)
+    tk = {"home": "A", "away": "B", "pick": "Над 167.5 точки"}
+    check("над 167.5 печели при 90:80", verdict(tk, 90, 80) is True)
+    check("над 167.5 губи при 84:83", verdict(tk, 84, 83) is False)
+    # 🔴 ИМЕТО НЕ БИВА ДА ПРЕХВАЩА ТОТАЛА. Ако някой ден отбор се казва с дума,
+    # която влиза в текста на тотала, присъдата пак трябва да е по СБОРА.
+    tx = {"home": "Над", "away": "Под", "pick": "Над 2.5 гола"}
+    check("тоталът се съди по сбора, не по имената", verdict(tx, 3, 0) is True)
+
     # --- ДВОЙНИЯТ ШАНС. Кодът отпред е присъдата, не имената.
     check("кодът чете 1", market_code("1 · победа Милан") == "1")
     check("кодът чете 2", market_code("2 · победа Интер") == "2")
@@ -2054,6 +2224,14 @@ def selftest():
     _td = results_text(_now, _dubl, 44, 29, {}, _dnevnik)
     check("дублираният мач се показва ВЕДНЪЖ", _td.count("Левски") == 1)
     check("дублирането не мени числото на блока", "ФУТБОЛ</b> · 1 от 2" in _td)
+    # 🔴 ДВЕТЕ КАРТИ ОТ ЕДИН МАЧ НЕ СЕ СЛИВАТ. Победителят и тоталът са
+    # различни твърдения — всяко със своя присъда и свое място в числото.
+    _dve = _mix + [({"home": "Левски", "away": "ЦСКА", "pick": "Над 2.5 гола",
+                     "bucket": "football"}, 2, 1, True)]
+    _td2 = results_text(_now, _dve, 44, 29, {}, _dnevnik)
+    check("тоталът НЕ се слива с победителя от същия мач",
+          _td2.count("Левски") == 2 and "Над 2.5 гола" in _td2)
+    check("двете карти броят като ДВЕ", "ФУТБОЛ</b> · 2 от 3" in _td2)
     check("различен резултат за същия мач НЕ е дубликат",
           results_text(_now, _mix + [({"home": "Левски", "away": "ЦСКА",
                                        "pick": "1", "bucket": "football"},
@@ -2428,6 +2606,50 @@ def selftest():
         finally:
             _PZ.cena_zatvarayashta = _star_z
 
+    # 🔴 ОТЛОЖЕН МАЧ (19.08.2026) — намерено с четене на живия дневник:
+    # „Braga — Gil Vicente" от 16.08 висеше ТРЕТИ ДЕН в „чакат резултат",
+    # а мачът е отложен и резултат няма да има.
+    check("отложеното се разпознава",
+          espn_otlozhen({"name": "STATUS_POSTPONED"}) is True)
+    check("отмененото се разпознава",
+          espn_otlozhen({"name": "STATUS_CANCELED"}) is True)
+    check("прекъснатото се разпознава",
+          espn_otlozhen({"description": "Suspended"}) is True)
+    check("завършеното НЕ е отложено",
+          espn_otlozhen({"name": "STATUS_FINAL", "state": "post"}) is False)
+    check("предстоящото НЕ е отложено",
+          espn_otlozhen({"name": "STATUS_SCHEDULED", "state": "pre"}) is False)
+    check("боклук не гърми",
+          espn_otlozhen(None) is False and espn_otlozhen("низ") is False)
+    check("сентинелът е обект, не низ", not isinstance(OTLOZHEN, str))
+    # 🔴 НАЙ-ВАЖНОТО: клонът трябва да е ВЪРЗАН в главния цикъл. Без него
+    # сентинелът стига до разопаковането на резултата и рънът ГРЪМВА.
+    #
+    # ПРОВЕРКАТА Е ПРЕЗ РАЗБОР НА КОДА, НЕ ПРЕЗ ТЪРСЕНЕ НА ТЕКСТ. Три пъти
+    # днес се хванах в един и същи капан: иглата, която търся, стоеше в
+    # собствения ми коментар до нея, и проверката падаше върху ЧИСТ файл.
+    # Разборът вижда СТРУКТУРАТА — коментарите не го лъжат.
+    import ast as _ast
+    _dyrvo = _ast.parse(open(__file__, encoding="utf-8").read())
+    _sravnenia, _prichini = [], []
+    for _n in _ast.walk(_dyrvo):
+        if isinstance(_n, _ast.Compare):
+            _l, _r = _n.left, (_n.comparators or [None])[0]
+            if (isinstance(_l, _ast.Name) and _l.id == "res"
+                    and isinstance(_r, _ast.Name) and _r.id == "OTLOZHEN"):
+                _sravnenia.append(_n.lineno)
+        if isinstance(_n, _ast.Constant) and isinstance(_n.value, str)                 and "отложен или отменен" in _n.value:
+            _prichini.append(_n.lineno)
+    _razopakovane = [_n.lineno for _n in _ast.walk(_dyrvo)
+                     if isinstance(_n, _ast.Assign)
+                     and isinstance(_n.targets[0], _ast.Tuple)
+                     and isinstance(_n.value, _ast.Name) and _n.value.id == "res"]
+    check("отложеното се сравнява някъде в кода", len(_sravnenia) >= 1)
+    check("сравнението е ПРЕДИ разопаковането на резултата",
+          bool(_sravnenia) and bool(_razopakovane)
+          and min(_sravnenia) < min(_razopakovane))
+    check("затварянето слага честна причина", len(_prichini) >= 1)
+
     # 🗄️ Архивът. Мести се само ПРИКЛЮЧЕНО; висящото остава, колкото и старо.
     _sega_a = datetime(2026, 8, 18, tzinfo=SOFIA)
     _r = [{"posted": "2026-01-05 10:00", "scored": True, "hit": True},
@@ -2489,6 +2711,56 @@ def selftest():
         globals()["_wtt_events"] = _stari_e
     check("волейболът НЕ е без източник", "volleyball" not in NO_RESULT)
     check("тенисът НЕ е без източник", "tennis" not in NO_RESULT)
+
+    # ═════════════════ 🎾 ITF И CHALLENGER: ИМА ЛИ ПЪТ ДО ПРИСЪДА
+    #
+    # Мрежа НЕ се пипа: подменя се САМО itf._text (входът от мрежата) и през
+    # проверката минава истинският парсер и истинското отсъждане.
+    check("малкият тенис тур е вързан и в оценителя", ITF is not None)
+    if ITF is not None:
+        _i_star = ITF._text
+        try:
+            ITF.nulirai()
+            ITF._text = lambda pat: ITF.MOSTRA_DEN
+
+            def _i_rec(mid, pick="1 · А"):
+                return {"bucket": "tennis", "src": "itf", "itf_id": mid,
+                        "home": "А", "away": "Б", "day": "2026-08-19",
+                        "pick": pick, "league": "M15 Arad (Romania) · ITF"}
+
+            check("редовен мач се отсъжда", sport_result(_i_rec("aaa22222")) == (1, 0))
+            # 🔴 КАПАНЪТ. При отказал се сетовете в мострата са 1:1 — по тях
+            # победител НЕ се вижда. Полето „кой спечели" го знае.
+            # Измерено от itf.py върху 211 вчерашни мача: по сетовете 5 се
+            # отсъждат ГРЕШНО и още 1 остава без победител.
+            check("отказал се: сетовете са 1:1, но победител ИМА",
+                  sport_result(_i_rec("aaa33333")) == (1, 0))
+            check("служебна победа без сетове пак се отсъжда",
+                  sport_result(_i_rec("aaa44444")) == (0, 1))
+            # 🔴 ОТМЕНЕНИЯТ МАЧ ВРЪЩА ЧУЖДИЯ СЕНТИНЕЛ, НЕ СВОЙ ИЗМИСЛЕН ПЪТ.
+            # Така главният цикъл го затваря на ЕДНО място — същото, което
+            # затваря и отложените мачове от ESPN.
+            check("отменен мач връща сентинела за отложен",
+                  sport_result(_i_rec("aaa55555")) is OTLOZHEN)
+            # Още незапочналият мач се пита пак утре, не се затваря.
+            check("предстоящият мач НЕ се затваря",
+                  sport_result(_i_rec("aaa11111")) is None)
+            # Присъдата стига до verdict() в двете посоки.
+            check("познат избор = вярно", verdict(_i_rec("aaa22222"), 1, 0) is True)
+            check("сгрешен избор = невярно",
+                  verdict(_i_rec("aaa22222", "2 · Б"), 1, 0) is False)
+            # 🔴 БЕЗ БЕЛЕГ ЗАПИСЪТ ТРЯБВА ДА ТРЪГНЕ ПО СТАРИЯ ПЪТ.
+            # Инак вграждането би пренасочило и старите ATP/WTA записи към
+            # фийд, който не ги знае — тоест би счупило работещото.
+            check("стар тенис запис НЕ минава през малкия тур",
+                  sport_result({"bucket": "tennis", "home": "Алкарас",
+                                "away": "Синер", "day": "1999-01-01",
+                                "pick": "1 · Алкарас"}) is None)
+            check("без номер на мач малкият тур мълчи, а не гърми",
+                  itf_result({"bucket": "tennis", "src": "itf"}) is None)
+        finally:
+            ITF._text = _i_star
+            ITF.nulirai()
     check("футболът НЕ е без източник", "football" not in NO_RESULT)
     _b = bez_text({"tabletennis": 5})
     check("редът за без-източник казва броя", "<b>5</b>" in NL.join(_b))
@@ -2672,6 +2944,15 @@ def main():
         time.sleep(0.4)
         if res is None:
             continue                          # пробваме пак утре
+        # 🔴 ОТЛОЖЕН/ОТМЕНЕН — затваря се ВЕДНАГА, без присъда (19.08.2026).
+        # Без този клон записът се питаше слепешком дни наред („Braga — Gil
+        # Vicente", 3 дни), а числото „чакат резултат" лъжеше, че предстои
+        # нещо. Мач, който не се е състоял, не е нито познат, нито сгрешен.
+        if res == OTLOZHEN:
+            r["scored"] = True
+            r["hit"] = None
+            r["why"] = "мачът е отложен или отменен"
+            continue
         hs, as_ = res
         ok_hit = verdict(r, hs, as_)
         if ok_hit is None:

@@ -171,6 +171,125 @@ def machove(sport_key):
     return out
 
 
+def _surovi(sport_key):
+    """Суровият отговор на /markets/straight за един спорт. ЕДНА заявка, кеширана.
+
+    🔴 ЗАЩО СЪЩЕСТВУВА (19.08.2026). Дотук `pazari` дърпаше този адрес и
+    хвърляше всичко освен moneyline. Измерено в същия отговор: футболът дава
+    41 492 пазара, от които 7 572 са ТОТАЛИ за целия мач — вече платени и
+    вече изтеглени. Второто четене е НУЛА нови заявки.
+    """
+    sid = SPORT_ID.get(str(sport_key))
+    if not sid:
+        return []
+    kl = ("s", sid)
+    if kl not in _kesh:
+        _kesh[kl] = _j("/sports/%d/markets/straight" % sid) or []
+    return _kesh[kl]
+
+
+# Само линии на половинка (2.5, 8.5, 167.5). Целите (2.0) и четвъртинките
+# (2.25) НЕ влизат: при тях залогът може да се върне или да се раздели, а
+# карта, чието твърдение не може да се отсъди еднозначно, не е прогноза.
+def polovinka(ln):
+    """Линия ли е на .5 — тоест може ли изходът да е само ДА или НЕ.
+
+    2.5 -> да · 2.0 -> не (сборът може да е точно 2 и залогът се връща)
+    2.25 -> не (четвъртинка: половината залог се дели)
+    """
+    try:
+        f = float(ln)
+    except (TypeError, ValueError):
+        return False
+    return abs(abs(f) * 2.0 - round(abs(f) * 2.0)) < 1e-9 and abs(f - round(f)) > 0.4
+
+
+def totali(sport_key):
+    """{номер: {"osnovna": линия, "linii": {линия: (над, под)}}} за един спорт.
+
+    Само период 0 (целият мач) и само цени с designation over/under. Мачовете
+    с participantId вместо designation са ПОДмачове (иннинг, четвърт) — техният
+    номер и без това не съвпада с нашия.
+
+    Кеширано, нула нови заявки: чете се същият отговор като при `pazari`.
+    """
+    sid = SPORT_ID.get(str(sport_key))
+    if not sid:
+        return {}
+    kl = ("t", sid)
+    if kl in _kesh:
+        return _kesh[kl]
+    out = {}
+    for k in _surovi(sport_key):
+        if not isinstance(k, dict):
+            continue
+        if k.get("type") != "total" or k.get("period") != 0:
+            continue
+        nad = pod = ln = None
+        for pr in (k.get("prices") or []):
+            d = str(pr.get("designation") or "").lower()
+            if d == "over":
+                nad, ln = deset(pr.get("price")), pr.get("points")
+            elif d == "under":
+                pod, ln = deset(pr.get("price")), pr.get("points")
+        if not (nad and pod) or ln is None:
+            continue
+        try:
+            ln = float(ln)
+        except (TypeError, ValueError):
+            continue
+        z = out.setdefault(str(k.get("matchupId")), {"osnovna": None, "linii": {}})
+        if not k.get("isAlternate"):
+            z["osnovna"] = ln
+        if polovinka(ln):
+            z["linii"][ln] = (nad, pod)
+    _kesh[kl] = out
+    return out
+
+
+def total_za(sport_key, dom, gost):
+    """(линия, цена_над, цена_под) за НАШИТЕ имена. (None, None, None) без пазар.
+
+    🔴 ЛИНИЯТА Я ИЗБИРА ПАЗАРЪТ, НЕ МОДЕЛЪТ. Това е важното решение тук.
+    Pinnacle дава и алтернативни линии (за футбола 6 544 срещу 1 073 основни).
+    Изкушението е да се вземе онази, при която нашият процент е най-висок —
+    и точно това би било надничане: избираме линията, на която най-много НЕ
+    сме съгласни с пазара, тоест където най-често грешим, и обявяваме високия
+    процент за увереност.
+    Затова: взима се ОСНОВНАТА линия, ако е на половинка; ако не е (футболът
+    често котира 2.0 или 2.25), взима се най-близката половинка до нея, а при
+    равно разстояние — по-ниската. Изборът не зависи от нашия модел изобщо.
+    """
+    mid = nameri(sport_key, dom, gost)
+    if not mid:
+        return (None, None, None)
+    z = totali(sport_key).get(mid)
+    if not z or not z["linii"]:
+        return (None, None, None)
+    osn = z["osnovna"]
+    if osn is not None and polovinka(osn) and osn in z["linii"]:
+        ln = osn
+    elif osn is not None:
+        # 🔴 РАВЕНСТВОТО НЕ СЕ РЕШАВА С „по-ниската" (19.08.2026).
+        # При основна линия 8.0 половинките 7.5 и 8.5 са на еднакво разстояние.
+        # Първата ми версия подреждаше по (разстояние, самата линия) — тоест
+        # при равно взимаше ПО-НИСКАТА, ВИНАГИ. А по-ниска линия прави „Над"
+        # по-вероятно: това е систематичен наклон в една посока, произведен от
+        # подредбата, не от пазара. Измерено на живо: 4 от 14 бейзболни мача
+        # имат цяла основна линия, тоест всеки трети би бил наклонен.
+        # Сега равенството се решава по САМИЯ ПАЗАР: взима се линията, чиито
+        # две цени са най-близки една до друга — тоест тази, която той смята
+        # за най-равностойна. Правилото е симетрично и не гледа нашия модел.
+        def _red(x):
+            c = z["linii"][x]
+            return (abs(x - osn), abs(float(c[0]) - float(c[1])), x)
+        ln = sorted(z["linii"], key=_red)[0]
+    else:
+        return (None, None, None)
+    c = z["linii"][ln]
+    return (ln, c[0], c[1])
+
+
 def pazari(sport_key):
     """{номер: (цена_дом, цена_гост, цена_равен)} за един спорт. Кеширано.
 
@@ -184,7 +303,7 @@ def pazari(sport_key):
     if kl in _kesh:
         return _kesh[kl]
     out = {}
-    for k in (_j("/sports/%d/markets/straight" % sid) or []):
+    for k in _surovi(sport_key):
         if not isinstance(k, dict):
             continue
         # period 0 = целият мач. Сетовете и геймовете не ни трябват.
@@ -326,7 +445,98 @@ def selftest():
         else:
             _kesh[("p", 33)] = _st_p
 
-    check("кешът е чист след теста", ("m", 33) not in _kesh)
+    # ------------------------------------------------------------ ТОТАЛИТЕ
+    check("2.5 е половинка", polovinka(2.5) and polovinka(167.5))
+    check("2.0 НЕ е половинка", not polovinka(2.0) and not polovinka(8))
+    check("2.25 НЕ е половинка", not polovinka(2.25) and not polovinka(2.75))
+    check("боклук не е половинка", not polovinka("абв") and not polovinka(None))
+
+    _t_m, _t_p, _t_t, _t_s = (_kesh.get(("m", 29)), _kesh.get(("p", 29)),
+                              _kesh.get(("t", 29)), _kesh.get(("s", 29)))
+    try:
+        _kesh[("m", 29)] = {"777": ("Левски", "ЦСКА", "efbet Лига", ""),
+                            "888": ("Милан", "Интер", "Серия А", "")}
+        # Суровият отговор — точно както изглежда при тях, с четвъртинка за
+        # основна линия и половинки в алтернативните.
+        _kesh[("s", 29)] = [
+            {"type": "total", "period": 0, "matchupId": 777, "isAlternate": False,
+             "prices": [{"designation": "over", "points": 2.25, "price": -113},
+                        {"designation": "under", "points": 2.25, "price": -109}]},
+            {"type": "total", "period": 0, "matchupId": 777, "isAlternate": True,
+             "prices": [{"designation": "over", "points": 2.5, "price": 115},
+                        {"designation": "under", "points": 2.5, "price": -152}]},
+            {"type": "total", "period": 0, "matchupId": 777, "isAlternate": True,
+             "prices": [{"designation": "over", "points": 1.5, "price": -222},
+                        {"designation": "under", "points": 1.5, "price": 166}]},
+            {"type": "total", "period": 0, "matchupId": 888, "isAlternate": False,
+             "prices": [{"designation": "over", "points": 3.5, "price": 100},
+                        {"designation": "under", "points": 3.5, "price": -120}]},
+            # ПОДмач (иннинг/четвърт): без designation — не бива да влиза.
+            {"type": "total", "period": 0, "matchupId": 999,
+             "prices": [{"participantId": 1, "points": 1.5, "price": -110},
+                        {"participantId": 2, "points": 1.5, "price": -110}]},
+            # Първо полувреме — период 1, не ни трябва.
+            {"type": "total", "period": 1, "matchupId": 888, "isAlternate": False,
+             "prices": [{"designation": "over", "points": 1.5, "price": 100},
+                        {"designation": "under", "points": 1.5, "price": -120}]},
+            {"type": "moneyline", "period": 0, "matchupId": 888,
+             "prices": [{"designation": "home", "price": -150},
+                        {"designation": "away", "price": 300}]},
+        ]
+        _kesh.pop(("t", 29), None)
+        _tt = totali("football")
+        check("подмачът без designation не влиза в тоталите", "999" not in _tt)
+        check("първото полувреме не влиза в тоталите",
+              set(_tt.get("888", {}).get("linii") or {}) == {3.5})
+        check("четвъртинката се помни като ОСНОВНА, но не като линия",
+              _tt["777"]["osnovna"] == 2.25 and 2.25 not in _tt["777"]["linii"])
+        check("алтернативните половинки влизат",
+              set(_tt["777"]["linii"]) == {1.5, 2.5})
+        check("основната половинка се взима направо",
+              total_za("football", "Милан", "Интер") == (3.5, 2.0, 1.83))
+        # 🔴 НАЙ-ВАЖНАТА ПРОВЕРКА ТУК. При основна 2.25 най-близките половинки
+        # са 2.5 (0.25) и 1.5 (0.75) — трябва да излезе 2.5, а НЕ линията, на
+        # която процентът ни би бил най-висок. Пазарът избира линията.
+        check("при четвъртинка се взима НАЙ-БЛИЗКАТА половинка",
+              total_za("football", "Левски", "ЦСКА") == (2.5, 2.15, 1.66))
+        check("разменените страни пак намират тотала",
+              total_za("football", "ЦСКА", "Левски") == (2.5, 2.15, 1.66))
+        check("непознат мач няма тотал",
+              total_za("football", "Иван", "Драган") == (None, None, None))
+        # 🔴 РАВНОТО РАЗСТОЯНИЕ НЕ ИЗБИРА ПО-НИСКАТА. Основна 8.0, половинки
+        # 7.5 и 8.5 — и двете на 0.5. По-балансираните цени са при 8.5, значи
+        # тя трябва да излезе. Мутацията, която тази проверка лови: подредба
+        # по (разстояние, линия), която взима 7.5 винаги и наклонява всяка
+        # такава карта към „Над".
+        _kesh[("m", 3)] = {"555": ("A", "B", "MLB", "")}
+        _kesh[("s", 3)] = [
+            {"type": "total", "period": 0, "matchupId": 555, "isAlternate": False,
+             "prices": [{"designation": "over", "points": 8.0, "price": -105},
+                        {"designation": "under", "points": 8.0, "price": -105}]},
+            {"type": "total", "period": 0, "matchupId": 555, "isAlternate": True,
+             "prices": [{"designation": "over", "points": 7.5, "price": -145},
+                        {"designation": "under", "points": 7.5, "price": 125}]},
+            {"type": "total", "period": 0, "matchupId": 555, "isAlternate": True,
+             "prices": [{"designation": "over", "points": 8.5, "price": 105},
+                        {"designation": "under", "points": 8.5, "price": -115}]},
+        ]
+        _kesh.pop(("t", 3), None)
+        check("при равно разстояние решават ЦЕНИТЕ, не посоката",
+              total_za("baseball", "A", "B")[0] == 8.5)
+        _kesh.pop(("m", 3), None)
+        _kesh.pop(("s", 3), None)
+        _kesh.pop(("t", 3), None)
+        check("непознат спорт няма тотали", totali("кърлинг") == {})
+        check("тоталите не правят нови заявки", broi_zayavki() == 0)
+    finally:
+        for _k, _v in ((("m", 29), _t_m), (("p", 29), _t_p),
+                       (("t", 29), _t_t), (("s", 29), _t_s)):
+            if _v is None:
+                _kesh.pop(_k, None)
+            else:
+                _kesh[_k] = _v
+
+    check("кешът е чист след теста", ("m", 33) not in _kesh and ("s", 29) not in _kesh)
     check("броячът на заявки работи", isinstance(broi_zayavki(), int))
     check("нула мрежа в самопроверката", broi_zayavki() == 0)
     check("броят проверки е поне 25", ok >= 25)
