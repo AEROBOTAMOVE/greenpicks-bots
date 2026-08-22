@@ -10482,7 +10482,9 @@
   "p": 0.5936,
   "stars": 2,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0"
  },
  {
   "key": "2026-08-22|baseball|bostonredsox|sanfranciscogiants",
@@ -11856,7 +11858,9 @@
   "p": 0.5827,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-21|tabletennis|josephinaneumann|learakovac",
@@ -11916,7 +11920,9 @@
   "p": 0.5416,
   "stars": 1,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-08-21|tennis|bonzib|vanasschel",
@@ -12317,7 +12323,9 @@
   "p": 0.7845,
   "stars": 3,
   "sample": "гледани 52 мача на единия и 27 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-22|football|harrogatetown|barrow",
@@ -12346,7 +12354,11 @@
   "p": 0.45,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2",
+  "pazar_close": 2.0,
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-08-22|football|metz|stadelaval",
@@ -12375,7 +12387,11 @@
   "p": 0.65,
   "stars": 3,
   "sample": "гледани по 36 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.8,
+  "pazar_clv": -0.0126
  },
  {
   "key": "2026-08-23|basketball|losangelessparks|connecticutsun",
@@ -12462,7 +12478,9 @@
   "p": 0.7797,
   "stars": 3,
   "sample": "гледани 54 мача на единия и 42 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-23|tennis|miomirkecmanovic|shoshimabukuro",
@@ -12607,7 +12625,11 @@
   "p": 0.4832,
   "stars": 3,
   "sample": "гледани по 47 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "pazar_close": 2.0,
+  "pazar_clv": -0.0128
  },
  {
   "key": "2026-08-22|volleyball|wsen|канада|trinidadandtobago",
@@ -12636,7 +12658,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "гледани 84 мача на единия и 17 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-23|basketball|newyorkliberty|indianafever|total",
@@ -13017,7 +13041,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-22|baseball|milwaukeebrewers|atlantabraves",
@@ -13077,7 +13103,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 104 мача на единия и 49 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-22|tabletennis|kotomiomoda|josephinaneumann",
@@ -13137,7 +13165,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 75 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-22|volleyball|wsen|украйна|гърция",
@@ -13166,7 +13196,9 @@
   "p": 0.6727,
   "stars": 3,
   "sample": "гледани 39 мача на единия и 20 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-22|tabletennis|cedricnuytinck|tomschweiger",
@@ -13195,7 +13227,9 @@
   "p": 0.5402,
   "stars": 1,
   "sample": "гледани 50 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-22|tabletennis|sotanoda|yihsinfeng",
@@ -13224,7 +13258,9 @@
   "p": 0.5815,
   "stars": 2,
   "sample": "гледани 15 мача на единия и 57 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-22|tabletennis|rogeliocastro|gaonkim",
@@ -13253,7 +13289,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 35 мача на единия и 54 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-08-22|volleyball|wsen|словакия|швеция",
@@ -13282,7 +13320,9 @@
   "p": 0.7569,
   "stars": 3,
   "sample": "гледани 25 мача на единия и 33 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-22|tabletennis|ninamittelham|minhsinchen",
@@ -13311,7 +13351,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 38 мача на единия и 127 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-22|football|usavellino|arezzo",
@@ -13369,7 +13411,11 @@
   "p": 0.5655,
   "stars": 3,
   "sample": "гледани по 47 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 2.05,
+  "pazar_clv": -0.025
  },
  {
   "key": "2026-08-23|football|independientemedellín|cúcutadeportivo",
@@ -13514,7 +13560,9 @@
   "p": 0.6554,
   "stars": 2,
   "sample": "гледани 21 мача на единия и 52 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-22|tabletennis|alessimassart|cristianpletea",
@@ -13543,7 +13591,9 @@
   "p": 0.5306,
   "stars": 1,
   "sample": "гледани 12 мача на единия и 16 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-22|football|евертън|кристълпалас",
@@ -13572,7 +13622,11 @@
   "p": 0.4625,
   "stars": 3,
   "sample": "гледани по 38 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 2.35,
+  "pazar_clv": -0.0093
  },
  {
   "key": "2026-08-22|volleyball|wsen|румъния|нидерландия",
@@ -13601,7 +13655,9 @@
   "p": 0.8904,
   "stars": 3,
   "sample": "гледани 27 мача на единия и 57 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-22|football|portvale|tranmererovers",
@@ -13630,7 +13686,11 @@
   "p": 0.5821,
   "stars": 3,
   "sample": "гледани по 47 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.9,
+  "pazar_clv": 0.0135
  },
  {
   "key": "2026-08-22|volleyball|wsen|унгария|полша",
@@ -13659,7 +13719,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 31 мача на единия и 61 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-22|football|brentford|тотнъм",
@@ -13688,7 +13750,11 @@
   "p": 0.5146,
   "stars": 3,
   "sample": "гледани по 38 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 2.05,
+  "pazar_clv": 0.0227
  },
  {
   "key": "2026-08-22|volleyball|wsen|пуерторико|costarica",
@@ -13775,7 +13841,9 @@
   "p": 0.6871,
   "stars": 3,
   "sample": "гледани 37 мача на единия и 36 на другия",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "мачът е отложен или отменен"
  },
  {
   "key": "2026-08-23|tennis|elsajacquemot|annabondar",
