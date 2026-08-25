@@ -444,6 +444,29 @@ def obhod(chetec=None, pitach=None, sega=None):
     return cherveni, mulchat, neyasni, naredni
 
 
+def reshi(cherveni, mulchat, neyasni, slepi_predi=0):
+    """(спешни, брояч_слепота, всички_слепи). Без мрежа, без файлове.
+
+    Отделена от main() на 25.08.2026, защото поправката ѝ трябваше да може да
+    се ИЗПИТА. Дотук решението живееше вътре в печатащата функция и никой
+    тест не го достигаше — точно затова дупката оцеля до вечерта.
+    """
+    cherveni = list(cherveni or [])
+    mulchat = list(mulchat or [])
+    neyasni = list(neyasni or [])
+    vsichki_slepi = len(neyasni) >= len(VAZHNI) > 0
+    slepi = (int(slepi_predi or 0) + 1) if neyasni else 0
+    speshni = cherveni + mulchat
+    if vsichki_slepi:
+        speshni = speshni + ["пазачът НЕ ВИЖДА НИЩО — нито един от "
+                             + str(len(VAZHNI))
+                             + " workflow-а не можа да бъде питан"]
+    elif slepi >= SLEPI_PODRED:
+        speshni = speshni + ["пазачът не е могъл да провери част от "
+                             "workflow-ите " + str(slepi) + " пъти подред"]
+    return speshni, slepi, vsichki_slepi
+
+
 def main():
     sega = _sega()
     print("\U0001f6e1️  ПАЗАЧЪТ · " + (sega + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
@@ -459,25 +482,37 @@ def main():
                 print("      " + t)
 
     sast = cheti_sastoyanie()
-    # Слепотата е състояние, не липса на състояние: ако три пъти подред не сме
-    # могли да питаме, това само по себе си е новина.
-    slepi = int(sast.get("slepi_podred") or 0)
-    slepi = slepi + 1 if (neyasni and not cherveni and not mulchat) else 0
+    speshni, slepi, vsichki_slepi = reshi(cherveni, mulchat, neyasni,
+                                          int(sast.get("slepi_podred") or 0))
     sast["slepi_podred"] = slepi
-
-    speshni = list(cherveni) + list(mulchat)
-    if slepi >= SLEPI_PODRED:
-        speshni.append("пазачът не е могъл да провери " + str(slepi)
-                       + " пъти подред — това също е повреда")
-
+    # 🔴 ТРИ ДЕФЕКТА В ТОЗИ БЛОК, НАМЕРЕНИ ОТ ЛОВ НА СЪЩИЯ ДЕН (25.08.2026).
+    # Написах файла срещу „тих отказ, който се чете като наред" — и оставих
+    # точно такъв в собствения му край.
+    #
+    # 1) ПЪЛНАТА СЛЕПОТА ИЗЛИЗАШЕ ЗЕЛЕНА. Ако и шестте workflow-а са
+    #    неразпитваеми, `cherveni` и `mulchat` са празни, `speshni` е празен —
+    #    и функцията печаташе успокоение и връщаше 0. Нула проверени се четеше
+    #    като нула проблеми. Сега пълната слепота е ВЕДНАГА тревога: тя не е
+    #    липса на новина, тя Е новината.
+    # 2) БРОЯЧЪТ СЕ НУЛИРАШЕ ОТ ЧУЖДА ПРИЧИНА. `slepi` падаше на 0, щом само
+    #    едно нещо е червено — тоест частична слепота, придружена от червено,
+    #    не се натрупваше никога. Сега брои слепотата САМА ЗА СЕБЕ СИ.
+    # 3) УСПОКОЕНИЕТО ЛЪЖЕШЕ ПО ДУМИ. „всичко важно се вижда и работи" се
+    #    печаташе и когато нищо не е видяно.
+    # Решението живее в reshi() — отделно от печатането, за да може да се
+    # изпита без мрежа, без файлове и без Telegram.
     if not speshni:
         print("")
-        print("   ✅ всичко важно се вижда и работи"
-              if not neyasni else
-              "   ⚠️  работи каквото виждам, но има непроверено (виж горе)")
+        if neyasni:
+            print("   ⚠️  работи каквото ВИДЯХ (%d от %d); за останалите не знам"
+                  % (len(naredni), len(VAZHNI)))
+        else:
+            print("   ✅ всичките %d важни се виждат и работят" % len(VAZHNI))
         sast["posleden_obhod"] = sega.isoformat()
         pishi_sastoyanie(sast)
-        return 0
+        # Частичната слепота не е зелено. Изход 2 значи „не знам", различен и
+        # от 0 (наред), и от 1 (счупено) — за да може разписанието да реши.
+        return 0 if not neyasni else 2
 
     klyuch = "|".join(sorted(t.split(" — ")[0] for t in speshni))
     if not kazvai_li(klyuch, sast, sega):
@@ -488,7 +523,8 @@ def main():
         return 1
 
     t = tekst_trevoga(cherveni, mulchat,
-                      neyasni if slepi >= SLEPI_PODRED else [], sega)
+                      neyasni if (vsichki_slepi or slepi >= SLEPI_PODRED)
+                      else [], sega)
     if tg_send(t):
         sast.setdefault("kazano", {})[klyuch] = sega.isoformat()
         print("")
@@ -655,6 +691,33 @@ def selftest():
     # нула неясни и обходът ще изглежда чист при пълна слепота.
     check("пълната слепота дава САМО неясни",
           len(n) == len(VAZHNI) and not c and not m and not nr)
+
+    # ------------------------- РЕШЕНИЕТО (добавено 25.08.2026 след лов)
+    _vs = [str(i) + ".yml — не можах" for i in range(len(VAZHNI))]
+    # 🔴 ГЛАВНАТА: нула проверени НЕ Е нула проблеми.
+    _sp, _sl, _vsl = reshi([], [], _vs, 0)
+    check("пълната слепота вдига тревога ВЕДНАГА", _sp and _vsl)
+    check("и го казва с думи", any("НЕ ВИЖДА НИЩО" in t for t in _sp))
+    check("не чака трети обход", _sl == 1 and len(_sp) == 1)
+
+    _sp, _sl, _vsl = reshi([], [], ["едно.yml — не можах"], 0)
+    check("частичната слепота не вдига тревога веднага", not _sp)
+    check("но се брои", _sl == 1 and not _vsl)
+    _sp, _sl, _ = reshi([], [], ["едно.yml — не можах"], SLEPI_PODRED - 1)
+    check("след достатъчно обходи вече вдига", bool(_sp))
+
+    # 🔴 БРОЯЧЪТ НЕ СЕ НУЛИРА ОТ ЧУЖДА ПРИЧИНА. Дотук едно червено го
+    # изтриваше и частичната слепота не се натрупваше никога.
+    _sp, _sl, _ = reshi(["нещо.yml — счупено"], [], ["друго.yml — не можах"], 4)
+    check("червеното НЕ нулира брояча на слепотата", _sl == 5)
+    check("и червеното пак е в спешните",
+          any("счупено" in t for t in _sp))
+
+    _sp, _sl, _vsl = reshi([], [], [], 7)
+    check("чистият обход нулира брояча", _sl == 0)
+    check("чистият обход няма спешни", not _sp and not _vsl)
+    _sp, _, _ = reshi(["а.yml — счупено"], ["б.yml — мълчи"], [], 0)
+    check("червено и мълчание влизат заедно", len(_sp) == 2)
 
     # ---------------------------------------------- почивката
     sast = {"kazano": {"score.yml": "2026-08-25T10:00:00+00:00"}}

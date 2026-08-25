@@ -39,6 +39,16 @@ TUK = os.path.dirname(os.path.abspath(__file__))
 # опис на кода — той е списък от белези. Затова расте само когато нещо ни
 # ухапе, а не когато добавим функция.
 ZADALZHITELNI = {
+    # ── ПУСКАЧЪТ (25.08.2026). Осем модула с ~460 проверки не се пускаха от
+    # нито един workflow. Изчезне ли този файл, покритието пада тихо обратно.
+    "vsichki_testove.py": [
+        ("moduli", "намира модулите САМ по диска, за да не остарее списък",
+         "25.08.2026"),
+        ("razcheti", "чете сметката по ЧИСЛАТА, не по думите",
+         "25.08.2026 — matches_bot пише „PASS\" и когато има паднали"),
+        ("pusni", "всеки модул в СВОЙ процес — един паднал не отнася другите",
+         "25.08.2026"),
+    ],
     # ── СЪГЛАСИЕТО (25.08.2026). Пазарът се оказа по-точен от модела ни:
     # Брайер наш 0.2405 срещу пазарен 0.2128, и в двете половини на дневника.
     # Там, където сме по-смели от него, сбъдваемостта пада на 34% при обявени
@@ -131,6 +141,10 @@ ZADALZHITELNI = {
 
 # Константи, чиято ЛИПСА е тиха. Число, върнато на старата стойност, не гърми.
 KONSTANTI = {
+    "vsichki_testove.py": [
+        ("PADNALI_ZNAK", "знаци за провал, които бият чистата сметка"),
+        ("PROPUSKAY", "кои файлове не се пускат и ЗАЩО"),
+    ],
     "sglasie.py": [
         ("TEGLO", "колко тежи нашето число: 0.25 измерено, през среда"),
         ("BEZRAZLICHNO", "под 2 точки разлика не си говорим"),
@@ -371,6 +385,42 @@ def selftest():
     check("счупен файл не гърми", imena_v(p)[0] is None and vikat_li(p, "a") == -1)
 
     check("списъкът покрива поне пет файла", len(ZADALZHITELNI) >= 5)
+
+    # ─────────────── ДВОЙНИЦИТЕ (25.08.2026)
+    # 🔴 ПОВЕДЕНЧЕСКИ: пише се временен файл и се гледа какво излиза.
+    import tempfile as _tf
+    _d = _tf.mkdtemp()
+    def _pishi(ime, tekst):
+        p = os.path.join(_d, ime)
+        with io.open(p, "w", encoding="utf-8") as fh:
+            fh.write(tekst)
+        return p
+    _chist = _pishi("chist.py", "A = 1\nB = 2\ndef f():\n    A = 9\n    return A\n")
+    check("чистият файл няма двойници", dvoynici(_chist) == [])
+    check("преприсвояване ВЪТРЕ в функция не е двойник",
+          not any(i == "A" for i, _, _ in dvoynici(_chist)))
+    _dv = _pishi("dv.py", "A = 1\nB = 2\nA = 3\n")
+    _r = dvoynici(_dv)
+    check("дублирана константа се хваща", len(_r) == 1 and _r[0][0] == "A")
+    check("и се казват ДВАТА реда", _r[0][1] == 1 and _r[0][2] == 3)
+    _df = _pishi("df.py", "def g():\n    return 1\ndef g():\n    return 2\n")
+    check("дублирана функция се хваща",
+          any(i == "g" for i, _, _ in dvoynici(_df)))
+    _if = _pishi("if.py", "import os\nif os.name == 'nt':\n    X = 1\nelse:\n    X = 2\n")
+    check("клоните на if НЕ са двойници", dvoynici(_if) == [])
+    check("липсващ файл не гърми", dvoynici(os.path.join(_d, "nyama.py")) == [])
+    _losh = _pishi("losh.py", "def (((\n")
+    check("счупен файл не гърми", dvoynici(_losh) == [])
+    check("обходът връща и името на файла",
+          all(len(t) == 4 for t in vsichki_dvoynici([_dv])))
+    check("обходът пропуска несъществуващите",
+          vsichki_dvoynici([os.path.join(_d, "nyama.py")]) == [])
+    import shutil as _sh
+    _sh.rmtree(_d, ignore_errors=True)
+
+    # 🔴 И НАЙ-ВАЖНОТО: САМИТЕ НАШИ ФАЙЛОВЕ да са чисти СЕГА.
+    _nashi = vsichki_dvoynici()
+    check("нашите файлове нямат двойници: " + str(_nashi[:3]), not _nashi)
     check("всеки ред носи ЗАЩО е в списъка",
           all(len(r) == 3 and r[1] and r[2]
               for sp in ZADALZHITELNI.values() for r in sp))
@@ -425,11 +475,67 @@ def selftest():
     return 0 if not bad else 1
 
 
+# ═══════════════════════════════ 👯 ДВОЙНИЦИТЕ (25.08.2026)
+#
+# ЗАЩО СЪЩЕСТВУВА, платено със собствена грешка същия ден:
+# написах `DVA_IZHODA = (...)` с шест спорта, без да видя, че такава константа
+# ВЕЧЕ живее осемдесет реда по-горе — с ОСЕМ спорта. Python не казва нищо:
+# втората просто презаписва първата. Последицата беше тиха и грозна —
+# dolen_prag() почна да връща футболната летва 45% за хокея и амер. футбол
+# вместо 53%, тоест два спорта щяха да пускат карти под собствения си праг.
+#
+# Хвана го случайно съществуваща проверка. „Случайно" не е стратегия.
+#
+# Тук се лови по устройство: два top-level израза с едно и също име в един
+# файл. Проверява се САМО най-горното ниво — вътре в функция преприсвояването
+# е нормално, а `if/else` клоните нарочно дефинират едно и също име по два
+# начина, затова те не се броят.
+def dvoynici(path):
+    """[(име, ред_първи, ред_втори)] за top-level имена, дефинирани два пъти."""
+    try:
+        with io.open(path, encoding="utf-8") as f:
+            drvo = ast.parse(f.read())
+    except Exception:                                        # noqa: BLE001
+        return []
+    vidyani, dubli = {}, []
+    for vazel in drvo.body:                # САМО най-горното ниво
+        imena = []
+        if isinstance(vazel, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            imena = [vazel.name]
+        elif isinstance(vazel, ast.Assign):
+            imena = [t.id for t in vazel.targets if isinstance(t, ast.Name)]
+        elif isinstance(vazel, ast.AnnAssign) and isinstance(vazel.target, ast.Name):
+            imena = [vazel.target.id]
+        for ime in imena:
+            if ime.startswith("_") and ime.endswith("_"):
+                continue                   # __all__ и подобни се пипат нарочно
+            if ime in vidyani:
+                dubli.append((ime, vidyani[ime], getattr(vazel, "lineno", 0)))
+            else:
+                vidyani[ime] = getattr(vazel, "lineno", 0)
+    return dubli
+
+
+def vsichki_dvoynici(fajlove=None):
+    """[(файл, име, ред1, ред2)] за всички наши файлове."""
+    if fajlove is None:
+        fajlove = sorted(set(list(ZADALZHITELNI) + list(KONSTANTI)
+                             + list(NE_BIVA_MARTVI)))
+    out = []
+    for f in fajlove:
+        if not os.path.exists(f):
+            continue
+        for ime, r1, r2 in dvoynici(f):
+            out.append((f, ime, r1, r2))
+    return out
+
+
 def main():
     if "--selftest" in sys.argv or "selftest" in sys.argv:
         return selftest()
     lip, mrt = provери(), martvi()
-    if not lip and not mrt:
+    dvo = vsichki_dvoynici()
+    if not lip and not mrt and not dvo:
         n = sum(len(v) for v in ZADALZHITELNI.values()) + \
             sum(len(v) for v in KONSTANTI.values())
         print("🧬 ЦЯЛОСТТА Е ЗАПАЗЕНА — всичките " + str(n)
@@ -440,6 +546,9 @@ def main():
         print("   ЛИПСВА  %-14s %-22s %s" % (f, i, z))
     for f, i in mrt:
         print("   МЪРТЪВ  %-14s %s — съществува, но никой не го вика" % (f, i))
+    for f, i, r1, r2 in dvo:
+        print("   ДВОЙНИК %-14s %s — дефинирано на ред %d и пак на ред %d;"
+              " второто презаписва първото МЪЛЧАЛИВО" % (f, i, r1, r2))
     return 1
 
 
