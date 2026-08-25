@@ -131,8 +131,27 @@ def _norm(s):
 
 
 def _familiya(s):
-    """Последната дума на името. Тенисистите се пишат ту с второ име, ту без."""
+    """Фамилията от името. Празно при боклук.
+
+    🔴 ДВЕ АЗБУКИ НА ЗАПИСВАНЕ СЕ СРЕЩАТ ТУК (21.08.2026):
+        „Maria Andrienko"  — първо име, после фамилия. Така пише Pinnacle.
+        „Andrienko M."     — фамилия, после инициал. Така пише ITF.
+    Измерено същия ден: 29 от 54-те тенис мача на витрината им са ITF, а в
+    нашия дневник 11 от 69 тенис карти носят втория формат.
+
+    „Последната дума" е вярно за първото и дава „m" за второто — тоест всяко
+    такова име се сравняваше по ИНИЦИАЛА си. Две различни жени с фамилии
+    Andrienko и Maquet и двете щяха да са „m". Затова инициалите в края се
+    махат, преди да се вземе последната дума.
+
+    „J. Tjen" остава непокътнато: там инициалът е в НАЧАЛОТО и последната
+    дума вече е фамилията.
+    """
     d = [w for w in str(s or "").replace("-", " ").split() if w]
+    # Само в КРАЯ и никога до последната дума — инак „M. M." става празно,
+    # а празното съвпада с всичко.
+    while len(d) > 1 and len(str(d[-1]).strip(".")) <= 1:
+        d.pop()
     return _norm(d[-1]) if d else ""
 
 
@@ -363,23 +382,64 @@ def nameri(sport_key, dom, gost):
     return None
 
 
+def nomer_strana(sport_key, dom, gost):
+    """(номер, обърнат) за НАШИТЕ имена. (None, False), ако не се намери.
+
+    🔴 ЗАЩО СЪЩЕСТВУВА ОТДЕЛНО (21.08.2026). Дотук номерът се смяташе вътре
+    в `ceni_za` и се ИЗХВЪРЛЯШЕ. Измерено в живия дневник същия ден: всичките
+    22 записа с `pazar_izt: "pinnacle"` стоят с `pazar_ev: null`. Тоест нямаше
+    по какво да се върнем към същия мач по-късно.
+
+    Последицата беше цяла липсваща мярка: затварящата цена на тениса — 13 от
+    13 карти, при това най-силният ни спорт — беше невъзможна. Не защото
+    източникът я крие, а защото не сме записали КОЙ мач е бил.
+
+    „Обърнат" значи, че Pinnacle държи нашия домакин като гост. Пази се като
+    флаг, за да може опресняването после да размени цените БЕЗ да сверява
+    имена наново: в дневника името може вече да е на кирилица („Фенербахче"),
+    а там знаят само „Fenerbahce".
+    """
+    mid = nameri(sport_key, dom, gost)
+    if not mid:
+        return (None, False)
+    zapis = machove(sport_key).get(mid)
+    if not zapis:
+        return (None, False)
+    a = zapis[0]
+    obarnat = bool(_norm(a) == _norm(gost)
+                   or (_familiya(a) and _familiya(a) == _familiya(gost)))
+    return (mid, obarnat)
+
+
+def cena_po_nomer(sport_key, mid, obarnat=False):
+    """(дом, гост, равен) за ВЕЧЕ ЗНАЕН номер. Нула нови заявки при топъл кеш.
+
+    Празно, ако мачът вече не е на витрината. Pinnacle маха срещата в мига, в
+    който тя започне — затова опресняването върви ПРЕДИ началото, а не при
+    отсъждането. Това не е недостатък, който заобикаляме: то е и пазачът.
+    Щом мачът е тръгнал, тук няма какво да се върне и нищо не се презаписва.
+    """
+    if not mid:
+        return (None, None, None)
+    c = pazari(sport_key).get(str(mid))
+    if not c:
+        return (None, None, None)
+    return (c[1], c[0], c[2]) if obarnat else c
+
+
 def ceni_za(sport_key, dom, gost):
     """(цена_дом, цена_гост, цена_равен) за НАШИТЕ имена. Всяка може да е None.
 
     🔴 СТРАНИТЕ СЕ ВРЪЩАТ ПО НАШАТА УГОВОРКА, не по тяхната. Ако Pinnacle
     държи мача обърнат, цените се разменят обратно — инак картата казва „1",
     а числото е за другия. Точно този клас грешка ни ухапа днес с питчърите.
+
+    Размяната живее в `cena_po_nomer`, за да е ЕДНА за двата пътя — първата
+    цена и опреснената. Два отделни преписа на едно и също правило са начин
+    единият да се поправи, а другият да остане крив.
     """
-    mid = nameri(sport_key, dom, gost)
-    if not mid:
-        return (None, None, None)
-    c = pazari(sport_key).get(mid)
-    if not c:
-        return (None, None, None)
-    a, b, _lg, _st = machove(sport_key)[mid]
-    if _norm(a) == _norm(gost) or (_familiya(a) and _familiya(a) == _familiya(gost)):
-        return (c[1], c[0], c[2])
-    return c
+    mid, obarnat = nomer_strana(sport_key, dom, gost)
+    return cena_po_nomer(sport_key, mid, obarnat)
 
 
 def selftest():
@@ -409,6 +469,23 @@ def selftest():
     check("тирето не чупи фамилията",
           _familiya("Felix Auger-Aliassime") == "aliassime")
     check("празното име няма фамилия", _familiya("") == "" and _familiya(None) == "")
+    # 🔴 ИНИЦИАЛЪТ В КРАЯ НЕ Е ФАМИЛИЯ (21.08.2026)
+    check("'Andrienko M.' е Andrienko, не M", _familiya("Andrienko M.") == "andrienko")
+    check("'Van Der Meerschen M.' е Meerschen",
+          _familiya("Van Der Meerschen M.") == "meerschen")
+    check("инициалът в НАЧАЛОТО не се пипа", _familiya("J. Tjen") == "tjen")
+    check("пълното име не се пипа", _familiya("Maria Andrienko") == "andrienko")
+    # Заради това съществува поправката: двата начина на писане трябва да СЕ СРЕЩНАТ.
+    check("двата формата дават една фамилия",
+          _familiya("Andrienko M.") == _familiya("Maria Andrienko") != "")
+    check("само инициали не се изяждат до празно", _familiya("M. M.") == "m")
+    check("една дума остава себе си", _familiya("Sinner") == "sinner")
+    # 🔴 САМО ЕДНА БУКВА СЕ МАХА, НЕ ДВЕ. Оцеляла мутация го показа:
+    # с „две или по-малко" китайската фамилия „Li" се изяжда и „Na Li"
+    # става „na". Тенисът на маса е почти изцяло азиатски — това щеше да
+    # обезсили цял спорт наведнъж.
+    check("двубуквена фамилия оцелява", _familiya("Na Li") == "li")
+    check("трибуквена фамилия оцелява", _familiya("Xu Xin") == "xin")
 
     # Търсенето — с подхвърлени данни, без мрежа.
     _st_m, _st_p = _kesh.get(("m", 33)), _kesh.get(("p", 33))
@@ -422,6 +499,10 @@ def selftest():
         check("разменените страни също намират",
               nameri("tennis", "Mirra Andreeva", "Janice Tjen") == "111")
         check("само фамилиите намират", nameri("tennis", "J. Tjen", "M. Andreeva") == "111")
+        # 🔴 ITF-форматът трябва да намери мача. Преди 21.08.2026 не го намираше:
+        # „Tjen J." се свеждаше до „j", „Andreeva M." до „m".
+        check("ITF-форматът 'Фамилия И.' намира мача",
+              nameri("tennis", "Tjen J.", "Andreeva M.") == "111")
         check("непознат мач не намира", nameri("tennis", "Иван", "Драган") is None)
         check("еднакви имена не намират", nameri("tennis", "Tjen", "Tjen") is None)
         check("празно име не намира", nameri("tennis", "", "Andreeva") is None)
@@ -435,6 +516,33 @@ def selftest():
               ceni_za("tennis", "Mirra Andreeva", "Janice Tjen") == (1.16, 6.14, None))
         check("непознат мач не дава цена",
               ceni_za("tennis", "Иван", "Драган") == (None, None, None))
+
+        # ------------------------------------------- НОМЕРЪТ (21.08.2026)
+        # Без него няма затваряща цена, без затваряща цена няма CLV, а без
+        # CLV отговорът на „бием ли пазара" чака 1050 карти вместо 43.
+        check("номерът се връща, а не се хвърля",
+              nomer_strana("tennis", "Janice Tjen", "Mirra Andreeva") == ("111", False))
+        check("обърнатият мач се разпознава КАТО обърнат",
+              nomer_strana("tennis", "Mirra Andreeva", "Janice Tjen") == ("111", True))
+        check("непознат мач няма номер",
+              nomer_strana("tennis", "Иван", "Драган") == (None, False))
+        check("по номер се вади същата цена",
+              cena_po_nomer("tennis", "111") == (6.14, 1.16, None))
+        # 🔴 МУТАЦИЯТА, КОЯТО ТАЗИ ПРОВЕРКА ПАЗИ: махни размяната в
+        # `cena_po_nomer` и опреснената цена на всеки обърнат мач ще е за
+        # ПРОТИВНИКА. Числото пак ще изглежда като цена и нищо няма да гръмне.
+        check("по номер обърнатият връща РАЗМЕНЕНИ",
+              cena_po_nomer("tennis", "111", True) == (1.16, 6.14, None))
+        check("несъществуващ номер не дава цена",
+              cena_po_nomer("tennis", "999") == (None, None, None))
+        check("липсващ номер не гърми",
+              cena_po_nomer("tennis", None) == (None, None, None))
+        # Двата пътя до цената трябва да дават ЕДНО И СЪЩО. Ако се разделят,
+        # първата цена и опреснената ще са по различни правила.
+        _mid, _ob = nomer_strana("tennis", "Mirra Andreeva", "Janice Tjen")
+        check("двата пътя съвпадат",
+              cena_po_nomer("tennis", _mid, _ob)
+              == ceni_za("tennis", "Mirra Andreeva", "Janice Tjen"))
     finally:
         if _st_m is None:
             _kesh.pop(("m", 33), None)

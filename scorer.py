@@ -296,21 +296,28 @@ def espn_result(rec):
                 continue
             comp = comps[0] or {}
             st = ((comp.get("status") or {}).get("type") or {})
-            if espn_otlozhen(st):
-                # Мачът е отложен или отменен — резултат НЯМА да има.
-                return OTLOZHEN
-            if not st.get("completed"):
-                continue                      # още не е свършил
+            # 🔴 ПОРЕДЪТ БЕШЕ ОБЪРНАТ (намерено 25.08.2026). Дотук отложеното
+            # се проверяваше ПРЕДИ да се види чий е мачът — а таблото връща
+            # цялата лига за деня. Един отложен мач затваряше НАШАТА карта
+            # като „отложена", макар тя да е играна и решена. Затова първо
+            # се пита „наш ли е", и чак после „какво е станало с него".
             got = {}
             for c in (comp.get("competitors") or []):
                 tid = str(((c.get("team") or {}).get("id")) or "")
                 try:
                     got[tid] = int(str(c.get("score")))
                 except Exception:             # noqa: BLE001
-                    got = {}
-                    break
-            if hid in got and aid in got:
-                return got[hid], got[aid]
+                    got[tid] = None           # отложеният няма резултат
+            if hid not in got or aid not in got:
+                continue                      # чужд мач — не ни засяга
+            if espn_otlozhen(st):
+                # НАШИЯТ мач е отложен или отменен — резултат НЯМА да има.
+                return OTLOZHEN
+            if not st.get("completed"):
+                continue                      # още не е свършил
+            if got[hid] is None or got[aid] is None:
+                continue                      # свършил, но без четим резултат
+            return got[hid], got[aid]
         time.sleep(0.25)
     return None
 
@@ -472,9 +479,21 @@ def tennis_day(day):
             for g in (ev.get("groupings") or []):
                 for c in (g.get("competitions") or []):
                     st = ((c.get("status") or {}).get("type") or {})
-                    if espn_otlozhen(st):
-                        return OTLOZHEN
-                    if not st.get("completed"):
+                    # 🔴 ТУК ПАДАШЕ ЦЕЛИЯТ ОЦЕНИТЕЛ (намерено 25.08.2026).
+                    # Дотук стоеше `return OTLOZHEN` — сентинел, върнат от
+                    # функция, обявена да връща СПИСЪК. Извикващият я обхожда:
+                    #     for na, nb, pa, pb in tennis_day(day)
+                    # → TypeError: 'object' object is not iterable, и рънът
+                    # умираше целият. Резултатите спряха за 3 пускания подред
+                    # (score #59, #60, #61 — от 23.08 19:44 до 24.08 19:54).
+                    #
+                    # И ВТОРА, ПО-ТИХА ГРЕШКА в същия ред: таблото за деня
+                    # държи ВСИЧКИ мачове. Един отложен сред тях обявяваше за
+                    # отложени и всички НАШИ карти за деня, макар да са
+                    # играни. Затова отложеният влиза в списъка с ПРАЗЕН
+                    # резултат и се познава ПО ИМЕ, като всеки друг.
+                    otl = espn_otlozhen(st)
+                    if not otl and not st.get("completed"):
                         continue
                     sides = []
                     for k in (c.get("competitors") or []):
@@ -491,6 +510,11 @@ def tennis_day(day):
                     if len(sides) != 2:
                         continue
                     a, b = sides
+                    if otl:
+                        # Празният резултат Е знакът „отложен". Никой истински
+                        # мач не дава None за сетовете.
+                        out.append((a[0], b[0], None, None))
+                        continue
                     # Сетове = колко пъти всеки е взел повече геймове.
                     sa = sb = 0
                     for i in range(min(len(a[1]), len(b[1]))):
@@ -511,10 +535,12 @@ def tennis_result(rec):
         return None
     for day in okolni_dni(rec.get("day")):
         for na, nb, pa, pb in tennis_day(day):
+            # Празният резултат значи отложен — и то ТОЗИ мач, не някой друг
+            # от таблото. Главният цикъл затваря записа на едно място.
             if same_team(na, ha) and same_team(nb, hb):
-                return pa, pb
+                return OTLOZHEN if pa is None else (pa, pb)
             if same_team(na, hb) and same_team(nb, ha):
-                return pb, pa
+                return OTLOZHEN if pa is None else (pb, pa)
     return None
 
 
