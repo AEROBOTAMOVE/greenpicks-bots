@@ -17173,7 +17173,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 65 мача на единия и 102 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-25|tabletennis|aleksandramichalak|emmavendelbo",
@@ -17202,7 +17204,9 @@
   "p": 0.6047,
   "stars": 1,
   "sample": "гледани 5 мача на единия и 12 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-25|volleyball|wsen|куба|мексико",
@@ -17516,7 +17520,9 @@
   "p": 0.6915,
   "stars": 2,
   "sample": "гледани 5 мача на единия и 81 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-26|mma|carlospetruzzella|nickgalanti",
@@ -17735,7 +17741,9 @@
   "p": 0.5877,
   "stars": 2,
   "sample": "гледани 15 мача на единия и 35 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-25|volleyball|wsen|унгария|германия",
@@ -17764,7 +17772,9 @@
   "p": 0.8736,
   "stars": 3,
   "sample": "гледани 32 мача на единия и 55 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-25|football|altaawoun|alfayha",
@@ -17793,7 +17803,11 @@
   "p": 0.5792,
   "stars": 3,
   "sample": "гледани по 36 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0",
+  "pazar_close": 1.68,
+  "pazar_clv": 0.0397
  },
  {
   "key": "2026-08-26|basketball|dallaswings|portlandfire",
@@ -17909,7 +17923,9 @@
   "p": 0.8223,
   "stars": 3,
   "sample": "гледани 62 мача на единия и 43 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-26|basketball|phoenixmercury|washingtonmystics",
@@ -17996,7 +18012,9 @@
   "p": 0.92,
   "stars": 2,
   "sample": "гледани 19 мача на единия и 67 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-26|baseball|newyorkyankees|houstonastros|total",
@@ -18054,7 +18072,9 @@
   "p": 0.5381,
   "stars": 3,
   "sample": "гледани по 36 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0"
  },
  {
   "key": "2026-08-26|baseball|detroittigers|tampabayrays|total",
@@ -18228,7 +18248,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-26|baseball|sandiegopadres|pittsburghpirates|total",
@@ -18344,7 +18366,9 @@
   "p": 0.8224,
   "stars": 2,
   "sample": "ранглиста и 7 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-08-25|volleyball|wsen|италия|словакия",
@@ -18373,7 +18397,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 76 мача на единия и 27 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-25|volleyball|wsen|нидерландия|испания",
@@ -18402,7 +18428,9 @@
   "p": 0.8996,
   "stars": 3,
   "sample": "гледани 58 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-26|volleyball|wsen|канада|куба",
@@ -18460,7 +18488,9 @@
   "p": 0.7433,
   "stars": 3,
   "sample": "гледани 29 мача на единия и 53 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-25|volleyball|wsen|гърция|австрия",
@@ -18489,7 +18519,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 21 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-25|volleyball|wsen|costarica|мексико",
@@ -18547,7 +18579,9 @@
   "p": 0.728,
   "stars": 3,
   "sample": "гледани 34 мача на единия и 29 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-25|football|doncasterrovers|middlesbrough",
