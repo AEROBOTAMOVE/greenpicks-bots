@@ -220,7 +220,12 @@ def cena(dom, gost, liga=None, ind=None, mach=None, cen=None):
     cd, cg = r["dom"], r["gost"]
     if obarnat:
         cd, cg = cg, cd
-    return {"dom": cd, "gost": cg, "liga": r["liga"],
+    # 🔴 НОМЕРЪТ ИЗЛИЗА НАВЪН (25.08.2026). Без него волейболът получава цена
+    # ПРИ ПУСКАНЕ, но никога ЗАТВАРЯЩА — а без затваряща няма CLV, тоест няма
+    # как да се разбере движи ли се пазарът към нас. Точно това счупи тениса
+    # цял месец: цената идваше, номерът се хвърляше.
+    # Номерът е в индекса от самото начало; тук само се подава нататък.
+    return {"dom": cd, "gost": cg, "liga": r["liga"], "nomer": r.get("nomer"),
             "start": r["start"], "obarnat": obarnat}
 
 
@@ -296,6 +301,8 @@ def selftest():
         sys.modules["pinnacle"] = _FalshivPinnacle
         _bez = cena("Унгария", "Германия")
         check("естественото извикване НЕ мълчи", _bez is not None)
+        check("номерът излиза навън — без него няма CLV",
+              bool(_bez) and _bez.get("nomer") == "7")
         check("и връща истинската цена",
               bool(_bez) and _bez.get("dom") == 8.33 and _bez.get("gost") == 1.08)
         check("източникът наистина е питан", _FalshivPinnacle.vikan[0] > 0)

@@ -115,6 +115,26 @@ try:
 except Exception as _sg_err:                                 # noqa: BLE001
     SG = None
     print("съгласието не се зареди (" + str(_sg_err)[:70] + ") — числата остават само наши.")
+# 🔴 ЗАЛОЖИМОСТТА (25.08.2026). Собственикът, дословно: „НАЛИ ВСИЧКО ЗАЛОЗИ
+# НЕЗАВИСИМО ОТ СПОРТА ГИ ИМА В БЕТ 365 — ИСКАМ ДА Е ТАКА" и „ЮНОШИ НЕ ИСКАМЕ".
+# Измерено: 81 от 737 карти (11%) са юношески турнири, при волейбола 42%.
+# Отделен внос, отделен try: провал тук НЕ бива да спира прогнозите.
+try:
+    import zalozhimo as ZL
+except Exception as _zl_err:                                 # noqa: BLE001
+    ZL = None
+    print("заложимостта не се зареди (" + str(_zl_err)[:70] + ") — юношеските ще минават.")
+# 🔴 ВОЛЕЙБОЛЪТ СИ ВЪРНА ЦЕНАТА (25.08.2026). Коментарът в pinnacle.py казваше
+# „ТЕ НЯМАТ ТОЗИ СПОРТ — 0 лиги, 0 мача, ВИНАГИ". Измерено живо днес: 21 мача,
+# 255 пазара. Вратата се е отворила сама с EuroVolley и никой не я е проверил.
+# Истинската заключалка обаче беше АЗБУКАТА: „Унгария" никога не среща
+# „Hungary". pin_volei съединява нормализацията на volley_evro с цената на
+# pinnacle — 0 от 5 на кирилица стават 5 от 5.
+try:
+    import pin_volei as PV
+except Exception as _pv_err:                                 # noqa: BLE001
+    PV = None
+    print("волейболната цена не се зареди (" + str(_pv_err)[:70] + ").")
 # 🔴 ВОЛЕЙБОЛНОТО СИТО (19.08.2026). Портиерът „карта без пазар не излиза"
 # режеше ВСИЧКИ волейболни карти, защото волейболът няма нито един път до
 # цена: ESPN няма адрес за спорта, а Pinnacle не го търгува изобщо.
@@ -5299,6 +5319,22 @@ def dobavi_pazar(an):
     # EuroVolley срещи на 21.08 получиха цена (другите три са със затворена
     # линия и нарочно нямат). Питаме с КОДА на държавата — той е един и същ
     # при двата източника, докато името е „Türkiye" тук и „Turkey W" там.
+    # 🔴 ПЪРВО PINNACLE (25.08.2026), после витрината. Редът е важен: Pinnacle
+    # дава ДВЕ страни, тоест маржът може да се махне и вероятността да е честна;
+    # витрината дава едната. Плюс номер, значи и затваряща цена, значи CLV.
+    # Мерено живо: 5 от 5 европейски мача получиха цена срещу 0 от 5 преди.
+    if not (dom or gost) and PV is not None \
+            and str(an.get("bucket") or "") == "volleyball":
+        try:
+            _pv = PV.cena(fx.get("home"), fx.get("away"), fx.get("league"))
+            if _pv and (_pv.get("dom") or _pv.get("gost")):
+                dom, gost, raven = _pv.get("dom"), _pv.get("gost"), None
+                izt = "pinnacle"
+                sport = "volleyball"
+                pin_mid = _pv.get("nomer")
+                pin_obarnat = bool(_pv.get("obarnat"))
+        except Exception:                                    # noqa: BLE001
+            pass
     if not (dom or gost) and VOL is not None             and str(an.get("bucket") or "") == "volleyball":
         try:
             _vbk = str(ex.get("vb") or "")
@@ -5610,10 +5646,32 @@ def slyapa_karta(an):
 
 def ima_pazar(an):
     """Може ли човек да намери този мач при букмейкър. (може_ли, защо)."""
-    if an.get("pazar_cena"):
-        return True, "цена"
     b = str(an.get("bucket") or "")
     lg = str(((an.get("fx") or {}).get("league")) or "")
+    # 🔴 ЮНОШЕСКИТЕ ПАДАТ ПЪРВИ, ПРЕДИ ВСЯКО ДРУГО ПРАВИЛО (25.08.2026).
+    #
+    # Стои НАД проверката за цена нарочно. Дори да сме намерили отнякъде число
+    # за турнир при момичета до 17 години, пазар за него НЯМА при никой
+    # букмейкър — числото би било чуждо, не негово.
+    #
+    # ЗАЩО НЕ Е СТИГАЛО ДОСЕГА: волейболът има собствено сито (`vb` завършващо
+    # на „-you") и тенисът на маса се съди по ранг на турнира. И двете работят,
+    # но и двете гледат ПОЛЕ ИЛИ РАНГ, не името. Затова „FIVB Volleyball Girls'
+    # U17 World Championship" (64 карти) и „Europe Youth Smash · U15" (8 карти)
+    # минаваха. Тук се съди по ИМЕТО и правилото важи за ВСИЧКИ спортове.
+    #
+    # Изпитано срещу всичките 96 различни имена на лиги в живия дневник:
+    # блокирани 6 лиги / 81 карти, всичките наистина юношески, НУЛА невинни.
+    # Тенисът с M15/W15/M25/W35 (парични нива, не възрасти) оцелява напълно.
+    if ZL is not None:
+        try:
+            _mozhe, _zashto = ZL.zalozhimo(lg, b)
+            if not _mozhe:
+                return False, _zashto
+        except Exception:                                    # noqa: BLE001
+            pass
+    if an.get("pazar_cena"):
+        return True, "цена"
     for known in TARGUVANI.get(b, ()):  # noqa: SIM110
         if known and known.lower() in lg.lower():
             return True, "търгувана лига"
@@ -8487,9 +8545,36 @@ def selftest():
 
     # 🔴 ПАЗАРНИЯТ ПОРТИЕР (19.08.2026) — поръчка на собственика:
     # „искам всички прогнози да ги има в букмейкъра".
-    check("цена значи пазар",
+    # 🔴 ОБЪРНАТА 25.08.2026 по изрична дума на собственика: „ЮНОШИ НЕ ИСКАМЕ".
+    # Дотук пазеше, че НАМЕРЕНА ЦЕНА е достатъчна — и то с пример точно от
+    # юношески турнир. Но пазар за момичета до 17 години НЯМА при никой
+    # букмейкър; намереното число щеше да е на ЧУЖД мач или на нещо, което
+    # човек не може да играе. Затова юношеското пада ПРЕДИ проверката за цена.
+    check("цена НЕ спасява юношески турнир",
           ima_pazar({"pazar_cena": 1.8, "bucket": "volleyball",
-                     "fx": {"league": "Girls U17"}})[0] is True)
+                     "fx": {"league": "Girls U17"}})[0] is False)
+    check("и причината го назовава",
+          "юношески" in ima_pazar({"pazar_cena": 1.8, "bucket": "volleyball",
+                                   "fx": {"league": "Girls U17"}})[1])
+    # А при ВЪЗРАСТЕН турнир цената пак значи пазар — правилото не е разширено.
+    check("цена значи пазар при възрастен турнир",
+          ima_pazar({"pazar_cena": 1.8, "bucket": "volleyball",
+                     "fx": {"league": "CEV EuroVolley 2026 | Women"}})[0] is True)
+    # 🔴 И ПРАВИЛОТО ВАЖИ ЗА ВСИЧКИ СПОРТОВЕ, не само за волейбола.
+    for _sp, _lg in (("tabletennis", "Europe Youth Smash · U15 Boys' Singles"),
+                     ("tennis", "ITF Junior Cup"),
+                     ("football", "UEFA Youth League"),
+                     ("basketball", "FIBA U18 European Championship")):
+        check("юношеското пада и при " + _sp,
+              ima_pazar({"pazar_cena": 1.9, "bucket": _sp,
+                         "fx": {"league": _lg}})[0] is False)
+    # 🔴 И НАЙ-ВАЖНОТО: тенисът с ПАРИЧНИ нива НЕ Е юношески. Хване ли ги,
+    # целият ITF изчезва — а той се търгува (29 от 54 мача при Pinnacle).
+    for _lg in ("M15 Arad (Romania) · ITF", "W15 Wanfercee-Baulet (Belgium) · ITF",
+                "M25 Lesa (Italy) · ITF", "W35 Krakow (Poland) · ITF"):
+        check("ITF оцелява: " + _lg[:22],
+              ima_pazar({"pazar_cena": 1.9, "bucket": "tennis",
+                         "fx": {"league": _lg}})[0] is True)
     check("търгувана лига минава и без цена",
           ima_pazar({"bucket": "baseball", "fx": {"league": "МЛБ"}})[0] is True)
     check("юношеският волейбол НЕ минава",
