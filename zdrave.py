@@ -176,8 +176,74 @@ def zatvoreni():
 _ZATV = zatvoreni()
 ZATVORENI_NEYASNO = _ZATV is NEPITAN
 ZATVORENI = set() if ZATVORENI_NEYASNO else _ZATV
-KOGA_TRAGVA = {"hockey": "тръгва около 15.09, когато НХЛ отваря",
-               "amfootball": "тръгва в началото на септември, с редовния сезон"}
+# ═══════════════ КОГА ТРЪГВА ЗАТВОРЕНИЯТ СПОРТ (пренаписано 25.08.2026)
+#
+# 🔴 ТУК СТОЕШЕ ЖИВА ЛЪЖА. Заковано пишеше:
+#       hockey     -> „тръгва около 15.09, когато НХЛ отваря"
+#       amfootball -> „тръгва в началото на септември"
+# Измерено живо същия ден от sezon.py, право от източниците:
+#       NHL  regularSeasonStartDate = 2026-09-29   ← ДВЕ СЕДМИЦИ по-късно
+#       NFL  първи редовен мач      = 2026-09-10
+# Тоест прегледът две седмици щеше да обяснява спокойно защо хокеят мълчи,
+# докато хокеят вече играе — или обратното, да го чака когато няма какво.
+#
+# Заковано число, което дублира измерено число, е обречено да се разминава.
+# Затова тук вече НЯМА дата: тя се чете от sezon.OTVARYA, където живее
+# заедно с източника, от който е взета.
+#
+# 🔴 И КАПАНЪТ, КОЙТО sezon.py ПЛАТИ ЗА НАС: `nextStartDate` изглежда точно
+# като „кога тръгва", но е границата на СЪСЕДНАТА КАЛЕНДАРНА СЕДМИЦА
+# (2026-10-06), не началото на сезона. Вярното поле е regularSeasonStartDate.
+def _ot_sezon():
+    """{кош: (дата, сигурно_ли)} от sezon.OTVARYA. Празно, ако не се зареди."""
+    try:
+        import sezon as _SZ
+        tabl = getattr(_SZ, "OTVARYA", None) or {}
+    except Exception:                                        # noqa: BLE001
+        return {}
+    if not tabl:
+        return {}
+    # 🔴 САМО ВАЖНИТЕ ПЪРВЕНСТВА. Първата ми версия взимаше най-ранната дата
+    # от ВСИЧКИ и излезе „хокеят тръгва на 18.09" — това е NCAA при ЖЕНИТЕ,
+    # отбелязано в календара като НЕважно. Истинският хокей за нашия бот е
+    # НХЛ: 29.09. Тоест грубото „най-ранното печели" произведе НОВА лъжа на
+    # мястото на старата, при това с измерено число — най-опасният вид.
+    vazhni = set()
+    try:
+        for red in (getattr(_SZ, "KALENDAR", None) or []):
+            if isinstance(red, dict) and red.get("vazhen"):
+                vazhni.add(str(red.get("kod") or ""))
+    except Exception:                                        # noqa: BLE001
+        vazhni = set()
+    out = {}
+    for _kod, red in tabl.items():
+        if not isinstance(red, dict):
+            continue
+        if vazhni and str(_kod) not in vazhni:
+            continue                     # NCAA при жените не отваря хокея
+        kosh, data = red.get("kosh"), str(red.get("data") or "")
+        if not kosh or len(data) != 10:
+            continue
+        # Между ВАЖНИТЕ печели най-ранното: амер. футбол тръгва с NCAA (29.08),
+        # не с НФЛ (10.09), и двете са важни за нас.
+        if kosh not in out or data < out[kosh][0]:
+            out[kosh] = (data, bool(red.get("sigurno")))
+    return out
+
+
+def koga_tragva(kosh, tabl=None):
+    """Текстът „тръгва на ...". Никога не изрича дата, която не е измерена."""
+    tabl = _ot_sezon() if tabl is None else tabl
+    red = tabl.get(str(kosh or ""))
+    if not red:
+        return "до старта на сезона"
+    data, sigurno = red
+    d = data[8:10].lstrip("0") + "." + data[5:7]
+    return ("тръгва на " + d if sigurno
+            else "тръгва около " + d + " (още не е сигурно)")
+
+
+KOGA_TRAGVA = {}          # запазено име; истината идва от koga_tragva()
 
 
 def chetiv(path, po_podrazbirane):
@@ -618,6 +684,103 @@ def parite(log):
     return out
 
 
+# ═══════════════════════════════ 🎯 ЛИГИТЕ, КОИТО НИ БИЯТ (25.08.2026)
+#
+# ЗАЩО: калибрацията дотук се мереше по СПОРТ. Спорт обаче не е еднородно
+# нещо. Измерено на живо същия ден върху 696 отсъдени:
+#
+#   ECVA Senior Men's Volleyball   n=15  обявява 66%  сбъдва 33%  −33 т
+#   MLS                            n=11  обявява 57%  сбъдва 36%  −21 т
+#   WTT Feeder Berlin · Мъже       n=25  обявява 68%  сбъдва 52%  −16 т
+#
+# Волейболът като цяло изглежда честен (−3.7 т, вътре в шума). Вътре в него
+# обаче се крие лига, която греши с ТРИЙСЕТ И ТРИ точки — карибски
+# микрофедерации, където сме обявявали и 92% и сме губили. Средното я скрива.
+#
+# 🔴 И ОБРАТНОТО СЪЩО: Europe Smash Жени n=34 обявява 59%, сбъдва 88% (+29 т).
+# Подценяването не боли по джоба, но е същото разминаване между дума и истина.
+#
+# ПРАГЪТ Е ШУМЪТ, НЕ КРЪГЛО ЧИСЛО. Лига с 10 мача и 15 точки разлика е шум;
+# лига с 60 мача и 15 точки не е. Затова се сравнява със собствения ѝ шум.
+LIGA_MIN = max(8, min(60, int(
+    (os.environ.get("ZDRAVE_LIGA_MIN") or "12").strip() or 12)))
+
+
+def _shum(p, n):
+    """95% шум около дял p при n наблюдения."""
+    n = max(1, int(n or 0))
+    p = min(max(float(p or 0.0), 0.0), 1.0)
+    return 1.96 * ((p * (1.0 - p) / n) ** 0.5)
+
+
+def krivi_ligi(log, minimum=None):
+    """[(лига, n, обявено, сбъднато, разлика)] — САМО извън собствения си шум.
+
+    Подредени от най-надценяващата към най-подценяващата: първо тези, които
+    обещават повече, отколкото сбъдват, защото те лъжат читателя в неговия
+    ущърб.
+    """
+    minimum = LIGA_MIN if minimum is None else int(minimum)
+    po_liga = {}
+    for r in (log or []):
+        if not isinstance(r, dict):
+            continue
+        if r.get("hit") is None or not r.get("p"):
+            continue
+        po_liga.setdefault(str(r.get("league") or "?"), []).append(r)
+    out = []
+    for ime, g in po_liga.items():
+        if len(g) < minimum:
+            continue
+        try:
+            ob = sum(float(x["p"]) for x in g) / len(g)
+        except (TypeError, ValueError):
+            continue
+        sb = sum(1 for x in g if x.get("hit")) / float(len(g))
+        if abs(sb - ob) > _shum(ob, len(g)):
+            out.append((ime, len(g), ob, sb, sb - ob))
+    out.sort(key=lambda t: t[4])
+    return out
+
+
+# ═══════════════════════════════ 🚫 НЕЗАЛОЖИМИТЕ (25.08.2026)
+#
+# Желязното правило на собственика: „ИСКАМ НАИСТИНА ДА НАТИСНЕШ НАД ВСИЧКИ
+# ПРОГНОЗИ ДА ГИ ИМА В БУКМЕЙКЪРА." Пазарът за юношески турнири НЕ
+# СЪЩЕСТВУВА при никой букмейкър — нито за момичета до 17, нито за кадети.
+#
+# Измерено на живо 25.08.2026: 73 от 174 волейболни карти (42%) са юношески,
+# от които 64 са само FIVB Girls' U17. Тоест правилото е нарушено при четири
+# от всеки десет волейболни карти — тихо, откакто съществува.
+#
+# 🔴 ТОВА НЕ Е ДЕФЕКТ В ПРОГНОЗИТЕ. Те са честни: обявяват 76%, сбъдват 73%.
+# Дефектът е, че не могат да се играят — а продуктът обещава, че могат.
+# Затова тук само се БРОИ и се казва; решението кой турнир отпада е човешко.
+YUNOSHESKI = ("u17", "u18", "u16", "u19", "u20", "u21", "u23",
+              "girls", "boys", "youth", "junior", "cadet", "юнош")
+YUNOSHESKI_PRAG = max(5, min(90, int(
+    (os.environ.get("ZDRAVE_YUNOSHESKI") or "15").strip() or 15)))
+
+
+def yunosheski_li(liga):
+    """Юношески ли е турнирът, по името му."""
+    l = str(liga or "").lower()
+    return any(d in l for d in YUNOSHESKI)
+
+
+def nezalozhimi(log, bucket=None):
+    """(брой, общо, [(лига, брой)]) за юношеските турнири."""
+    g = [r for r in (log or [])
+         if isinstance(r, dict) and (bucket is None or r.get("bucket") == bucket)]
+    yu = {}
+    for r in g:
+        if yunosheski_li(r.get("league")):
+            k = str(r.get("league") or "?")
+            yu[k] = yu.get(k, 0) + 1
+    return (sum(yu.values()), len(g),
+            sorted(yu.items(), key=lambda t: -t[1]))
+
+
 PAZAR_MIN = 30          # под толкова двойки не се произнасяме
 
 
@@ -786,9 +949,7 @@ def main():
     for b in sorted(IME, key=lambda x: IME[x]):
         if b in ZATVORENI:
             redove.append("%-17s %-46s %s"
-                          % (IME[b], "затворен — "
-                             + KOGA_TRAGVA.get(b, "до старта на сезона"),
-                             "—"))
+                          % (IME[b], "затворен — " + koga_tragva(b), "—"))
             continue
         dnesni = [r for r in log if r.get("bucket") == b
                   and str(r.get("posted") or "")[:10] == dnes]
@@ -961,6 +1122,37 @@ def main():
         print("")
 
     # ---------- 5. СРЕЩУ ПАЗАРА ----------
+    # ---------- КРИВИТЕ ЛИГИ И НЕЗАЛОЖИМИТЕ (25.08.2026) ----------
+    _krivi = krivi_ligi(log)
+    _nadu = [t for t in _krivi if t[4] < 0]
+    if not kratko:
+        print("\U0001f3af ЛИГИТЕ ИЗВЪН ШУМА · средното по спорт ги крие")
+        if not _krivi:
+            print("   няма нито една лига с %d+ отсъдени извън собствения си шум"
+                  % LIGA_MIN)
+        for ime, n, ob, sb, d in _krivi[:8]:
+            print("   %-44s n=%-4d %4.0f%% → %4.0f%%  %+5.1f т"
+                  % (ime[:44], n, 100.0 * ob, 100.0 * sb, 100.0 * d))
+        print("")
+    for ime, n, ob, sb, d in _nadu[:3]:
+        problemi.append("%s: обявява %.0f%%, сбъдва %.0f%% на %d мача (%+.0f т,"
+                        " извън шума)" % (ime[:40], 100.0 * ob, 100.0 * sb, n,
+                                          100.0 * d))
+
+    _yu, _vs, _spis = nezalozhimi(log)
+    _dyal = (100.0 * _yu / _vs) if _vs else 0.0
+    if not kratko:
+        print("\U0001f6ab НЕЗАЛОЖИМИ · юношески турнири, за които няма пазар")
+        print("   %d от %d карти = %.0f%% (праг %d%%)"
+              % (_yu, _vs, _dyal, YUNOSHESKI_PRAG))
+        for ime, n in _spis[:5]:
+            print("   %-52s %d" % (ime[:52], n))
+        print("")
+    if _dyal > YUNOSHESKI_PRAG:
+        problemi.append("%.0f%% от картите са юношески турнири (%d от %d) —"
+                        " за тях НЯМА пазар при никой букмейкър"
+                        % (_dyal, _yu, _vs))
+
     if not kratko:
         print("\U0001f4b0 ПАРИТЕ · струва ли си (само тук, не в стаята)")
         for _r in parite(log):
@@ -1092,6 +1284,113 @@ def _suh_pregled(chetec, argv=None, log=None, st=None):
     return buf.getvalue(), kod
 
 
+def _selftest_koga(check):
+    """Проверките за датата на отваряне."""
+    _t = {"hockey": ("2026-09-29", True), "amfootball": ("2026-09-10", True),
+          "basketball": ("2026-10-20", False)}
+    check("сигурната дата се изрича точно",
+          koga_tragva("hockey", _t) == "тръгва на 29.09")
+    check("и втората също", koga_tragva("amfootball", _t) == "тръгва на 10.09")
+    # 🔴 НЕСИГУРНОТО СЕ КАЗВА КАТО НЕСИГУРНО. Прегледът няма право да звучи
+    # по-уверено от източника си.
+    check("несигурната се обявява за несигурна",
+          "не е сигурно" in koga_tragva("basketball", _t))
+    check("непознатият кош не измисля дата",
+          koga_tragva("кърлинг", _t) == "до старта на сезона")
+    check("празният кош не гърми", koga_tragva("", _t) == "до старта на сезона")
+    check("None не гърми", koga_tragva(None, _t) == "до старта на сезона")
+
+    # 🔴 НАЙ-РАННАТА ПОБЕЖДАВА. Един кош има няколко първенства (НХЛ и АХЛ са
+    # хокей) — спортът тръгва с ПЪРВОТО, не с последното.
+    _tabl = _ot_sezon()
+    check("таблицата се чете от sezon", isinstance(_tabl, dict))
+    if _tabl.get("hockey"):
+        check("хокеят вече НЕ е „около 15.09\"",
+              "15.09" not in koga_tragva("hockey", _tabl))
+        check("хокеят носи измерена дата",
+              koga_tragva("hockey", _tabl).startswith("тръгва на"))
+        # 🔴 И Е НХЛ, НЕ NCAA ПРИ ЖЕНИТЕ. Втората ми версия сгреши точно тук.
+        check("хокеят е НХЛ (29.09), не NCAA жени (18.09)",
+              "29.09" in koga_tragva("hockey", _tabl))
+    if _tabl.get("amfootball"):
+        # Тук обратно: NCAA Е важен и отваря пръв.
+        check("амер. футбол тръгва с NCAA (29.08)",
+              "29.08" in koga_tragva("amfootball", _tabl))
+
+    # Старото име остава, но празно — за да гръмне всеки, който още го чете.
+    check("старата закована таблица е празна", KOGA_TRAGVA == {})
+
+
+def _selftest_ligi(check):
+    """Проверките за кривите лиги и незаложимите."""
+    def _r(liga, p, hit, bucket="volleyball"):
+        return {"league": liga, "p": p, "hit": hit, "bucket": bucket,
+                "scored": True}
+
+    # Лига с 20 мача, обявява 80%, сбъдва 30% — далеч извън всякакъв шум.
+    _losha = [_r("Лоша лига", 0.80, i < 6) for i in range(20)]
+    # 🔴 ИНДЕКСИРАНЕ БЕЗ ПРОВЕРКА СЪБАРЯ ЦЕЛИЯ ПАКЕТ. Първата ми версия
+    # пишеше `_r1[0][4] < 0` направо — и при мутация „нищо не е криво"
+    # получих IndexError вместо „счупено", тоест изгубих и присъдата, и
+    # всички проверки надолу. Трети път днес същият урок; тук се затваря.
+    _r1 = krivi_ligi(_losha, 12)
+    check("надуващата лига се хваща",
+          len(_r1) == 1 and _r1[0][0] == "Лоша лига")
+    check("разликата е отрицателна", bool(_r1) and _r1[0][4] < 0)
+    check("броят е верен", bool(_r1) and _r1[0][1] == 20)
+
+    # Лига, която сбъдва точно каквото обявява — не бива да се хваща.
+    _dobra = [_r("Добра лига", 0.60, i < 12) for i in range(20)]
+    check("честната лига НЕ се хваща", krivi_ligi(_dobra, 12) == [])
+
+    # 🔴 ДВА РАЗЛИЧНИ ПАЗАЧА, И ТОВА ЛИЧИ ТУК.
+    # Първата ми версия на този тест беше сгрешена: сложих 8 мача с 25 точки
+    # разлика и очаквах да се хванат при праг 5. Не се хванаха — и с право:
+    # при 8 мача шумът е ±30 точки, тоест 25 са ШУМ. Прагът за БРОЯ и прагът
+    # за ШУМА са различни неща и трябва да минат и двата.
+    _malka = [_r("Малка лига", 0.75, False) for i in range(8)]
+    check("под прага за брой не се произнасяме", krivi_ligi(_malka, 12) == [])
+    check("над прага за брой, и извън шума — хваща се",
+          krivi_ligi(_malka, 5) != [])
+    # А същият брой, но ВЪТРЕ в шума, пак не се произнася.
+    _shumna = [_r("Шумна лига", 0.75, i < 4) for i in range(8)]
+    check("вътре в шума не се произнася дори над прага за брой",
+          krivi_ligi(_shumna, 5) == [])
+
+    # Подценяващата също се хваща, но идва ПОСЛЕ надуващата.
+    _pod = [_r("Подценяваща", 0.40, i < 18) for i in range(20)]
+    _r2 = krivi_ligi(_losha + _pod, 12)
+    check("хващат се и двете посоки", len(_r2) == 2)
+    check("надуващата е ПЪРВА",
+          len(_r2) == 2 and _r2[0][4] < 0 and _r2[1][4] > 0)
+
+    check("празният дневник не гърми", krivi_ligi([], 12) == [])
+    check("None не гърми", krivi_ligi(None, 12) == [])
+    check("неотсъдените не влизат",
+          krivi_ligi([{"league": "х", "p": 0.9, "hit": None}] * 30, 12) == [])
+    check("шумът пада с растежа на извадката", _shum(0.5, 400) < _shum(0.5, 25))
+
+    # ---------------------------------------------- незаложимите
+    check("U17 се разпознава", yunosheski_li("FIVB Girls' U17 World Championship"))
+    check("Boys се разпознава", yunosheski_li("NORCECA U17 Boys Pan American Cup"))
+    check("junior се разпознава", yunosheski_li("ITF Junior Cup"))
+    # 🔴 ГЛАВНАТА: мъжкият турнир НЕ Е юношески. Прекалено широко ловене би
+    # обявило половината продукт за незаложим и щеше да се научи да се пренебрегва.
+    check("мъжкият турнир НЕ е юношески",
+          not yunosheski_li("ECVA Senior Men's Volleyball Championship"))
+    check("Champions НЕ е юношески", not yunosheski_li("WTT Champions Yokohama"))
+    check("празното НЕ е юношеско", not yunosheski_li("") and not yunosheski_li(None))
+
+    _sm = ([_r("FIVB Girls' U17", 0.7, True) for _ in range(6)]
+           + [_r("Мъжка лига", 0.7, True) for _ in range(4)])
+    _y, _v, _s = nezalozhimi(_sm)
+    check("юношеските се броят", _y == 6 and _v == 10)
+    check("и се изброяват по име", bool(_s) and _s[0][0] == "FIVB Girls' U17")
+    check("без юношески дава нула",
+          nezalozhimi([_r("Мъжка лига", 0.7, True)])[0] == 0)
+    check("празното не гърми", nezalozhimi([]) == (0, 0, []))
+
+
 def _selftest_parite(check):
     """Проверките за парите. Отделно, за да се четат."""
     # 🔴 ПОВЕДЕНЧЕСКИ, НЕ ТЕКСТОВИ. Подхвърлят се редове и се гледа изходът.
@@ -1146,6 +1445,8 @@ def selftest():
 
     # ── 1. СЪРЦЕТО: „не можах да питам" НЕ Е „питах и няма" ──────────────
     d = sadi_workflow("score.yml", "оценителят", NEPITAN, 900, sega)
+    _selftest_koga(check)
+    _selftest_ligi(check)
     _selftest_parite(check)
     check("отказът на GitHub дава nepitan, не naredno", d["sast"] == "nepitan")
     check("отказът се КАЗВА с думи", "НЕ МОЖАХ" in d["tekst"])

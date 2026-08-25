@@ -2942,6 +2942,140 @@ def selftest():
           and min(_sravnenia) < min(_razopakovane))
     check("затварянето слага честна причина", len(_prichini) >= 1)
 
+    # ══════════════════════════════════════════════════════════════════════
+    # 🔴 КРАШЪТ, КОЙТО УБИ ОЦЕНИТЕЛЯ ЗА 33 ЧАСА (23-25.08.2026)
+    #
+    # tennis_day() е обявена да връща СПИСЪК, а връщаше сентинела OTLOZHEN,
+    # щом в таблото за деня има ПОНЕ ЕДИН отложен мач — чий да е. Извикващият
+    # я обхожда:  for na, nb, pa, pb in tennis_day(day)
+    # → TypeError: object is not iterable, и целият рън умираше. score.yml
+    # гръмна три пъти подред: #59, #60, #61 (23.08 19:44 - 24.08 19:54).
+    #
+    # ЗАЩО НИТО ЕДНА ОТ 377-те ПРОВЕРКИ НЕ ГО ХВАНА (измерено днес): едно-
+    # единственото място, което пипаше tennis_day(), му подаваше ден
+    # „1999-01-01". Пуснах го с шпионин върху http_json: 6 истински заявки
+    # до ESPN, всяка с НУЛА събития. Тоест тялото на цикъла не се изпълняваше
+    # НИТО ВЕДНЪЖ и клонът за отложен мач беше недостижим.
+    #
+    # Затова тук мрежата се ПОДХВЪРЛЯ: таблото е наше, отговорът е известен,
+    # нищо не излиза навън и клонът се стига при всяко пускане.
+    _TEN_DEN, _TEN_YMD = "2026-08-24", "20260824"
+    _GOTOV = {"name": "STATUS_FINAL", "state": "post", "completed": True}
+    _OTLOZH = {"name": "STATUS_POSTPONED", "state": "post", "completed": False}
+
+    def _igrach(ime, gemove, pobedil):
+        return {"athlete": {"displayName": ime},
+                "linescores": [{"value": g} for g in gemove],
+                "winner": pobedil}
+
+    def _ten_mach(ia, ib, ga, gb, stat, pobedil=1):
+        return {"status": {"type": stat},
+                "competitors": [_igrach(ia, ga, pobedil == 1),
+                                _igrach(ib, gb, pobedil == 2)]}
+
+    def _ten_tablo(machove):
+        # Както ESPN наистина ги дава: ev["competitions"] е ПРАЗЕН, мачовете
+        # живеят в ev["groupings"][i]["competitions"].
+        return {"events": [{"competitions": [],
+                            "groupings": [{"competitions": list(machove)}]}]}
+
+    def _otb_mach(hid, aid, hs, as_, stat):
+        return {"competitions": [{"status": {"type": stat}, "competitors": [
+            {"team": {"id": hid}, "score": hs},
+            {"team": {"id": aid}, "score": as_}]}]}
+
+    # 🔴 ЧУЖДИЯТ ОТЛОЖЕН МАЧ СТОИ ПЪРВИ. Точно този ред събори бота: старият
+    # код се предаваше на първия отложен и никога не стигаше до нашия.
+    _TABLO_TENIS = _ten_tablo([
+        _ten_mach("Джокович", "Медведев", [], [], _OTLOZH, pobedil=0),
+        _ten_mach("Алкарас", "Синер", [6, 6], [4, 3], _GOTOV)])
+    _TABLO_OTBORI = {"events": [
+        _otb_mach("777", "778", None, None, _OTLOZH),
+        _otb_mach("111", "222", "2", "1", _GOTOV)]}
+    _PITANI = []
+
+    def _falshiva_mreza(url, timeout=25):
+        """ESPN без ESPN. Пази и КАКВО е било питано — тестът да не е празен."""
+        _PITANI.append(url)
+        if "/tennis/atp/" in url and _TEN_YMD in url:
+            return _TABLO_TENIS
+        if "/soccer/" in url and _TEN_YMD in url:
+            return _TABLO_OTBORI
+        return {"events": []}
+
+    def _bez_grum(mysal):
+        """Стойността — или знакът „ГРЪМНА". Крашът трябва да е ЧЕРВЕНА
+        проверка, не трасе: трасето събаря самопроверката и скрива всичко
+        след себе си. Измерено на 25.08.2026: мутацията „return OTLOZHEN"
+        в tennis_day уби ЦЕЛИЯ пакет с TypeError вместо да даде „счупено" —
+        девет проверки просто изчезнаха. С този помощник същата мутация дава
+        девет ЧЕРВЕНИ реда."""
+        try:
+            return mysal()
+        except Exception as _e:                              # noqa: BLE001
+            return "ГРЪМНА: " + type(_e).__name__
+
+    _star_http = globals()["http_json"]
+    globals()["http_json"] = _falshiva_mreza
+    _ten_days.clear()
+    try:
+        _spisak = tennis_day(_TEN_DEN)
+        # 🔴 БЕЗ len() ВЪРХУ НЕПРОВЕРЕНО. Мутацията „return OTLOZHEN" прави
+        # _spisak обект без дължина — len() би хвърлил и би отнесъл ЦЯЛАТА
+        # самопроверка, скривайки всичко след себе си (същият капан като
+        # .index()). Затова първо „списък ли е", и чак после — колко е дълъг.
+        _bezopasen = _spisak if isinstance(_spisak, list) else []
+        check("тенис-таблото връща СПИСЪК, не сентинела",
+              isinstance(_spisak, list))
+        check("в списъка влизат И ДВАТА мача — изиграният и отложеният",
+              len(_bezopasen) == 2)
+        # ⬇️ ТОЧНО ТОВА ПАДАШЕ ЖИВО: разопаковането на върнатото.
+        _grumna = ""
+        try:
+            for _na, _nb, _pa, _pb in tennis_day(_TEN_DEN):
+                pass
+        except TypeError as _e:                              # noqa: BLE001
+            _grumna = str(_e)[:60]
+        check("обхождането на върнатото НЕ гърми", _grumna == "")
+        check("отложеният влиза с ПРАЗЕН резултат — това е знакът му",
+              [(_x[2], _x[3]) for _x in _bezopasen if _x[0] == "Джокович"]
+              == [(None, None)])
+        _nash = {"bucket": "tennis", "home": "Алкарас", "away": "Синер",
+                 "day": _TEN_DEN, "pick": "1 · Алкарас"}
+        check("нашият изигран мач се отсъжда ВЪПРЕКИ чуждия отложен",
+              _bez_grum(lambda: tennis_result(_nash)) == (2, 0))
+        check("и през главната врата sport_result излиза същото",
+              _bez_grum(lambda: sport_result(_nash)) == (2, 0))
+        check("обърнатият ред дава обърнат резултат",
+              _bez_grum(lambda: tennis_result(
+                  dict(_nash, home="Синер", away="Алкарас"))) == (0, 2))
+        check("НАШИЯТ отложен мач връща сентинела",
+              _bez_grum(lambda: tennis_result(
+                  {"bucket": "tennis", "home": "Джокович",
+                   "away": "Медведев", "day": _TEN_DEN,
+                   "pick": "1 · Джокович"})) is OTLOZHEN)
+        # ── СЪЩИЯТ КАПАН ПРИ ОТБОРНИТЕ СПОРТОВЕ. Таблото носи цялата лига
+        # за деня; проверката „отложен ли е" трябва да дойде СЛЕД „наш ли е".
+        _otb = {"bucket": "football", "slug": "eng.1", "home_id": "111",
+                "away_id": "222", "day": _TEN_DEN, "pick": "1 · Домакин"}
+        check("чужд отложен мач НЕ затваря нашата отборна карта",
+              _bez_grum(lambda: espn_result(_otb)) == (2, 1))
+        check("и отборната карта излиза същата през sport_result",
+              _bez_grum(lambda: sport_result(_otb)) == (2, 1))
+        check("НАШИЯТ отложен отборен мач връща сентинела",
+              _bez_grum(lambda: espn_result(
+                  dict(_otb, home_id="777", away_id="778"))) is OTLOZHEN)
+        # Проверка срещу празен тест: подхвърленото табло трябва НАИСТИНА
+        # да е било питано — и двете, тенис и отборно. Нула прегледани се
+        # чете като нула проблеми, а това вече ни е хапало.
+        check("подхвърленото тенис табло НАИСТИНА е питано",
+              any("/tennis/" in _u for _u in _PITANI))
+        check("подхвърленото отборно табло НАИСТИНА е питано",
+              any("/soccer/" in _u for _u in _PITANI))
+    finally:
+        globals()["http_json"] = _star_http
+        _ten_days.clear()
+
     # 🗄️ Архивът. Мести се само ПРИКЛЮЧЕНО; висящото остава, колкото и старо.
     _sega_a = datetime(2026, 8, 18, tzinfo=SOFIA)
     _r = [{"posted": "2026-01-05 10:00", "scored": True, "hit": True},
@@ -3044,10 +3178,41 @@ def selftest():
             # 🔴 БЕЗ БЕЛЕГ ЗАПИСЪТ ТРЯБВА ДА ТРЪГНЕ ПО СТАРИЯ ПЪТ.
             # Инак вграждането би пренасочило и старите ATP/WTA записи към
             # фийд, който не ги знае — тоест би счупило работещото.
-            check("стар тенис запис НЕ минава през малкия тур",
-                  sport_result({"bucket": "tennis", "home": "Алкарас",
-                                "away": "Синер", "day": "1999-01-01",
-                                "pick": "1 · Алкарас"}) is None)
+            # 🔴 ТАЗИ ПРОВЕРКА ТВЪРДЕШЕ НЕЩО, КОЕТО НЕ ИЗПИТВАШЕ
+            # (поправено 25.08.2026). Дотук подаваше ден „1999-01-01" и
+            # чакаше None. Измерено с шпионин върху http_json днес: 6 заявки
+            # до ESPN, всяка с 0 събития — значи tennis_day не влизаше в
+            # тялото си нито веднъж. И по ДВАТА възможни пътя (през ESPN и
+            # през малкия тур) отговорът щеше да е None, тоест проверката не
+            # можеше да почервенее НИКОГА, каквото и да се счупи в
+            # разпределянето. Отгоре на това хабеше 6 мрежови заявки.
+            # Сега мачът СЪЩЕСТВУВА в подхвърленото табло и се мери накъде
+            # тръгва записът: старият — към ESPN, белязаният — към фийда.
+            _star_http2 = globals()["http_json"]
+            _PITANI2 = []
+
+            def _mreza2(url, timeout=25):
+                _PITANI2.append(url)
+                if "/tennis/atp/" in url and _TEN_YMD in url:
+                    return _TABLO_TENIS
+                return {"events": []}
+
+            globals()["http_json"] = _mreza2
+            _ten_days.clear()
+            try:
+                check("стар тенис запис минава през ESPN, не през малкия тур",
+                      _bez_grum(lambda: sport_result(
+                          {"bucket": "tennis", "home": "Алкарас",
+                           "away": "Синер", "day": _TEN_DEN,
+                           "pick": "1 · Алкарас"})) == (2, 0)
+                      and len(_PITANI2) > 0)
+                _dosega2 = len(_PITANI2)
+                check("запис с белег ITF изобщо НЕ пита ESPN",
+                      _bez_grum(lambda: sport_result(_i_rec("aaa22222")))
+                      == (1, 0) and len(_PITANI2) == _dosega2)
+            finally:
+                globals()["http_json"] = _star_http2
+                _ten_days.clear()
             check("без номер на мач малкият тур мълчи, а не гърми",
                   itf_result({"bucket": "tennis", "src": "itf"}) is None)
         finally:

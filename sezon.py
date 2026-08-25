@@ -22,11 +22,15 @@ THE GREEN ROOM — БУДИЛНИК ЗА ЗАТВОРЕНИТЕ СПОРТОВЕ
   3. Колко от тях Pinnacle вече котира — през СЪЩИЯ модул pinnacle.py, който
      ползва самият predictor, тоест числото е това, което ботът ще получи.
   4. Двата дефекта, които ще ухапят точно на 29.09 — вж. по-долу.
+  5. Гърми ли ЗАТВОРЕН спорт, който вече играе. (добавено 25.08.2026)
 
-🔴 ДЕФЕКТ 1 — hockey_fixtures не пази оригиналното име (измерено 19.08.2026)
-   `predictor.hockey_fixtures` връща `"extra": {}`. Търсенето на цена в
-   `predictor.py` (ред ~4501) чете `ex.get("home_en") or fx.get("home")` —
-   тоест пада върху ВЕЧЕ ПРЕВЕДЕНОТО име.
+✅ ДЕФЕКТ 1 — hockey_fixtures не пази оригиналното име (измерено 19.08.2026)
+   `predictor.hockey_fixtures` връщаше `"extra": {}`. Търсенето на цена в
+   `predictor.py` чете `ex.get("home_en") or fx.get("home")` — тоест падаше
+   върху ВЕЧЕ ПРЕВЕДЕНОТО име.
+   ✅ ОПРАВЕН МЕЖДУВРЕМЕННО. Измерено на живо 25.08.2026 (`python sezon.py`):
+   `hockey_fixtures пази home_en=Hurricanes`. Проверката остава — тя е
+   единственото, което ще забележи, ако някой го върне назад.
 
 🔴 ДЕФЕКТ 2 — „Rangers" -> „Рейнджърс" убива търсенето (измерено 19.08.2026)
    `BG_NAME` има „Rangers": „Рейнджърс" заради Глазгоу. НХЛ дава само прякора
@@ -36,6 +40,13 @@ THE GREEN ROOM — БУДИЛНИК ЗА ЗАТВОРЕНИТЕ СПОРТОВЕ
    „New York Rangers" — и не намираме нищо.
    ИЗМЕРЕНО: 1 от 32 отбора в НХЛ. Малко, но е точно отборът, за когото
    пишат най-много.
+   ⚠ ЖИВ, НО ВЕЧЕ НЕ СТРУВА ЦЕНИ (измерено 25.08.2026). Понеже дефект 1 е
+   оправен, `hockey_fixtures` подава `home_en` и преводът изобщо не се стига.
+   Симулацията с техния пазар върху първата седмица на НХЛ дава
+   „0 от 43 мача остават без цена" — беше цялата причина дефект 2 да е червен.
+   Тоест дефект 2 е зареден пистолет с празен пълнител: `bg_name` още го прави,
+   но пътят до цената вече не минава оттам. Не се маха — маха ли се дефект 1,
+   този пак почва да коства.
 
   python sezon.py             — будилникът (иска мрежа)
   python sezon.py --zhivo     — същото, но с подробностите
@@ -44,6 +55,7 @@ THE GREEN ROOM — БУДИЛНИК ЗА ЗАТВОРЕНИТЕ СПОРТОВЕ
 import datetime
 import gzip
 import json
+import os
 import sys
 import urllib.request
 import zlib
@@ -70,6 +82,109 @@ PIN_ID = {"amfootball": 15, "hockey": 19}
 # Тоест ключът за NCAA хокей ГО ИМА при тях — просто е празен през август.
 # „0 с цена" днес значи „рано", а не „никога". Точно тази разлика ни ухапа с
 # волейбола, където нулата беше вечна.
+
+# 🔑 КЛЮЧАЛКАТА, ПРОЧЕТЕНА ПРЕДИ ДА Я ПИПНЕМ (добавено 25.08.2026).
+# `zhivo()` по-долу прави `os.environ.setdefault("PREDICT_IZKL", "")`, за да
+# може да внесе predictor и да опипа хокейните функции. Страничният ефект: от
+# този миг нататък `predictor.IZKLYUCHENI` е ПРАЗНО и всеки, който го попита
+# „кой спорт е затворен", получава „никой". Тоест алармата, която пише
+# „затворен спорт играе днес", щеше да мълчи ВИНАГИ. Затова истинската
+# стойност се снима тук, при внасянето, преди пипането.
+_IZKL_PRI_STARTA = os.environ.get("PREDICT_IZKL")
+
+# 📌 ИЗМЕРЕНИТЕ ДАТИ НА ОТВАРЯНЕ (всичките пуснати на 25.08.2026).
+#
+# ЗАЩО ги има закован списък, щом файлът и без това пита живо: за да има с
+# КАКВО да се сравни живото. Здравният преглед (`zdrave.py`, KOGA_TRAGVA)
+# твърдеше „хокеят тръгва около 15.09" и „амер. футбол в началото на
+# септември". И двете са ПРЕДПОЛОЖЕНИЯ и двете се оказаха неверни:
+#   хокеят е 29.09 — 14 дни СЛЕД обявеното 15.09;
+#   колежанският футбол е 29.08 — 3 дни ПРЕДИ 1 септември,
+#   а НФЛ е 10.09 — 9 дни СЛЕД него. Тоест едната фраза „в началото на
+#   септември" покрива две дати, които се разминават помежду си с 12 дни,
+#   и бърка посоката и за двете.
+# Разминаване между закованото и живото се ПЕЧАТА при всяко пускане.
+#
+# „kosh" е кошът в predictor (`PREDICT_IZKL`). Пише се ИСТИНСКИЯТ кош дори за
+# спорт, който днес не е затворен — това е разликата между запис и украса.
+# NBA носи „basketball", а европейският футбол — „football"; днес и двата коша
+# са отворени, тоест `veche_v_sezon` мълчи за тях. Затвори ли някой утре
+# баскетбола, NBA се обажда САМА, без нито ред нова работа. Ако тук стоеше
+# None, редовете щяха да са коментар с кавички — четими, но неспособни да
+# гръмнат, а точно това ни ухапа с волейбола.
+#
+# „sigurno" False значи: числото е най-ранното В ПРОЗОРЕЦА, който съм гледал,
+# а не доказаното начало на сезона.
+OTVARYA = {
+    "nfl": {
+        "data": "2026-09-10", "kosh": "amfootball", "sigurno": True,
+        "izvor": "ESPN scoreboard nfl 25.08-20.10 (25.08.2026): 93 мача"
+                 " season.slug=regular-season, най-ранен 10.09 (1 мач, четвъртък);"
+                 " 16 предсезонни от 27.08 се режат. Ден по ден 01.09-14.09:"
+                 " 10.09=1, 11.09=1, 13.09=12. ESPN core nfl/seasons/2026/types:"
+                 " type=2 start=2026-09-06 — обявено, но ПРАЗНО до 10.09."},
+    "ncaaf": {
+        "data": "2026-08-29", "kosh": "amfootball", "sigurno": True,
+        "izvor": "ESPN scoreboard college-football 25.08-20.11 (25.08.2026):"
+                 " 763 мача regular-season, най-ранен 29.08 (7 мача), после"
+                 " 30.08=1, 03.09=6, 04.09=8, 05.09=60. Прозорецът 15.08-28.08"
+                 " върна 0 мача — а ESPN ДАВА минали мачове (същата заявка за"
+                 " Ла Лига 15.08-24.08 върна 16 броя state=post), значи нулата"
+                 " е истинска липса, не сляпо петно."},
+    "nhl": {
+        "data": "2026-09-29", "kosh": "hockey", "sigurno": True,
+        "izvor": "api-web.nhle.com/v1/schedule/now (25.08.2026):"
+                 " regularSeasonStartDate=2026-09-29, preSeasonStartDate=2026-09-19,"
+                 " regularSeasonEndDate=2027-04-10; gameWeek 29.09-05.10 носи 43"
+                 " мача, всичките gameType=2, петте на 29.09 са"
+                 " FLA@CAR, MTL@TOR, NYR@BOS, VAN@EDM, CHI@VGK."},
+    "ncaah": {
+        "data": "2026-10-02", "kosh": "hockey", "sigurno": True,
+        "izvor": "ESPN scoreboard mens-college-hockey 25.08-20.11 (25.08.2026):"
+                 " 342 мача regular-season, най-ранен 02.10."},
+    "ncaahw": {
+        "data": "2026-09-18", "kosh": "hockey", "sigurno": True,
+        "izvor": "ESPN scoreboard womens-college-hockey 25.08-20.11 (25.08.2026):"
+                 " 316 мача regular-season, най-ранен 18.09 — тоест жените"
+                 " отварят 11 дни ПРЕДИ НХЛ и 14 дни преди мъжкия колеж."},
+    "nba": {
+        "data": "2026-10-20", "kosh": "basketball", "sigurno": True,
+        "izvor": "ESPN core basketball/nba/seasons/2027/types (25.08.2026):"
+                 " type=1 Preseason 30.09-20.10, type=2 Regular Season"
+                 " 20.10.2026-12.04.2027. Scoreboard 25.08-20.11: 55 предсезонни"
+                 " от 03.10 и 235 редовни от 20.10. На 25.08: 0 мача."
+                 " НЕ Е ЗАТВОРЕН — просто е извън сезон."},
+    "evrofutbol": {
+        "data": "2026-08-15", "kosh": "football", "sigurno": False,
+        "izvor": "ESPN scoreboard soccer (25.08.2026). Прозорец 18.08-01.09:"
+                 " eng.1=20, esp.1=25, ita.1=20, ger.1=9, fra.1=18 мача."
+                 " Прозорец 15.08-24.08 за esp.1: 16 мача, ВСИЧКИТЕ state=post,"
+                 " най-ранен 15.08. Тоест европейският футбол ИГРАЕ СЕГА."
+                 " 🔴 15.08 е най-ранният В МОЯ ПРОЗОРЕЦ, не доказаното начало"
+                 " на сезона — не съм гледал по-назад. ESPN core дава"
+                 " startDate=2026-06-01 за eng.1, което е административно и"
+                 " безполезно. Затова sigurno=False. Важното число тук не е"
+                 " датата, а че кошът football (в predictor) НЕ Е затворен."},
+}
+
+
+def razcheti_izkl(raw):
+    """PREDICT_IZKL -> множеството затворени спортове. Копие на predictor.
+
+    ЗАЩО копие: `predictor.py` (редове 420-423, четени на 25.08.2026) прави
+    точно това — липсваща променлива значи закованото „hockey,amfootball",
+    а ПРАЗЕН низ значи „нищо не е затворено". Двете НЕ са едно и също и
+    точно тази разлика решава дали алармата има право да гърми.
+    """
+    if raw is None:
+        return {"hockey", "amfootball"}
+    return {s.strip().lower() for s in str(raw).split(",") if s.strip()}
+
+
+def zatvoreni_pri_starta():
+    """Кои спортове са били затворени, когато файлът се е внасял."""
+    return razcheti_izkl(_IZKL_PRI_STARTA)
+
 
 # Кой затворен спорт откъде се чете. Редът е редът на печатане.
 # „vazhen" значи: тази стая е обещана на читателя и празна карта се вижда.
@@ -227,6 +342,65 @@ def parse_nhl(j):
     return out
 
 
+def nhl_start(j):
+    """Обявеното от НХЛ начало на РЕДОВНИЯ сезон. -> „ГГГГ-ММ-ДД" или None.
+
+    🔴 КАПАНЪТ, ЗАРАДИ КОЙТО ФУНКЦИЯТА СЪЩЕСТВУВА (измерено 25.08.2026).
+    Първата мисъл е да се вземе `nextStartDate` — звучи точно като „кога
+    почва". Не е. Един и същ отговор на /schedule/now в този ден дава:
+        regularSeasonStartDate = 2026-09-29   <- вярното
+        nextStartDate          = 2026-10-06   <- следващата СЕДМИЦА
+        previousStartDate      = 2026-09-22
+        preSeasonStartDate     = 2026-09-19
+    `nextStartDate` е границата на съседната седмица от календара, не на
+    сезона. Взето ли беше то, будилникът щеше да закъснее СЕДЕМ ДНИ — и то
+    тихо, с права зелена карта, защото 06.10 е напълно правдоподобна дата
+    за начало на НХЛ. Затова се чете САМО regularSeasonStartDate, а
+    самопроверката подхвърля и двете полета наведнъж.
+    """
+    d = str(((j or {}).get("regularSeasonStartDate")) or "")[:10]
+    return d if len(d) == 10 else None
+
+
+def imena_na_den(j, den):
+    """Мачовете на ESPN за точно този ден — ИЗИГРАНИ ИЛИ НЕ. -> [„дом - гост"].
+
+    ЗАЩО не се ползва `parse_espn`: тя нарочно държи само неиграните („pre"),
+    защото будилникът гледа НАПРЕД. Алармата „затворен спорт играе ДНЕС"
+    пита обратното и трябва да гърми и в 23:00, когато мачът е свършил и
+    state вече е „post". Мерено с `parse_espn` алармата млъква точно в мига
+    на първия начален удар — тоест в деня, за който е направена.
+    Предсезонните пак падат: те не значат „сезонът е тръгнал".
+    """
+    out = []
+    for ev in ((j or {}).get("events") or []):
+        if str(ev.get("date") or "")[:10] != den:
+            continue
+        comps = ev.get("competitions") or []
+        comp = (comps[0] or {}) if comps else {}
+        if predsezonen(ev, comp):
+            continue
+        h, a = espn_sides(comp)
+        hn = str(((h or {}).get("team") or {}).get("displayName") or "")
+        an = str(((a or {}).get("team") or {}).get("displayName") or "")
+        out.append((hn + " - " + an) if (hn and an) else str(ev.get("name") or "мач"))
+    return out
+
+
+def nhl_imena_na_den(j, den):
+    """Мачовете на НХЛ за точно този ден — изиграни или не. Без предсезонните."""
+    out = []
+    for wk in ((j or {}).get("gameWeek") or []):
+        if str(wk.get("date") or "")[:10] != den:
+            continue
+        for gm in (wk.get("games") or []):
+            if gm.get("gameType") == 1:
+                continue
+            out.append(_nhl_ime(gm.get("homeTeam") or {}) + " - "
+                       + _nhl_ime(gm.get("awayTeam") or {}))
+    return out
+
+
 def _nhl_ime(t):
     """Пълното английско име на отбор от НХЛ, ако източникът го дава."""
     mesto = str(((t or {}).get("placeName") or {}).get("default") or "").strip()
@@ -238,26 +412,40 @@ def _nhl_ime(t):
 
 
 # ------------------------------------------------------------------ ЧЕТЕНЕ
-def vzemi_espn(sport, slug, ot, do):
-    """Всички неиграни срещи на една лига за цял период с ЕДНА заявка.
+def vzemi_espn(sport, slug, ot, do, dnes=None):
+    """Неиграните срещи за период + мачовете ДНЕС. -> (срещи, [днешни]).
 
     ЗАЩО с период: ESPN приема `dates=ГГГГММДД-ГГГГММДД`. Измерено 19.08.2026:
     един адрес върна 455 колежански мача за 57 дни. По ден щеше да са 57
     заявки за същото.
+
+    ЗАЩО двойка: днешните се вадят от СЪЩИЯ отговор (добавено 25.08.2026).
+    Алармата не струва нито една допълнителна заявка — иначе петте реда на
+    календара щяха да станат десет заявки вместо пет.
     """
     u = (ESPN + "/" + sport + "/" + slug + "/scoreboard?dates="
          + ot.strftime("%Y%m%d") + "-" + do.strftime("%Y%m%d") + "&limit=1000")
-    return parse_espn(_json(u))
+    j = _json(u)
+    return parse_espn(j), imena_na_den(j, (dnes or ot).isoformat())
 
 
-def vzemi_nhl(ot, do):
-    """Всички редовни мачове на НХЛ за период. Едно повикване носи седмица."""
-    out, d = [], ot
+def vzemi_nhl(ot, do, dnes=None):
+    """Редовните мачове на НХЛ за период. -> (срещи, [днешни], обявен_старт).
+
+    Едно повикване носи седмица. Обявеният старт се снема от първия отговор,
+    който изобщо го носи — нула допълнителни заявки.
+    """
+    out, d, dnesni, dekl = [], ot, set(), None
+    den = (dnes or ot).isoformat()
     while d <= do:
-        out += parse_nhl(_json(NHL + "/schedule/" + d.isoformat()))
+        j = _json(NHL + "/schedule/" + d.isoformat())
+        out += parse_nhl(j)
+        # застъпени седмици връщат един и същ мач два пъти — затова множество
+        dnesni |= set(nhl_imena_na_den(j, den))
+        dekl = dekl or nhl_start(j)
         d += datetime.timedelta(days=7)
     # едно и също име може да дойде от две застъпени седмици
-    return sorted(set(out))
+    return sorted(set(out)), sorted(dnesni), dekl
 
 
 # ------------------------------------------------------------------ СМЕТКА
@@ -329,6 +517,60 @@ def pin_horizont(kosh, pin):
     except ValueError:
         return None
     return (posl - datetime.date.today()).days
+
+
+def alarma_zatvoreni(kalendar, dnesni, zatvoreni):
+    """Кои ЗАТВОРЕНИ спортове играят ДНЕС. -> [(име, кош, [мачове])].
+
+    Това е алармата, поръчана на 25.08.2026. Гърми на ЖИВИ данни: не пита
+    календара кога СЕ ОЧАКВА да тръгне спортът, а източника има ли мач днес.
+    """
+    out = []
+    for sp in kalendar:
+        if sp.get("kosh") not in zatvoreni:
+            continue
+        m = sorted(dnesni.get(sp.get("kod")) or [])
+        if m:
+            out.append((sp.get("ime"), sp.get("kosh"), m))
+    return out
+
+
+def veche_v_sezon(zatvoreni, dnes):
+    """Кой ЗАТВОРЕН спорт вече Е в сезон според ИЗМЕРЕНИТЕ дати. -> [(код, дата)].
+
+    ЗАЩО ВТОРА аларма, щом първата гледа живо: първата зависи от това
+    източникът да проговори. Замълчи ли (403, срив, празен отговор), тя дава
+    нула и мълчанието изглежда точно като спокойствие — грешката, която вече
+    е правена в този файл с НХЛ. Тази втора не пита никого: датата е закована
+    и календарът просто минава покрай нея. За да млъкне и тя, трябва някой да
+    изтрие числото — тоест нарочно, не случайно.
+    """
+    out = []
+    for kod in sorted(OTVARYA):
+        r = OTVARYA[kod] or {}
+        if r.get("kosh") and r.get("kosh") in zatvoreni and str(r.get("data")) <= str(dnes):
+            out.append((kod, r.get("data")))
+    return out
+
+
+def sverka_data(kod, izmereno):
+    """Живото съвпада ли със закованото. -> (наред, текст). None = не знам.
+
+    ЗАЩО не се съди с падащ тест: датите на лигите мърдат по устройство
+    (НХЛ мести старта, колежът добавя мач в чужбина). Тест, който червенее
+    при местене, учи хората да го заобикалят. Затова разминаването се ПЕЧАТА
+    на всяко пускане и остава на човек да реши.
+    """
+    r = OTVARYA.get(kod)
+    if not r:
+        return None, "няма закована дата за " + str(kod)
+    if not izmereno:
+        return None, "източникът не даде дата — закованото остава " + str(r.get("data"))
+    if str(izmereno) == str(r.get("data")):
+        dop = "" if r.get("sigurno") else " (закованото е ПРЕДПОЛОЖЕНИЕ)"
+        return True, "закованото " + _bg(r.get("data")) + " съвпада с живото" + dop
+    return False, ("закованото " + _bg(r.get("data")) + " РАЗМИНАВА с живото "
+                   + _bg(izmereno) + " — мерено 25.08.2026, провери източника")
 
 
 # --------------------------------------------------------------- ДЕФЕКТИТЕ
@@ -444,14 +686,16 @@ def zhivo(podrobno=False):
         hor[kosh] = pin_horizont(kosh, PIN)
 
     gotovi, hok_dni, hok_srechi = [], [], []
+    dnesni, nhl_dekl = {}, None
     for sp in KALENDAR:
         vid, sport, slug = sp["izvor"]
         provali_predi = _provali[0]
         if vid == "nhl":
-            srechi = vzemi_nhl(dnes, do)
+            srechi, dnes_m, nhl_dekl = vzemi_nhl(dnes, do, dnes)
             hok_dni = sorted({d for d, _h, _a in srechi})
         else:
-            srechi = vzemi_espn(sport, slug, dnes, do)
+            srechi, dnes_m = vzemi_espn(sport, slug, dnes, do, dnes)
+        dnesni[sp["kod"]] = dnes_m
         start = parvi_den(srechi)
         sedm = parva_sedmica(srechi, start)
         s_cena, bez = ceni_broi(sp["kosh"], sedm, PIN)
@@ -476,6 +720,11 @@ def zhivo(podrobno=False):
         print("%-24s тръгва %s · след %d дни" % (sp["ime"], _bg(start), ost))
         print("   първа седмица (%s-%s): %d мача · цена за %d (%.0f%%)"
               % (_bg(start), kraj.strftime("%d.%m"), len(sedm), s_cena, dyal))
+        sv_ok, sv_txt = sverka_data(sp["kod"], start)
+        print("   " + ("📌 " if sv_ok else ("⚠ " if sv_ok is None else "🔴 ")) + sv_txt)
+        if vid == "nhl" and nhl_dekl:
+            print("   НХЛ обявява regularSeasonStartDate=" + nhl_dekl
+                  + " · nextStartDate НЕ Е това (вж. nhl_start)")
         # Честната уговорка: нула цена за далечен мач не е липса на пазар.
         if s_cena == 0 and h is not None and ost > h:
             print("   ⏳ Pinnacle държи този спорт само %d дни напред — пазарът"
@@ -513,6 +762,29 @@ def zhivo(podrobno=False):
                 print("        · " + i)
     print("")
 
+    # --------- алармата: затворен спорт, който вече играе
+    zatv = zatvoreni_pri_starta()
+    trevoga = alarma_zatvoreni(KALENDAR, dnesni, zatv)
+    v_sezon = veche_v_sezon(zatv, dnes.isoformat())
+    print("⏰ ЗАТВОРЕН ЛИ Е СПОРТ, КОЙТО ВЕЧЕ ИГРАЕ?")
+    print("   ключалката държи: " + (", ".join(sorted(zatv)) if zatv else "нищо"))
+    for ime, kosh, m in trevoga:
+        print("   🔴🔴 ГЪРМИ · %s (%s) има %d мача ДНЕС, а стаята е затворена"
+              % (ime, kosh, len(m)))
+        for x in m[:4]:
+            print("        · " + x)
+    for kod, d in v_sezon:
+        print("   🔴 ГЪРМИ · %s е в сезон от %s по ИЗМЕРЕНАТА дата, а кошът"
+              " %s е затворен" % (kod, _bg(d), OTVARYA[kod]["kosh"]))
+    if not trevoga and not v_sezon:
+        naj_blizo = sorted((r["data"], k) for k, r in OTVARYA.items()
+                           if r.get("kosh") and r["kosh"] in zatv
+                           and str(r["data"]) > dnes.isoformat())
+        print("   не · нито един затворен спорт няма мач днес"
+              + ((" · пръв е %s на %s" % (naj_blizo[0][1], _bg(naj_blizo[0][0])))
+                 if naj_blizo else ""))
+    print("")
+
     # --------- заповедта
     print("🔓 КАК СЕ ОТВАРЯТ (пътят назад е една променлива)")
     print("   PREDICT_IZKL=\"\"                — връща и двата спорта")
@@ -528,7 +800,8 @@ def zhivo(podrobno=False):
           % (broi_zayavki(), broi_provali(), (PIN.broi_zayavki() if PIN else 0)))
     for z in _zashto:
         print("   провал: " + z)
-    return 0
+    # 2 значи „затворен спорт вече играе" — будилникът е свършил работата си.
+    return 2 if (trevoga or v_sezon) else 0
 
 
 # --------------------------------------------------------------- ПРОВЕРКИТЕ
@@ -579,6 +852,61 @@ _PROBA_NHL = {
 }
 
 
+# Отговорът на api-web.nhle.com/v1/schedule/now, свален на 25.08.2026 и
+# орязан. Четирите дати са ТОЧНО както ги върна източникът — това е капанът
+# от `nhl_start`, замразен, за да не може да се сбърка пак.
+_PROBA_NHL_SEGA = {
+    "regularSeasonStartDate": "2026-09-29",
+    "preSeasonStartDate": "2026-09-19",
+    "nextStartDate": "2026-10-06",
+    "previousStartDate": "2026-09-22",
+    "regularSeasonEndDate": "2027-04-10",
+    "gameWeek": [
+        {"date": "2026-09-29", "games": [
+            {"gameType": 2, "gameState": "FINAL",
+             "homeTeam": {"placeName": {"default": "Carolina"},
+                          "commonName": {"default": "Hurricanes"}},
+             "awayTeam": {"placeName": {"default": "Florida"},
+                          "commonName": {"default": "Panthers"}}},
+            {"gameType": 1, "gameState": "FUT",
+             "homeTeam": {"placeName": {"default": "Boston"},
+                          "commonName": {"default": "Bruins"}},
+             "awayTeam": {"placeName": {"default": "Buffalo"},
+                          "commonName": {"default": "Sabres"}}}]},
+        {"date": "2026-09-30", "games": [
+            {"gameType": 2, "gameState": "FUT",
+             "homeTeam": {"placeName": {"default": "Philadelphia"},
+                          "commonName": {"default": "Flyers"}},
+             "awayTeam": {"placeName": {"default": "Pittsburgh"},
+                          "commonName": {"default": "Penguins"}}}]},
+    ],
+}
+
+# Един ден от ESPN с ТРИ различни мача: изигран редовен, предсезонен и утрешен.
+# Изиграният е сърцето на пробата — точно него `parse_espn` изхвърля.
+_PROBA_ESPN_DNES = {
+    "events": [
+        {"date": "2026-08-29T16:00Z", "season": {"slug": "regular-season"},
+         "competitions": [{"status": {"type": {"state": "post"}},
+                           "competitors": [
+                               {"homeAway": "home",
+                                "team": {"displayName": "Ohio State Buckeyes"}},
+                               {"homeAway": "away",
+                                "team": {"displayName": "Texas Longhorns"}}]}]},
+        {"date": "2026-08-29T20:00Z", "season": {"slug": "preseason"},
+         "competitions": [{"status": {"type": {"state": "pre"}},
+                           "competitors": [
+                               {"homeAway": "home", "team": {"displayName": "Пре Дом"}},
+                               {"homeAway": "away", "team": {"displayName": "Пре Гост"}}]}]},
+        {"date": "2026-08-30T16:00Z", "season": {"slug": "regular-season"},
+         "competitions": [{"status": {"type": {"state": "pre"}},
+                           "competitors": [
+                               {"homeAway": "home", "team": {"displayName": "Утре Дом"}},
+                               {"homeAway": "away", "team": {"displayName": "Утре Гост"}}]}]},
+    ]
+}
+
+
 def selftest():
     ok, bad = 0, []
 
@@ -624,6 +952,133 @@ def selftest():
     check("без старт няма седмица", parva_sedmica(n, None) == [])
     check("боклук за дата не гърми",
           parva_sedmica([("нещо", "а", "б")], "2026-09-29") == [])
+
+    # --- 🔴 КАПАНЪТ nextStartDate (добавено 25.08.2026)
+    # Пробата носи ЧЕТИРИ дати наведнъж, защото сбъркването им е безшумно:
+    # всяка от тях е правдоподобно „начало на НХЛ".
+    check("НХЛ: стартът е regularSeasonStartDate",
+          nhl_start(_PROBA_NHL_SEGA) == "2026-09-29")
+    check("🔴 НХЛ: стартът НЕ Е nextStartDate (щеше да закъснее 7 дни)",
+          nhl_start(_PROBA_NHL_SEGA) != _PROBA_NHL_SEGA["nextStartDate"])
+    check("🔴 НХЛ: стартът НЕ Е preSeasonStartDate (щеше да подрани 10 дни)",
+          nhl_start(_PROBA_NHL_SEGA) != _PROBA_NHL_SEGA["preSeasonStartDate"])
+    check("НХЛ: стартът НЕ Е previousStartDate",
+          nhl_start(_PROBA_NHL_SEGA) != _PROBA_NHL_SEGA["previousStartDate"])
+    check("НХЛ: без поле няма старт",
+          nhl_start({}) is None and nhl_start(None) is None)
+    check("НХЛ: пресечена дата не минава за старт",
+          nhl_start({"regularSeasonStartDate": "2026"}) is None)
+
+    # --- мачовете ДНЕС (основата на алармата)
+    d0 = "2026-08-29"
+    dn = imena_na_den(_PROBA_ESPN_DNES, d0)
+    check("ДНЕС: изиграният мач СЕ БРОИ", dn == ["Ohio State Buckeyes - Texas Longhorns"])
+    # 🔴 Без тази проверка новата функция може тихо да е втори `parse_espn`.
+    check("🔴 ДНЕС: `parse_espn` НЕ го вижда — двете мерят различно",
+          all("Ohio State" not in x[1] for x in parse_espn(_PROBA_ESPN_DNES)))
+    check("ДНЕС: предсезонният не се брои за сезон",
+          all("Пре" not in x for x in dn))
+    check("ДНЕС: утрешният не е днешен", all("Утре" not in x for x in dn))
+    check("ДНЕС: чужд ден дава празно", imena_na_den(_PROBA_ESPN_DNES, "2026-09-09") == [])
+    check("ДНЕС: празният вход не гърми",
+          imena_na_den(None, d0) == [] and imena_na_den({}, d0) == [])
+
+    hn = nhl_imena_na_den(_PROBA_NHL_SEGA, "2026-09-29")
+    check("ДНЕС/НХЛ: изиграният (FINAL) СЕ БРОИ",
+          hn == ["Carolina Hurricanes - Florida Panthers"])
+    check("ДНЕС/НХЛ: предсезонният (gameType 1) не се брои",
+          all("Bruins" not in x for x in hn))
+    check("ДНЕС/НХЛ: чужд ден дава празно",
+          nhl_imena_na_den(_PROBA_NHL_SEGA, "2026-10-06") == [])
+    check("ДНЕС/НХЛ: празният вход не гърми",
+          nhl_imena_na_den(None, d0) == [] and nhl_imena_na_den({}, d0) == [])
+
+    # --- ключалката: липсваща променлива и празна променлива НЕ са едно
+    check("ключалка: липсваща променлива = закованото в predictor",
+          razcheti_izkl(None) == {"hockey", "amfootball"})
+    check("🔴 ключалка: ПРАЗЕН низ = нищо затворено (не е същото като липсваща)",
+          razcheti_izkl("") == set())
+    check("ключалка: един спорт", razcheti_izkl("hockey") == {"hockey"})
+    check("ключалка: интервали и главни букви се търпят",
+          razcheti_izkl(" Hockey , AmFootball ") == {"hockey", "amfootball"})
+
+    # --- 🔔 АЛАРМАТА: затворен спорт с мач ДНЕС
+    tr = alarma_zatvoreni(KALENDAR, {"ncaaf": ["A - B", "C - D"]}, {"amfootball"})
+    check("🔔 АЛАРМА: затворен спорт с мач днес ГЪРМИ", len(tr) == 1)
+    check("🔔 АЛАРМА: носи и самите мачове, не само брой",
+          tr and tr[0][2] == ["A - B", "C - D"] and tr[0][1] == "amfootball")
+    check("АЛАРМА: отворен спорт с мач днес МЪЛЧИ",
+          alarma_zatvoreni(KALENDAR, {"ncaaf": ["A - B"]}, set()) == [])
+    check("АЛАРМА: затворен спорт БЕЗ мач днес мълчи",
+          alarma_zatvoreni(KALENDAR, {}, {"amfootball", "hockey"}) == [])
+    check("АЛАРМА: чужд кош не гърми (хокей играе, но е отворен)",
+          alarma_zatvoreni(KALENDAR, {"nhl": ["X - Y"]}, {"amfootball"}) == [])
+    check("АЛАРМА: празен списък мачове не се брои за мач",
+          alarma_zatvoreni(KALENDAR, {"nhl": []}, {"hockey"}) == [])
+
+    # --- втората аларма: по ИЗМЕРЕНАТА дата, без да пита никого
+    check("дата-аларма: на 25.08 колежанският футбол ОЩЕ не е в сезон",
+          ("ncaaf", "2026-08-29") not in veche_v_sezon({"amfootball"}, "2026-08-25"))
+    check("🔔 дата-аларма: на 29.08 колежанският футбол ГЪРМИ",
+          ("ncaaf", "2026-08-29") in veche_v_sezon({"amfootball"}, "2026-08-29"))
+    check("дата-аларма: на 29.09 хокеят ГЪРМИ",
+          ("nhl", "2026-09-29") in veche_v_sezon({"hockey"}, "2026-09-29"))
+    # 🔴 ТУК СБЪРКАХ АЗ, НЕ КОДЪТ (25.08.2026). Написах „на 28.09 хокеят още
+    # мълчи" по памет — че хокеят значи НХЛ. Проверката падна и ме прати да
+    # погледна: NCAA хокей за ЖЕНИ отваря на 18.09, ЕДИНАЙСЕТ дни преди НХЛ,
+    # и е в същия кош „hockey". Тоест кошът е в сезон от 18.09, а не от 29.09.
+    # Числото не е от паметта ми: ESPN womens-college-hockey, прозорец
+    # 25.08-20.11, 316 мача regular-season, най-ранен 18.09.
+    # За СТАИТЕ това още не значи карти — `predictor` няма такъв източник
+    # (виж бележката при ncaahw в КАЛЕНДАРА). Затова редът е vazhen=False,
+    # но датата остава закована: кошът отваря тогава.
+    check("дата-аларма: на 17.09 целият кош хокей още мълчи",
+          veche_v_sezon({"hockey"}, "2026-09-17") == [])
+    check("🔴 дата-аларма: на 18.09 жените отварят коша ПРЕДИ НХЛ",
+          veche_v_sezon({"hockey"}, "2026-09-18") == [("ncaahw", "2026-09-18")])
+    check("дата-аларма: на 29.09 в коша хокей вече има ДВА отворени спорта",
+          veche_v_sezon({"hockey"}, "2026-09-29")
+          == [("ncaahw", "2026-09-18"), ("nhl", "2026-09-29")])
+    check("дата-аларма: празна ключалка не гърми никога",
+          veche_v_sezon(set(), "2027-01-01") == [])
+    # 🔴 Това доказва, че редовете за NBA и евро футбола НЕ СА украса: щом
+    # кошът им попадне в ключалката, те се обаждат по същия път.
+    check("🔴 затвори ли се football, евро футболът се обажда САМ",
+          veche_v_sezon({"football"}, "2026-08-25") == [("evrofutbol", "2026-08-15")])
+    check("днес нито баскетболът, нито футболът са затворени -> мълчат",
+          veche_v_sezon({"hockey", "amfootball"}, "2026-08-25") == [])
+    check("затвори ли се basketball, NBA мълчи до 20.10 и гърми на 20.10",
+          veche_v_sezon({"basketball"}, "2026-10-19") == []
+          and veche_v_sezon({"basketball"}, "2026-10-20") == [("nba", "2026-10-20")])
+
+    # --- сверката закованото срещу живото
+    check("сверка: съвпадението е зелено", sverka_data("nhl", "2026-09-29")[0] is True)
+    check("сверка: разминаването е червено и носи ДВЕТЕ дати",
+          sverka_data("nhl", "2026-10-06")[0] is False
+          and "29.09" in sverka_data("nhl", "2026-10-06")[1]
+          and "06.10" in sverka_data("nhl", "2026-10-06")[1])
+    check("🔴 сверка: МЪЛЧАЩ източник е НЕ ЗНАМ, а не разминаване",
+          sverka_data("nhl", None)[0] is None)
+    check("сверка: непознат код е НЕ ЗНАМ", sverka_data("нещо", "2026-09-29")[0] is None)
+    check("сверка: несигурната дата се казва на глас",
+          "ПРЕДПОЛОЖЕНИЕ" in sverka_data("evrofutbol", "2026-08-15")[1])
+    check("сверка: сигурната дата НЕ се обявява за предположение",
+          "ПРЕДПОЛОЖЕНИЕ" not in sverka_data("nhl", "2026-09-29")[1])
+
+    # --- закованите дати: цялост
+    check("всеки ред от календара има закована дата",
+          all(s["kod"] in OTVARYA for s in KALENDAR))
+    check("всяка закована дата е истинска дата",
+          all(datetime.date.fromisoformat(r["data"]) for r in OTVARYA.values()))
+    check("всяка закована дата носи източник с числа",
+          all(len(str(r.get("izvor") or "")) > 40 for r in OTVARYA.values()))
+    check("измереното 25.08.2026: НХЛ 29.09, НФЛ 10.09, колежът 29.08",
+          OTVARYA["nhl"]["data"] == "2026-09-29"
+          and OTVARYA["nfl"]["data"] == "2026-09-10"
+          and OTVARYA["ncaaf"]["data"] == "2026-08-29")
+    check("всеки кош в закованото е познат кош",
+          all(r["kosh"] in ("hockey", "amfootball", "basketball", "football")
+              for r in OTVARYA.values()))
 
     # --- имената на НХЛ
     check("името се сглобява от град и прякор",
@@ -746,7 +1201,10 @@ def selftest():
     check("седмицата е 7 дни", SEDMICA == 7)
     check("нула мрежа в цялата самопроверка", broi_zayavki() == 0)
     check("нула провалени заявки, щом няма заявки", broi_provali() == 0)
-    check("броят проверки е поне 40", ok >= 40)
+    # Долна граница на БРОЯ: проверка, която тихо се самоизключи (върнат
+    # рано `if`, изяден блок), се вижда само тук. Числото е измереното на
+    # 25.08.2026 след добавянето на алармата — 50 стари + 39 нови.
+    check("броят проверки е поне 96", ok >= 96)
 
     print("САМОПРОВЕРКА НА SEZON: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:

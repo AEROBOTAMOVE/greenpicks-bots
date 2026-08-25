@@ -795,6 +795,30 @@ def load_state():
     return _empty_state()
 
 
+# ═══════════════════════════ 🔴 БРОЯЧ НА ИЗЛЕЗЛИТЕ КАРТИ (25.08.2026, задача 3)
+# ЗАЩО. Зелен рън + нула изпратени карти изглеждаше ТОЧНО като зелен рън с
+# карти. Отказът се изричаше само с print в дневника на Actions, който отвън е
+# недостъпен — виж „черната кутия" по-долу. Видяно в самата самопроверка:
+# „ОТКАЗ: в текста се промъкна забранена дума — не пращам." Такава карта се
+# губеше МЪЛЧАЛИВО и рънът оставаше зелен.
+#
+# Тук се само ЗАПИСВА. Тревогата я вдига друг файл — това не е негова работа.
+# Ключовете са на латиница нарочно: тефтерът се чете и от чужди инструменти.
+OTCHET = {"prateni": 0, "suho": 0, "otkazani": {}}
+
+
+def otkaz(prichina):
+    """Един отказ, по причина. Връща False, за да се пише на един ред."""
+    k = str(prichina)
+    OTCHET["otkazani"][k] = int(OTCHET["otkazani"].get(k) or 0) + 1
+    return False
+
+
+def otchet_sbor():
+    """Колко са отказите общо. Отделно от речника, за да не се брои на ръка."""
+    return sum(int(v or 0) for v in OTCHET["otkazani"].values())
+
+
 def save_state(state, now):
     """Пазим само последните дни — файлът не бива да расте вечно.
     Прозорецът е по-широк от хоризонта на събирането нарочно (виж
@@ -809,9 +833,17 @@ def save_state(state, now):
             # „diag" е черната кутия: колко срещи е видял ботът по спорт в
             # ПОСЛЕДНОТО пускане. Записва се тук, защото този файл се връща в
             # хранилището и се чете отвън — за разлика от дневника на GitHub.
+            # 🔴 „karti" (25.08.2026, задача 3): колко карти са ИЗЛЕЗЛИ наистина
+            # и колко са ОТКАЗАНИ, по причина. Стои до „diag", защото има същата
+            # съдба — този файл се връща в хранилището и се чете отвън.
             json.dump({"v": 1, "posted": posted,
                        "diag": {"koga": now.strftime("%Y-%m-%d %H:%M"),
-                                "sportove": DIAG}},
+                                "sportove": DIAG},
+                       "karti": {"koga": now.strftime("%Y-%m-%d %H:%M"),
+                                 "prateni": OTCHET["prateni"],
+                                 "suho": OTCHET["suho"],
+                                 "otkazani_sbor": otchet_sbor(),
+                                 "otkazani": dict(OTCHET["otkazani"])}},
                       f, ensure_ascii=False)
         os.replace(tmp, STATE_FILE)     # атомарно: убит рън не оставя счупен JSON
         return True
@@ -996,6 +1028,9 @@ def log_pick(an, now, combo=0):
         "pazar_izt": an.get("pazar_izt"),
         "pazar_sport": an.get("pazar_sport"),
         "pazar_liga": an.get("pazar_liga"),
+        # 🔴 25.08.2026. Без този ключ номерът на Pinnacle стига до паметта, но
+        # НЕ и до дневника — тоест оценителят пак няма как да вземе цената.
+        "pazar_obarnat": an.get("pazar_obarnat"),
         "p": round(float(an.get("p") or 0.0), 4),
         "stars": an.get("stars"),
         "sample": an.get("sample"),
@@ -1088,30 +1123,40 @@ def post_predict(text, thread_id=None):
     която да праща в канал.
     """
     tid = str(thread_id if thread_id is not None else PREDICT_THREAD).strip()
+    # 🔴 ВСЕКИ ИЗХОД ОТСЮДА СЕ БРОИ (25.08.2026, задача 3). Дотук всеки от
+    # петте отказа само се изричаше с print — тоест изчезваше заедно с дневника
+    # на Actions. Броенето е ТУК, защото това е единствената врата навън: сложен
+    # по-нагоре, броячът би пропуснал фишовете, тоталите и подписа.
     if tid in FORBIDDEN_THREADS:
         print("ОТКАЗ: стая " + tid + " е чужда (новини).")
-        return False
+        return otkaz("chuzhda_staya")
     if tid not in ALLOWED_THREADS:
         print("ОТКАЗ: стая " + tid + " не е в разрешените ("
               + ", ".join(sorted(ALLOWED_THREADS)) + ").")
-        return False
+        return otkaz("nerazreshena_staya")
     if not tid.isdigit() or int(tid) <= 1:
         print("WARN: невалиден thread id " + tid + " — не пращам.")
-        return False
+        return otkaz("nevaliden_id")
     bad = banned_word(text)
     if bad:
         print("ОТКАЗ: в текста се промъкна забранена дума (" + bad + ") — не пращам.")
-        return False
+        return otkaz("zabranena_duma")
     body = clip(text)
     if DRY_RUN:
         print(RULE)
         print(body)
         print(RULE)
+        # Сухото пускане се брои ОТДЕЛНО. Слее ли се с „prateni", тефтерът щеше
+        # да твърди, че са излезли карти, при положение че нищо не е пратено.
+        OTCHET["suho"] += 1
         return True
     if not CHAT_ID or not BOT_TOKEN:
         print("Няма BOT_TOKEN/CHAT_ID — пропускам.")
-        return False
-    return tg_send(body, tid)
+        return otkaz("bez_token")
+    if tg_send(body, tid):
+        OTCHET["prateni"] += 1
+        return True
+    return otkaz("telegram")
 
 
 # ---------------------------------------------------------------- МАТЕМАТИКА (на ръка)
@@ -5181,6 +5226,16 @@ def dobavi_pazar(an):
     # източник беше написан, вързан и НЕДОСТИЖИМ. Видя се само в сухо
     # пускане: четири карти с цена, четирите тенис-карти без.
     dom = gost = raven = None
+    # 🔴 ЗАДАЧА 1 (25.08.2026): ПОСТРОЕН ДВИГАТЕЛ, КОЙТО НЕ БЕШЕ ВКЛЮЧЕН.
+    # pinnacle.nomer_strana() съществува от 21.08 и никой не я викаше. Измерено
+    # в живия дневник (predict_log.json, sha a78efaf1, 737 записа, свален през
+    # api.github.com — raw кешира): 73 от 73 записа с pazar_izt="pinnacle" стоят
+    # с pazar_ev=null. Тоест тенисът — най-силният ни спорт — няма НИТО ЕДНА
+    # затваряща цена, значи нула CLV, а CLV е мярката, която дава отговор за 2
+    # дни вместо за 36.
+    # Цената: измерена ЖИВО днес с шпионин върху urllib.request.urlopen —
+    # nomer_strana след ceni_za прави 0 ДОПЪЛНИТЕЛНИ заявки (същият кеш).
+    pin_mid, pin_obarnat = None, False
     try:
         if not (sport and slug):
             pass                          # ESPN няма адрес — минаваме нататък
@@ -5225,6 +5280,18 @@ def dobavi_pazar(an):
                 if dom or gost:
                     izt = "pinnacle"
                     sport = _b            # маржът се маха по НАШЕТО име
+                    # Номерът се хваща ТУК, а не по-долу, защото само тук _d и
+                    # _g със сигурност съществуват. Долу те може да са
+                    # недефинирани и обръщението към тях би вдигнало NameError.
+                    # getattr: файлът не бива да гърми при по-стар pinnacle.py.
+                    _ns = getattr(PIN, "nomer_strana", None)
+                    if _ns is not None:
+                        try:
+                            _mid, _ob = _ns(_b, _d, _g)
+                            if _mid:
+                                pin_mid, pin_obarnat = str(_mid), bool(_ob)
+                        except Exception:                    # noqa: BLE001
+                            pass
         except Exception:                                    # noqa: BLE001
             pass
     # 🔴 ТРЕТИЯТ ИЗТОЧНИК — САМО ЗА ВОЛЕЙБОЛ (19.08.2026).
@@ -5314,17 +5381,54 @@ def dobavi_pazar(an):
                         an["why"] = ["числото е претеглено с пазарното"]
                 else:
                     an["p"] = _sm
+            # 🔴 ЗАДАЧА 2 (25.08.2026). ПРАГЪТ СЕ ПРИЛАГАШЕ ПРЕДИ ТОВА МЯСТО.
+            # Долната граница се мери на ред ~6191 (`_prag = dolen_prag(...)`),
+            # а dobavi_pazar се вика чак на ~6253 — тоест картата минаваше летвата
+            # с НАШЕТО число и излизаше с ПАЗАРНОТО, което вече никой не мереше.
+            # А теглото в sglasie е 0.00, значи пазарното ЗАМЕСТВА нашето изцяло.
+            #
+            # ИЗМЕРЕНО на живия дневник (predict_log.json, sha a78efaf1, 737
+            # записа): от 232 карти с двете числа, 54 биха излезли ПОД своя праг
+            # след смесването — 28 футбол, 13 бейзбол, 8 баскетбол, 4 тенис,
+            # 1 волейбол. Най-лошата: футболна карта с наше 49.2%, пазарно 11.6%
+            # → на картата щеше да пише „11.6%". Изречение, което само се
+            # опровергава — точно това, срещу което прагът е направен.
+            #
+            # Огледалото спасява ДВУИЗХОДНИТЕ спортове (там 1−p е валиден избор),
+            # но футболът има три изхода и няма огледало — затова 28 от 54 са
+            # футбол.
+            #
+            # Тук само се ОТБЕЛЯЗВА. Изхвърлянето става там, където се брои —
+            # инак числото пак би изчезнало мълчаливо.
+            an["pod_prag_sled_pazar"] = (
+                float(an.get("p") or 0.0) < dolen_prag(an.get("bucket")))
         # Адресът за затварящата цена. Без него CLV не може да се смята — а
         # CLV е единственото доказателство за ръб, което работи при 20 залога.
         an["pazar_izt"] = izt
-        # Затварящата цена се взима от ESPN по номер. Pinnacle маха мача от
-        # витрината си, щом започне — за него затварящата иска ДРУГ подход
-        # (опресняване преди началото) и още не е направен. Казва се честно
-        # в дневника, вместо да се мълчи.
+        # Затварящата цена се взима от ESPN по номер.
+        # 🔴 И ОТ PINNACLE ВЕЧЕ (25.08.2026). Старият коментар тук твърдеше, че
+        # за Pinnacle „още не е направен" подход — това вече не е вярно:
+        # pazar.cena_zatvarayashta_pin(sport_key, mid, obarnat) съществува и
+        # чака точно тези три полета. „Затваряща" там значи „последната преди
+        # началото": Pinnacle маха мача в мига на старта и след това връща
+        # празно, тоест нищо не се презаписва.
         if izt == "espn" and ev_id:
             an["pazar_ev"] = str(ev_id)
             an["pazar_sport"] = str(sport)
             an["pazar_liga"] = str(slug)
+        elif izt == "pinnacle" and pin_mid:
+            # pazar.pat_do_zatvaryane() чете ИМЕННО pazar_ev + pazar_izt, а
+            # спортът пада назад към bucket. Затова се пише и pazar_sport —
+            # инак пътят се съди по чужд ключ.
+            an["pazar_ev"] = pin_mid
+            an["pazar_sport"] = str(sport)
+            # 🔴 ДВЕ РАЗЛИЧНИ „ОБЪРНАТИ" — ДА НЕ СЕ БЪРКАТ.
+            # `obarnata` (без наставка) значи: НИЕ обърнахме избора си на другия
+            # изход, защото сместа с пазара мина 50%.
+            # `pazar_obarnat` значи: PINNACLE държи нашия домакин като гост.
+            # Второто е свойство на чуждата витрина и НЕ се мени, ако първото
+            # се случи — cena_zatvarayashta_pin връща страните в НАШИЯ ред.
+            an["pazar_obarnat"] = bool(pin_obarnat)
         # Непълен набор → `pazar_p` НЕ се записва изобщо. По-добре кантарът да
         # мълчи, отколкото да мери с крив аршин. Цената на картата остава.
     return an
@@ -6289,6 +6393,44 @@ def run():
             persist(state, now)
             return
 
+    # 🔴 ВТОРОТО МИНАВАНЕ ПРЕЗ ЛЕТВАТА (25.08.2026, задача 2).
+    # Първото е на ред ~6191 и съди НАШЕТО число. След dobavi_pazar числото на
+    # картата вече е ПАЗАРНОТО (теглото в sglasie е 0.00) — тоест летвата,
+    # премерена веднъж, е премерена върху число, което после се е сменило.
+    # Тук се мери онова, което НАИСТИНА ще пише на картата.
+    #
+    # НУЛА НОВИ ЗАЯВКИ: знамето е сложено вътре в dobavi_pazar, който вече е
+    # минал по всички кандидати десет реда по-горе. Тук само се чете.
+    #
+    # ЧЕСТНО ЗА ГРАНИЦАТА: при PREDICT_ISKAM_PAZAR=0 (пътят назад) dobavi_pazar
+    # не е викан дотук, знамето липсва и това отсяване е празно. Затова има и
+    # ВТОРА врата — в самия цикъл на пращането, малко по-долу.
+    _pod2 = [a for a in cands if a.get("pod_prag_sled_pazar")]
+    if _pod2:
+        _ps2 = {}
+        for a in _pod2:
+            _b2 = a.get("bucket") or "?"
+            _ps2[_b2] = _ps2.get(_b2, 0) + 1
+        cands = [a for a in cands if not a.get("pod_prag_sled_pazar")]
+        for _ in _pod2:
+            otkaz("pod_prag_sled_pazar")
+        print("   ✖ под прага СЛЕД пазарното число: " + str(len(_pod2)) + " ("
+              + ", ".join(k + " " + str(v) for k, v in sorted(_ps2.items()))
+              + ") — минаха с нашето число, но пазарното ги връща под летвата.")
+        for _a in sorted(_pod2, key=lambda x: float(x.get("p") or 0.0))[:4]:
+            print("      • " + str((_a.get("fx") or {}).get("home"))[:18]
+                  + " - " + str((_a.get("fx") or {}).get("away"))[:16]
+                  + ": " + pct(_a.get("p")) + " (летва "
+                  + pct(dolen_prag(_a.get("bucket"))) + ")")
+    if not cands:
+        # Всички кандидати паднаха под летвата с пазарното число. Мълчим —
+        # заглавна карта с „0 прогнози" е по-лоша от нищо.
+        print("   🚫 нито един кандидат не остава над летвата с пазарното "
+              "число — мълча.")
+        maybe_footer(state, now, seen, thin, weak)
+        persist(state, now)
+        return
+
     # `now` влиза, за да може подборът да различи СПЕШНИТЕ мачове — тези, които
     # започват преди следващото пускане. За тях друг шанс няма.
     picks = choose(cands, min(MAX_PICKS, room), now, min(MAX_URGENT, room),
@@ -6318,6 +6460,19 @@ def run():
         time.sleep(SEND_GAP)
     for a in picks:
         dobavi_pazar(a)
+        # 🔴 ПОСЛЕДНАТА ВРАТА (25.08.2026, задача 2). Тази проверка изглежда
+        # излишна при обичайните настройки — отсяването десет реда по-горе вече
+        # е махнало същите карти. Тя е ЗА ПЪТЯ НАЗАД: при PREDICT_ISKAM_PAZAR=0
+        # dobavi_pazar се вика ПЪРВИ ПЪТ точно тук, знамето се вдига чак сега и
+        # горното отсяване е било празно. Без тази врата пътят назад връща
+        # дефекта тихо.
+        if a.get("pod_prag_sled_pazar"):
+            otkaz("pod_prag_sled_pazar")
+            print("   ✖ " + str((a.get("fx") or {}).get("home"))[:18] + " - "
+                  + str((a.get("fx") or {}).get("away"))[:16] + ": "
+                  + pct(a.get("p")) + " след пазарното число — под летвата "
+                  + pct(dolen_prag(a.get("bucket"))) + ", не излиза.")
+            continue
         txt = card(a, now)
         if post_predict(txt):
             mark_posted(state, a["fx"]["_key"], now)
@@ -6359,6 +6514,16 @@ def run():
                   + " заявки (таван на тениса: 40).")
         except Exception:                                    # noqa: BLE001
             pass
+    # 🔴 БРОЯЧЪТ НА ГЛАС (25.08.2026, задача 3). Числата вече са в тефтера
+    # (save_state → „karti"), но се казват и тук, за да се видят и в дневника.
+    _otk = otchet_sbor()
+    if _otk:
+        print("   📛 ОТКАЗАНИ карти: " + str(_otk) + " ("
+              + ", ".join(k + " " + str(v) for k, v in
+                          sorted(OTCHET["otkazani"].items())) + ")")
+    print("   📤 излезли наистина: " + str(OTCHET["prateni"])
+          + (" (+" + str(OTCHET["suho"]) + " сухи)" if OTCHET["suho"] else "")
+          + " · отказани: " + str(_otk))
     _tt = int(DIAG.get("totali") or 0)
     print("Готово: " + str(len(picks)) + " прогнози"
           + ((" + " + str(_tt) + " тотала") if _tt else "") + ", " + str(sent)

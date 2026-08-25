@@ -282,6 +282,92 @@ def _lokalen_yml(ime):
     return None
 
 
+# ═════════════════════════════════════════ МЪЛЧАНИЕТО НА ПРОДУКТА
+#
+# 🔴 ДУПКАТА, КОЯТО ВСИЧКИ ОСТАНАЛИ ПАЗАЧИ ПРОПУСКАТ (25.08.2026).
+#
+# Дотук този файл питаше: „успя ли workflow-ът". Това е машинен въпрос.
+# Продуктовият е друг: „ИЗЛЕЗЕ ЛИ НЕЩО".
+#
+# Двете се разминават. Видяно в самата самопроверка на предсказателя:
+#     ОТКАЗ: в текста се промъкна забранена дума (коеф) — не пращам.
+# Такава карта се изхвърля МЪЛЧАЛИВО, а рънът остава ЗЕЛЕН. Същото важи за
+# всяка друга причина да не се прати: празен източник, изядена от филтър,
+# капнал доставчик. Зелен рън + празна стая = никой не разбира.
+#
+# Това е точно шаблонът, който вече ни е коствал дни на друг проект:
+# будилникът питаше „пускан ли съм?", а не „пускан съм и нищо не излиза".
+#
+# ПРАГЪТ Е ИЗМЕРЕН, НЕ ИЗМИСЛЕН. Върху живия дневник, 180 истински паузи
+# между съседни пускания на карти:
+#     медиана 1.2 ч · 90-и персентил 9.7 ч · МАКСИМУМ 20.0 ч
+#     над 12 ч: 6 пъти (3.3%) · над 18 ч: 1 път · над 24 ч: НИТО ВЕДНЪЖ
+# Затова 22 часа: над всичко наблюдавано, тоест НУЛА фалшиви тревоги върху
+# 180 измервания, и под едно денонощие, тоест цял ням ден пак гърми.
+# По-нисък праг би викал напразно — а пазач, когото пренебрегват, не е пазач.
+TISHINA_CH = max(4.0, min(72.0, float(
+    (os.environ.get("PAZACH_TISHINA") or "22").strip() or 22)))
+
+# Дневникът пише часа по БЪЛГАРСКО време, а тук всичко върви по UTC. Разликата
+# е +3 през лятото. Не се преструвам, че я знам точно за всяка дата: при праг
+# от 22 часа три часа наклон не местят присъдата, и това е записано, за да не
+# се приеме после за точност, каквато няма.
+BG_NAKLON_CH = 3.0
+
+
+def posledna_karta(dnevnik):
+    """Часът на най-скоро пуснатата карта, в UTC. None, ако не знам.
+
+    Чете полето `posted` („2026-08-25 10:36"). Записи без него се пропускат —
+    те са от преди полето да съществува и мълчанието им не е новина.
+    """
+    nay = None
+    for zapis in (dnevnik or []):
+        if not isinstance(zapis, dict):
+            continue
+        s = str(zapis.get("posted") or "").strip()
+        if not s:
+            continue
+        try:
+            t = datetime.strptime(s[:16], "%Y-%m-%d %H:%M")
+        except (ValueError, TypeError):
+            continue
+        t = t.replace(tzinfo=timezone.utc) - timedelta(hours=BG_NAKLON_CH)
+        if nay is None or t > nay:
+            nay = t
+    return nay
+
+
+def tiho_li(posl, sega=None, prag=None):
+    """(тихо_ли, текст). Тихо значи: продуктът мълчи по-дълго от допустимото.
+
+    🔴 НЕ ЗНАМ НЕ Е НАРЕД. Липсва ли дневник или час, това само по себе си е
+    повод да се каже на глас — не да се приеме за спокойствие.
+    """
+    sega = sega or _sega()
+    prag = TISHINA_CH if prag is None else float(prag)
+    if posl is None:
+        return (True, "не можах да разбера кога е пусната последната карта")
+    chasove = (sega - posl).total_seconds() / 3600.0
+    if chasove > prag:
+        return (True, "нито една нова карта от %.0f ч (допустимо до %.0f ч)"
+                % (chasove, prag))
+    return (False, "последна карта преди %.1f ч" % chasove)
+
+
+def dnevnik_ot_github():
+    """Живият дневник. None при какъвто и да е отказ — НЕ празен списък."""
+    j = _api("contents/predict_log.json?ref=main")
+    if j is NEPITAN or not isinstance(j, dict):
+        return None
+    try:
+        import base64
+        return json.loads(base64.b64decode(j.get("content") or "")
+                          .decode("utf-8-sig"))
+    except Exception:                                        # noqa: BLE001
+        return None
+
+
 # ═════════════════════════════════════════ ПРИСЪДАТА
 def sadi(ime, opis, rr, dopusk, sega=None):
     """(състояние, текст) за един workflow.
@@ -444,7 +530,7 @@ def obhod(chetec=None, pitach=None, sega=None):
     return cherveni, mulchat, neyasni, naredni
 
 
-def reshi(cherveni, mulchat, neyasni, slepi_predi=0):
+def reshi(cherveni, mulchat, neyasni, slepi_predi=0, tishina=None):
     """(спешни, брояч_слепота, всички_слепи). Без мрежа, без файлове.
 
     Отделена от main() на 25.08.2026, защото поправката ѝ трябваше да може да
@@ -457,6 +543,10 @@ def reshi(cherveni, mulchat, neyasni, slepi_predi=0):
     vsichki_slepi = len(neyasni) >= len(VAZHNI) > 0
     slepi = (int(slepi_predi or 0) + 1) if neyasni else 0
     speshni = cherveni + mulchat
+    # Мълчанието на ПРОДУКТА влиза наравно със счупеното на машината: и двете
+    # значат, че на читателя не му излиза нищо.
+    if tishina:
+        speshni = speshni + [str(tishina)]
     if vsichki_slepi:
         speshni = speshni + ["пазачът НЕ ВИЖДА НИЩО — нито един от "
                              + str(len(VAZHNI))
@@ -481,9 +571,22 @@ def main():
             for t in red:
                 print("      " + t)
 
+    # Мълчанието на продукта — питане номер седем, след шестте за workflow-ите.
+    _tih = None
+    _dn = dnevnik_ot_github()
+    if _dn is None:
+        _tih = "не можах да прочета дневника, за да видя излиза ли нещо"
+    else:
+        _t, _txt = tiho_li(posledna_karta(_dn), sega)
+        print("")
+        print("   продуктът: " + _txt)
+        if _t:
+            _tih = "предсказателят е зелен, но " + _txt
+
     sast = cheti_sastoyanie()
     speshni, slepi, vsichki_slepi = reshi(cherveni, mulchat, neyasni,
-                                          int(sast.get("slepi_podred") or 0))
+                                          int(sast.get("slepi_podred") or 0),
+                                          _tih)
     sast["slepi_podred"] = slepi
     # 🔴 ТРИ ДЕФЕКТА В ТОЗИ БЛОК, НАМЕРЕНИ ОТ ЛОВ НА СЪЩИЯ ДЕН (25.08.2026).
     # Написах файла срещу „тих отказ, който се чете като наред" — и оставих
@@ -522,7 +625,7 @@ def main():
         pishi_sastoyanie(sast)
         return 1
 
-    t = tekst_trevoga(cherveni, mulchat,
+    t = tekst_trevoga(cherveni, mulchat + ([_tih] if _tih else []),
                       neyasni if (vsichki_slepi or slepi >= SLEPI_PODRED)
                       else [], sega)
     if tg_send(t):
@@ -691,6 +794,69 @@ def selftest():
     # нула неясни и обходът ще изглежда чист при пълна слепота.
     check("пълната слепота дава САМО неясни",
           len(n) == len(VAZHNI) and not c and not m and not nr)
+
+    # ------------------------- МЪЛЧАНИЕТО НА ПРОДУКТА (25.08.2026)
+    _T = datetime(2026, 8, 25, 12, 0, tzinfo=timezone.utc)
+
+    def _k(chas):
+        return {"posted": chas}
+
+    check("намира най-скорошната карта",
+          posledna_karta([_k("2026-08-24 10:00"), _k("2026-08-25 09:00"),
+                          _k("2026-08-23 20:00")])
+          == datetime(2026, 8, 25, 6, 0, tzinfo=timezone.utc))
+    check("записи без час се пропускат",
+          posledna_karta([{"day": "2026-08-25"}, _k("2026-08-25 09:00")])
+          is not None)
+    check("боклучав час не гърми", posledna_karta([_k("абв")]) is None)
+    check("празен дневник не дава час", posledna_karta([]) is None)
+    check("None не гърми", posledna_karta(None) is None)
+
+    check("прясната карта НЕ е мълчание",
+          not tiho_li(datetime(2026, 8, 25, 9, 0, tzinfo=timezone.utc), _T)[0])
+    check("денонощие мълчание Е тревога",
+          tiho_li(datetime(2026, 8, 24, 8, 0, tzinfo=timezone.utc), _T)[0])
+    check("и се казва с часове",
+          " ч (допустимо до" in tiho_li(
+              datetime(2026, 8, 24, 8, 0, tzinfo=timezone.utc), _T)[1])
+    # 🔴 ГЛАВНАТА: „не знам" НЕ Е „наред".
+    check("липсващият час е тревога, не спокойствие", tiho_li(None, _T)[0])
+    check("прагът е над наблюдавания максимум от 20 ч", TISHINA_CH >= 21.0)
+    check("прагът е под денонощие", TISHINA_CH <= 24.0)
+
+    # 🔴 ДОГОВОРЪТ НА ЧЕТЕЦА. Мутация показа, че `return []` вместо `return
+    # None` при отказ ОЦЕЛЯВА — защото празният списък пак стига до „не знам"
+    # и пак вдига тревога. Тоест днес е безобидно. НО договорът пак се
+    # заключва: следващият, който напише `if not _dn: продължавай тихо`, ще
+    # възкреси точно шаблона, срещу който е построен целият файл.
+    # Изпитва се ПРОИЗХОДЪТ, не само употребата — същият урок, платен два пъти.
+    _st_api = globals()["_api"]
+    try:
+        globals()["_api"] = lambda p, timeout=30: NEPITAN
+        check("отказът дава None, НЕ празен списък",
+              dnevnik_ot_github() is None)
+        globals()["_api"] = lambda p, timeout=30: {"content": ""}
+        check("празно съдържание дава None", dnevnik_ot_github() is None)
+        globals()["_api"] = lambda p, timeout=30: ["не е речник"]
+        check("отговор с грешна форма дава None", dnevnik_ot_github() is None)
+        import base64 as _b64
+        globals()["_api"] = lambda p, timeout=30: {
+            "content": _b64.b64encode(b'[{"posted": "2026-08-25 09:00"}]').decode()}
+        _d = dnevnik_ot_github()
+        check("истинският отговор дава списък",
+              isinstance(_d, list) and len(_d) == 1)
+    finally:
+        globals()["_api"] = _st_api
+    check("_api се върна както си беше", globals()["_api"] is _st_api)
+
+    # Мълчанието влиза в спешните наравно със счупеното.
+    _sp, _sl, _vsl = reshi([], [], [], 0, "продуктът мълчи")
+    check("мълчанието само по себе си вдига тревога", len(_sp) == 1)
+    check("и текстът му стига дотам", "мълчи" in " ".join(_sp))
+    _sp2, _, _ = reshi(["а.yml — счупено"], [], [], 0, "продуктът мълчи")
+    check("мълчанието се добавя КЪМ счупеното", len(_sp2) == 2)
+    _sp3, _, _ = reshi([], [], [], 0, None)
+    check("без мълчание нищо не се добавя", not _sp3)
 
     # ------------------------- РЕШЕНИЕТО (добавено 25.08.2026 след лов)
     _vs = [str(i) + ".yml — не можах" for i in range(len(VAZHNI))]

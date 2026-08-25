@@ -417,6 +417,188 @@ def cena_zatvarayashta(sport_path, liga, ev_id):
     return rez
 
 
+# ============================== РАВНИЯТ ПРИ ЗАТВАРЯНЕ (25.08.2026)
+#
+# 🔴 ЧЕРВЕН ДЕФЕКТ: РАВНИЯТ НИКОГА НЕ ПОЛУЧАВАШЕ ЗАТВАРЯЩА ЦЕНА.
+#
+# `_cena_close` иска дял с ключ „close". Домакинът и гостът го имат, щом
+# книгата се затвори. РАВНИЯТ НЕ ГО ИМА НИКОГА — ESPN го дава само като плоско
+# американско число на върха: `drawOdds = {"moneyLine": 250.0}`, нищо друго.
+#
+# Измерено на живо 25.08.2026 върху 40 ЗАВЪРШЕНИ футболни мача (eng.1, esp.1,
+# ita.1, ger.1, fra.1, por.1 …):
+#   равният има собствен „close"        →   0 от 40
+#   равният е плоско американско число  →  40 от 40
+# Тоест `cena_zatvarayashta("soccer", "eng.1", "401879318")` връщаше
+# (3.7, 2.05, None) — два крака от три. Без третия сборът пада ПОД 1, а
+# `bez_marzh` нарочно отказва непълен набор → маржът НЕ СЕ МАХАШЕ при
+# затварянето и двойният шанс не се смяташе изобщо.
+#
+# 🔴 ЗАЩО ЧИСЛОТО СЕ ДАВА С ЕТИКЕТ, А НЕ МЪЛЧАЛИВО.
+# Това плоско число Е СЪЩОТО, което `cena_za` чете като ТЕКУЩА цена. Никъде не
+# пише, че е снимката от съдийския сигнал. Измерено същия ден обаче: при
+# завършен мач `current` СЪВПАДА с `close` 40 от 40 пъти и при домакина, и при
+# госта — тоест ESPN замразява текущата в мига на затварянето, и плоският
+# равен, прочетен СЛЕД края, е замразен в същия миг. „Значи" не е „доказано":
+# за самия равен няма втора снимка, с която да се сравни. Затова числото се
+# връща, но НОСИ КАКВО Е.
+#
+# 🔴 И ЕДНО ИЗМЕРВАНЕ, КОЕТО ОБОРИ АЛТЕРНАТИВАТА.
+# Възражението „close за двамата + снимка за равния дава несвързан набор, вземи
+# целия набор от Pinnacle" е проверено на същите 40 мача и ОТХВЪРЛЕНО:
+#   сбор 1/close_дом + 1/close_гост + 1/плосък_равен
+#     средно 1.0559, обхват [1.0407 .. 1.0903], 40 от 40 вътре в бандата
+# Това е точно измереният футболен обръч (18.08 мерено 1.0738). Смесеният
+# набор Е свързан — маржът върху него значи нещо.
+VID_CLOSE = "close"      # истинска затваряща снимка на ESPN
+VID_SNIMKA = "snimka"    # замразената текуща — НЕ се обявява за затваряща
+
+
+def _raven_snimka(dyal):
+    """Плоското американско число на върха. None, ако дялът има истински „close".
+
+    🔴 ОТДЕЛНА ФУНКЦИЯ, А НЕ РАЗХЛАБВАНЕ НА `_cena_close`. Ако тя падаше назад
+    към плоското число, мач, който ОЩЕ НЕ Е ЗАПОЧНАЛ, щеше да върне цена и
+    оценителят щеше да запише `pazar_close` преди затварянето — заковавайки
+    средата на деня като затваряща завинаги. Строгостта там пази дом и гост.
+    """
+    if not isinstance(dyal, dict):
+        return None
+    if isinstance(dyal.get("close"), dict):
+        return None                       # има истинска — тук не се месим
+    ml = dyal.get("moneyLine")
+    if isinstance(ml, dict):
+        return None                       # вложено значи друг път, не плоско
+    return _amerikanski(ml)
+
+
+def cena_zatvarayashta_vid(sport_path, liga, ev_id):
+    """((дом, гост, равен), (вид_дом, вид_гост, вид_равен)) при ЗАТВАРЯНЕ.
+
+    Видът е VID_CLOSE (истинска затваряща снимка) или VID_SNIMKA (замразената
+    текуща — единственото, което ESPN дава за равния). None срещу липсваща цена.
+
+    🔴 ЕТИКЕТЪТ Е ВЪРНАТА СТОЙНОСТ, НЕ РЕД В ДОКУМЕНТАЦИЯТА. Затова
+    `cena_zatvarayashta` остава непокътната: който иска равния при затваряне,
+    минава оттук и НЯМА КАК да не види, че третият крак е снимка. Етикет,
+    написан само в коментар, първият извикващ го подминава.
+
+    🔴 ПАЗАЧЪТ: снимката се дава САМО след като книгата е затворена — тоест
+    само ако домакинът или гостът вече имат истински „close". Преди старта тук
+    няма равен и записът остава без затваряща цена, вместо да получи цената от
+    средата на деня.
+    """
+    prazno = ((None, None, None), (None, None, None))
+    if not ev_id or not liga or sport_path not in IMA_PAZAR:
+        return prazno
+    kl = ("closevid", sport_path, liga, str(ev_id))
+    if kl in _kesh:
+        return _kesh[kl]
+    rez = prazno
+    j = _json("%s/%s/leagues/%s/events/%s/competitions/%s/odds"
+              % (CORE, sport_path, liga, ev_id, ev_id))
+    for x in ((j or {}).get("items") or []):
+        dom = _cena_close(x.get("homeTeamOdds"))
+        gost = _cena_close(x.get("awayTeamOdds"))
+        if not (dom or gost):
+            continue                      # книгата още не е затворена
+        raven, vid_r = _cena_close(x.get("drawOdds")), VID_CLOSE
+        if raven is None:
+            raven, vid_r = _raven_snimka(x.get("drawOdds")), VID_SNIMKA
+        rez = ((dom, gost, raven),
+               (VID_CLOSE if dom is not None else None,
+                VID_CLOSE if gost is not None else None,
+                vid_r if raven is not None else None))
+        break
+    _kesh[kl] = rez
+    return rez
+
+
+# ============================== ЗАТВАРЯЩАТА ОТ PINNACLE (25.08.2026)
+#
+# 🔴 73 КАРТИ БЕЗ НИТО ЕДИН ПЪТ ДО ЗАТВАРЯЩА ЦЕНА.
+# Сверено на живо в дневника на хранилището 25.08.2026 (predict_log.json,
+# sha db04f50, 737 записа):
+#   pazar_izt = "espn"      134 записа · 134 от тях с pazar_ev  → имат път
+#   pazar_izt = "pinnacle"   73 записа ·   0 от тях с pazar_ev  → НЯМАТ път
+#   pazar_izt = "vitrina"    20 записа                          → няма път
+# От 73-те без път: тенис 43, футбол 9, баскетбол 8, бейзбол 8, ММА 5. Тоест
+# най-силният ни спорт нямаше как да бъде измерен по CLV.
+#
+# 🔴 „ЗАТВАРЯЩА" ТУК ЗНАЧИ „ПОСЛЕДНАТА ПРЕДИ НАЧАЛОТО", И ТОВА Е ЧЕСТНО.
+# Pinnacle няма поле „close" — има само текущата цена. Но маха мача от
+# витрината в мига, в който той тръгне: след старта `pazari()` не го намира и
+# тук се връща празно. Това не е недостатък, който заобикаляме — то Е пазачът.
+# Опресняване след началото не може да презапише нищо, защото няма какво да
+# върне. Затова числото, което оцелява в дневника, е последното преди старта.
+def cena_zatvarayashta_pin(sport_key, mid, obarnat=False):
+    """(дом, гост, равен) от Pinnacle по ВЕЧЕ ЗНАЕН номер. Празно след старта.
+
+    `sport_key` е НАШЕТО име („tennis", „football"…), не пътят на ESPN.
+    `mid` и `obarnat` идват от `pinnacle.nomer_strana`, записани при пускането.
+    Страните се връщат в НАШИЯ ред — размяната живее в `cena_po_nomer`, за да е
+    ЕДНА за двата пътя.
+
+    Нула нови заявки при топъл кеш; две на спорт при студен.
+    """
+    if not mid:
+        return (None, None, None)
+    try:
+        import pinnacle as PIN
+    except Exception:                                        # noqa: BLE001
+        return (None, None, None)
+    try:
+        c = PIN.cena_po_nomer(sport_key, mid, bool(obarnat))
+    except Exception:                                        # noqa: BLE001
+        return (None, None, None)
+    return tuple(c) if isinstance(c, (tuple, list)) and len(c) == 3 else (None, None, None)
+
+
+NIKOY = ""
+
+
+def pat_do_zatvaryane(zapis):
+    """По кой път ТОЗИ запис може да получи затваряща цена: "espn"/"pinnacle"/"".
+
+    Празният низ е ОТГОВОР, не грешка: 20-те „vitrina" записа и всеки pinnacle
+    запис без номер нямат път и трябва да се видят като такива, вместо
+    извикващият да гадае и да хаби заявка напразно.
+
+    🔴 РЕДЪТ НА ДВАТА КЛОНА Е СЪЩЕСТВЕН. Бейзболът и баскетболът ги има И при
+    ESPN, И при Pinnacle. Ако ESPN се питаше пръв, номер на Pinnacle щеше да
+    влезе в ESPN адрес — тоест затваряща цена на СЪВСЕМ ЧУЖД мач, тихо и с вид
+    на успех. Затова се съди по етикета `pazar_izt`, а не по спорта.
+
+    🔴 СПОРТЪТ НА PINNACLE СЕ ЧЕТЕ И ОТ `bucket`. Измерено в живия дневник
+    25.08.2026: всичките 73 pinnacle записа имат `pazar_sport: null`, а
+    `bucket` носи името („tennis", „football"…). Без това падане назад
+    функцията щеше да казва „никой" за 73 от 73.
+    """
+    if not isinstance(zapis, dict):
+        return NIKOY
+    ev = str(zapis.get("pazar_ev") or "").strip()
+    sport = str(zapis.get("pazar_sport") or "").strip()
+    liga = str(zapis.get("pazar_liga") or "").strip()
+    izt = str(zapis.get("pazar_izt") or "").strip().lower()
+    if izt == "pinnacle":
+        if not ev:
+            return NIKOY
+        kl = sport or str(zapis.get("bucket") or "").strip()
+        if not kl:
+            return NIKOY
+        try:
+            import pinnacle as PIN
+        except Exception:                                    # noqa: BLE001
+            return NIKOY
+        return "pinnacle" if kl in PIN.SPORT_ID else NIKOY
+    if izt and izt != "espn":
+        return NIKOY                      # „vitrina" и всеки бъдещ трети
+    # Празен етикет = запис отпреди 18.08, когато източникът не се пишеше.
+    if ev and liga and sport in IMA_PAZAR:
+        return "espn"
+    return NIKOY
+
+
 def dvizhenie(nasha_cena, close_cena):
     """Колко се е преместил пазарът към нас. Положително = дошъл е при нас.
 
@@ -647,7 +829,159 @@ def selftest():
         if _star_cena is not None:
             globals()["cena_za"] = _star_cena
 
-    check("броят проверки е поне 68", ok >= 68)
+    # ═════════ РАВНИЯТ ПРИ ЗАТВАРЯНЕ (25.08.2026) — ПОВЕДЕНЧЕСКИ
+    check("плоският равен се чете като снимка", _raven_snimka({"moneyLine": 250.0}) == 3.5)
+    check("дял с истински close НЕ минава за снимка",
+          _raven_snimka({"close": {"moneyLine": {"value": 3.2}}, "moneyLine": 250.0}) is None)
+    check("вложеното moneyLine не е плоска снимка",
+          _raven_snimka({"moneyLine": {"value": 3.5}}) is None)
+    check("боклук вместо снимка не гърми",
+          _raven_snimka({}) is None and _raven_snimka(None) is None
+          and _raven_snimka({"moneyLine": "абв"}) is None)
+    check("двата вида носят РАЗЛИЧНИ думи", VID_CLOSE != VID_SNIMKA)
+
+    # Подхвърля се СУРОВИЯТ отговор на ESPN, точно както изглежда живо:
+    # дом и гост с „close", равният САМО с плоско американско число.
+    _star_json = globals().get("_json")
+    try:
+        def _mak(dc, gc, rp, rc=None):
+            h = {"current": {"moneyLine": {"value": 3.7}}}
+            a = {"current": {"moneyLine": {"value": 2.05}}}
+            d = {}
+            if dc is not None:
+                h["close"] = {"moneyLine": {"value": dc}}
+            if gc is not None:
+                a["close"] = {"moneyLine": {"value": gc}}
+            if rp is not None:
+                d["moneyLine"] = rp
+            if rc is not None:
+                d["close"] = {"moneyLine": {"value": rc}}
+            return {"items": [{"homeTeamOdds": h, "awayTeamOdds": a, "drawOdds": d}]}
+
+        # ЗАВЪРШЕН мач — точно формата на Chelsea at Fulham, мерен на 25.08.
+        globals()["_json"] = lambda u: _mak(3.7, 2.05, 250.0)
+        _kesh.clear()
+        _c, _v = cena_zatvarayashta_vid("soccer", "eng.1", "401879318")
+        check("равният при затваряне ВЕЧЕ ГО ИМА", _c[2] == 3.5)
+        check("домакинът и гостът си остават затварящи", _c[:2] == (3.7, 2.05))
+        check("видът на равния е СНИМКА, не затваряща",
+              _v == (VID_CLOSE, VID_CLOSE, VID_SNIMKA))
+        # 🔴 СЛЕДСТВИЕТО, ЗАРАДИ КОЕТО ВСИЧКО ТОВА СЕ ПРАВИ. Без третия крак
+        # сборът падаше под 1 и `bez_marzh` отказваше — маржът не се махаше.
+        _bz = bez_marzh("soccer", _c[0], _c[1], _c[2])
+        # 🔴 ПЪЛНОТАТА СЕ ПИТА ПРЕДИ СМЯТАНЕТО (25.08.2026). Първият вид на
+        # тези два реда събаряше целия пакет с TypeError, щом равният го нямаше —
+        # тоест проверката, която пази поправката, скриваше всичко след себе
+        # си. Мерено с мутация: 1 гръмнала вместо 2 счупени.
+        _pln = all(v is not None for v in _bz)
+        check("маржът ВЕЧЕ се маха при затваряне",
+              _pln and abs(sum(_bz) - 1.0) < 0.001)
+        check("двойният шанс се смята при затваряне",
+              _pln and 0.0 < (_bz[0] + _bz[2]) < 1.0)
+        # 🔴 ПАЗАЧЪТ. Преди книгата да е затворена НЯМА равен — иначе средата
+        # на деня щеше да се закове като затваряща цена.
+        globals()["_json"] = lambda u: _mak(None, None, 250.0)
+        _kesh.clear()
+        check("преди затварянето снимката НЕ се дава",
+              cena_zatvarayashta_vid("soccer", "eng.1", "1")
+              == ((None, None, None), (None, None, None)))
+        # Ако ESPN някога даде истинска затваряща за равния, тя бие снимката.
+        globals()["_json"] = lambda u: _mak(3.7, 2.05, 250.0, 3.2)
+        _kesh.clear()
+        _c3, _v3 = cena_zatvarayashta_vid("soccer", "eng.1", "3")
+        check("истинската затваряща на равния бие снимката",
+              _c3[2] == 3.2 and _v3[2] == VID_CLOSE)
+        # Старата функция НЕ Е ПИПАНА: строгият смисъл остава непокътнат.
+        globals()["_json"] = lambda u: _mak(3.7, 2.05, 250.0)
+        _kesh.clear()
+        check("cena_zatvarayashta остава строга за равния",
+              cena_zatvarayashta("soccer", "eng.1", "401879318") == (3.7, 2.05, None))
+    finally:
+        if _star_json is not None:
+            globals()["_json"] = _star_json
+        _kesh.clear()
+
+    # ═════════ ЗАТВАРЯЩАТА ОТ PINNACLE (25.08.2026) — ПОВЕДЕНЧЕСКИ
+    # Витрината се подхвърля цяла, за да не се пипа мрежата. Номерът и цената
+    # са ИСТИНСКИ, свалени живо същия ден: ITF Men Taipei R1.
+    import types as _types
+    _star_pin = sys.modules.get("pinnacle")
+    try:
+        _fal = _types.ModuleType("pinnacle")
+        _fal.SPORT_ID = {"tennis": 33, "football": 29, "baseball": 3, "mma": 22}
+        _vitr = {"1634713719": (2.57, 1.48, None)}
+
+        def _cpn(sk, mid, obarnat=False):
+            c = _vitr.get(str(mid))
+            if not c:
+                return (None, None, None)
+            return (c[1], c[0], c[2]) if obarnat else c
+        _fal.cena_po_nomer = _cpn
+        sys.modules["pinnacle"] = _fal
+
+        check("цената по знаен номер идва от Pinnacle",
+              cena_zatvarayashta_pin("tennis", "1634713719") == (2.57, 1.48, None))
+        check("обърнатият запис връща страните в НАШИЯ ред",
+              cena_zatvarayashta_pin("tennis", "1634713719", True) == (1.48, 2.57, None))
+        # 🔴 ПАЗАЧЪТ: щом мачът е тръгнал, него го няма на витрината → празно,
+        # нищо не се презаписва. Точно това прави числото „последното преди старта".
+        check("мач, махнат от витрината, не дава цена",
+              cena_zatvarayashta_pin("tennis", "999999999") == (None, None, None))
+        check("без номер изобщо не се пита",
+              cena_zatvarayashta_pin("tennis", None) == (None, None, None)
+              and cena_zatvarayashta_pin("tennis", "") == (None, None, None))
+
+        check("espn запис върви по espn",
+              pat_do_zatvaryane({"pazar_izt": "espn", "pazar_ev": "401908124",
+                                 "pazar_sport": "soccer",
+                                 "pazar_liga": "eng.league_cup"}) == "espn")
+        # 🔴 73 от 73 живи pinnacle записа имат `pazar_sport: null`.
+        check("pinnacle запис без pazar_sport върви по bucket",
+              pat_do_zatvaryane({"pazar_izt": "pinnacle", "pazar_ev": "1634713719",
+                                 "pazar_sport": None, "bucket": "tennis"}) == "pinnacle")
+        # 🔴 РЕДЪТ: бейзболът го има при ДВАТА източника. Номер на Pinnacle,
+        # пратен по ESPN адрес, дава затваряща цена на съвсем чужд мач.
+        check("pinnacle бейзбол НЕ се праща по пътя на ESPN",
+              pat_do_zatvaryane({"pazar_izt": "pinnacle", "pazar_ev": "77",
+                                 "pazar_sport": "baseball",
+                                 "pazar_liga": "mlb"}) == "pinnacle")
+        check("pinnacle без номер няма път",
+              pat_do_zatvaryane({"pazar_izt": "pinnacle", "pazar_ev": None,
+                                 "bucket": "tennis"}) == "")
+        check("непознат за Pinnacle спорт няма път",
+              pat_do_zatvaryane({"pazar_izt": "pinnacle", "pazar_ev": "5",
+                                 "bucket": "cricket"}) == "")
+        check("трети източник (vitrina) няма път — и това е ОТГОВОР",
+              pat_do_zatvaryane({"pazar_izt": "vitrina", "pazar_ev": "5",
+                                 "pazar_sport": "volleyball",
+                                 "pazar_liga": "x"}) == "")
+        check("espn спорт без пазар няма път",
+              pat_do_zatvaryane({"pazar_izt": "espn", "pazar_ev": "5",
+                                 "pazar_sport": "tennis",
+                                 "pazar_liga": "atp"}) == "")
+        check("празен запис няма път и не гърми",
+              pat_do_zatvaryane({}) == "" and pat_do_zatvaryane(None) == ""
+              and pat_do_zatvaryane("абв") == "")
+        check("стар запис без етикет пак върви по espn",
+              pat_do_zatvaryane({"pazar_ev": "1", "pazar_sport": "baseball",
+                                 "pazar_liga": "mlb"}) == "espn")
+    finally:
+        # Подхвърленият модул се маха. Инак живият pinnacle остава макет за
+        # целия процес и цените на ВСИЧКИ следващи модули изчезват мълчаливо.
+        if _star_pin is not None:
+            sys.modules["pinnacle"] = _star_pin
+        else:
+            sys.modules.pop("pinnacle", None)
+
+    # Срещу ИСТИНСКИЯ pinnacle.py — за да гръмне, ако спорт изчезне оттам.
+    # Само четене на SPORT_ID; `pat_do_zatvaryane` не пипа мрежата.
+    check("тенисът и ММА наистина имат път до Pinnacle",
+          pat_do_zatvaryane({"pazar_izt": "pinnacle", "pazar_ev": "1",
+                             "bucket": "tennis"}) == "pinnacle"
+          and pat_do_zatvaryane({"pazar_izt": "pinnacle", "pazar_ev": "1",
+                                 "bucket": "mma"}) == "pinnacle")
+
+    check("броят проверки е поне 133", ok >= 133)
     print("САМОПРОВЕРКА НА ПАЗАРА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)

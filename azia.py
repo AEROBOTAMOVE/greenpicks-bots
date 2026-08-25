@@ -729,6 +729,53 @@ PROBA_KBO = {"rows": [
         {"Text": "-", "Class": None}]},
 ]}
 
+# 🔴 ДЕФЕКТ №9, НАМЕРЕН 25.08.2026: САМАТА ПРИЧИНА ЗА ТОЗИ ФАЙЛ БЕШЕ БЕЗ ПАЗАЧ.
+#
+# _pin_machove() дели целите мачове от подпазарите по `units`, а НЕ по
+# parentId — точно това е заобикалянето на сляпото петно в pinnacle.py и
+# единствената причина azia.py да вижда цени. Проверките за s_ceni() обаче
+# подпъхваха готов _kesh["pin"] и НИКОГА не минаваха през самия показалец.
+# Тоест редът с `units` нямаше НИТО ЕДНА проверка.
+#
+# Измерено на живо ДНЕС, 25.08.2026 в 11:17 UTC, срещу /sports/3/matchups
+# (471 сурови записа):
+#     MLB                            12 мача, 0 от 12 с parentId
+#     Nippon Professional Baseball    6 мача, 6 от 6 с parentId  ← всичките
+#     Korea Professional Baseball     5 мача, 5 от 5 с parentId  ← всичките
+#     pinnacle.machove() вижда от тези 11 азиатски: 0
+#     pinnacle.ceni_za() за утрешен NPB мач: (None, None, None)
+#
+# Значи: върне ли някой филтъра на parentId (интуитивното, което И ДНЕС стои
+# в pinnacle.py), azia.py губи 100% от цените МЪЛЧАЛИВО — а 37-те проверки
+# оставаха зелени. Долният откъс пази ФОРМАТА на живия отговор.
+PROBA_PIN = [
+    # NPB: цял мач, но С parentId — записът, който pinnacle.py изхвърля.
+    {"type": "matchup", "id": 1601, "units": "Regular", "parentId": 1600,
+     "league": {"name": "Nippon Professional Baseball"},
+     "participants": [{"name": "Hanshin Tigers", "alignment": "home"},
+                      {"name": "Tokyo Yakult Swallows", "alignment": "away"}]},
+    # KBO: същото, С parentId.
+    {"type": "matchup", "id": 1602, "units": "Regular", "parentId": 1599,
+     "league": {"name": "Korea Professional Baseball"},
+     "participants": [{"name": "KT Wiz", "alignment": "home"},
+                      {"name": "Hanwha Eagles", "alignment": "away"}]},
+    # МЛБ: цял мач БЕЗ parentId — че показалецът не чупи работещото.
+    {"type": "matchup", "id": 1603, "units": "Regular", "parentId": None,
+     "league": {"name": "MLB"},
+     "participants": [{"name": "Cincinnati Reds", "alignment": "home"},
+                      {"name": "Cleveland Guardians", "alignment": "away"}]},
+    # ПОДПАЗАР: не е мач и НЕ бива да влиза, макар да прилича.
+    {"type": "matchup", "id": 1604, "units": "Games", "parentId": 1601,
+     "league": {"name": "Nippon Professional Baseball"},
+     "participants": [{"name": "Hanshin Tigers", "alignment": "home"},
+                      {"name": "Tokyo Yakult Swallows", "alignment": "away"}]},
+    # Чужд вид запис — трябва да се пренебрегне.
+    {"type": "special", "id": 1605, "units": "Regular", "parentId": None,
+     "league": {"name": "Nippon Professional Baseball"},
+     "participants": [{"name": "Кой ще спечели", "alignment": "home"},
+                      {"name": "Друг", "alignment": "away"}]},
+]
+
 
 def selftest():
     """Проверките без нито една заявка. Червено тук значи: не докладвай."""
@@ -826,6 +873,52 @@ def selftest():
     p("s_ceni(): непознат мач остава без цена", proba[2]["cena_dom"] is None)
     _kesh.pop("pin", None)
 
+    # ── ПАЗАЧ ЗА САМИЯ ПОКАЗАЛЕЦ (дефект №9, 25.08.2026) ──────────────
+    # Дотук _pin_machove() не се пускаше НИТО ВЕДНЪЖ: кешът се подпъхваше.
+    # Тук се подменя САМО входът от мрежата (_vzemi), тоест заявка няма, а
+    # целият показалец се изпълнява наистина.
+    _kesh.pop("pin", None)
+    _star_vzemi = globals()["_vzemi"]
+    _vikani = []
+
+    def _lazhliv_vzemi(url, data=None, headers=None):
+        _vikani.append(url)
+        return json.dumps(PROBA_PIN).encode("utf-8")
+
+    globals()["_vzemi"] = _lazhliv_vzemi
+    try:
+        _kesh.pop("pin", None)
+        pm = _pin_machove()
+        _ligi = [lg for (_d, _g, lg) in pm.values()]
+        # 🔴 УБИЙЦАТА НА МУТАЦИЯТА: върне ли се филтърът на parentId, тези
+        # два записа изчезват и точно тази проверка става червена.
+        p("показалецът ПАЗИ мач с parentId (иначе NPB и KBO изчезват)",
+          "Nippon Professional Baseball" in _ligi
+          and "Korea Professional Baseball" in _ligi)
+        p("показалецът ХВЪРЛЯ подпазара (units=Games не е мач)",
+          len(pm) == 3 and "1604" not in pm and "1605" not in pm)
+        # 🔴 БЕЗ .get() ТУК ЦЕЛИЯТ ПАКЕТ ГЪРМИ (намерено с мутация M1,
+        # 25.08.2026): върне ли се филтърът на parentId, запис 1601 го няма
+        # и голото pm["1601"] вдига KeyError — селфтестът пада с Traceback и
+        # скрива всяка проверка след себе си. Иска се ЧЕРВЕНО, не гръм.
+        _npb = pm.get("1601") or ("", "", "")
+        p("показалецът чете страните по alignment, не по реда",
+          _npb[0] == "Hanshin Tigers" and _npb[1] == "Tokyo Yakult Swallows")
+        p("показалецът струва ЕДНА заявка и после се кешира",
+          len(_vikani) == 1 and _pin_machove() is pm and len(_vikani) == 1)
+        # Целият път от край до край, БЕЗ подпъхнат кеш — това е начинът,
+        # по който s_ceni() работи в живото пускане.
+        _dnes = [{"dom": "Hanshin Tigers", "gost": "Tokyo Yakult Swallows"},
+                 {"dom": "KT Wiz", "gost": "Hanwha Eagles"}]
+        _, _sc = s_ceni(_dnes, ceni={"1601": (1.80, 2.05, None),
+                                     "1602": (1.55, 2.44, None)})
+        p("s_ceni() стига до цена през ИСТИНСКИЯ показалец",
+          _sc == 2 and _dnes[0]["cena_dom"] == 1.80
+          and _dnes[1]["cena_gost"] == 2.44)
+    finally:
+        globals()["_vzemi"] = _star_vzemi
+        _kesh.pop("pin", None)
+
     p("Зимните лиги са седем и имат български имена", len(ZIMNI_LIGI) == 7
       and ZIMNI_LIGI[131] == "Доминиканска лига")
     p("Всичките 12 японски отбора са преведени", len(NPB_IMENA) == 12)
@@ -837,7 +930,7 @@ def selftest():
     lo = sum(1 for _, d in ok if not d)
     # Долна граница на БРОЯ: тест, който тихо е спрял да се пуска, е по-лош
     # от падащ тест.
-    if len(ok) < 37:
+    if len(ok) < 42:
         print("❌ Проверките са само %d — някоя е изчезнала." % len(ok))
         return 1
     print("%s %d проверки, %d червени" % ("✅" if not lo else "❌", len(ok), lo))
