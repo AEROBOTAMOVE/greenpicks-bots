@@ -1,14 +1,23 @@
 {
- "ocenitel": {},
+ "ocenitel": {
+  "2026-08-26|obed": {
+   "opiti": 1,
+   "posleden": "2026-08-26 15:30"
+  }
+ },
  "posleden_opit": "2026-08-26 15:15",
  "ravnosmetki": {
   "2026-08-25|finish|kanal|d1d37edb9fdb": "2026-08-25 22:55",
   "2026-08-25|finish|staya|d1d37edb9fdb": "2026-08-25 22:55",
   "2026-08-25|finish|staya|f1ae4787fdf3": "2026-08-25 23:55",
   "2026-08-26|fish|staya10|8c9856ed0c17": "2026-08-26 13:58",
+  "2026-08-26|mezhdinna|kanal|8af9dd965c10": "2026-08-26 15:31",
   "2026-08-26|mezhdinna|kanal|efeb630e7e30": "2026-08-26 13:58",
+  "2026-08-26|mezhdinna|staya|8af9dd965c10": "2026-08-26 15:31",
   "2026-08-26|mezhdinna|staya|efeb630e7e30": "2026-08-26 13:58",
   "2026-08-26|obzor|kanal|01f3ca6d6cf0": "2026-08-26 13:58",
-  "2026-08-26|obzor|staya|01f3ca6d6cf0": "2026-08-26 13:58"
+  "2026-08-26|obzor|kanal|884b7fbab88d": "2026-08-26 15:31",
+  "2026-08-26|obzor|staya|01f3ca6d6cf0": "2026-08-26 13:58",
+  "2026-08-26|obzor|staya|884b7fbab88d": "2026-08-26 15:31"
  }
 }
