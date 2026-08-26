@@ -3742,8 +3742,46 @@ def selftest():
             check("паднало пращане НЕ слага марка — пробва се пак",
                   prati_ravnosmetka(_t0, _dn, "dosega", "staya",
                                     _padnal)[0] is True)
+            # ── 🎫 И ВРАТАТА НА ФИША, В СЪЩИЯ ВРЕМЕНЕН ТЕФТЕР ─────────
+            # Пращането е подставено, тефтерът е временен: нищо не тръгва
+            # навън и живият budilnik_state.json не се пипа.
+            ravn_zabravi()
+            _fh1 = "🎫 ОТЧЕТ НА ФИШОВЕТЕ" + chr(10) + "✅ ФИШ 1 · 2 от 2"
+            _n0 = len(_prateni)
+            check("отчетът на фиша излиза първия път",
+                  combo_prati(_t0, _dn, _fh1)[0] is True)
+            check("и стигна до СТАЯ 10",
+                  len(_prateni) == _n0 + 1
+                  and _prateni[-1][1] == WINS_THREAD)
+            # МУТАЦИЯ: същият отчет втори път. Вторият тефтер го спира —
+            # НО връща „маркирай", иначе кракът се опитва вечно.
+            ravn_zabravi()
+            check("същият отчет втори път НЕ се праща",
+                  combo_prati(_t0, _dn, _fh1)[0] is True
+                  and len(_prateni) == _n0 + 1)
+            # ОБРАТНАТА ПОСОКА: нов фиш в текста = нов отпечатък = ИЗЛИЗА.
+            ravn_zabravi()
+            _fh2 = _fh1 + chr(10) + "❌ ФИШ 2 · 1 от 3"
+            check("новият отчет ИЗЛИЗА, не се глътва",
+                  combo_prati(_t0, _dn, _fh2)[0] is True
+                  and len(_prateni) == _n0 + 2)
+            # ПАДНАЛО ПРАЩАНЕ: без марка, за да се пробва пак.
+            globals()["post"] = lambda thread, text: False
+            ravn_zabravi()
+            _fh3 = _fh2 + chr(10) + "❌ ФИШ 3 · 0 от 4"
+            check("паднал отчет на фиша НЕ дава марка",
+                  combo_prati(_t0, _dn, _fh3)[0] is False)
+            globals()["post"] = _lazhepost
+            ravn_zabravi()
+            check("и затова се праща пак на следващия рън",
+                  combo_prati(_t0, _dn, _fh3)[0] is True
+                  and len(_prateni) == _n0 + 3)
             # БЕЗ БУДИЛНИК — ПРАЩА КАКТО ПРЕДИ (провал към шум, не към тишина)
             globals()["_bud_modul"] = lambda: None
+            _n_fish = len(_prateni)
+            check("без будилник и отчетът на фиша пак излиза",
+                  combo_prati(_t0, _dn, "фиш без пазач")[0] is True
+                  and len(_prateni) == _n_fish + 1)
             _n_predi = len(_prateni)
             check("без будилник оценителят пак праща",
                   prati_ravnosmetka(_t0, _dn, "finish", "staya",
@@ -3842,6 +3880,68 @@ def selftest():
             check("обзорът отива в стаята", ("obzor", "staya") in _vikani)
             check("обзорът отива И в канала", ("obzor", "kanal") in _vikani)
             check("и тук нищо не мина покрай пазача", _golo == [])
+            # 3) 🎫 ФИШЪТ В ЖИВИЯ main(): марка САМО след успешно пращане.
+            # Тук дневникът се ЗАПИСВА наистина (DRY_RUN=False, временен
+            # файл), за да се прочете ОТ ДИСКА какво е останало — иначе
+            # тестът мери паметта си, не поведението.
+            _s_bud2 = globals()["_bud_modul"]
+            _s_tok2 = globals()["BOT_TOKEN"]
+            try:
+                globals()["_bud_modul"] = lambda: None
+                # DRY_RUN=False, за да пише save_log — а без подставен
+                # токен main() би излязъл с 1 още на първия ред.
+                globals()["BOT_TOKEN"] = "podstaven-za-testa"
+                globals()["DRY_RUN"] = False
+                # 🔴 ВСЕКИ РЪН ТУК ПОЛУЧАВА ПОНЕ ЕДНА НОВА ПРИСЪДА.
+                # main() се връща РАНО (при not fresh), ако в ръна няма
+                # нито един новоотсъден мач — блокът на фиша изобщо не се
+                # стига. Затова 3б и 3в добавят по един пресен ред.
+                _kraka = []
+                for _i in (1, 2):
+                    _k = dict(_red)
+                    _k.update({"combo": 1, "league": "Тест" + str(_i)})
+                    _kraka.append(_k)
+                # 3а) ПРАЩАНЕТО ПАДА → без марка, но с брояч на опита.
+                del _golo[:]
+                with open(_tmp_log, "w", encoding="utf-8") as _f:
+                    json.dump(_kraka, _f, ensure_ascii=False)
+                globals()["post"] = lambda thread, text: (
+                    _golo.append(("staya", text)) or False)
+                check("main() върна 0 и при паднал отчет на фиш", main() == 0)
+                check("отчетът на фиша Е бил опитан", len(_golo) == 1)
+                with open(_tmp_log, encoding="utf-8") as _f:
+                    _sled = json.load(_f)
+                check("паднало пращане НЕ маркира краката в дневника",
+                      len(_sled) == 2
+                      and not any(x.get("combo_done") for x in _sled))
+                check("но опитът е записан в дневника",
+                      all(x.get("combo_opiti") == 1 for x in _sled))
+                # 3б) СЪЩИЯТ ДНЕВНИК, СЕГА ПРАЩАНЕТО МИНАВА.
+                del _golo[:]
+                with open(_tmp_log, "w", encoding="utf-8") as _f:
+                    json.dump(_sled + [dict(_red)], _f, ensure_ascii=False)
+                globals()["post"] = lambda thread, text: (
+                    _golo.append(("staya", text)) or True)
+                check("main() върна 0 при успешен отчет", main() == 0)
+                check("отчетът е пратен пак — нищо не се е загубило",
+                      len(_golo) == 1)
+                with open(_tmp_log, encoding="utf-8") as _f:
+                    _sled2 = json.load(_f)
+                _kr2 = [x for x in _sled2 if x.get("combo")]
+                check("успешното пращане маркира краката",
+                      len(_kr2) == 2 and all(x.get("combo_done") for x in _kr2))
+                check("и броячът на опитите е изчистен",
+                      not any("combo_opiti" in x for x in _kr2))
+                # 3в) ТРЕТИ РЪН: отчетеният фиш вече не излиза.
+                del _golo[:]
+                with open(_tmp_log, "w", encoding="utf-8") as _f:
+                    json.dump(_sled2 + [dict(_red)], _f, ensure_ascii=False)
+                check("main() върна 0 на трети рън", main() == 0)
+                check("отчетеният фиш НЕ излиза втори път", _golo == [])
+            finally:
+                globals()["_bud_modul"] = _s_bud2
+                globals()["BOT_TOKEN"] = _s_tok2
+                globals()["DRY_RUN"] = True
         finally:
             globals()["LOG_FILE"] = _s_log
             globals()["ARHIV_FILE"] = _s_arh
