@@ -19418,7 +19418,9 @@
   "p": 0.9162,
   "stars": 3,
   "sample": "гледани 20 мача на единия и 65 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-26|football|реалмадрид|реалсосиедад",
@@ -19478,7 +19480,9 @@
   "p": 0.7026,
   "stars": 3,
   "sample": "ранглиста и 18 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:2"
  },
  {
   "key": "2026-08-27|basketball|seattlestorm|torontotempo",
@@ -19568,7 +19572,9 @@
   "p": 0.9126,
   "stars": 3,
   "sample": "гледани 29 мача на единия и 51 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-27|football|atléticonacional|deportivocali",
@@ -19808,7 +19814,9 @@
   "p": 0.8248,
   "stars": 3,
   "sample": "гледани 28 мача на единия и 24 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-26|football|тотнъм|charltonathletic",
@@ -20028,7 +20036,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 52 мача на единия и 76 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-26|volleyball|wsen|белгия|azerbaijan",
@@ -20061,7 +20071,9 @@
   "p": 0.7896,
   "stars": 3,
   "sample": "гледани 54 мача на единия и 26 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-27|volleyball|wsen|куба|доминиканскарепублика",
@@ -20127,7 +20139,9 @@
   "p": 0.8155,
   "stars": 3,
   "sample": "гледани 56 мача на единия и 73 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-26|volleyball|wsen|испания|португалия",
@@ -20160,7 +20174,9 @@
   "p": 0.5644,
   "stars": 3,
   "sample": "гледани 28 мача на единия и 26 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-26|tabletennis|lindazaderova|karolinemischekcolucci",
@@ -20708,7 +20724,9 @@
   "p": 0.8686,
   "stars": 3,
   "sample": "гледани 44 мача на единия и 27 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-26|tabletennis|franziskaschreiner|josephinaneumann",
@@ -20741,7 +20759,9 @@
   "p": 0.6237,
   "stars": 2,
   "sample": "гледани 44 мача на единия и 76 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-08-26|tabletennis|minhsinchen|jessicareyeslai",
@@ -20774,7 +20794,9 @@
   "p": 0.8411,
   "stars": 2,
   "sample": "гледани 128 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-26|tabletennis|jakubkaucky|jakubzelinka",
@@ -20842,7 +20864,9 @@
   "p": 0.5589,
   "stars": 2,
   "sample": "гледани 7 мача на единия и 45 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-26|tabletennis|chloelai|danielaortega",
@@ -20875,7 +20899,9 @@
   "p": 0.5894,
   "stars": 2,
   "sample": "гледани 55 мача на единия и 37 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-08-26|tabletennis|joshchua|martinsip",
@@ -20908,7 +20934,9 @@
   "p": 0.5874,
   "stars": 2,
   "sample": "гледани 34 мача на единия и 17 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-26|tabletennis|norberttauler|nicolasburgos",
@@ -20941,7 +20969,9 @@
   "p": 0.5814,
   "stars": 2,
   "sample": "гледани 37 мача на единия и 26 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-26|tabletennis|gustavogomez|maximeantoinemichard",
@@ -20974,7 +21004,9 @@
   "p": 0.6074,
   "stars": 2,
   "sample": "гледани 40 мача на единия и 14 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-26|volleyball|wsen|сърбия|гърция",
@@ -21007,7 +21039,9 @@
   "p": 0.8997,
   "stars": 3,
   "sample": "гледани 56 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-27|tennis|jamesduckworth|lorenzosonego",
@@ -21073,7 +21107,9 @@
   "p": 0.8862,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-27|volleyball|msen|канада|мексико",
