@@ -906,25 +906,7 @@ def _sdb_json(url):
 def _sdb_dvoyki(sabitiya):
     """(домакин_id, гост_id, точки_д, точки_г, име_д, име_г) за завършилите."""
     out = []
-    # 🔴 ЧУЖДА ФОРМА НЕ СЪБАРЯ РЪНА (26.08.2026).
-    #
-    # Викаме се направо с j.get("events") и j.get("results") от мрежата.
-    # TheSportsDB отговаря с НИЗ при невалиден идентификатор — при проба
-    # с абревиатура „NYR" върна „Invalid Team ID passed". Тогава
-    # `for e in "Invalid..."` обхожда БУКВИ и `"I".get(...)` гърми с
-    # AttributeError, който убива ЦЕЛИЯ рън на оценителя.
-    #
-    # Същият клас дефект спря бота за 48 часа на 23-25.08: сентинел,
-    # обхождан с разпакетиране. Цената не е едно пропуснато питане, а
-    # цял ден без резултати.
-    #
-    # Пропускаме записа, вместо да гърмим. Глътваме ФОРМА, не изключение —
-    # провал от мрежата си остава видим на нивото над нас.
-    if not isinstance(sabitiya, (list, tuple)):
-        sabitiya = []
-    for e in sabitiya:
-        if not isinstance(e, dict):
-            continue
+    for e in (sabitiya or []):
         hs, as_ = e.get("intHomeScore"), e.get("intAwayScore")
         if hs in (None, "") or as_ in (None, ""):
             continue
@@ -1740,7 +1722,7 @@ def obshto_dosega_text(now, rows):
         "",
         "\U0001f7e2 THE GREEN ROOM"])
 
-def den_finish_text(now, rows, den, mezhdinna=False, bez_sportove=False):
+def den_finish_text(now, rows, den, mezhdinna=False):
     """Равносметката на един ден: пуснато, отсъдено, познато, останало.
 
     mezhdinna=True е обедният вариант: същите числа, но заглавието и краят
@@ -1820,18 +1802,7 @@ def den_finish_text(now, rows, den, mezhdinna=False, bez_sportove=False):
         b = r.get("bucket") or "друго"
         p, n = po_sport.get(b, (0, 0))
         po_sport[b] = (p + (1 if r.get("hit") else 0), n + 1)
-    # 🔴 НЕ Я ПОКАЗВАЙ, АКО ОБЗОРЪТ ТОКУ-ЩО Я Е ПОКАЗАЛ (26.08.2026).
-    #
-    # Обзорът брои отсъденото В ТОВА ПУСКАНЕ, финишът — за ЦЕЛИЯ ДЕН. И двете
-    # са верни, но пристигат на 2.0 секунди разстояние в едни и същи два
-    # адреса и читателят вижда „⚽ Футбол 1 от 3", после „⚽ Футбол 1 от 5".
-    #
-    # Същият дефект вече е бил решен за ПРОЦЕНТА (махнат от финиша по същата
-    # причина). Дробите по спорт са останали — това е близнакът му.
-    #
-    # Когато обзор НЯМА (пускане без нови присъди), финишът е единственото
-    # съобщение и разбивката остава. Нула изгубена информация.
-    if po_sport and not bez_sportove:
+    if po_sport:
         out.append("")
         for b in po_red(list(po_sport)):
             p, n = po_sport[b]
@@ -2409,20 +2380,6 @@ def selftest():
          "scored": True, "hit": True, "home": "И", "away": "Й"},
     ]
     _fin = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA), _redove, _dn)
-    # 🔴 ДВЕТЕ СЪОБЩЕНИЯ НЕ БИВА ДА СИ ПРОТИВОРЕЧАТ (26.08.2026).
-    # Поведенческа проверка: строим ДВАТА варианта и гледаме какво излиза.
-    _fin_bez = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA),
-                               _redove, _dn, bez_sportove=True)
-    check("финишът СЪС спортове ги показва", " от " in _fin)
-    check("финишът БЕЗ спортове не показва нито един спортов ред",
-          not any(_l.strip().startswith(sport_emo(_b))
-                  for _b in ("football", "volleyball", "tennis", "tabletennis",
-                             "baseball", "basketball")
-                  for _l in _fin_bez.split(NL)))
-    check("но пуснатите и отсъдените си остават и в двата",
-          "пуснати" in _fin_bez and "пуснати" in _fin)
-    check("махането САМО скъсява — нищо ново не се появява",
-          len(_fin_bez) < len(_fin))
     check("финишът е озаглавен", "ФИНИШ НА ДЕНЯ" in _fin)
     check("финишът брои само днешните", "От <b>4</b> пуснати днес" in _fin)
     check("финишът брои познатите", "познахме <b>1</b>" in _fin)
@@ -2853,19 +2810,6 @@ def selftest():
     check("боклук вместо резултат не гърми",
           _sdb_dvoyki([{"intHomeScore": "x", "intAwayScore": "y"}]) == [])
     check("празният списък не гърми", _sdb_dvoyki(None) == [])
-    # 🔴 ЧУЖДАТА ФОРМА — ПОВЕДЕНЧЕСКИ, НЕ ПО ТЕКСТ (26.08.2026).
-    # Проверката пита какво ИЗЛИЗА, а не дали нещо е вързано в кода.
-    # Старият пазач за сентинела беше зелен върху счупен файл точно
-    # защото проверяваше връзването, а смъртта ставаше по-рано.
-    check("низ вместо списък не гърми (истинският отговор на SDB)",
-          _sdb_dvoyki("Invalid Team ID passed") == [])
-    check("речник вместо списък не гърми", _sdb_dvoyki({"a": 1}) == [])
-    check("списък от низове не гърми", _sdb_dvoyki(["abc", "def"]) == [])
-    check("число не гърми", _sdb_dvoyki(42) == [])
-    check("списък с речник И боклук взима само речника",
-          _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
-                        "intHomeScore": "3", "intAwayScore": "1"}, "боклук"])
-          == [("1", "2", 3, 1, None, None)])
 
     # 🔴 ПРЕПИСАНО 11.08.2026. Тук стоеше ПРЕПИС на миграцията — двайсет реда
     # близнак със свое заковано „3". Мутационен тест го обори: смених живия
@@ -4193,12 +4137,7 @@ def main():
     # но с различно заглавие — виж обяснението при vecher/obed по-горе.
     if vecher or obed:
         time.sleep(2.0)
-        # bez_sportove=True: обзорът горе вече показа разбивката по спорт за
-        # ТОВА пускане. Два реда „⚽ Футбол N от M" с различни знаменатели на
-        # 2 секунди разстояние четат като грешка. Виж бележката в самата
-        # функция. В другия клон (без обзор) флагът НЕ се подава.
-        finish = den_finish_text(now, rows, den, mezhdinna=obed,
-                                 bez_sportove=True)
+        finish = den_finish_text(now, rows, den, mezhdinna=obed)
         prati_ravnosmetka(now, den, vid_ravn, "staya", finish)
         time.sleep(1.5)
         prati_ravnosmetka(now, den, vid_ravn, "kanal", finish)

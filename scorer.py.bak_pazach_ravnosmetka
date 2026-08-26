@@ -906,25 +906,7 @@ def _sdb_json(url):
 def _sdb_dvoyki(sabitiya):
     """(домакин_id, гост_id, точки_д, точки_г, име_д, име_г) за завършилите."""
     out = []
-    # 🔴 ЧУЖДА ФОРМА НЕ СЪБАРЯ РЪНА (26.08.2026).
-    #
-    # Викаме се направо с j.get("events") и j.get("results") от мрежата.
-    # TheSportsDB отговаря с НИЗ при невалиден идентификатор — при проба
-    # с абревиатура „NYR" върна „Invalid Team ID passed". Тогава
-    # `for e in "Invalid..."` обхожда БУКВИ и `"I".get(...)` гърми с
-    # AttributeError, който убива ЦЕЛИЯ рън на оценителя.
-    #
-    # Същият клас дефект спря бота за 48 часа на 23-25.08: сентинел,
-    # обхождан с разпакетиране. Цената не е едно пропуснато питане, а
-    # цял ден без резултати.
-    #
-    # Пропускаме записа, вместо да гърмим. Глътваме ФОРМА, не изключение —
-    # провал от мрежата си остава видим на нивото над нас.
-    if not isinstance(sabitiya, (list, tuple)):
-        sabitiya = []
-    for e in sabitiya:
-        if not isinstance(e, dict):
-            continue
+    for e in (sabitiya or []):
         hs, as_ = e.get("intHomeScore"), e.get("intAwayScore")
         if hs in (None, "") or as_ in (None, ""):
             continue
@@ -1740,7 +1722,7 @@ def obshto_dosega_text(now, rows):
         "",
         "\U0001f7e2 THE GREEN ROOM"])
 
-def den_finish_text(now, rows, den, mezhdinna=False, bez_sportove=False):
+def den_finish_text(now, rows, den, mezhdinna=False):
     """Равносметката на един ден: пуснато, отсъдено, познато, останало.
 
     mezhdinna=True е обедният вариант: същите числа, но заглавието и краят
@@ -1820,18 +1802,7 @@ def den_finish_text(now, rows, den, mezhdinna=False, bez_sportove=False):
         b = r.get("bucket") or "друго"
         p, n = po_sport.get(b, (0, 0))
         po_sport[b] = (p + (1 if r.get("hit") else 0), n + 1)
-    # 🔴 НЕ Я ПОКАЗВАЙ, АКО ОБЗОРЪТ ТОКУ-ЩО Я Е ПОКАЗАЛ (26.08.2026).
-    #
-    # Обзорът брои отсъденото В ТОВА ПУСКАНЕ, финишът — за ЦЕЛИЯ ДЕН. И двете
-    # са верни, но пристигат на 2.0 секунди разстояние в едни и същи два
-    # адреса и читателят вижда „⚽ Футбол 1 от 3", после „⚽ Футбол 1 от 5".
-    #
-    # Същият дефект вече е бил решен за ПРОЦЕНТА (махнат от финиша по същата
-    # причина). Дробите по спорт са останали — това е близнакът му.
-    #
-    # Когато обзор НЯМА (пускане без нови присъди), финишът е единственото
-    # съобщение и разбивката остава. Нула изгубена информация.
-    if po_sport and not bez_sportove:
+    if po_sport:
         out.append("")
         for b in po_red(list(po_sport)):
             p, n = po_sport[b]
@@ -2409,20 +2380,6 @@ def selftest():
          "scored": True, "hit": True, "home": "И", "away": "Й"},
     ]
     _fin = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA), _redove, _dn)
-    # 🔴 ДВЕТЕ СЪОБЩЕНИЯ НЕ БИВА ДА СИ ПРОТИВОРЕЧАТ (26.08.2026).
-    # Поведенческа проверка: строим ДВАТА варианта и гледаме какво излиза.
-    _fin_bez = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA),
-                               _redove, _dn, bez_sportove=True)
-    check("финишът СЪС спортове ги показва", " от " in _fin)
-    check("финишът БЕЗ спортове не показва нито един спортов ред",
-          not any(_l.strip().startswith(sport_emo(_b))
-                  for _b in ("football", "volleyball", "tennis", "tabletennis",
-                             "baseball", "basketball")
-                  for _l in _fin_bez.split(NL)))
-    check("но пуснатите и отсъдените си остават и в двата",
-          "пуснати" in _fin_bez and "пуснати" in _fin)
-    check("махането САМО скъсява — нищо ново не се появява",
-          len(_fin_bez) < len(_fin))
     check("финишът е озаглавен", "ФИНИШ НА ДЕНЯ" in _fin)
     check("финишът брои само днешните", "От <b>4</b> пуснати днес" in _fin)
     check("финишът брои познатите", "познахме <b>1</b>" in _fin)
@@ -2853,19 +2810,6 @@ def selftest():
     check("боклук вместо резултат не гърми",
           _sdb_dvoyki([{"intHomeScore": "x", "intAwayScore": "y"}]) == [])
     check("празният списък не гърми", _sdb_dvoyki(None) == [])
-    # 🔴 ЧУЖДАТА ФОРМА — ПОВЕДЕНЧЕСКИ, НЕ ПО ТЕКСТ (26.08.2026).
-    # Проверката пита какво ИЗЛИЗА, а не дали нещо е вързано в кода.
-    # Старият пазач за сентинела беше зелен върху счупен файл точно
-    # защото проверяваше връзването, а смъртта ставаше по-рано.
-    check("низ вместо списък не гърми (истинският отговор на SDB)",
-          _sdb_dvoyki("Invalid Team ID passed") == [])
-    check("речник вместо списък не гърми", _sdb_dvoyki({"a": 1}) == [])
-    check("списък от низове не гърми", _sdb_dvoyki(["abc", "def"]) == [])
-    check("число не гърми", _sdb_dvoyki(42) == [])
-    check("списък с речник И боклук взима само речника",
-          _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
-                        "intHomeScore": "3", "intAwayScore": "1"}, "боклук"])
-          == [("1", "2", 3, 1, None, None)])
 
     # 🔴 ПРЕПИСАНО 11.08.2026. Тук стоеше ПРЕПИС на миграцията — двайсет реда
     # близнак със свое заковано „3". Мутационен тест го обори: смених живия
@@ -3554,263 +3498,6 @@ def selftest():
     check("равносметката с пазарни числа пак минава портиера",
           banned_word(_odp) is None)
 
-    # ══════════════════════════════════════════════════════════════════════
-    #  ПАЗАЧЪТ СРЕЩУ ПОВТОРЕНА РАВНОСМЕТКА — ИЗПИТВА СЕ ПОВЕДЕНИЕ (26.08.2026)
-    #
-    #  УРОКЪТ ОТ КРАША НА 24.08: старата проверка за сентинела OTLOZHEN беше
-    #  ЗЕЛЕНА върху счупен файл, защото гледаше ВРЪЗВАНЕТО (има ли такъв ред в
-    #  главния цикъл), а убийството ставаше две стаи по-рано. Затова тук нищо
-    #  не се търси в текста: пътят СЕ ВИКА и се гледа какво излиза от другата
-    #  страна — включително самата main(), с временен дневник и закован
-    #  часовник. Върне ли някой пращането на голото post(), долният блок
-    #  почервенява.
-    # ══════════════════════════════════════════════════════════════════════
-    import tempfile
-    _ok_predi_ravn = ok
-    _bud_t = _bud_modul()
-    check("будилникът се внася и носи целия слой ravn_*", _bud_t is not None)
-    if _bud_t is not None:
-        check("будилникът вижда пазача в ЖИВИЯ scorer.py",
-              _bud_t.pazachat_e_v_scorera() is True)
-        _tmp_r = os.path.join(tempfile.gettempdir(), "_scorer_ravn_selftest.json")
-        _star_r_file = globals()["RAVN_SAST_FILE"]
-        _star_r_dry = globals()["DRY_RUN"]
-        _star_post = globals()["post"]
-        _star_kanal = globals()["post_channel"]
-        _star_bud = globals()["_bud_modul"]
-        _prateni = []
-
-        def _lazhepost(thread, text):
-            _prateni.append(("staya", str(thread), text))
-            return True
-
-        def _lazhekanal(text):
-            _prateni.append(("kanal", "", text))
-            return True
-
-        try:
-            try:
-                os.remove(_tmp_r)
-            except OSError:
-                pass
-            globals()["RAVN_SAST_FILE"] = _tmp_r
-            globals()["DRY_RUN"] = False
-            globals()["post"] = _lazhepost
-            globals()["post_channel"] = _lazhekanal
-            ravn_zabravi()
-            _t0 = datetime(2026, 8, 25, 23, 40, tzinfo=SOFIA)
-            _dn = "2026-08-25"
-            _fin1 = ("ФИНИШ НА ДЕНЯ · пн 25.08" + chr(10)
-                     + "От 40 пуснати днес 12 имат резултат.")
-            check("равносметката излиза първия път",
-                  prati_ravnosmetka(_t0, _dn, "finish", "staya", _fin1)[0] is True)
-            check("и наистина е стигнала до стаята",
-                  len(_prateni) == 1 and _prateni[0][0] == "staya")
-            check("стигна до СТАЯ 9, не другаде", _prateni[0][1] == RESULTS_THREAD)
-            # МУТАЦИЯ 1: същият текст втори път
-            check("МУТАЦИЯ: същият текст втори път МЪЛЧИ",
-                  prati_ravnosmetka(_t0, _dn, "finish", "staya", _fin1)[0] is False)
-            check("и НЕ е пратен втори път", len(_prateni) == 1)
-            # МУТАЦИЯ 2 (обратната посока): сменено число
-            _fin2 = _fin1.replace("12 имат", "13 имат")
-            check("МУТАЦИЯ обратно: сменено число ИЗЛИЗА",
-                  prati_ravnosmetka(_t0, _dn, "finish", "staya", _fin2)[0] is True)
-            check("и то стигна до стаята", len(_prateni) == 2)
-            # само ЧАСЪТ в първия ред не е ново съдържание
-            _mezh = ("ДОКЪДЕ СМЕ ДНЕС · пн 25.08, 14:07" + chr(10)
-                     + "От 40 пуснати днес 12 имат резултат.")
-            check("междинната излиза",
-                  prati_ravnosmetka(_t0, _dn, "mezhdinna", "staya",
-                                    _mezh)[0] is True)
-            check("само друг ЧАС в заглавието не е ново съдържание",
-                  prati_ravnosmetka(_t0, _dn, "mezhdinna", "staya",
-                                    _mezh.replace("14:07", "14:31"))[0] is False)
-            # ДВА АДРЕСА = ДВА КЛЮЧА
-            _n_predi = len(_prateni)
-            check("каналът получава СЪЩИЯ текст, глътнат в стаята",
-                  prati_ravnosmetka(_t0, _dn, "finish", "kanal", _fin2)[0] is True)
-            check("и е стигнал точно до КАНАЛА",
-                  len(_prateni) == _n_predi + 1 and _prateni[-1][0] == "kanal"
-                  and _prateni[-1][2] == _fin2)
-            check("вторият път и каналът мълчи",
-                  prati_ravnosmetka(_t0, _dn, "finish", "kanal",
-                                    _fin2)[0] is False)
-            # СЪСТОЯНИЕТО ОЦЕЛЯВА МЕЖДУ РЪНОВЕ
-            check("тефтерът е записан на диска", os.path.exists(_tmp_r))
-            ravn_zabravi()                      # все едно е НОВ рън
-            check("нов рън с празна памет пак мълчи",
-                  prati_ravnosmetka(_t0, _dn, "finish", "staya",
-                                    _fin2)[0] is False)
-            _marki_predi = len(_bud_t.ravn_marki(ravn_sast(_bud_t)))
-            with open(_tmp_r, encoding="utf-8-sig") as _f:
-                _disk_predi = _f.read()
-            # МУТАЦИЯ 3: СУХО ПУСКАНЕ НЕ ОТБЕЛЯЗВА НИЩО
-            globals()["DRY_RUN"] = True
-            ravn_zabravi()
-            _n_predi = len(_prateni)
-            _suh = "текст, невиждан досега — само за сухата проба"
-            check("сухо пускане: съобщението пак излиза",
-                  prati_ravnosmetka(_t0, _dn, "obzor", "staya", _suh)[0] is True)
-            check("сухо пускане: стигна до стаята", len(_prateni) == _n_predi + 1)
-            with open(_tmp_r, encoding="utf-8-sig") as _f:
-                _disk_sled = _f.read()
-            check("МУТАЦИЯ: сухо пускане НЕ пипа тефтера на диска",
-                  _disk_sled == _disk_predi)
-            check("сухо пускане не пипа и тефтера в паметта",
-                  len(_bud_t.ravn_marki(ravn_sast(_bud_t))) == _marki_predi)
-            check("затова сухата проба НЕ заключва истинското съобщение",
-                  prati_ravnosmetka(_t0, _dn, "obzor", "staya", _suh)[0] is True)
-            # МУТАЦИЯ 3 обратно: мокрото пускане ОТБЕЛЯЗВА
-            globals()["DRY_RUN"] = False
-            ravn_zabravi()
-            check("МУТАЦИЯ обратно: мокрото пускане излиза",
-                  prati_ravnosmetka(_t0, _dn, "obzor", "staya", _suh)[0] is True)
-            with open(_tmp_r, encoding="utf-8-sig") as _f:
-                _disk_mokro = _f.read()
-            check("и тефтерът на диска СЕ промени", _disk_mokro != _disk_predi)
-            ravn_zabravi()
-            check("и оттук нататък мълчи",
-                  prati_ravnosmetka(_t0, _dn, "obzor", "staya", _suh)[0] is False)
-            # ПАДНАЛО ПРАЩАНЕ НЕ СЕ МАРКИРА
-            globals()["post"] = lambda thread, text: False
-            ravn_zabravi()
-            _padnal = "равносметка, чието пращане пада"
-            check("паднало пращане връща False",
-                  prati_ravnosmetka(_t0, _dn, "dosega", "staya",
-                                    _padnal)[0] is False)
-            globals()["post"] = _lazhepost
-            ravn_zabravi()
-            check("паднало пращане НЕ слага марка — пробва се пак",
-                  prati_ravnosmetka(_t0, _dn, "dosega", "staya",
-                                    _padnal)[0] is True)
-            # БЕЗ БУДИЛНИК — ПРАЩА КАКТО ПРЕДИ (провал към шум, не към тишина)
-            globals()["_bud_modul"] = lambda: None
-            _n_predi = len(_prateni)
-            check("без будилник оценителят пак праща",
-                  prati_ravnosmetka(_t0, _dn, "finish", "staya",
-                                    _fin2)[0] is True)
-            check("и съобщението наистина излиза",
-                  len(_prateni) == _n_predi + 1)
-            globals()["_bud_modul"] = _star_bud
-        finally:
-            globals()["_bud_modul"] = _star_bud
-            globals()["RAVN_SAST_FILE"] = _star_r_file
-            globals()["DRY_RUN"] = _star_r_dry
-            globals()["post"] = _star_post
-            globals()["post_channel"] = _star_kanal
-            ravn_zabravi()
-            try:
-                os.remove(_tmp_r)
-            except OSError:
-                pass
-        check("подставените пращачи са върнати",
-              globals()["post"] is _star_post
-              and globals()["post_channel"] is _star_kanal)
-        check("сухият режим е върнат както си беше",
-              globals()["DRY_RUN"] is _star_r_dry)
-
-        # ══════════════════════════════════════════════════════════════════
-        #  МИНАВА ЛИ main() ПРЕЗ ВРАТАТА. Пазач, който съществува, но не е
-        #  вързан, е украса. Затова main() СЕ ПУСКА наистина — временен
-        #  дневник, закован часовник, подставени пращачи — и се гледа КОЙ е
-        #  бил викан. Голото post() за равносметка тук е ЧЕРВЕНО.
-        # ══════════════════════════════════════════════════════════════════
-        _s_log = globals()["LOG_FILE"]
-        _s_arh = globals()["ARHIV_FILE"]
-        _s_dt = globals()["datetime"]
-        _s_time = globals()["time"]
-        _s_pr = globals()["prati_ravnosmetka"]
-        _s_post = globals()["post"]
-        _s_kanal = globals()["post_channel"]
-        _s_dry = globals()["DRY_RUN"]
-        _s_sport = globals()["sport_result"]
-        _s_zatv = globals()["hvani_zatvaryashta"]
-        _vikani, _golo = [], []
-        _tmp_log = os.path.join(tempfile.gettempdir(), "_scorer_main_selftest.json")
-        _tmp_arh = os.path.join(tempfile.gettempdir(), "_scorer_arhiv_selftest.json")
-
-        class _Chasovnik(_s_dt):
-            @classmethod
-            def now(cls, tz=None):
-                return _s_dt(2026, 8, 25, 23, 40, tzinfo=SOFIA)
-
-        class _BezSan(object):
-            @staticmethod
-            def sleep(n):
-                return None
-
-        def _shpionin(now, den, vid, adres, text):
-            _vikani.append((vid, adres))
-            return True, "шпионин"
-
-        _red = {"day": "2026-08-25", "posted": "2026-08-25 12:00",
-                "home": "Куба", "away": "Египет", "pick": "1 · победа Куба",
-                "bucket": "futbol", "sport": "Футбол", "league": "Тест"}
-        try:
-            globals()["LOG_FILE"] = _tmp_log
-            globals()["ARHIV_FILE"] = _tmp_arh
-            globals()["DRY_RUN"] = True          # нищо не се пише по диска
-            globals()["datetime"] = _Chasovnik
-            globals()["time"] = _BezSan
-            globals()["prati_ravnosmetka"] = _shpionin
-            globals()["post"] = lambda thread, text: (_golo.append(("staya", text))
-                                                      or True)
-            globals()["post_channel"] = lambda text: (_golo.append(("kanal", text))
-                                                      or True)
-            globals()["hvani_zatvaryashta"] = lambda r: False
-            # 1) ВЕЧЕР БЕЗ НОВИ ПРИСЪДИ: финиш в стаята, финиш в канала, досега.
-            _gotov = dict(_red)
-            _gotov.update({"scored": True, "hit": True, "score": "2:0"})
-            with open(_tmp_log, "w", encoding="utf-8") as _f:
-                json.dump([_gotov], _f, ensure_ascii=False)
-            check("main() върна 0 на вечер без нови присъди", main() == 0)
-            check("вечер без присъди: ТРИ равносметки през вратата",
-                  len(_vikani) == 3)
-            check("финишът отива в стаята", ("finish", "staya") in _vikani)
-            check("финишът отива И в канала", ("finish", "kanal") in _vikani)
-            check("ДОСЕГА ОБЩО отива в стаята", ("dosega", "staya") in _vikani)
-            check("нито една равносметка не мина ПОКРАЙ пазача", _golo == [])
-            # 2) ВЕЧЕР С НОВИ ПРИСЪДИ: и обзорът минава през вратата.
-            del _vikani[:]
-            del _golo[:]
-            globals()["sport_result"] = lambda r: (2, 0)
-            _viss = dict(_red)
-            with open(_tmp_log, "w", encoding="utf-8") as _f:
-                json.dump([_viss], _f, ensure_ascii=False)
-            check("main() върна 0 с нови присъди", main() == 0)
-            check("с нови присъди: ПЕТ равносметки през вратата",
-                  len(_vikani) == 5)
-            check("обзорът отива в стаята", ("obzor", "staya") in _vikani)
-            check("обзорът отива И в канала", ("obzor", "kanal") in _vikani)
-            check("и тук нищо не мина покрай пазача", _golo == [])
-        finally:
-            globals()["LOG_FILE"] = _s_log
-            globals()["ARHIV_FILE"] = _s_arh
-            globals()["datetime"] = _s_dt
-            globals()["time"] = _s_time
-            globals()["prati_ravnosmetka"] = _s_pr
-            globals()["post"] = _s_post
-            globals()["post_channel"] = _s_kanal
-            globals()["DRY_RUN"] = _s_dry
-            globals()["sport_result"] = _s_sport
-            globals()["hvani_zatvaryashta"] = _s_zatv
-            for _p in (_tmp_log, _tmp_arh):
-                try:
-                    os.remove(_p)
-                except OSError:
-                    pass
-        check("дневникът е върнат на живия", globals()["LOG_FILE"] is _s_log)
-        check("часовникът е върнат", globals()["datetime"] is _s_dt)
-        check("вратата е върната на истинската",
-              globals()["prati_ravnosmetka"] is _s_pr)
-
-    # ДОЛНА ГРАНИЦА НА БРОЯ, НЕ НА ЗЕЛЕНОТО. Пропадне ли блокът заради ранен
-    # изход или сгрешен отстъп, тази проверка го издава — иначе 0 счупени
-    # щеше да значи 0 прегледани.
-    check("пазачът на равносметките добави поне 35 свои проверки",
-          ok - _ok_predi_ravn >= 35)
-
-
     print("САМОПРОВЕРКА НА ОЦЕНИТЕЛЯ: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)
@@ -3870,105 +3557,6 @@ def otvori_nanovo(rows):
         b = r.get("bucket") or "?"
         otvoreni[b] = otvoreni.get(b, 0) + 1
     return otvoreni, izcherpani
-
-
-# ══════════════════════════════════════════════════════════════════════════
-#  ВРАТАТА КЪМ ПАЗАЧА СРЕЩУ ПОВТОРЕНА РАВНОСМЕТКА (26.08.2026)
-#
-#  ИЗМЕРЕНО ОФЛАЙН, НЕ ПРЕДПОЛОЖЕНО: main() пусната пет пъти с подменен
-#  часовник дава 15 съобщения, от които 10 са ДОСЛОВНИ копия (ФИНИШ НА ДЕНЯ
-#  към стая 9 и към канала, ДОСЕГА ОБЩО към стая 9). Единственият пазач в
-#  целия файл е combo_done, и той е за фишовете. Досега това не личеше,
-#  защото оценителят се пускаше два пъти на ден; от днес будилникът може да
-#  го буди и без пазач каналът получава равносметка на всеки рън.
-#
-#  Решението и тефтерът живеят в budilnik.py (ravn_reshi / ravn_otbelezhi).
-#  Тук е само вратата. Внасянето е през try/except: липсва ли будилникът,
-#  оценителят праща КАКТО ПРЕДИ. Провалът е към шум, не към тишина — мълчалива
-#  равносметка е точно аварията, срещу която строим.
-#
-#  ДВА АДРЕСА = ДВА КЛЮЧА. Финишът отива и в стая 9, и в канала със същия
-#  текст. Един ключ за двата щеше да глътне второто пращане и каналът щеше да
-#  остане без равносметка — обратната авария на тази, която лекуваме.
-#
-#  ПРИ СУХО ПУСКАНЕ (SCORE_DRY_RUN=1) НЕ СЕ ОТБЕЛЯЗВА НИЩО. Иначе една проба
-#  на човек заключва истинското вечерно съобщение.
-# ══════════════════════════════════════════════════════════════════════════
-
-# Тефтерът. Празно = този на будилника (budilnik_state.json). Самопроверката
-# го подменя с временен файл, за да мери ЖИВИЯ път, а не свое копие.
-RAVN_SAST_FILE = (os.environ.get("SCORE_RAVN_FILE") or "").strip() or None
-
-_RAVN_SAST = []          # кеш за рън: тефтерът се чете веднъж
-
-
-def _bud_modul():
-    """Будилникът или None. Липсва ли — оценителят праща както преди.
-
-    Не стига `import budilnik` да мине: стар будилник без слоя ravn_* щеше да
-    гръмне с AttributeError по средата на пращането. Проверява се, че всичките
-    пет врати ги има, и чак тогава се вярва.
-    """
-    try:
-        import budilnik
-    except Exception:                                        # noqa: BLE001
-        return None
-    for ime in ("ravn_reshi", "ravn_otbelezhi", "izrezhi_stari",
-                "cheti_sast", "pishi_sast"):
-        if not callable(getattr(budilnik, ime, None)):
-            return None
-    return budilnik
-
-
-def ravn_zabravi():
-    """Забравя заредения тефтер: нов рън, нов прочит. За самопроверката."""
-    del _RAVN_SAST[:]
-
-
-def ravn_sast(b=None):
-    """Тефтерът, четен ВЕДНЪЖ на рън."""
-    if not _RAVN_SAST:
-        b = _bud_modul() if b is None else b
-        _RAVN_SAST.append(b.cheti_sast(RAVN_SAST_FILE) if b is not None else {})
-    return _RAVN_SAST[0]
-
-
-def ravn_adres_prati(adres, text):
-    """Пращането по адрес: kanal -> каналът, всичко друго -> стая 9."""
-    if str(adres) == "kanal":
-        return bool(post_channel(text))
-    return bool(post(RESULTS_THREAD, text))
-
-
-def prati_ravnosmetka(now, den, vid, adres, text):
-    """ЕДИНСТВЕНАТА врата за петте равносметки. Връща (пратено_ли, защо).
-
-    vid:   obzor · finish · mezhdinna · dosega
-    adres: staya (стая 9) · kanal
-    Марката се слага САМО СЛЕД УСПЕШНО пращане. Обратното е дефектът, който
-    седи в combo_done: падне ли пращането, съобщението е изгубено завинаги,
-    защото марката твърди, че е минало.
-    """
-    b = _bud_modul()
-    if b is None:
-        print("  будилникът липсва — пращам БЕЗ пазач (" + str(vid) + "/"
-              + str(adres) + ")")
-        return ravn_adres_prati(adres, text), "няма будилник"
-    sast = ravn_sast(b)
-    mozhe, klyuch, _poreden, zashto = b.ravn_reshi(sast, den, vid, adres, text)
-    if not mozhe:
-        print("  ПАЗАЧ " + str(vid) + "/" + str(adres) + ": " + str(zashto))
-        return False, zashto
-    if not ravn_adres_prati(adres, text):
-        return False, "пращането не мина — БЕЗ марка, за да се пробва пак"
-    if DRY_RUN:
-        return True, "сухо пускане — не отбелязвам нищо"
-    b.ravn_otbelezhi(sast, klyuch, now)
-    b.izrezhi_stari(sast, now)
-    if not b.pishi_sast(sast, RAVN_SAST_FILE):
-        print("  тефтерът НЕ се записа — следващият рън може да повтори.")
-    return True, zashto
-
 
 
 def main():
@@ -4124,23 +3712,19 @@ def main():
     vecher = now.hour >= 20 or now.hour < 5
     obed = 11 <= now.hour < 20
     den = ((now - timedelta(days=1)) if now.hour < 5 else now).strftime("%Y-%m-%d")
-    # Видът на равносметката за пазача: обяд ражда ДОКЪДЕ СМЕ, вечер ФИНИШ.
-    # Будилникът търси точно тези две думи, за да знае дали е излязла.
-    vid_ravn = "mezhdinna" if obed else "finish"
 
     if not fresh:
         save_log(rows)
         if vecher or obed:
             finish = den_finish_text(now, rows, den, mezhdinna=obed)
-            prati_ravnosmetka(now, den, vid_ravn, "staya", finish)
+            post(RESULTS_THREAD, finish)
             time.sleep(1.5)
-            prati_ravnosmetka(now, den, vid_ravn, "kanal", finish)
+            post_channel(finish)
             # 🧾 И ВЕДНАГА СЛЕД ФИНИША — целият живот на бота. Само вечер:
             # обядът си има междинната, а трето съобщение по обяд е шум.
             if vecher:
                 time.sleep(1.5)
-                prati_ravnosmetka(now, den, "dosega", "staya",
-                                  obshto_dosega_text(now, cyal_dnevnik(rows)))
+                post(RESULTS_THREAD, obshto_dosega_text(now, cyal_dnevnik(rows)))
             # 🔴 ТУК СЕ ВРЪЩАШЕ КОД 1 — ХВАНАТО НА ЖИВО 11.08.2026 в CI.
             # Обедното пускане свърши точно каквото трябва (пусна „ДОКЪДЕ СМЕ
             # ДНЕС", 39 прогнози, 0 отсъдени — мачовете още вървят) и въпреки
@@ -4158,11 +3742,11 @@ def main():
     hit_all += sum(1 for f in fresh if f[3])
 
     obzor = results_text(now, fresh, total_all, hit_all, bez_izvor, rows)
-    prati_ravnosmetka(now, den, "obzor", "staya", obzor)
+    post(RESULTS_THREAD, obzor)
     # И В КАНАЛА. Поръчка на собственика: „искаме всичко да си е вътре след
     # края на деня". Провалът тук НЕ отменя поста в стаята — той вече е минал.
     time.sleep(1.5)
-    prati_ravnosmetka(now, den, "obzor", "kanal", obzor)
+    post_channel(obzor)
     # 🔴 РАЗМЕСЕНИ СТАИ (поправено 11.08.2026 по изрична дума на собственика:
     # „в Печеливши фишове не даваш фишовете от деня, а цялата статистика —
     # която трябва да е в Резултати и статистика. Да не объркваш нещата!").
@@ -4193,20 +3777,14 @@ def main():
     # но с различно заглавие — виж обяснението при vecher/obed по-горе.
     if vecher or obed:
         time.sleep(2.0)
-        # bez_sportove=True: обзорът горе вече показа разбивката по спорт за
-        # ТОВА пускане. Два реда „⚽ Футбол N от M" с различни знаменатели на
-        # 2 секунди разстояние четат като грешка. Виж бележката в самата
-        # функция. В другия клон (без обзор) флагът НЕ се подава.
-        finish = den_finish_text(now, rows, den, mezhdinna=obed,
-                                 bez_sportove=True)
-        prati_ravnosmetka(now, den, vid_ravn, "staya", finish)
+        finish = den_finish_text(now, rows, den, mezhdinna=obed)
+        post(RESULTS_THREAD, finish)
         time.sleep(1.5)
-        prati_ravnosmetka(now, den, vid_ravn, "kanal", finish)
+        post_channel(finish)
         # 🧾 И веднага след него — целият живот на бота. Виж близнака по-горе.
         if vecher:
             time.sleep(1.5)
-            prati_ravnosmetka(now, den, "dosega", "staya",
-                              obshto_dosega_text(now, cyal_dnevnik(rows)))
+            post(RESULTS_THREAD, obshto_dosega_text(now, cyal_dnevnik(rows)))
 
     # ОБЗОР НА ФИШОВЕТЕ → стая 10 „🏆 Печеливши фишове".
     #

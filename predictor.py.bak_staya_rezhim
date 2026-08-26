@@ -60,9 +60,6 @@ ENV:
   PREDICT_STATE_KEEP (8)      колко дни помни тефтерът
   PREDICT_STATE_FILE (predict_state.json)
   PREDICT_DRY_RUN    (0/1)    1 = само печата картите
-  PREDICT_STAYA_REZHIM (pak)  копието в стаята на спорта: pak = цялата
-                              карта (както днес) · kratko = един ред ·
-                              bez = нищо. Витрината 27 не се пипа от него.
   FOOTBALL_DATA_KEY, SPORTSDB_KEY — само за резервата през matches_bot
 
 Пускане:
@@ -1331,92 +1328,6 @@ def post_predict(text, thread_id=None):
         OTCHET["prateni"] += 1
         return True
     return otkaz("telegram")
-
-
-# ═══════════════════ КОПИЕТО В СТАЯТА НА СПОРТА (26.08.2026)
-# Всяка прогноза излиза ДВА ПЪТИ: веднъж в 27 (общата витрина) и веднъж,
-# ДОСЛОВНО СЪЩАТА, в стаята на своя спорт. Това е нарочно от 29.07.2026 —
-# собственикът отхвърли празните спортни стаи с думите „общи разписания, които
-# нищо не значат". Причината СТОИ и затова копието не се маха по подразбиране.
-#
-# ИЗМЕРЕНО (log_sled.json, 759 карти за 21 ден, четено на 26.08.2026):
-#   • всичките 759 карти имат стая на спорта → дублирането е по УСТРОЙСТВО
-#   • 25.08: 51 прогнози → 36 дословни повторения (волейбол 15, футбол 11,
-#     тенис на маса 8, баскетбол 2) = 36 от 87 картови съобщения за деня
-#   • картата е 233–278 знака / 8–9 реда; съкратеният ред е 90 знака
-#   • бейзбол (10) и тенис (5) от 25.08 НЕ се появиха втори път при абоната,
-#     макар кодът да ги праща — стаите им идват от rooms_state.json. ЗАЩО
-#     не кацат, оттук не се вижда; записано, не обяснено.
-#
-# ТРИТЕ ИЗХОДА СА ПРЕЗ СРЕДАТА. Подразбирането НЕ променя днешното поведение:
-#   PREDICT_STAYA_REZHIM=pak     (подразбиране) — както днес, цялата карта
-#   PREDICT_STAYA_REZHIM=kratko  — ЕДИН ред в стаята; картата остава в 27
-#   PREDICT_STAYA_REZHIM=bez     — нищо в стаята (състоянието отпреди 29.07)
-# Нито един режим не маха и една ПРОГНОЗА от витрината — това е за ШУМА, не
-# за обема. Непозната стойност пада на „pak“: грешка в средата не може да
-# смени поведението мълчаливо.
-
-
-def normalizirai_rezhim(v):
-    """Средата → режим. Непознатото пада на „pak“, тоест на днешното."""
-    s = str(v or "").strip().lower()
-    return s if s in ("pak", "kratko", "bez") else "pak"
-
-
-STAYA_REZHIM = normalizirai_rezhim(os.environ.get("PREDICT_STAYA_REZHIM"))
-_rezhim_surov = (os.environ.get("PREDICT_STAYA_REZHIM") or "").strip().lower()
-if _rezhim_surov and _rezhim_surov != STAYA_REZHIM:
-    print("WARN: PREDICT_STAYA_REZHIM=" + _rezhim_surov
-          + " не е познат — оставам на „pak“ (както досега).")
-
-
-def staya_tekst(an, cyala, now):
-    """Какво отива в стаята на спорта: същото, съкратено, или нищо (None).
-
-    Съкратеното е ЕДИН ред и носи четирите неща, заради които се отваря стая:
-    кога, кой срещу кого, какво казваме и с колко. Всичко останало (причината,
-    извадката, всеживотната сметка на спорта) остава в 27 — там картата е
-    непокътната. ЗАГУБАТА СЕ ЗНАЕ: който чете САМО стаята на своя спорт и
-    никога 27, при „kratko“ вече не вижда защо е избрано това.
-    """
-    if STAYA_REZHIM == "bez":
-        return None
-    if STAYA_REZHIM != "kratko":
-        return cyala
-    fx = an.get("fx") or {}
-    koga = str(fx.get("time") or when_label(fx.get("when"), now) or "").strip()
-    parts = []
-    if koga:
-        parts.append("<b>" + esc(koga) + "</b>")
-    parts.append(esc(str(fx.get("home") or "")) + " " + chr(8212) + " "
-                 + esc(str(fx.get("away") or "")))
-    izbor = str(an.get("pick") or "").strip()
-    if izbor:
-        parts.append("🎯 <b>" + esc(izbor) + "</b>")
-    try:
-        parts.append("<b>" + pct(an.get("p")) + "</b>")
-    except (TypeError, ValueError):
-        pass
-    red = " · ".join(x for x in parts if x)
-    em = str(fx.get("emoji") or "").strip()
-    return (em + " " + red) if em else red
-
-
-def prati_v_staya(an, cyala, now):
-    """Копието в стаята на своя спорт. Връща КОЛКО съобщения са излезли (0/1).
-
-    Едно място за двата пътя (прогнози и тотали) — дотук логиката беше
-    преписана два пъти и режимът трябваше да се вгражда на две места.
-    Провал тук НЕ отменя картата: тя вече е в 27.
-    """
-    staya = SPORT_ROOM.get(an.get("bucket"))
-    if not staya or staya == PREDICT_THREAD:
-        return 0
-    tekst = staya_tekst(an, cyala, now)
-    if not tekst:
-        return 0
-    time.sleep(1.2)
-    return 1 if post_predict(tekst, staya) else 0
 
 
 # ---------------------------------------------------------------- МАТЕМАТИКА (на ръка)
@@ -7123,7 +7034,11 @@ def post_totali(picks, state, now):
         log_pick(nov, now)
         izlezli += 1
         karti += 1
-        izlezli += prati_v_staya(nov, txt, now)
+        staya = SPORT_ROOM.get(nov.get("bucket"))
+        if staya and staya != PREDICT_THREAD:
+            time.sleep(1.2)
+            if post_predict(txt, staya):
+                izlezli += 1
         time.sleep(SEND_GAP)
     print("   ➕ тотали с пазарна линия: " + str(len(gotovi)) + " годни от "
           + str(len(picks)) + " карти · пуснати " + str(min(len(gotovi), max(0, int(mesto))))
@@ -7418,14 +7333,11 @@ def run():
             # И В СТАЯТА НА СВОЯ СПОРТ. Прогнозата за футбол интересува хората
             # в стая ⚽, не само тези, които следят общата витрина. Провал тук
             # не отменя картата — тя вече е в 27.
-            # 🔴 ИМЕТО `room` СИ ОТИДЕ (26.08.2026). Дотук тук се презаписваше
-            # `room` — същото име, с което по-горе се брои КОЛКО МЯСТО е
-            # останало за деня (`room = _tavan - cards_today(...)`, ред ~7189)
-            # и с което се смята таванът на подбора. Днес щетата е нула,
-            # защото след цикъла `room` не се чете повече; утре, добави ли
-            # някой ред след цикъла, числото за мястото вече ще е номер на
-            # стая. Сега стаята живее вътре в prati_v_staya и не изтича тук.
-            sent += prati_v_staya(a, txt, now)
+            room = SPORT_ROOM.get(a.get("bucket"))
+            if room and room != PREDICT_THREAD:
+                time.sleep(1.2)
+                if post_predict(txt, room):
+                    sent += 1
         time.sleep(SEND_GAP)
 
     # ➕ ВТОРАТА ПРОГНОЗА ОТ СЪЩИЯ МАЧ — тоталът на ПАЗАРНАТА линия, с цена.
@@ -7472,7 +7384,7 @@ def run():
 # ================================================================= САМОПРОВЕРКА
 def selftest():
     """Математиката, пазачите и тефтерът. Без мрежа — може да се пуска навсякъде."""
-    global STATE_FILE, STAYA_REZHIM
+    global STATE_FILE
     ok, bad = 0, []
 
     def check(name, cond):
@@ -8690,91 +8602,6 @@ def selftest():
     # дори от старата 484-знакова карта, тоест проверката не можеше да гръмне
     # никога. Новият таван е малко над измереното, за да лови връщане на редове.
     check("картата е под 380 знака", len(txt) < 380)
-
-    # --- КОПИЕТО В СТАЯТА НА СПОРТА (26.08.2026). Всички проверки са
-    # ПОВЕДЕНЧЕСКИ: гледат какво ВРЪЩА функцията и какво НАИСТИНА е подадено
-    # на изхода, не какво пише в кода. Изходът се подменя с тефтерче, за да
-    # се види стаята и текстът — инак режимът щеше да е изпитан само на
-    # хартия, а самото пращане — никога.
-    _zapazi_rezhim = STAYA_REZHIM
-    _star_post = globals()["post_predict"]
-    _star_sleep = time.sleep
-    _tefter = []
-    try:
-        check("празна среда = както днес", normalizirai_rezhim("") == "pak")
-        check("непозната стойност НЕ мени поведението",
-              normalizirai_rezhim("абракадабра") == "pak")
-        check("средата разпознава трите режима",
-              [normalizirai_rezhim(_x) for _x in ("PAK", " kratko ", "BEZ")]
-              == ["pak", "kratko", "bez"])
-        STAYA_REZHIM = "pak"
-        check("по подразбиране в стаята отива СЪЩАТА карта",
-              staya_tekst(demo, txt, now) == txt)
-        STAYA_REZHIM = "bez"
-        check("режим „bez“ не праща нищо в стаята",
-              staya_tekst(demo, txt, now) is None)
-        STAYA_REZHIM = "kratko"
-        _kr = staya_tekst(demo, txt, now)
-        check("съкратеното е ЕДИН ред", NL not in _kr)
-        check("съкратеното е поне двойно по-късо от картата",
-              len(_kr) * 2 < len(txt))
-        check("съкратеното носи двойката, избора и процента",
-              "Ню Йорк Никс" in _kr and "Маями Хийт" in _kr
-              and "победа Ню Йорк Никс" in _kr and "68%" in _kr)
-        check("съкратеното минава през пазача за думи",
-              banned_word(_kr) is None)
-        check("съкратеното носи часа", "21:30" in _kr)
-        _bez_chas = dict(demo)
-        _bez_chas["fx"] = dict(demo["fx"])
-        _bez_chas["fx"]["time"] = ""
-        _kr0 = staya_tekst(_bez_chas, txt, now)
-        check("без час редът не увисва с празен разделител",
-              "Ню Йорк Никс" in _kr0 and " ·  · " not in _kr0
-              and not _kr0.rstrip().endswith("·"))
-
-        # --- същото, но през ИЗХОДА: какво стига до Telegram и в коя стая
-        time.sleep = lambda _s: None
-
-        def _lazhliv_post(_t, _tid=None):
-            _tefter.append((str(_tid), _t))
-            return True
-
-        globals()["post_predict"] = _lazhliv_post
-
-        STAYA_REZHIM = "pak"
-        del _tefter[:]
-        _n = prati_v_staya(demo, txt, now)
-        check("днешното: едно съобщение, стаята на баскетбола, ЦЯЛАТА карта",
-              _n == 1 and _tefter == [(SPORT_ROOM.get("basketball"), txt)])
-        STAYA_REZHIM = "kratko"
-        del _tefter[:]
-        _n = prati_v_staya(demo, txt, now)
-        check("„kratko“: пак едно съобщение, но СЪКРАТЕНОТО",
-              _n == 1 and len(_tefter) == 1 and _tefter[0][1] == _kr
-              and _tefter[0][0] == SPORT_ROOM.get("basketball"))
-        STAYA_REZHIM = "bez"
-        del _tefter[:]
-        _n = prati_v_staya(demo, txt, now)
-        check("„bez“: изходът мълчи и броячът е нула",
-              _n == 0 and _tefter == [])
-        STAYA_REZHIM = "pak"
-        _chuzhd = dict(demo)
-        _chuzhd["bucket"] = "нямасподобенспорт"
-        del _tefter[:]
-        check("спорт без своя стая не праща нищо",
-              prati_v_staya(_chuzhd, txt, now) == 0 and _tefter == [])
-        _v27 = dict(demo)
-        _v27["bucket"] = "_test27"
-        SPORT_ROOM["_test27"] = PREDICT_THREAD
-        del _tefter[:]
-        check("стая, равна на витрината, не се пише два пъти",
-              prati_v_staya(_v27, txt, now) == 0 and _tefter == [])
-        SPORT_ROOM.pop("_test27", None)
-    finally:
-        STAYA_REZHIM = _zapazi_rezhim
-        globals()["post_predict"] = _star_post
-        time.sleep = _star_sleep
-        SPORT_ROOM.pop("_test27", None)
     check("картата не е изпразнена", len(txt) > 150)
     check("картата носи фиш-прогнозата",
           "🎯 <b>1 · победа Ню Йорк Никс" in txt and "68%" in txt)

@@ -513,93 +513,56 @@ def nameri(sport_key, dom, gost, liga=None):
     if not nd or not ng or nd == ng:
         return None
     fd, fg = _familiya(dom), _familiya(gost)
-    kd, kg = ((_kanon(dom), _kanon(gost)) if po_kanon_li(sport_key) else ("", ""))
-    nash_pol = _kanon_pol(liga) if liga else None
 
-    def _kandidati(paswa):
-        """Всички мачове по едно правило, вече отсети по ПОЛ.
-
-        🔴 ЗАЩО СЕ СЪБИРАТ, А НЕ СЕ ВРЪЩА ПЪРВИЯТ (26.08.2026).
-        Дотук всяка стъпка казваше `return mid` при първото попадение.
-        Измерено върху най-лошата възможна дъска (направена от собствените
-        ни 177 волейболни карти, тоест всяка двойка присъства и при мъже, и
-        при жени): 5 карти получиха мача на ДРУГИЯ ПОЛ — „Bermuda – Anguilla"
-        от женското ECVA хвана мъжкото. Причината: съвпадението беше ТОЧНО
-        по имена, а имената на държавите са едни и същи при двата пола.
-        Полът живееше само в най-новата стъпка и не пазеше най-старата.
-        """
-        out = []
-        for mid, (a, b, lg, _st) in mm.items():
-            if not paswa(a, b):
-                continue
-            tehen = _kanon_pol(lg)
-            # Различен пол значи ДРУГ мач, не същият.
-            if nash_pol and tehen and nash_pol != tehen:
-                continue
-            out.append((mid, tehen))
-        return out
-
-    def _edinstveniyat(namereni):
-        """Един кандидат или МЪЛЧАНИЕ. Никога „първият по ред в речника".
-
-        Два неразличими мача значи, че данните не стигат, за да се избере.
-        „Първият" тогава е хвърляне на монета, чийто резултат се публикува
-        като цена.
-        """
-        if len(namereni) == 1:
-            return namereni[0][0]
-        if len(namereni) > 1 and nash_pol:
-            stesneni = [m for m, t in namereni if t == nash_pol]
-            if len(stesneni) == 1:
-                return stesneni[0]
-        return None
-
-    def _tochno(a, b):
-        return {_norm(a), _norm(b)} == {nd, ng}
-
-    def _po_sashtina(a, b):
-        ka, kb = _kanon(a), _kanon(b)
-        return bool(ka) and bool(kb) and ka != kb and {ka, kb} == {kd, kg}
-
-    def _po_familiya(a, b):
-        return {_familiya(a), _familiya(b)} == {fd, fg}
-
-    def _po_podniz(a, b):
+    for mid, (a, b, _lg, _st) in mm.items():
         na, nb = _norm(a), _norm(b)
-        if not na or not nb:
-            return False
-        return (((nd in na or na in nd) and (ng in nb or nb in ng))
-                or ((nd in nb or nb in nd) and (ng in na or na in ng)))
-
-    # От строгото към хлабавото. Първата стъпка, която изобщо намери нещо,
-    # РЕШАВА — и ако намереното е неразличимо, се мълчи, вместо да се падне
-    # на по-хлабаво правило, което ще намери още повече.
-    stapki = [_tochno]
+        if {na, nb} == {nd, ng}:
+            return mid
     # 🔴 ДВЕТЕ АЗБУКИ — само при спортовете от KANON_SPORTOVE.
     # Стои ПРЕДИ подниза, защото е строго по-точно от него: иска ЦЯЛАТА
     # същина и на двете страни, не парче от името.
-    #
-    # 🔴 И ИСКА ЛИГА. Не за удобство — за да не се произведе нова грешка от
-    # поправката. `kanon` нарочно ИЗХВЪРЛЯ пола от името („Italy (W)" и
-    # „Italy" стават едно), защото при националните отбори полът живее в
-    # ЛИГАТА. Тоест без подадена лига „Италия" от женското EuroVolley не се
-    # различава от „Италия" от мъжкото — и една-единствена мъжка среща на
-    # дъската би станала цена на женска карта, тихо и правдоподобно.
-    # Без лига стъпката просто не се пуска: мълчанието е познатото
-    # състояние, чуждата цена — не.
-    if po_kanon_li(sport_key) and liga and kd and kg and kd != kg:
-        stapki.append(_po_sashtina)
+    if po_kanon_li(sport_key):
+        kd, kg = _kanon(dom), _kanon(gost)
+        if kd and kg and kd != kg:
+            nash_pol = _kanon_pol(liga) if liga else None
+            namereni = []
+            for mid, (a, b, _lg, _st) in mm.items():
+                ka, kb = _kanon(a), _kanon(b)
+                if not ka or not kb or ka == kb:
+                    continue
+                if {ka, kb} != {kd, kg}:
+                    continue
+                tehen = _kanon_pol(_lg)
+                # Различен пол значи ДРУГ мач, не същият.
+                if nash_pol and tehen and nash_pol != tehen:
+                    continue
+                namereni.append((mid, tehen))
+            if len(namereni) == 1:
+                return namereni[0][0]
+            if len(namereni) > 1:
+                # 🔴 ДВЕ „Франция – Италия" В ЕДИН ДЕН СА ДВА МАЧА.
+                # EuroVolley върви едновременно при мъже и жени, NORCECA —
+                # също. Не ги ли раздели полът, се МЪЛЧИ; и не се пада на
+                # подниза, който е още по-хлабав.
+                if nash_pol:
+                    stesneni = [m for m, t in namereni if t == nash_pol]
+                    if len(stesneni) == 1:
+                        return stesneni[0]
+                return None
     # 🔴 САМО ПРИ ЛИЧНИТЕ СПОРТОВЕ, и само с думи, които РАЗЛИЧАВАТ.
     # Виж бележката над функцията: при отборите тази стъпка сложи цената на
     # английски мач от 7-а дивизия върху карта от МЛС.
     if po_familiya_li(sport_key) and fd and fg and fd != fg:
-        stapki.append(_po_familiya)
-    stapki.append(_po_podniz)
-
-    for stapka in stapki:
-        namereni = _kandidati(stapka)
-        if namereni:
-            return _edinstveniyat(namereni)
+        for mid, (a, b, _lg, _st) in mm.items():
+            if {_familiya(a), _familiya(b)} == {fd, fg}:
+                return mid
+    for mid, (a, b, _lg, _st) in mm.items():
+        na, nb = _norm(a), _norm(b)
+        if not na or not nb:
+            continue
+        if (((nd in na or na in nd) and (ng in nb or nb in ng))
+                or ((nd in nb or nb in nd) and (ng in na or na in ng))):
+            return mid
     return None
 
 
@@ -821,191 +784,6 @@ def selftest():
         else:
             _kesh[("p", 29)] = _st_pf
 
-    # ─────────── 🔤 ДВЕТЕ АЗБУКИ И ПОЛЪТ (26.08.2026)
-    # Дъската е точно както изглежда при тях: имената на латиница, полът в
-    # името на ЛИГАТА. Нашите имена са такива, каквито стоят в дневника.
-    _v_m, _v_p = _kesh.get(("m", 34)), _kesh.get(("p", 34))
-    try:
-        _kesh[("m", 34)] = {
-            "W1": ("Dominican Republic", "United States",
-                   "Norceca - Continental Championship Women", ""),
-            "W2": ("Spain", "Portugal", "European - Championship Women", ""),
-            "M1": ("United States", "Canada", "Norceca - Final Six Men", ""),
-            "W3": ("United States", "Canada",
-                   "Norceca - Continental Championship Women", ""),
-            "T1": ("Spain (Points)", "Portugal (Points)",
-                   "European - Championship Women", ""),
-        }
-        _kesh[("p", 34)] = {"W1": (4.79, 1.21, None), "W2": (1.79, 2.05, None),
-                            "M1": (1.42, 2.90, None), "W3": (1.30, 3.50, None),
-                            "T1": (1.90, 1.90, None)}
-        _ZH = "NORCECA Women Continental Championship 2026"
-        _MZ = "NORCECA Senior Men's Final Six 2026"
-        _EV = "CEV EuroVolley 2026 | Women"
-        # 🔴 КАРТАТА, ЗАРАДИ КОЯТО СЪЩЕСТВУВА ВСИЧКО ТОВА: 26.08.2026,
-        # 18 от 18 наши NORCECA Women карти стояха без цена.
-        check("кирилицата намира латиницата",
-              nameri("volleyball", "Доминиканска република", "САЩ", _ZH) == "W1")
-        check("и цената идва в НАШИЯ ред",
-              ceni_za("volleyball", "Доминиканска република", "САЩ", _ZH)
-              == (4.79, 1.21, None))
-        check("номерът излиза навън — без него няма CLV",
-              nomer_strana("volleyball", "Доминиканска република", "САЩ", _ZH)
-              == ("W1", False))
-        check("обърнатата двойка се разпознава КАТО обърната",
-              nomer_strana("volleyball", "САЩ", "Доминиканска република", _ZH)
-              == ("W1", True))
-        check("обърнатата връща РАЗМЕНЕНИ цени",
-              ceni_za("volleyball", "САЩ", "Доминиканска република", _ZH)
-              == (1.21, 4.79, None))
-        check("Испания намира Spain",
-              nameri("volleyball", "Испания", "Португалия", _EV) == "W2")
-        # 🔴 ПОЛЪТ. Една и съща двойка държави играе в един ден при мъже и
-        # при жени. Сгрешеният пол е ЧУЖДА цена, не липсваща.
-        check("женската карта взима ЖЕНСКИЯ мач",
-              nameri("volleyball", "САЩ", "Канада", _ZH) == "W3")
-        check("мъжката карта взима МЪЖКИЯ мач",
-              nameri("volleyball", "САЩ", "Канада", _MZ) == "M1")
-        check("без лига се МЪЛЧИ, вместо да се хвърля монета",
-              nameri("volleyball", "САЩ", "Канада") is None)
-        # 🔴 И КОГАТО КАНДИДАТЪТ Е ЕДИН-ЕДИНСТВЕН. Оцеляла мутация показа,
-        # че горната проверка мълчи по ДРУГА причина (двама кандидати) и не
-        # пази искането за лига. Тук кандидатът е точно един — а полът пак е
-        # неизвестен, значи пак може да е мачът на другия пол.
-        check("без лига се мълчи ДОРИ при един кандидат",
-              nameri("volleyball", "Испания", "Португалия") is None)
-        check("и цена не изтича без лига",
-              ceni_za("volleyball", "Испания", "Португалия")
-              == (None, None, None))
-        # 🔴 И ЕДИНСТВЕНИЯТ МАЧ ОТ ДРУГИЯ ПОЛ СЪЩО НЕ СТАВА ЦЕНА. Тук на
-        # дъската има само ЖЕНСКИ „Dominican – USA"; мъжка карта не бива да
-        # го получи само защото няма конкурент.
-        check("мъжка карта НЕ хваща единствения женски мач",
-              nameri("volleyball", "Доминиканска република", "САЩ", _MZ) is None)
-        check("и цената не изтича",
-              ceni_za("volleyball", "Доминиканска република", "САЩ", _MZ)
-              == (None, None, None))
-        check("пазарът на точки не става цена на мач",
-              nameri("volleyball", "Испания", "Португалия", _EV) == "W2")
-        # 🔴 ТЯХНА ЛИГА БЕЗ ПОЛ В ИМЕТО. „Mediterranean Games" не казва мъже
-        # ли са или жени. Такъв кандидат НЕ се изхвърля (нищо не си
-        # противоречи), но щом до него стои кандидат, който съвпада с нашия
-        # пол ТОЧНО, печели той. Оцеляла мутация показа, че този избор не
-        # беше пазен от нищо.
-        _kesh[("m", 34)]["X1"] = ("United States", "Canada",
-                                  "Norceca - Cup", "")
-        _kesh[("p", 34)]["X1"] = (9.99, 9.99, None)
-        check("безполовата лига не бие точното съвпадение по пол",
-              nameri("volleyball", "САЩ", "Канада", _ZH) == "W3")
-        check("и цената не идва от нея",
-              ceni_za("volleyball", "САЩ", "Канада", _ZH) == (1.30, 3.50, None))
-        check("непозната двойка няма номер",
-              nameri("volleyball", "Перу", "Чили", _EV) is None)
-        # 🔴 ВРАТАТА Е ТОЧНО ТОЛКОВА ШИРОКА, КОЛКОТО Е НУЖДАТА.
-        # `kanon` изхвърля пола от името; пуснат при клубните спортове, той
-        # би слял „Barcelona" и „Barcelona W" в един отбор.
-        check("волейболът се съди по същина", po_kanon_li("volleyball"))
-        check("футболът НЕ се съди по същина", not po_kanon_li("football"))
-        check("тенисът НЕ", not po_kanon_li("tennis"))
-        check("тенисът на маса НЕ", not po_kanon_li("tabletennis"))
-        check("баскетболът НЕ", not po_kanon_li("basketball"))
-        check("бейзболът НЕ", not po_kanon_li("baseball"))
-        check("ММА НЕ", not po_kanon_li("mma"))
-        check("непознат спорт НЕ", not po_kanon_li("кърлинг"))
-        check("същината е ЗАЕТА, не преписана", _VE is not None)
-    finally:
-        if _v_m is None:
-            _kesh.pop(("m", 34), None)
-        else:
-            _kesh[("m", 34)] = _v_m
-        if _v_p is None:
-            _kesh.pop(("p", 34), None)
-        else:
-            _kesh[("p", 34)] = _v_p
-
-    # ─────────── ↔️ КОЯ СТРАНА Е НАШАТА (26.08.2026)
-    # Имената и цените са СНЕТИ ОТ ЖИВАТА ИМ ДЪСКА този ден.
-    _d_m, _d_p = _kesh.get(("m", 29)), _kesh.get(("p", 29))
-    try:
-        _kesh[("m", 29)] = {
-            "C1": ("Manchester City", "Coventry City",
-                   "England - Premier League", ""),
-            "C2": ("KuPS", "Shamrock Rovers", "Europe - Conference League", ""),
-        }
-        _kesh[("p", 29)] = {"C1": (1.20, 10.59, 7.32), "C2": (1.91, 3.97, 3.22)}
-        # 🔴 ГЛАВНАТА ПРОВЕРКА ТУК. „city" е суфикс, не фамилия — а старото
-        # правило обявяваше мача за обърнат и слагаше 10.59 на Манчестър Сити.
-        check("еднаквият суфикс НЕ обявява мача за обърнат",
-              nomer_strana("football", "Manchester City", "Coventry City")
-              == ("C1", False))
-        check("и цената остава при своя отбор",
-              ceni_za("football", "Manchester City", "Coventry City")
-              == (1.20, 10.59, 7.32))
-        # 🔴 И ОБРАТНАТА ГРЕШКА ОТ СЪЩИЯ ДЕН: наистина обърнат мач, който
-        # старото правило обявяваше за прав.
-        check("наистина обърнатият СЕ разпознава",
-              nomer_strana("football", "Shamrock Rovers", "KuPS Kuopio")
-              == ("C2", True))
-        check("и цените му се разменят",
-              ceni_za("football", "Shamrock Rovers", "KuPS Kuopio")
-              == (3.97, 1.91, 3.22))
-        check("правилно нареденият остава необърнат",
-              nomer_strana("football", "KuPS Kuopio", "Shamrock Rovers")
-              == ("C2", False))
-        # Степените: числото трябва да има ПОСОКА, инак хлабавото бие точното.
-        check("буква по буква е най-силното",
-              _stepen("football", "Real Madrid", "Real Madrid") == STEPEN_TOCHNO)
-        check("поднизът е хлабав", _stepen("football", "Thun", "FC Thun")
-              == STEPEN_HLABAVO)
-        check("различните са нула",
-              _stepen("football", "Real Madrid", "Barcelona") == 0)
-        check("точното бие хлабавото", STEPEN_TOCHNO > STEPEN_HLABAVO)
-        check("същината бие хлабавото", STEPEN_KANON > STEPEN_HLABAVO)
-        check("същината важи САМО където е пусната",
-              _stepen("volleyball", "Dominican Republic",
-                      "Доминиканска република") == STEPEN_KANON
-              and _stepen("football", "Dominican Republic",
-                          "Доминиканска република") == 0)
-        check("фамилията важи САМО при личните спортове",
-              _stepen("tennis", "Janice Tjen", "J. Tjen") == STEPEN_HLABAVO
-              and _stepen("football", "Bury FC", "Lancaster FC") == 0)
-        check("празното не прилича на нищо",
-              _stepen("football", "", "Barcelona") == 0
-              and _stepen("football", None, None) == 0)
-        # 🔴 ДВА МАЧА НА ЕДНА ДВОЙКА НЕ СЕ РЕШАВАТ С „първия по ред".
-        # Измерено живо 26.08.2026: 4 футболни срещи в 2 такива двойки
-        # (Ventforet Kofu – Consadole Sapporo стои и в J2, и в Купата).
-        _kesh[("m", 29)] = {
-            "D1": ("Ventforet Kofu", "Consadole Sapporo", "Japan - J2 League", ""),
-            "D2": ("Ventforet Kofu", "Consadole Sapporo", "Japan - Cup", ""),
-        }
-        _kesh[("p", 29)] = {"D1": (2.0, 3.0, 3.2), "D2": (2.1, 3.1, 3.3)}
-        check("две срещи на една двойка -> МЪЛЧАНИЕ, не монета",
-              nameri("football", "Ventforet Kofu", "Consadole Sapporo") is None)
-        # 🔴 РАВНАТА ПРИЛИКА НЕ ОБРЪЩА МАЧА. Двете нареждания пасват еднакво
-        # добре („Milan" е подниз и на двете наши имена, „Inter" също) —
-        # тогава остава НАШИЯТ ред. Оцеляла мутация (`>` става `>=`) показа,
-        # че тази посока не беше записана никъде.
-        _kesh[("m", 29)] = {"E1": ("Milan", "Inter", "Italy - Serie A", "")}
-        _kesh[("p", 29)] = {"E1": (1.5, 2.5, 3.0)}
-        check("равната прилика оставя НАШИЯ ред",
-              nomer_strana("football", "Milan Inter", "Inter Milan")
-              == ("E1", False))
-        check("и цената не се разменя без причина",
-              ceni_za("football", "Milan Inter", "Inter Milan") == (1.5, 2.5, 3.0))
-        check("и цена не се публикува",
-              ceni_za("football", "Ventforet Kofu", "Consadole Sapporo")
-              == (None, None, None))
-    finally:
-        if _d_m is None:
-            _kesh.pop(("m", 29), None)
-        else:
-            _kesh[("m", 29)] = _d_m
-        if _d_p is None:
-            _kesh.pop(("p", 29), None)
-        else:
-            _kesh[("p", 29)] = _d_p
-
     # ------------------------------------------------------------ ТОТАЛИТЕ
     check("2.5 е половинка", polovinka(2.5) and polovinka(167.5))
     check("2.0 НЕ е половинка", not polovinka(2.0) and not polovinka(8))
@@ -1100,7 +878,7 @@ def selftest():
     check("кешът е чист след теста", ("m", 33) not in _kesh and ("s", 29) not in _kesh)
     check("броячът на заявки работи", isinstance(broi_zayavki(), int))
     check("нула мрежа в самопроверката", broi_zayavki() == 0)
-    check("броят проверки е поне 115", ok >= 115)
+    check("броят проверки е поне 25", ok >= 25)
 
     print("САМОПРОВЕРКА НА PINNACLE: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:

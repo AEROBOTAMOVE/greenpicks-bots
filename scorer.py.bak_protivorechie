@@ -1740,7 +1740,7 @@ def obshto_dosega_text(now, rows):
         "",
         "\U0001f7e2 THE GREEN ROOM"])
 
-def den_finish_text(now, rows, den, mezhdinna=False, bez_sportove=False):
+def den_finish_text(now, rows, den, mezhdinna=False):
     """Равносметката на един ден: пуснато, отсъдено, познато, останало.
 
     mezhdinna=True е обедният вариант: същите числа, но заглавието и краят
@@ -1820,18 +1820,7 @@ def den_finish_text(now, rows, den, mezhdinna=False, bez_sportove=False):
         b = r.get("bucket") or "друго"
         p, n = po_sport.get(b, (0, 0))
         po_sport[b] = (p + (1 if r.get("hit") else 0), n + 1)
-    # 🔴 НЕ Я ПОКАЗВАЙ, АКО ОБЗОРЪТ ТОКУ-ЩО Я Е ПОКАЗАЛ (26.08.2026).
-    #
-    # Обзорът брои отсъденото В ТОВА ПУСКАНЕ, финишът — за ЦЕЛИЯ ДЕН. И двете
-    # са верни, но пристигат на 2.0 секунди разстояние в едни и същи два
-    # адреса и читателят вижда „⚽ Футбол 1 от 3", после „⚽ Футбол 1 от 5".
-    #
-    # Същият дефект вече е бил решен за ПРОЦЕНТА (махнат от финиша по същата
-    # причина). Дробите по спорт са останали — това е близнакът му.
-    #
-    # Когато обзор НЯМА (пускане без нови присъди), финишът е единственото
-    # съобщение и разбивката остава. Нула изгубена информация.
-    if po_sport and not bez_sportove:
+    if po_sport:
         out.append("")
         for b in po_red(list(po_sport)):
             p, n = po_sport[b]
@@ -2409,20 +2398,6 @@ def selftest():
          "scored": True, "hit": True, "home": "И", "away": "Й"},
     ]
     _fin = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA), _redove, _dn)
-    # 🔴 ДВЕТЕ СЪОБЩЕНИЯ НЕ БИВА ДА СИ ПРОТИВОРЕЧАТ (26.08.2026).
-    # Поведенческа проверка: строим ДВАТА варианта и гледаме какво излиза.
-    _fin_bez = den_finish_text(datetime(2026, 8, 11, 23, 30, tzinfo=SOFIA),
-                               _redove, _dn, bez_sportove=True)
-    check("финишът СЪС спортове ги показва", " от " in _fin)
-    check("финишът БЕЗ спортове не показва нито един спортов ред",
-          not any(_l.strip().startswith(sport_emo(_b))
-                  for _b in ("football", "volleyball", "tennis", "tabletennis",
-                             "baseball", "basketball")
-                  for _l in _fin_bez.split(NL)))
-    check("но пуснатите и отсъдените си остават и в двата",
-          "пуснати" in _fin_bez and "пуснати" in _fin)
-    check("махането САМО скъсява — нищо ново не се появява",
-          len(_fin_bez) < len(_fin))
     check("финишът е озаглавен", "ФИНИШ НА ДЕНЯ" in _fin)
     check("финишът брои само днешните", "От <b>4</b> пуснати днес" in _fin)
     check("финишът брои познатите", "познахме <b>1</b>" in _fin)
@@ -4193,12 +4168,7 @@ def main():
     # но с различно заглавие — виж обяснението при vecher/obed по-горе.
     if vecher or obed:
         time.sleep(2.0)
-        # bez_sportove=True: обзорът горе вече показа разбивката по спорт за
-        # ТОВА пускане. Два реда „⚽ Футбол N от M" с различни знаменатели на
-        # 2 секунди разстояние четат като грешка. Виж бележката в самата
-        # функция. В другия клон (без обзор) флагът НЕ се подава.
-        finish = den_finish_text(now, rows, den, mezhdinna=obed,
-                                 bez_sportove=True)
+        finish = den_finish_text(now, rows, den, mezhdinna=obed)
         prati_ravnosmetka(now, den, vid_ravn, "staya", finish)
         time.sleep(1.5)
         prati_ravnosmetka(now, den, vid_ravn, "kanal", finish)

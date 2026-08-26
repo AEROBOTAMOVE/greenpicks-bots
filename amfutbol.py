@@ -1,0 +1,2049 @@
+# -*- coding: utf-8 -*-
+"""
+THE GREEN ROOM — АМЕРИКАНСКИЯТ ФУТБОЛ 🏈
+
+Един въпрос: кой пазар на този спорт изобщо казва нещо, и може ли да се отсъди?
+
+═══════════════════════════════════════════════════════════════════════════
+🔴 ПЪРВОТО ЧИСЛО В ЗАДАНИЕТО БЕШЕ ГРЕШНО. ИЗМЕРЕНО ДНЕС.
+═══════════════════════════════════════════════════════════════════════════
+
+Заданието казваше „Пинакъл id 15 · 393 мача СЕГА · NCAA 198 · NFL 174".
+Измерено на живо, 25.08.2026, guest слоят без ключ:
+
+    /sports                      -> Football, id 15, matchupCount = 393
+    /sports/15/matchups          -> 396 записа, от които:
+                                      315 са type=„special"  (НЕ са мачове)
+                                       81 са type=„matchup" без parentId
+                                        4 са подмачове (с parentId)
+
+Тоест 393 е БРОЯЧЪТ НА ТЯХНАТА ВИТРИНА, не броят срещи. Специалните са залози
+от рода „кой ще спечели дивизията" — и те си имат лига („NFL" 158, „NCAA" 156).
+Точно затова се броят като мачове, ако някой ги брои по лига: оттам идват 198
+и 174 в заданието.
+
+ИСТИНСКИТЕ СРЕЩИ СА 81:
+    NCAA                45   ( 3.9 .. 12.2 дни напред)
+    NFL Pre Season      16   ( 2.2 ..  4.2 дни напред)
+    NFL                 16   (15.3 .. 20.3 дни напред)
+    Canadian Football    4   ( 3.3 ..  5.2 дни напред)
+
+`pinnacle.machove` вече хвърля и специалните, и подмачовете — този файл не го
+поправя, той просто не наследява грешното число.
+
+═══════════════════════════════════════════════════════════════════════════
+🔴 КОЙ ПАЗАР ПУСКАМЕ: ХЕНДИКАП. И ЗАЩО НЕ ЧИСТАТА ПОБЕДА.
+═══════════════════════════════════════════════════════════════════════════
+
+Измерено върху същите 81 мача, 25.08.2026:
+
+                        има го за   и двете цени в    марж    отсъдим на
+                        колко мача   1.30 .. 3.50            половинка
+    чиста победа          68 / 81       44 (65%)      4.10%       —
+    ХЕНДИКАП              81 / 81       81 (100%)     3.90%     71 / 81
+    тотал                 81 / 81       81 (100%)     4.45%     70 / 81
+
+Чистата победа пада на три места наведнъж:
+  · НЯМА Я за 13 от 81 мача, и то точно там, където боли: NCAA има само 32 от
+    45. Пинакъл не котира победител, когато разликата е чудовищна.
+  · Медианният фаворит е 1.42, медианният аутсайдер 2.96. При 50% от мачовете
+    аутсайдерът е на 3.00 или повече, при 15% — на 8.00 или повече.
+  · МЕДИАННИЯТ ХЕНДИКАП В NCAA Е 19.5 ТОЧКИ (срещу 3.2 в NFL). Карта „Охайо
+    Стейт печели" при очаквана разлика 19.5 точки не е прогноза, а прочитане
+    на таблото.
+
+Хендикапът е обратното ПО УСТРОЙСТВО: медианната разлика между двете му цени е
+0.07, тоест и двете страни са около 1.91. Пазарът сам е направил изхода монета
+— значи наше твърдение „57%" Е ТВЪРДЕНИЕ, а не преразказ на очевидното.
+
+🔴 ЗАЩО НЕ ТОТАЛЪТ, въпреки че покритието му е същото.
+Тоталът иска РАЗПРЕДЕЛЕНИЕ НА СБОРА, каквото за този спорт нямаме измерено.
+`predictor.TOTAL_SPORTS` е („football", „baseball", „basketball") и всеки от
+тримата влезе там със СВОЕ измерване (бейзболът дори обори Поасон срещу 1965
+мача). Американският футбол бележи на 3 и на 7 — сборът му не е Поасон и не е
+нормален. Измерено от ESPN върху 544 изиграни редовни мача: разликата е РОВНО
+3 в 14-15% от случаите и РОВНО 7 в 7-10%.
+Затова тоталът тук се ИЗНАСЯ КАТО ЦЕНА (линия + двете цени + вероятността на
+ПАЗАРА без марж), но НЕ се обявява НАША вероятност за него. Цена, която имам, и
+число, което нямам, са две различни неща и се пишат отделно.
+
+КАКВО БИ ОБЪРНАЛО ИЗБОРА: измерване на разпределението на РАЗЛИКАТА върху
+изиграни сезони, което покаже, че струпванията на 3 и 7 чупят и логистичната
+крива на `predictor.model_amfootball`. Тогава хендикапът става толкова измислен,
+колкото тоталът, и спортът пада обратно до чиста победа за 68-те мача, които
+изобщо я имат.
+
+═══════════════════════════════════════════════════════════════════════════
+🔴 КОЯ ЛИГА ВЛИЗА: NCAA И NFL. ДВЕТЕ ОТПАДНАЛИ СА ИЗМЕРЕНИ, НЕ ПРЕЦЕНЕНИ.
+═══════════════════════════════════════════════════════════════════════════
+
+❌ CANADIAN FOOTBALL (4 мача) — ВРАТА 2 Е ЗАТВОРЕНА. Проверено живо днес:
+    /football/cfl/scoreboard?dates=20260829  -> HTTP 200, 0 събития
+    /football/cfl/scoreboard                 -> HTTP 200, 1 събитие, и то е
+        „Toronto Argonauts at Winnipeg Blue Bombers" от 2022-11-20
+    /football/canadian-football/scoreboard   -> HTTP 400
+Тоест дъската на ESPN за CFL съществува, но е замръзнала отпреди четири години.
+Цена има, резултат НЯМА — значи карта без път до присъда.
+
+❌ NFL PRE SEASON (16 мача, 27-29.08) — ВРАТА 2 Е ОТВОРЕНА, но МОДЕЛЪТ НЕ Е.
+Измерено на живо от ESPN, 642 изиграни мача (seasontype 1 и 2):
+    предсезон 2025 срещу 2024   +6.1 точки  95% [+1.7 .. +10.5]  ИЗВЪН нулата
+    редовен   2025 срещу 2024   +0.2 точки  95% [-2.1 ..  +2.5]  в шума
+Редовният сезон е УСТОЙЧИВ от година на година; предсезонът НЕ Е. А
+`predictor.model_amfootball` учи нивото на отбора от миналите му мачове — тоест
+в редовния сезон целта стои, в предсезона се мести.
+И второто: ПАЗАРЪТ ВЕЧЕ ГО ЗНАЕ. Медианната му тотал-линия днес е 36.5 за
+предсезона срещу 45.8 за NFL. Той се е преместил, ние не сме. Точно това е
+дефектът, който вече ни струва измерени −17.7% доходност („пазарът знае повече").
+Затова предсезонните падат — не защото „не са истински", а защото имаме число,
+което казва колко несигурни са.
+🔴 ЧЕСТНО ЗА СРОКА: NCAA отваря на 29.08, предсезонът свършва на 29.08. Тръгне
+ли спортът утре, предсезонните биха били ПЪРВИТЕ карти на този бот за него.
+Затова решението пада точно сега, а не след месец.
+
+═══════════════════════════════════════════════════════════════════════════
+🔴 ИМЕНАТА: 97% ОТ ПЪРВИЯ ПЪТ, И ХЛАБАВОТО СЪВПАДЕНИЕ Е ЗАБРАНЕНО
+═══════════════════════════════════════════════════════════════════════════
+
+Пинакъл пише NCAA САМО с училището („Ohio State"); ESPN пише училище+прякор
+(„Ohio State Buckeyes"), но носи и `location` („Ohio State"), и
+`shortDisplayName`. Измерено днес срещу живата дъска на ESPN (19 заявки):
+    NFL              16 от 16   (100%)
+    NFL Pre Season   16 от 16   (100%)
+    NCAA             43 от 45   ( 96%)
+    ОБЩО             75 от 77   ( 97%)
+
+Двете ненамерени са МЕХАНИЧНИ, не смислови:
+  1. „San Jose State" срещу ESPN „San José State". Ударението. `str.isalnum()`
+     ПРОПУСКА „é" през ситото на буквите, тоест „sanjoséstate" != „sanjosestate".
+     Лек: `unicodedata.normalize("NFKD", ...)` преди чистенето. Безплатно и без
+     списък за поддържане.  ->  44 от 45.
+  2. „Miami Ohio" срещу ESPN „Miami (OH)" / „Miami OH".  ->  ПСЕВДОНИМИ, един
+     измерен ред.  ->  45 от 45.
+
+🔴 И ЗАЩО НЯМА ХЛАБАВ ПЪТ. Изкушението е „щом името на Пинакъл ЗАПОЧВА с името
+на ESPN — това е той". Измерено какво прави това правило върху днешните имена:
+54 ЛЪЖЛИВИ ЗАКАЧАНИЯ. Между тях:
+    Пинакъл „Ohio State"    би хванал ESPN „Ohio"      (Ohio Bobcats — ДРУГ!)
+    Пинакъл „Miami Ohio"    би хванал ESPN „Miami"     (Hurricanes  — ДРУГ!)
+    Пинакъл „Texas A&M"     би хванал ESPN „Texas"     (Longhorns   — ДРУГ!)
+    Пинакъл „Florida State" би хванал ESPN „Florida"   (Gators      — ДРУГ!)
+Това е точно дефектът „фамилията лепеше чужда цена" от футбола, само че тук би
+ударил 54 пъти вместо 94 от 885. Затова: съвпадението е ТОЧНО или го няма.
+И `pinnacle.po_familiya_li` тук не важи — NCAA не са хора, а училища.
+
+Отделно измерено: 11 имена водят до ДВАМА различни отбора (arizona, buffalo,
+cincinnati, houston, losangeles, miami, minnesota, newyork, pittsburgh,
+tennessee, washington). ВСИЧКИТЕ 11 са двойка „NFL отбор + колежански отбор".
+Затова дъската на ESPN се пита ПО ЛИГА (nfl / college-football) и сравнението
+никога не пресича двете — сблъсък ВЪТРЕ в една дъска няма нито един.
+
+═══════════════════════════════════════════════════════════════════════════
+🔴 КАКВО ТОЗИ ФАЙЛ ПРАВИ С ЧУЖДИТЕ ФАЙЛОВЕ: ЕДИН КЛЮЧ, И ТОЙ Е ОПАСЕН
+═══════════════════════════════════════════════════════════════════════════
+
+`registrirai()` вписва „amfootball": 15 в `pinnacle.SPORT_ID` със `setdefault`,
+точно както `boks.py` прави за бокса. Без него `pinnacle.machove/pazari/_surovi`
+връщат празно БЕЗ да са питали.
+
+🔴 НО ТУК ТОЗИ КЛЮЧ ИМА СТРАНИЧНО ДЕЙСТВИЕ, КАКВОТО БОКСЪТ НЯМА.
+`predictor.dobavi_pazar` гледа `if bucket in PIN.SPORT_ID` и слага цената от
+`PIN.ceni_za` — а тя е ЧИСТА ПОБЕДА. Тоест в мига, в който някой махне
+„amfootball" от `PREDICT_IZKL`, предсказателят почва да лепи по картите точно
+онази цена, която този файл измери като безполезна (1.02 срещу 15.00 в NCAA).
+ХЕНДИКАПЪТ НЕ МИНАВА ПРЕЗ `dobavi_pazar` — той се взима ОТТУК, с `cena()` или
+с реда от `fixtures()`. Който отваря спорта, е длъжен да мине през този файл, а
+не да разчита, че общият път ще свърши работа.
+ПЪТЯТ НАЗАД: `PREDICT_IZKL="hockey,amfootball"` (както е от 11.08.2026) държи
+спорта затворен и този ключ безвреден. Днес той е точно това.
+
+Ползата от ключа е реална и е за CLV: `pazar.pat_do_zatvaryane` дава „pinnacle"
+за всеки bucket в `SPORT_ID`, тоест затварящата цена идва без нито ред промяна в
+чужд файл.
+
+  python amfutbol.py --selftest   — проверките, БЕЗ мрежа
+  python amfutbol.py --zhivo      — истинско питане, за очи
+"""
+import calendar
+import json
+import sys
+import time
+import unicodedata
+import urllib.request
+
+# Нашето име на спорта (то е и bucket-ът в предсказателя) и техният номер.
+NASH_KLYUCH = "amfootball"
+PIN_ID = 15
+
+# Еталонът за „жив ли е изворът". Мерено 25.08.2026: soccer дава 1096 мача.
+# Нула амер. футбол при нула еталон значи запушен извор, а не празен ден.
+ETALON = "football"
+
+# 🔴 СЕНТИНЕЛ „НЕ МОЖАХ ДА ПИТАМ". НЕ е списък, НЕ е None, НЕ е празно.
+# Празният списък се чете като „днес няма мачове" и картата просто не излиза —
+# тоест падналата мрежа изглежда точно като спокоен ден. Всеки, който вика
+# fixtures/cena/espn_dyska, е длъжен да сравни с `is NEPITAN` ПРЕДИ дължината.
+NEPITAN = object()
+
+# Лигите с ОТВОРЕНИ И ТРИТЕ ВРАТИ -> коя дъска на ESPN ги отсъжда.
+# Проверено живо 25.08.2026: и двата адреса дават HTTP 200 и краен резултат.
+LIGI = {"NCAA": "college-football", "NFL": "nfl"}
+
+# Лигите, които Пинакъл носи, а ние НЕ пускаме — и измереното защо.
+# Стоят ПОИМЕННО, за да може отчетът да каже кой точно е отпаднал: число
+# „отрязани 20" без имената им не може да бъде оспорено от никого.
+LIGI_NE = {
+    "NFL Pre Season": "предсезон 2025 срещу 2024: +6.1 т [+1.7..+10.5], "
+                      "докато редовният е +0.2 т [-2.1..+2.5] — целта се мести",
+    "Canadian Football": "ESPN /football/cfl е замръзнал на 2022-11-20 — "
+                         "цена има, резултат няма",
+}
+
+# Под толкова секунди до първия снап вече не е прогноза. Същото число като
+# PREDICT_LEAD_MIN=10 в предсказателя.
+LEAD_SEK = 600.0
+
+# Отвъд толкова дни напред записът е спекулативен пазар, не среща. Измерено
+# 25.08.2026: най-далечният истински мач е на 20.3 дни (NFL седмица 1). 45 е
+# над двойното — същият праг като при бокса, по същата причина.
+SPEKULA_DNI = 45.0
+
+# 🔴 ПСЕВДОНИМИ: нормализирано име при Пинакъл -> нормализирано име при ESPN.
+# ВСЕКИ РЕД Е ИЗМЕРЕН, не предположен. Расте само когато мач наистина не се
+# намери — не се пълни отгоре с „сигурно и това ще потрябва".
+# 25.08.2026: една-единствена двойка от 77 мача.
+PSEVDONIMI = {
+    "miamiohio": "miamioh",      # ESPN: „Miami (OH) RedHawks" / short „Miami OH"
+}
+
+
+def _modul(ime):
+    """Модул по име или None.
+
+    През `__import__`, за да може самопроверката да подмени записа в
+    sys.modules и нито една проверка да не пипне мрежата.
+    """
+    try:
+        return __import__(str(ime))
+    except Exception:                                        # noqa: BLE001
+        return None
+
+
+def registrirai(pin=None):
+    """Вписва спорта в pinnacle.SPORT_ID. True, ако ключът е там.
+
+    ЕДИНСТВЕНОТО странично действие на този файл. Виж заглавието: тук ключът
+    отваря и една врата, която НЕ искаме (чиста победа през dobavi_pazar).
+    Вписва се със `setdefault` — сложи ли някой ден pinnacle.py свой номер за
+    този спорт, неговият печели.
+    """
+    pin = pin if pin is not None else _modul("pinnacle")
+    if pin is None:
+        return False
+    karta = getattr(pin, "SPORT_ID", None)
+    if not isinstance(karta, dict):
+        return False
+    karta.setdefault(NASH_KLYUCH, PIN_ID)
+    return NASH_KLYUCH in karta
+
+
+def norm(s):
+    """Име, сведено до сравнимо: без ударения, малки букви, само букви и цифри.
+
+    🔴 NFKD НЕ Е УКРАСА. Без него „San José State" дава „sanjoséstate" и НЕ
+    съвпада със „San Jose State" — измерено, един пропуснат мач от 45 NCAA.
+    `str.isalnum()` смята „é" за буква и я пуска през ситото на буквите.
+    """
+    s = unicodedata.normalize("NFKD", str(s or ""))
+    return "".join(ch for ch in s.lower() if ch.isalnum())
+
+
+def klyuch_pin(ime):
+    """Името на Пинакъл, сведено до ключ за сравнение — след псевдонимите."""
+    n = norm(ime)
+    return PSEVDONIMI.get(n, n)
+
+
+def epoh(iso):
+    """ISO час -> секунди от епохата. None при липса или боклук.
+
+    Pinnacle пише „2026-09-05T19:30:00Z"; ESPN пише „2026-09-05T19:30Z" — БЕЗ
+    секунди. И двете са UTC; разчитат се без чужди библиотеки, за да не зависи
+    ситото от инсталация.
+    """
+    t = str(iso or "").strip().replace(" ", "T")
+    if not t:
+        return None
+    if t.endswith("Z"):
+        t = t[:-1]
+    opashka = t[10:]
+    for znak in ("+", "-"):
+        if znak in opashka:
+            t = t[:10] + opashka.split(znak)[0]
+            break
+    if "." in t:
+        t = t.split(".")[0]
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+        try:
+            return float(calendar.timegm(time.strptime(t, fmt)))
+        except ValueError:
+            continue
+    return None
+
+
+def dni_napred(iso, sega=None):
+    """Колко ДНИ напред е този старт. None, ако дата няма."""
+    ts = epoh(iso)
+    if ts is None:
+        return None
+    return (ts - float(sega if sega is not None else time.time())) / 86400.0
+
+
+def polovinka(ln):
+    """Линия ли е на .5 — тоест може ли изходът да е само ДА или НЕ.
+
+    -7.5 -> да · -7.0 -> не (разликата може да е точно 7 и залогът се връща)
+    -7.25 -> не (четвъртинка: половината залог се дели)
+
+    Взима се от pinnacle, ако го има: правилото е негово и два преписа на едно
+    правило са начин единият да се поправи, а другият да остане крив. Свой
+    препис тук има САМО за случая, в който pinnacle.py липсва.
+    """
+    pin = _modul("pinnacle")
+    f = getattr(pin, "polovinka", None) if pin is not None else None
+    if callable(f):
+        try:
+            return bool(f(ln))
+        except Exception:                                    # noqa: BLE001
+            pass
+    try:
+        x = float(ln)
+    except (TypeError, ValueError):
+        return False
+    return abs(abs(x) * 2.0 - round(abs(x) * 2.0)) < 1e-9 and abs(x - round(x)) > 0.4
+
+
+def deset(amerikansko):
+    """Американска цена -> десетична. Взима се от pinnacle, ако го има."""
+    pin = _modul("pinnacle")
+    f = getattr(pin, "deset", None) if pin is not None else None
+    if callable(f):
+        try:
+            return f(amerikansko)
+        except Exception:                                    # noqa: BLE001
+            pass
+    try:
+        a = float(amerikansko)
+    except (TypeError, ValueError):
+        return None
+    if a >= 100.0:
+        return round(1.0 + a / 100.0, 2)
+    if a <= -100.0:
+        return round(1.0 + 100.0 / abs(a), 2)
+    return None
+
+
+def chisti_p(cena_a, cena_b):
+    """(p_а, p_б) с махнат марж, взето на заем от pazar.bez_marzh.
+
+    Не се преписва: маржът е измерен и обяснен там, а два преписа на едно
+    правило са начин единият да се поправи, а другият да остане крив. Името тук
+    е РАЗЛИЧНО нарочно — `bez_marzh` съществува в два файла и едноименна функция
+    вече е маскирала мъртъв код веднъж (виж cyalost.py).
+
+    И хендикапът, и тоталът са ДВУИЗХОДНИ на линия от половинка, тоест
+    `pazar.IZHODI` пада на 2 и сметката е вярната без нито ред промяна там.
+    Измереният марж на хендикапа днес е 3.90% (медиана върху 81 мача,
+    1.0278 .. 1.0421).
+
+    (None, None) без pazar.py — числото се пропуска, не се измисля.
+    """
+    pz = _modul("pazar")
+    if pz is None or not hasattr(pz, "bez_marzh"):
+        return (None, None)
+    try:
+        p = pz.bez_marzh(NASH_KLYUCH, cena_a, cena_b)
+    except Exception:                                        # noqa: BLE001
+        return (None, None)
+    if not isinstance(p, (list, tuple)) or len(p) < 2:
+        return (None, None)
+    return (p[0], p[1])
+
+
+def _linii(surovi_zapisi, tip):
+    """{номер: {"osnovna": линия, "linii": {линия: (цена_а, цена_б)}}}.
+
+    Един разбор за ДВАТА пазара. `tip` е „spread" (а=домакин, б=гост) или
+    „total" (а=над, б=под).
+
+    🔴 САМО ПЕРИОД 0 — целият мач. Четвъртините и полувремената носят СЪЩИЯ
+    `matchupId` и без тази проверка биха се смесили с мача: хендикап -1.5 за
+    първата четвърт щеше да мине за хендикап на срещата.
+
+    Линията е ВИНАГИ гледната точка на ПЪРВАТА страна: при хендикапа това са
+    точките на ДОМАКИНА (-7.5 значи „домакинът дава 7.5"), при тотала — самата
+    линия. Само половинки влизат в `linii`: цели и четвъртинки не могат да се
+    отсъдят с ДА или НЕ.
+    """
+    dvoyka = ("home", "away") if tip == "spread" else ("over", "under")
+    out = {}
+    for k in (surovi_zapisi or []):
+        if not isinstance(k, dict):
+            continue
+        if k.get("type") != tip or k.get("period") != 0:
+            continue
+        ca = cb = ln = None
+        for pr in (k.get("prices") or []):
+            d = str(pr.get("designation") or "").lower()
+            if d == dvoyka[0]:
+                ca = deset(pr.get("price"))
+                if pr.get("points") is not None:
+                    ln = pr.get("points")
+            elif d == dvoyka[1]:
+                cb = deset(pr.get("price"))
+                # Тоталът пише ЕДНА И СЪЩА линия и на двете страни; хендикапът
+                # пише огледалната. Затова гостът дава линия само при тотала.
+                if tip != "spread" and ln is None and pr.get("points") is not None:
+                    ln = pr.get("points")
+        if not (ca and cb) or ln is None:
+            continue
+        try:
+            ln = float(ln)
+        except (TypeError, ValueError):
+            continue
+        z = out.setdefault(str(k.get("matchupId")),
+                           {"osnovna": None, "linii": {}})
+        if not k.get("isAlternate"):
+            z["osnovna"] = ln
+        if polovinka(ln):
+            z["linii"][ln] = (ca, cb)
+    return out
+
+
+def izbor_liniya(z):
+    """(линия, цена_а, цена_б) от един запис на `_linii`. (None,None,None) без.
+
+    🔴 ЛИНИЯТА Я ИЗБИРА ПАЗАРЪТ, НЕ НИЕ. Пинакъл дава по 8 алтернативни линии на
+    мач (медиана, измерено днес и за хендикапа, и за тотала). Изкушението е да
+    се вземе онази, на която нашият процент е най-висок — а това е точно
+    линията, на която НАЙ-МНОГО не сме съгласни с пазара, тоест където най-често
+    грешим. Изборът тук не гледа нашия модел изобщо:
+      · основната, ако е на половинка
+      · иначе най-близката половинка до нея
+      · при равно разстояние — онази, чиито ДВЕ ЦЕНИ са най-близки една до
+        друга, тоест която ПАЗАРЪТ смята за най-равностойна
+
+    Правилото е буквално това на `pinnacle.total_za` и стои тук, защото него го
+    няма за хендикап. Равенството НЕ се решава с „по-ниската": при хендикапа
+    по-ниската линия прави домакина по-вероятен, тоест би произвела
+    систематичен наклон в една посока — от подредбата, не от пазара.
+    """
+    if not isinstance(z, dict) or not z.get("linii"):
+        return (None, None, None)
+    osn = z.get("osnovna")
+    linii = z["linii"]
+    if osn is None:
+        return (None, None, None)
+    if polovinka(osn) and osn in linii:
+        ln = osn
+    else:
+        def _red(x):
+            c = linii[x]
+            return (abs(x - osn), abs(float(c[0]) - float(c[1])), x)
+        ln = sorted(linii, key=_red)[0]
+    c = linii[ln]
+    return (ln, c[0], c[1])
+
+
+def surovi(pin=None):
+    """(мачове, хендикапи, тотали, чисти_победи) от Pinnacle, или NEPITAN.
+
+    ДВЕ заявки за целия спорт, кеширани в pinnacle (`machove` и `_surovi`;
+    `pazari` чете същия кеш). Трета САМО ако спортът върне нула мача.
+
+    🔴 НУЛА МАЧОВЕ Е ДВА РАЗЛИЧНИ ОТГОВОРА. `pinnacle._j` гълта всяка мрежова
+    грешка и връща None, а `machove` превръща None в {} — тоест паднала мрежа и
+    празен ден изглеждат еднакво отвън. Затова при нула се пита ЕТАЛОНЕН спорт,
+    който никога не е празен. Нула наши + нула еталон = запушен извор.
+    """
+    pin = pin if pin is not None else _modul("pinnacle")
+    if pin is None:
+        return NEPITAN
+    if not registrirai(pin):
+        return NEPITAN
+    sur = getattr(pin, "_surovi", None)
+    if not callable(sur):
+        # Без суровия слой хендикап НЯМА ОТКЪДЕ да дойде — а той е картата.
+        # Мълчаливо връщане на „само чиста победа" би дало точно безполезния
+        # пазар с вид на успех.
+        return NEPITAN
+    try:
+        mm = pin.machove(NASH_KLYUCH)
+        cc = pin.pazari(NASH_KLYUCH)
+        raw = sur(NASH_KLYUCH)
+    except Exception:                                        # noqa: BLE001
+        return NEPITAN
+    if not isinstance(mm, dict) or not isinstance(cc, dict):
+        return NEPITAN
+    if not isinstance(raw, (list, tuple)):
+        return NEPITAN
+    if not mm:
+        try:
+            et = pin.machove(ETALON)
+        except Exception:                                    # noqa: BLE001
+            return NEPITAN
+        if not isinstance(et, dict) or not et:
+            return NEPITAN
+    return (mm, _linii(raw, "spread"), _linii(raw, "total"), cc)
+
+
+def prazen_otchet():
+    """Отчетът на ситото, преди да е минал един запис."""
+    return {"vsichko": 0, "schupeni": 0, "bez_data": 0, "spekulativni": [],
+            "chuzhda_liga": {}, "zapochnali": 0, "izvan": 0,
+            "bez_hendikap": 0, "bez_polovinka": 0, "godni": 0}
+
+
+def sito(mach, spred, total, ml, sega=None, dni=None, ligi=None):
+    """(годни, отчет). ЧИСТА функция — нито една заявка вътре.
+
+    `dni=None` значи БЕЗ прозорец: остават всички истински мачове, колкото и
+    напред да са. `dni=1` значи „днес и утре" и е това, което иска картата.
+    `ligi=None` значи стандартните две (NCAA, NFL).
+
+    Отчетът брои ВСЯКО отпадане поотделно, а спекулативните и чуждите лиги ги
+    връща и ПОИМЕННО.
+
+    🔴 РЕДЪТ Е ЧАСТ ОТ ОТГОВОРА. Лигата се съди ПЪРВА, преди всичко друго:
+    иначе предсезонните (2.2 дни напред) биха паднали като „в прозореца, но без
+    хендикап" или изобщо биха минали, а числото „колко предсезонни отрязахме"
+    щеше да е НУЛА — тоест точно мярката, заради която решението съществува,
+    щеше да показва, че решение няма.
+    Спекулативните се броят ВТОРИ, пак преди прозореца, по същата причина.
+    """
+    s = float(sega if sega is not None else time.time())
+    prieti = dict(LIGI if ligi is None else ligi)
+    otchet = prazen_otchet()
+    godni = []
+    for nomer, red in sorted((mach or {}).items()):
+        otchet["vsichko"] += 1
+        if not isinstance(red, (list, tuple)) or len(red) < 2:
+            otchet["schupeni"] += 1
+            continue
+        dom, gost = str(red[0] or ""), str(red[1] or "")
+        liga = str(red[2] or "") if len(red) > 2 else ""
+        iso = str(red[3] or "") if len(red) > 3 else ""
+        if not norm(dom) or not norm(gost) or norm(dom) == norm(gost):
+            otchet["schupeni"] += 1
+            continue
+        if liga not in prieti:
+            otchet["chuzhda_liga"].setdefault(liga, []).append((dom, gost, iso))
+            continue
+        d = dni_napred(iso, s)
+        if d is None:
+            otchet["bez_data"] += 1
+            continue
+        if d > SPEKULA_DNI:
+            otchet["spekulativni"].append((dom, gost, round(d, 1), iso))
+            continue
+        if d * 86400.0 < LEAD_SEK:
+            otchet["zapochnali"] += 1
+            continue
+        if dni is not None and d > float(dni):
+            otchet["izvan"] += 1
+            continue
+        z = (spred or {}).get(str(nomer))
+        if not z:
+            otchet["bez_hendikap"] += 1
+            continue
+        hl, hd, hg = izbor_liniya(z)
+        # Мач с хендикап, но без НИТО ЕДНА половинка, е мач, чието твърдение не
+        # може да се отсъди еднозначно. Измерено днес: 10 от 81 са такива.
+        if hl is None:
+            otchet["bez_polovinka"] += 1
+            continue
+        hpd, hpg = chisti_p(hd, hg)
+        tl, tn, tp = izbor_liniya((total or {}).get(str(nomer)))
+        tpn, tpp = chisti_p(tn, tp) if tl is not None else (None, None)
+        c = (ml or {}).get(str(nomer))
+        cd = c[0] if isinstance(c, (list, tuple)) and len(c) > 0 else None
+        cg = c[1] if isinstance(c, (list, tuple)) and len(c) > 1 else None
+        godni.append({
+            "id": str(nomer), "dom": dom, "gost": gost, "liga": liga,
+            "slug": prieti[liga], "start": iso, "start_ts": epoh(iso),
+            "dni": round(d, 3),
+            # ХЕНДИКАПЪТ — това е картата.
+            "h_liniya": hl, "h_cena_dom": hd, "h_cena_gost": hg,
+            "h_p_dom": hpd, "h_p_gost": hpg,
+            "h_osnovna": bool(z.get("osnovna") == hl),
+            # ТОТАЛЪТ — цена да, НАША вероятност не (виж заглавието).
+            "t_liniya": tl, "t_cena_nad": tn, "t_cena_pod": tp,
+            "t_p_nad": tpn, "t_p_pod": tpp,
+            # ЧИСТАТА ПОБЕДА — изнесена, за да се ВИЖДА колко е безполезна.
+            "ml_dom": cd, "ml_gost": cg,
+        })
+    godni.sort(key=lambda x: x["start_ts"])
+    otchet["godni"] = len(godni)
+    return godni, otchet
+
+
+def fixtures_s_otchet(sega=None, dni=None, pin=None, danni=None, ligi=None):
+    """(годни, отчет) или NEPITAN. Тук живее ЕДИНСТВЕНОТО питане към Pinnacle."""
+    if danni is None:
+        danni = surovi(pin)
+        if danni is NEPITAN:
+            return NEPITAN
+    mm, sp, to, ml = danni
+    return sito(mm or {}, sp or {}, to or {}, ml or {}, sega, dni, ligi)
+
+
+def fixtures(sega=None, dni=None, pin=None, danni=None, ligi=None):
+    """Предстоящите мачове С ХЕНДИКАП. NEPITAN = не можах да питам.
+
+    🔴 ГОЛОТО `fixtures()` ТРЯБВА ДА РАБОТИ. В този проект вече хванахме модул,
+    чиито 45 проверки минаваха, а естественото извикване връщаше None ВИНАГИ,
+    защото си строеше указателя от празни речници. Затова: не са ли подадени
+    данни, ВЗИМАТ СЕ — и точно този път се изпитва в самопроверката.
+    """
+    r = fixtures_s_otchet(sega, dni, pin, danni, ligi)
+    return NEPITAN if r is NEPITAN else r[0]
+
+
+def index(mach, spred, total, ml, ligi=None):
+    """Списък записи за търсене по имена. Строи се веднъж, ползва се много.
+
+    Тук НЕ се сее ситото по време: ситото казва кой мач става за КАРТА, а
+    указателят отговаря на друг въпрос — „каква е цената на тази двойка имена".
+    Мач, който вече е започнал, пак има цена, и опресняването я иска.
+    Лигата обаче се спазва и тук: цена на CFL мач не ни трябва за нищо, щом
+    никой не може да го отсъди.
+    """
+    prieti = dict(LIGI if ligi is None else ligi)
+    out = []
+    for nomer, red in sorted((mach or {}).items()):
+        if not isinstance(red, (list, tuple)) or len(red) < 2:
+            continue
+        dom, gost = str(red[0] or ""), str(red[1] or "")
+        liga = str(red[2] or "") if len(red) > 2 else ""
+        if not norm(dom) or not norm(gost) or norm(dom) == norm(gost):
+            continue
+        if liga not in prieti:
+            continue
+        hl, hd, hg = izbor_liniya((spred or {}).get(str(nomer)))
+        tl, tn, tp = izbor_liniya((total or {}).get(str(nomer)))
+        c = (ml or {}).get(str(nomer))
+        cd = c[0] if isinstance(c, (list, tuple)) and len(c) > 0 else None
+        cg = c[1] if isinstance(c, (list, tuple)) and len(c) > 1 else None
+        if hl is None and tl is None and cd is None and cg is None:
+            continue
+        out.append({"id": str(nomer), "dom": dom, "gost": gost, "liga": liga,
+                    "slug": prieti[liga],
+                    "start": str(red[3] or "") if len(red) > 3 else "",
+                    "h_liniya": hl, "h_cena_dom": hd, "h_cena_gost": hg,
+                    "t_liniya": tl, "t_cena_nad": tn, "t_cena_pod": tp,
+                    "ml_dom": cd, "ml_gost": cg,
+                    "nd": klyuch_pin(dom), "ng": klyuch_pin(gost)})
+    return out
+
+
+def _index_ili_vzemi(ind, danni, pin=None, ligi=None):
+    """Указателят: подаденият, или взет от Pinnacle. NEPITAN при отказ."""
+    if ind is not None:
+        return ind
+    if danni is None:
+        danni = surovi(pin)
+        if danni is NEPITAN:
+            return NEPITAN
+    mm, sp, to, ml = danni
+    return index(mm or {}, sp or {}, to or {}, ml or {}, ligi)
+
+
+def _otgovor(r, nd):
+    """Записът в НАШИЯ ред на страните. None, ако не се разпознава.
+
+    🔴 РАЗМЕНИ ЛИ СЕ ДВОЙКАТА, ЛИНИЯТА СМЕНЯ ЗНАКА СИ. „Домакинът дава 7.5"
+    наопаки значи „гостът получава 7.5", тоест -7.5 става +7.5. Цена, разменена
+    без знака на линията, е тиха катастрофа: картата би твърдяла ТОЧНО
+    ОБРАТНОТО на онова, което е платено, и никой отчет не би го показал.
+    Тоталът НЕ сменя нищо — сборът точки е един и същ от двете страни.
+    """
+    if nd and nd == r["nd"]:
+        obarnat = False
+    elif nd and nd == r["ng"]:
+        obarnat = True
+    else:
+        return None
+    hd, hg, hl = r["h_cena_dom"], r["h_cena_gost"], r["h_liniya"]
+    cd, cg = r["ml_dom"], r["ml_gost"]
+    if obarnat:
+        hd, hg = hg, hd
+        cd, cg = cg, cd
+        hl = None if hl is None else -hl
+    return {"h_liniya": hl, "h_cena_dom": hd, "h_cena_gost": hg,
+            "t_liniya": r["t_liniya"], "t_cena_nad": r["t_cena_nad"],
+            "t_cena_pod": r["t_cena_pod"],
+            "ml_dom": cd, "ml_gost": cg,
+            "nomer": r["id"], "liga": r["liga"], "slug": r["slug"],
+            "start": r["start"], "obarnat": obarnat}
+
+
+def cena(dom, gost, ind=None, danni=None, pin=None, ligi=None):
+    """Цените за НАШИТЕ две имена. None = няма. NEPITAN = не можах да питам.
+
+    ЕДИН път и той е строгият: и двете пълни имена съвпадат (след NFKD и
+    псевдоними). Хлабав път НЯМА — измерено днес, „започва с" произвежда 54
+    лъжливи закачания, между които „Ohio State" -> Ohio и „Texas A&M" -> Texas.
+    Мълчание вместо цената на друг отбор.
+    """
+    ind = _index_ili_vzemi(ind, danni, pin, ligi)
+    if ind is NEPITAN:
+        return NEPITAN
+    nd, ng = klyuch_pin(dom), klyuch_pin(gost)
+    if not nd or not ng or nd == ng:
+        return None
+    tochni = [r for r in ind if {r["nd"], r["ng"]} == {nd, ng}]
+    if len(tochni) != 1:
+        return None                      # нула, или спор, който не се решава
+    return _otgovor(tochni[0], nd)
+
+
+# ═══════════════════════════ ВРАТА 2: ОТСЪЖДАНЕТО
+#
+# ESPN дава РЕЗУЛТАТА, а не само победителя — и точно това е причината
+# хендикапът изобщо да е възможен: „покри ли -7.5" иска ДВЕТЕ числа, не името
+# на победителя. Проверено живо 25.08.2026:
+#   /football/nfl/scoreboard?dates=20260823 -> HTTP 200
+#       Seattle Seahawks at Tennessee Titans · STATUS_FINAL · 19 : 16
+#   /football/college-football/scoreboard?dates=20250830 -> HTTP 200, 62 събития
+#       Texas Longhorns at Ohio State Buckeyes · STATUS_FINAL · 14 : 7
+
+ESPN = "https://site.api.espn.com/apis/site/v2/sports/football"
+
+# 🔴 БЕЗ ПОДПИС. Измерено и записано в паметта на проекта: site.api.espn.com
+# отговаря 403 на Chrome-подпис и 200 на празен. Тук НЕ се преправя подпис —
+# тук просто не се слага. Това е обратното на заобикаляне на защита.
+ESPN_GLAVI = {"Accept": "application/json"}
+
+
+def espn_dyska(slug, ymd, otvori=None):
+    """Записите от една дъска на ESPN. NEPITAN при отказ.
+
+    `otvori` е за проверките: подменя се ЧЕТЕНЕТО, не се пипа мрежата.
+
+    🔴 ПАДНАЛА ДЪСКА ВРЪЩА СЕНТИНЕЛ, НЕ ПРАЗЕН СПИСЪК. Празният списък значи
+    „днес няма мачове" — и точно това направи ММА на 12.08: провалът стана
+    неразличим от чист резултат.
+    """
+    adres = ESPN + "/" + str(slug) + "/scoreboard?dates=" + str(ymd)
+    if otvori is None:
+        def otvori(u):
+            rq = urllib.request.Request(u, headers=dict(ESPN_GLAVI))
+            with urllib.request.urlopen(rq, timeout=20) as r:
+                return json.loads(r.read())
+    try:
+        j = otvori(adres)
+    except Exception:                                        # noqa: BLE001
+        return NEPITAN
+    if not isinstance(j, dict):
+        return NEPITAN
+    return razbor_espn(j, slug)
+
+
+def razbor_espn(j, slug=""):
+    """Дъската на ESPN -> списък записи. ЧИСТА функция, без нито една заявка."""
+    out = []
+    for e in ((j or {}).get("events") or []):
+        if not isinstance(e, dict):
+            continue
+        sast = (e.get("competitions") or [{}])[0]
+        if not isinstance(sast, dict):
+            continue
+        gotov = str((((sast.get("status") or {}).get("type")) or {})
+                    .get("name") or "")
+        d = g = None
+        for x in (sast.get("competitors") or []):
+            t = x.get("team") or {}
+            try:
+                toch = int(x.get("score"))
+            except (TypeError, ValueError):
+                toch = None
+            rec = {
+                "id": str(t.get("id") or ""),
+                "ime": str(t.get("displayName") or ""),
+                "toch": toch,
+                # 🔴 ТРИТЕ ИМЕНА СА ТРИ РАЗЛИЧНИ ВРАТИ. Пинакъл пише NCAA само
+                # с училището — това е `location`. NFL го пише цяло — това е
+                # `displayName`. Нито едно от двете не стига САМО.
+                "klyuchove": set(k for k in (norm(t.get("displayName")),
+                                             norm(t.get("location")),
+                                             norm(t.get("shortDisplayName")))
+                                 if k),
+            }
+            if str(x.get("homeAway")) == "home":
+                d = rec
+            elif str(x.get("homeAway")) == "away":
+                g = rec
+        if not d or not g:
+            continue
+        out.append({"ev": str(e.get("id") or ""), "slug": str(slug),
+                    "start": str(e.get("date") or ""), "gotov": gotov,
+                    "dom": d, "gost": g})
+    return out
+
+
+def sglasie(pin_redove, espn_redove):
+    """(намерени, ненамерени) — колко от НАШИТЕ мача ги има на дъската.
+
+    ЧИСТА функция. Точно това число беше поискано: 75 от 77 (97%) на живо.
+
+    🔴 СЪВПАДЕНИЕТО Е ТОЧНО ИЛИ ГО НЯМА. Разменените страни се приемат
+    (домакин/гост при неутрален терен е уговорка), но „започва с" — не.
+    И дъската се спазва: 11 имена водят до двама различни отбора и всичките 11
+    са двойка „NFL + колежански". Пресече ли се дъската, ги смесваме.
+    """
+    namereni, propusnati = [], []
+    for r in (pin_redove or []):
+        nd, ng = klyuch_pin(r.get("dom")), klyuch_pin(r.get("gost"))
+        hit = None
+        for e in (espn_redove or []):
+            if str(e.get("slug") or "") != str(r.get("slug") or ""):
+                continue
+            kd, kg = e["dom"]["klyuchove"], e["gost"]["klyuchove"]
+            if (nd in kd and ng in kg) or (nd in kg and ng in kd):
+                hit = e
+                break
+        if hit is None:
+            propusnati.append(r)
+        else:
+            namereni.append((r, hit))
+    return namereni, propusnati
+
+
+def pokri_li(liniya, toch_dom, toch_gost):
+    """Покри ли ДОМАКИНЪТ хендикапа. True/False, None при липсващо число.
+
+    -7.5 значи „домакинът дава 7.5": покрива, ако печели с 8 или повече.
+    +3.5 значи „домакинът получава 3.5": покрива, ако губи с 3 или по-малко.
+
+    🔴 ВРЪЩАНЕ НА ЗАЛОГ НЯМА, ЗАЩОТО ЛИНИЯТА Е НА ПОЛОВИНКА. Точно затова ситото
+    хвърля целите линии: при тях разликата може да падне ТОЧНО върху линията и
+    твърдението няма нито ДА, нито НЕ. Тук това се пази изрично — подадена цяла
+    линия дава None, а не мълчаливо „не покрил". Мълчаливото „не покрил" би
+    отсъдило ЗАГУБА на нещо, което не е било загубено.
+    """
+    try:
+        ln = float(liniya)
+        d = int(toch_dom)
+        g = int(toch_gost)
+    except (TypeError, ValueError):
+        return None
+    if not polovinka(ln):
+        return None
+    return (d - g) + ln > 0.0
+
+
+def nad_li(liniya, toch_dom, toch_gost):
+    """Над линията ли е сборът точки. True/False, None при липсващо число."""
+    try:
+        ln = float(liniya)
+        s = int(toch_dom) + int(toch_gost)
+    except (TypeError, ValueError):
+        return None
+    if not polovinka(ln):
+        return None
+    return s > ln
+
+
+# ═══════════════════════════════ САМОПРОВЕРКА
+#
+# Всичко е ПОВЕДЕНЧЕСКО: подхвърлят се данни и се гледа изходът. Нито една
+# проверка не търси текст във файла — игла, застанала в съседния коментар,
+# минава и върху счупен файл.
+#
+# Данните НЕ са измислени: имената, лигите, часовете и линиите са свалените на
+# живо на 25.08.2026 от /sports/15.
+
+_M = {
+    "1": ("Ohio State", "Ball State", "NCAA", "2026-09-05T16:30:00Z"),
+    "2": ("Pittsburgh", "Miami Ohio", "NCAA", "2026-09-05T16:30:00Z"),
+    "3": ("Tennessee Titans", "New York Jets", "NFL", "2026-09-13T17:00:00Z"),
+    "4": ("Miami Dolphins", "Atlanta Falcons", "NFL Pre Season",
+          "2026-08-28T23:00:00Z"),
+    "5": ("Saskatchewan Roughriders", "Toronto Argonauts", "Canadian Football",
+          "2026-08-29T23:00:00Z"),
+    "6": ("Duke", "Tulane", "NCAA", "2026-09-05T19:30:00Z"),
+    "7": ("Rutgers", "Massachusetts", "NCAA", ""),
+    "8": ("Notre Dame", "Wisconsin", "NCAA", "2026-09-06T23:30:00Z"),
+    "9": ("само едно име",),
+    "10": ("Texas", "Texas State", "NCAA", "2026-08-25T16:05:00Z"),
+    "11": ("Auburn", "Baylor", "NCAA", "2026-09-05T19:30:00Z"),
+    "12": ("Kansas City Chiefs", "Denver Broncos", "NFL", "2026-12-25T00:15:00Z"),
+    "13": ("Houston", "Oregon State", "NCAA", "2026-09-05T16:00:00Z"),
+}
+# ХЕНДИКАПИ. Линията е на ДОМАКИНА.
+_S = {
+    "1": {"osnovna": -38.5, "linii": {-38.5: (1.91, 1.91), -37.5: (1.83, 2.00)}},
+    "2": {"osnovna": -20.5, "linii": {-20.5: (1.90, 1.92)}},
+    "3": {"osnovna": -3.5, "linii": {-3.5: (1.95, 1.87)}},
+    "4": {"osnovna": -2.5, "linii": {-2.5: (1.90, 1.92)}},
+    "5": {"osnovna": -6.5, "linii": {-6.5: (1.91, 1.91)}},
+    # 🔴 ЦЯЛА ОСНОВНА, РАВНО РАЗСТОЯНИЕ. -7.5 и -6.5 са еднакво далеч от -7.0.
+    # По-балансираната двойка е -6.5 (разлика 0.02 срещу 0.14) и тя печели.
+    # Без това правило подредбата би взимала ВИНАГИ по-ниската — систематичен
+    # наклон в полза на домакина, произведен от сортирането, не от пазара.
+    "6": {"osnovna": -7.0, "linii": {-7.5: (1.83, 1.97), -6.5: (1.94, 1.92)}},
+    "8": {"osnovna": -10.5, "linii": {-10.5: (1.88, 1.94)}},
+    "10": {"osnovna": -35.5, "linii": {-35.5: (1.91, 1.91)}},
+    # 🔴 САМО ЦЕЛИ ЛИНИИ — мач, който не може да се отсъди с ДА или НЕ.
+    # Измерено днес: 10 от 81 са точно такива.
+    "11": {"osnovna": -3.0, "linii": {}},
+    "12": {"osnovna": -1.5, "linii": {-1.5: (1.90, 1.92)}},
+    "13": {"osnovna": -14.5, "linii": {-14.5: (1.91, 1.91)}},
+}
+_T = {
+    "1": {"osnovna": 55.5, "linii": {55.5: (1.90, 1.92)}},
+    "2": {"osnovna": 51.5, "linii": {51.5: (1.91, 1.91)}},
+    "3": {"osnovna": 42.5, "linii": {42.5: (1.87, 1.95)}},
+    "6": {"osnovna": 49.5, "linii": {49.5: (1.91, 1.91)}},
+    "13": {"osnovna": 62.5, "linii": {62.5: (1.90, 1.92)}},
+}
+# ЧИСТИ ПОБЕДИ — нарочно с истинските безполезни числа от NCAA.
+_ML = {
+    # 🔴 МАЧ 2 (Pittsburgh - Miami Ohio) НАРОЧНО НЯМА ЧИСТА ПОБЕДА ТУК.
+    # Случаят е измерен, не измислен. Живо пускане 25.08.2026, 19:51 UTC:
+    # от 56 годни мача 8 (14%) НЯМАТ чиста победа при Пинакъл — Rutgers,
+    # Illinois, Oklahoma, Alabama, South Carolina, Texas и още два. Медианният
+    # им хендикап е 30.5 точки срещу 7.5 при онези, които ЧИСТА ПОБЕДА ИМАТ:
+    # Пинакъл не котира победител, когато разликата е чудовищна.
+    # НИТО ЕДИН такъв мач не беше в тези данни, затова проверката „чистата
+    # победа НЕ е условие за годност“ стоеше вечно червена — не заради кода,
+    # а защото нямаше върху какво да падне. Носител е мач 2, защото неговата
+    # чиста победа е единствената, която НИКОЯ друга проверка не мери: така
+    # случаят влиза, без да мръдне нито едно вече измерено число тук.
+    # 🔴 ЧЕСТНО: самата линия -20.5 на мач 2 е под най-малкия некотиран
+    # хендикап от днес (28.5). Данните носят СЛУЧАЯ, не прага — прагът не се
+    # твърди никъде в кода и не се използва за нищо.
+    "1": (1.02, 15.00, None), "3": (1.71, 2.20, None),
+    "6": (1.36, 3.24, None), "8": (1.50, 2.62, None), "13": (1.15, 5.67, None),
+}
+# „Сега" за проверките: 25.08.2026, 16:00 UTC. Закован, за да не е тестът
+# зелен сутрин и червен вечер.
+_T0 = epoh("2026-08-25T16:00:00Z")
+
+
+def _am(desetichna):
+    """Десетична -> американска. САМО за проверките: суровият слой е американски."""
+    d = float(desetichna)
+    if d >= 2.0:
+        return int(round((d - 1.0) * 100.0))
+    return int(round(-100.0 / (d - 1.0)))
+
+
+class _FalshivPinnacle(object):
+    """Pinnacle без мрежа. Брои дали изобщо е бил питан."""
+
+    SPORT_ID = {"tennis": 33}
+    vikan = [0]
+
+    @staticmethod
+    def polovinka(ln):
+        try:
+            f = float(ln)
+        except (TypeError, ValueError):
+            return False
+        return (abs(abs(f) * 2.0 - round(abs(f) * 2.0)) < 1e-9
+                and abs(f - round(f)) > 0.4)
+
+    @staticmethod
+    def deset(a):
+        try:
+            a = float(a)
+        except (TypeError, ValueError):
+            return None
+        if a >= 100.0:
+            return round(1.0 + a / 100.0, 2)
+        if a <= -100.0:
+            return round(1.0 + 100.0 / abs(a), 2)
+        return None
+
+    @staticmethod
+    def machove(klyuch):
+        _FalshivPinnacle.vikan[0] += 1
+        if klyuch == NASH_KLYUCH:
+            return dict(_M)
+        return {"x": ("A", "B", "", "")}
+
+    @staticmethod
+    def pazari(klyuch):
+        return dict(_ML) if klyuch == NASH_KLYUCH else {}
+
+    @staticmethod
+    def _surovi(klyuch):
+        """Суровият вид, от който `_linii` строи двата пазара."""
+        if klyuch != NASH_KLYUCH:
+            return []
+        out = []
+        for mid, z in _S.items():
+            for ln, (a, b) in z["linii"].items():
+                out.append({
+                    "type": "spread", "period": 0, "matchupId": mid,
+                    "isAlternate": ln != z["osnovna"],
+                    "prices": [
+                        {"designation": "home", "price": _am(a), "points": ln},
+                        {"designation": "away", "price": _am(b), "points": -ln}]})
+            if z["osnovna"] is not None and z["osnovna"] not in z["linii"]:
+                out.append({
+                    "type": "spread", "period": 0, "matchupId": mid,
+                    "isAlternate": False,
+                    "prices": [
+                        {"designation": "home", "price": -110,
+                         "points": z["osnovna"]},
+                        {"designation": "away", "price": -110,
+                         "points": -z["osnovna"]}]})
+        for mid, z in _T.items():
+            for ln, (a, b) in z["linii"].items():
+                out.append({
+                    "type": "total", "period": 0, "matchupId": mid,
+                    "isAlternate": ln != z["osnovna"],
+                    "prices": [
+                        {"designation": "over", "price": _am(a), "points": ln},
+                        {"designation": "under", "price": _am(b), "points": ln}]})
+        # 🔴 ШУМ, КОЙТО НЕ БИВА ДА ВЛЕЗЕ: полувремето и четвъртината носят
+        # СЪЩИЯ номер като мача. Само `period == 0` ги дели.
+        out.append({"type": "spread", "period": 1, "matchupId": "3",
+                    "isAlternate": False,
+                    "prices": [{"designation": "home", "price": -110,
+                                "points": -1.5},
+                               {"designation": "away", "price": -110,
+                                "points": 1.5}]})
+        out.append({"type": "total", "period": 3, "matchupId": "3",
+                    "isAlternate": False,
+                    "prices": [{"designation": "over", "price": -110,
+                                "points": 10.5},
+                               {"designation": "under", "price": -110,
+                                "points": 10.5}]})
+        return out
+
+
+def _rechnik(x):
+    """x, ако е речник; иначе {}.
+
+    🔴 САМО ЗА ПРОВЕРКИТЕ, и заради конкретна мутация. NEPITAN е обикновен
+    обект, тоест `bool(NEPITAN)` е ИСТИНА — значи „bool(c) and c.get(...)"
+    пропуска сентинела нататък и вдига AttributeError. Мутация, която СЪБАРЯ
+    пакета, казва по-малко от мутация, която дава „счупено": не се вижда КОЯ
+    защита е паднала.
+    """
+    return x if isinstance(x, dict) else {}
+
+
+def selftest():
+    ok, bad = 0, []
+
+    def check(ime, uslovie):
+        nonlocal ok
+        if uslovie:
+            ok += 1
+        else:
+            bad.append(ime)
+
+    # ───────────────────────────────────────────────────────── ЧАСЪТ
+    check("ISO с Z се разчита", epoh("2026-09-05T16:30:00Z") is not None)
+    check("ESPN пише БЕЗ секунди и пак се разчита",
+          epoh("2026-09-05T16:30Z") == epoh("2026-09-05T16:30:00Z"))
+    check("ISO с отместване се разчита",
+          epoh("2026-09-05T16:30:00+00:00") == epoh("2026-09-05T16:30:00Z"))
+    check("гола дата се разчита", epoh("2026-09-05") is not None)
+    check("празно няма час", epoh("") is None and epoh(None) is None)
+    check("боклук няма час", epoh("другата събота") is None)
+    check("дните напред се броят вярно",
+          abs(dni_napred("2026-08-26T16:00:00Z", _T0) - 1.0) < 1e-6)
+    check("минал час дава отрицателни дни",
+          dni_napred("2026-08-24T16:00:00Z", _T0) < 0)
+    check("без дата няма дни", dni_napred("", _T0) is None)
+
+    # ─────────────────────────── ИМЕНАТА (сърцевината на находката)
+    check("ударението НЕ разделя San Jose State",
+          norm("San José State") == norm("San Jose State"))
+    check("и наистина дава очакваното", norm("San José State") == "sanjosestate")
+    check("псевдонимът вкарва Miami Ohio при ESPN",
+          klyuch_pin("Miami Ohio") == "miamioh")
+    # 🔴 ЛЪЖЛИВОТО ЗАКАЧАНЕ, ИЗМЕРЕНО 54 ПЪТИ. Тези шест реда СА мутацията:
+    # позволи ли се „започва с", всеки от тях става ИСТИНА и картата понася
+    # цената на друг отбор.
+    check("Miami Ohio НЕ е Miami", klyuch_pin("Miami Ohio") != norm("Miami"))
+    check("Ohio State НЕ е Ohio", klyuch_pin("Ohio State") != norm("Ohio"))
+    check("Texas A&M НЕ е Texas", klyuch_pin("Texas A&M") != norm("Texas"))
+    check("Florida State НЕ е Florida",
+          klyuch_pin("Florida State") != norm("Florida"))
+    check("Texas State НЕ е Texas", klyuch_pin("Texas State") != norm("Texas"))
+    check("Pittsburgh Steelers НЕ е Pittsburgh",
+          klyuch_pin("Pittsburgh Steelers") != norm("Pittsburgh"))
+    check("празно име дава празен ключ",
+          klyuch_pin("") == "" and klyuch_pin(None) == "")
+
+    # ────────────────────────────────────── ПОЛОВИНКАТА И ЦЕНАТА
+    check("половинката е половинка", polovinka(-7.5) and polovinka(49.5))
+    check("цялата НЕ е", not polovinka(-7.0) and not polovinka(0.0))
+    check("четвъртинката НЕ е", not polovinka(-7.25))
+    check("боклукът НЕ е", not polovinka(None) and not polovinka("х"))
+    check("американското -110 става 1.91", deset(-110) == 1.91)
+    check("американското +150 става 2.50", deset(150) == 2.50)
+    check("боклукът няма цена", deset(None) is None and deset(50) is None)
+    check("моята сметка и обратната се връзват", deset(_am(1.91)) == 1.91)
+
+    # 🔴 СВОЯТ ПРЕПИС Е ДЕЙСТВАЩ КОД, А ДОСЕГА НИКОЯ ПРОВЕРКА НЕ ГО ПИПАШЕ.
+    # `polovinka` и `deset` вземат правилото от pinnacle, ако го има — а той
+    # го има ВИНАГИ при проверките. Мутация: „своят препис връща True за
+    # всичко" и „+150 се смята като -150" оцеляха срещу целите 172 проверки.
+    # Тоест резервната сметка беше УКРАСА: щеше да проработи чак в деня, в
+    # който pinnacle.py липсва, и тогава да е крива. Тук pinnacle се МАХА от
+    # sys.modules (`None` кара __import__ да гръмне, `_modul` връща None) и
+    # резервният път се изпитва сам.
+    _star_bez_pin = sys.modules.get("pinnacle")
+    try:
+        sys.modules["pinnacle"] = None
+        check("БЕЗ pinnacle: липсата му се вижда", _modul("pinnacle") is None)
+        check("БЕЗ pinnacle: половинката пак се съди сама",
+              polovinka(-7.5) is True and polovinka(49.5) is True)
+        check("БЕЗ pinnacle: цялата пак НЕ е половинка",
+              polovinka(-7.0) is False and polovinka(0.0) is False)
+        check("БЕЗ pinnacle: четвъртинката пак НЕ е",
+              polovinka(-7.25) is False and polovinka(-7.75) is False)
+        check("БЕЗ pinnacle: боклукът пак НЕ е",
+              polovinka(None) is False and polovinka("х") is False)
+        check("БЕЗ pinnacle: -110 пак става 1.91", deset(-110) == 1.91)
+        check("БЕЗ pinnacle: +150 пак става 2.50", deset(150) == 2.50)
+        check("БЕЗ pinnacle: +100 и -100 се връзват",
+              deset(100) == 2.00 and deset(-100) == 2.00)
+        check("БЕЗ pinnacle: боклукът пак няма цена",
+              deset(None) is None and deset(50) is None and deset(-50) is None)
+        # И отсъждането минава през polovinka — значи и то трябва да оцелее.
+        check("БЕЗ pinnacle: отсъждането на хендикапа оцелява",
+              pokri_li(-7.5, 24, 16) is True and pokri_li(-7.5, 23, 16) is False
+              and pokri_li(-7.0, 23, 16) is None)
+        check("БЕЗ pinnacle: отсъждането на тотала оцелява",
+              nad_li(49.5, 28, 24) is True and nad_li(49.5, 21, 20) is False
+              and nad_li(50.0, 25, 25) is None)
+    finally:
+        if _star_bez_pin is None:
+            sys.modules.pop("pinnacle", None)
+        else:
+            sys.modules["pinnacle"] = _star_bez_pin
+
+    # ─────────────────────────────────────────────────── РЕГИСТРАЦИЯТА
+    _k = {"tennis": 33}
+
+    class _Nosi(object):
+        SPORT_ID = _k
+
+    check("спортът се вписва в картата", registrirai(_Nosi) is True)
+    # 🔴 СЛЯПАТА ПРОВЕРКА, НАМЕРЕНА С МУТАЦИЯ. Тук пишеше
+    # `_k.get(NASH_KLYUCH) == PIN_ID` — тоест числото се сравняваше САМО СЪС
+    # СЕБЕ СИ. Сложи ли някой PIN_ID = 33 (тенис), проверката оставаше ЗЕЛЕНА,
+    # а ботът щеше да сваля чужд спорт. Числото е ИЗМЕРЕНО: /sports дава
+    # Football с id 15. Затова тук стои голата петнайсетица.
+    check("и наистина е там с ИЗМЕРЕНИЯ номер 15", _k.get(NASH_KLYUCH) == 15)
+    check("номерът на спорта е измереният 15, а не друг", PIN_ID == 15)
+
+    _chuzhd = {"amfootball": 99}
+
+    class _Chuzhd(object):
+        SPORT_ID = _chuzhd
+
+    registrirai(_Chuzhd)
+    check("чуждият номер НЕ се презаписва", _chuzhd["amfootball"] == 99)
+
+    class _Bez(object):
+        pass
+
+    check("модул без карта дава False", registrirai(_Bez) is False)
+    check("липсващ модул не гърми", _modul("нямаТакъвМодулНикъде") is None)
+
+    # ──────────────────────────────── СЕНТИНЕЛЪТ „НЕ МОЖАХ ДА ПИТАМ"
+    class _Padnal(_FalshivPinnacle):
+        SPORT_ID = {}
+
+        @staticmethod
+        def machove(klyuch):
+            raise OSError("мрежата я няма")
+
+    check("паднала мрежа дава СЕНТИНЕЛ", surovi(_Padnal) is NEPITAN)
+
+    class _BezKarta(object):
+        pass
+
+    check("pinnacle без SPORT_ID дава СЕНТИНЕЛ", surovi(_BezKarta) is NEPITAN)
+
+    class _BezSurovi(object):
+        SPORT_ID = {}
+
+        @staticmethod
+        def machove(klyuch):
+            return dict(_M)
+
+        @staticmethod
+        def pazari(klyuch):
+            return dict(_ML)
+
+    # 🔴 БЕЗ СУРОВИЯ СЛОЙ ХЕНДИКАП НЯМА ОТКЪДЕ ДА ДОЙДЕ. Мълчаливо падане
+    # назад към „само чиста победа" би дало точно безполезния пазар с вид
+    # на успех — 1.02 срещу 15.00.
+    check("pinnacle без _surovi дава СЕНТИНЕЛ, не чиста победа",
+          surovi(_BezSurovi) is NEPITAN)
+
+    class _Zapushen(_FalshivPinnacle):
+        SPORT_ID = {}
+
+        @staticmethod
+        def machove(klyuch):
+            return {}
+
+    check("нула мача + нула еталон = СЕНТИНЕЛ", surovi(_Zapushen) is NEPITAN)
+
+    class _ChestnaNula(_FalshivPinnacle):
+        SPORT_ID = {}
+
+        @staticmethod
+        def machove(klyuch):
+            return {} if klyuch == NASH_KLYUCH else {"y": ("A", "B", "", "")}
+
+    _cn = surovi(_ChestnaNula)
+    check("нула мача + жив еталон = ЧЕСТНА НУЛА",
+          _cn is not NEPITAN and _cn[0] == {})
+
+    class _Boklyuk(_FalshivPinnacle):
+        SPORT_ID = {}
+
+        @staticmethod
+        def machove(klyuch):
+            return ["не е речник"]
+
+    check("отговор с грешна форма е СЕНТИНЕЛ", surovi(_Boklyuk) is NEPITAN)
+    check("отказът стига до fixtures, не се губи",
+          fixtures(pin=_Padnal) is NEPITAN)
+    check("отказът НЕ се чете като празен списък", fixtures(pin=_Padnal) != [])
+    check("отказът стига и до cena",
+          cena("Ohio State", "Ball State", pin=_Padnal) is NEPITAN)
+
+    # ────────────────────── ЕСТЕСТВЕНОТО ИЗВИКВАНЕ (без нито един аргумент)
+    # 🔴 ЗАЩО Е ТУК. В този проект хванахме модул с 45 зелени проверки, чието
+    # голо извикване връщаше None ВИНАГИ. Изпитва се ПЪТЯТ, не само сметката.
+    # Мрежата е ПОДМЕНЕНА, не пипана.
+    _star = sys.modules.get("pinnacle")
+    _FalshivPinnacle.vikan[0] = 0
+    _FalshivPinnacle.SPORT_ID = {"tennis": 33}
+    try:
+        sys.modules["pinnacle"] = _FalshivPinnacle
+        _bez = fixtures(sega=_T0)
+        check("голото fixtures() НЕ мълчи",
+              isinstance(_bez, list) and len(_bez) > 0)
+        check("голото fixtures() наистина е питало",
+              _FalshivPinnacle.vikan[0] > 0)
+        check("и е вписало спорта по пътя",
+              _FalshivPinnacle.SPORT_ID.get(NASH_KLYUCH) == PIN_ID)
+        # 🔴 ТОВА ВЕЧЕ НИ СЕ СЛУЧИ ДНЕС С БОКСА И ЕСПОРТА: имената излизаха None.
+        check("голото fixtures() носи ИМЕНА, не None",
+              all(g["dom"] and g["gost"] and g["dom"] != "None"
+                  and g["gost"] != "None" for g in _bez))
+        check("голото fixtures() носи ХЕНДИКАП на всеки ред",
+              all(g["h_liniya"] is not None and g["h_cena_dom"] for g in _bez))
+        check("голото fixtures() носи и час на всеки ред",
+              all(g["start_ts"] for g in _bez))
+        _bc = _rechnik(cena("Ohio State", "Ball State"))
+        check("голото cena() НЕ мълчи", bool(_bc))
+        check("голото cena() дава истинската линия", _bc.get("h_liniya") == -38.5)
+        check("номерът излиза навън — без него няма CLV", _bc.get("nomer") == "1")
+        check("подаденият указател бие взетия",
+              cena("Ohio State", "Ball State", ind=[]) is None)
+        _sur = surovi()
+        check("surovi дава четири неща", _sur is not NEPITAN and len(_sur) == 4)
+        check("хендикапите се разбраха от суровото",
+              _sur[1].get("1", {}).get("osnovna") == -38.5)
+        check("и цените им оцеляха през американското",
+              _sur[1].get("1", {}).get("linii", {}).get(-38.5) == (1.91, 1.91))
+        check("тоталите се разбраха от суровото",
+              _sur[2].get("1", {}).get("osnovna") == 55.5)
+        # 🔴 ЧЕТВЪРТИНАТА И ПОЛУВРЕМЕТО НОСЯТ СЪЩИЯ НОМЕР КАТО МАЧА
+        check("хендикапът на полувремето НЕ влиза при мача",
+              -1.5 not in _sur[1].get("3", {}).get("linii", {}))
+        check("тоталът на четвъртината НЕ влиза при мача",
+              10.5 not in _sur[2].get("3", {}).get("linii", {}))
+        # 🔴 ЦЕЛИТЕ ЛИНИИ НЕ БИВА ДА ВЛИЗАТ В `linii` ИЗОБЩО. Мутация „ситото
+        # за половинка пада" оцеляваше срещу всичките 172: нито една проверка
+        # не поглеждаше какво е ВЛЯЗЛО, само какво е избрано за мач 1.
+        # А влезе ли цяла линия, `izbor_liniya` я взима, `pokri_li` връща None
+        # и картата остава БЕЗ присъда — тихо, завинаги.
+        check("НИТО ЕДНА цяла линия не е влязла в хендикапите",
+              all(polovinka(l) for z in _sur[1].values()
+                  for l in z.get("linii", {})))
+        check("НИТО ЕДНА цяла линия не е влязла и в тоталите",
+              all(polovinka(l) for z in _sur[2].values()
+                  for l in z.get("linii", {})))
+        check("мачът САМО с цели линии няма нито една линия",
+              _sur[1].get("11", {}).get("linii") == {})
+        check("но основната му цяла линия се помни",
+              _sur[1].get("11", {}).get("osnovna") == -3.0)
+        check("цялата основна на мач 6 не се е промъкнала при линиите",
+              -7.0 not in _sur[1].get("6", {}).get("linii", {}))
+        check("и всяка избрана линия наистина се ОТСЪЖДА",
+              all(pokri_li(izbor_liniya(z)[0], 24, 17) is not None
+                  for z in _sur[1].values() if izbor_liniya(z)[0] is not None))
+    finally:
+        if _star is None:
+            sys.modules.pop("pinnacle", None)
+        else:
+            sys.modules["pinnacle"] = _star
+
+    # ─────────────────────────────────────────────── ИЗБОРЪТ НА ЛИНИЯ
+    check("основната на половинка се взима както е",
+          izbor_liniya(_S["1"]) == (-38.5, 1.91, 1.91))
+    # 🔴 РАВЕНСТВОТО НЕ СЕ РЕШАВА С „по-ниската". При основна -7.0 линиите
+    # -7.5 и -6.5 са еднакво далеч. Печели по-балансираната: -6.5 (0.02).
+    check("при цяла основна се взима най-близката половинка",
+          izbor_liniya(_S["6"])[0] == -6.5)
+    check("и изборът е по БАЛАНС, не по посока",
+          abs(izbor_liniya(_S["6"])[1] - izbor_liniya(_S["6"])[2]) < 0.10)
+    check("без нито една половинка няма линия",
+          izbor_liniya(_S["11"]) == (None, None, None))
+    check("празен запис няма линия", izbor_liniya({}) == (None, None, None))
+    check("None няма линия", izbor_liniya(None) == (None, None, None))
+    # 🔴 БЕЗ ОСНОВНА ПАЗАРЪТ НЕ Е ЗАКОТВИЛ НИЩО. Мутация „вземи най-ниската
+    # въпреки това" оцеляваше: избираме линия, която никой не е обявил за
+    # главна, и то ВИНАГИ в една посока — наклон, произведен от подредбата.
+    check("без основна не се избира линия, колкото и да има",
+          izbor_liniya({"osnovna": None,
+                        "linii": {-7.5: (1.90, 1.92), -6.5: (1.94, 1.88)}})
+          == (None, None, None))
+    check("и обратното: има основна, но няма линии -> пак нищо",
+          izbor_liniya({"osnovna": -7.0, "linii": {}}) == (None, None, None))
+
+    # 🔴 ЕДНОСТРАННА ЦЕНА НЕ Е ПАЗАР. Мутация „липсваща цена вече не хвърля
+    # записа" оцеляваше срещу всичките 172: тестовите данни нямаха нито един
+    # такъв запис. Пинакъл сваля едната страна, когато я е затворил — тогава
+    # (None, 1.92) би влязло в linii и картата щеше да носи цена „None".
+    _edna = _linii([{"type": "spread", "period": 0, "matchupId": "x",
+                     "isAlternate": False,
+                     "prices": [{"designation": "home", "price": -110,
+                                 "points": -7.5}]}], "spread")
+    check("хендикап само с ЕДНАТА цена изобщо не влиза", _edna == {})
+    _edna_t = _linii([{"type": "total", "period": 0, "matchupId": "x",
+                       "isAlternate": False,
+                       "prices": [{"designation": "over", "price": -110,
+                                   "points": 49.5}]}], "total")
+    check("тотал само с ЕДНАТА цена изобщо не влиза", _edna_t == {})
+    _dve = _linii([{"type": "spread", "period": 0, "matchupId": "x",
+                    "isAlternate": False,
+                    "prices": [{"designation": "home", "price": -110,
+                                "points": -7.5},
+                               {"designation": "away", "price": -110,
+                                "points": 7.5}]}], "spread")
+    check("а с ДВЕТЕ цени влиза — пазачът не яде здравото",
+          _dve.get("x", {}).get("linii", {}).get(-7.5) == (1.91, 1.91))
+
+    # ─────────────────────────────────────────────────────────── СИТОТО
+    godni, o = sito(_M, _S, _T, _ML, _T0, None)
+    check("ситото брои ВСИЧКО, което е дошло", o["vsichko"] == 13)
+    check("годните са 6", o["godni"] == 6 and len(godni) == 6)
+    check("счупеният ред отпада и се брои", o["schupeni"] == 1)
+    check("без дата отпада и се брои", o["bez_data"] == 1)
+    check("започналият отпада и се брои", o["zapochnali"] == 1)
+    check("без половинка отпада и се брои", o["bez_polovinka"] == 1)
+    # 🔴 ДВЕТЕ ОТРЯЗАНИ ЛИГИ — поименно, не само като число.
+    _cl = o["chuzhda_liga"]
+    check("предсезонът е отрязан", len(_cl.get("NFL Pre Season", [])) == 1)
+    check("канадският е отрязан", len(_cl.get("Canadian Football", [])) == 1)
+    check("и се знае КОЙ точно е отрязан",
+          bool(_cl.get("NFL Pre Season"))
+          and _cl["NFL Pre Season"][0][0] == "Miami Dolphins")
+    check("всяка отрязана лига си има измерена причина",
+          all(k in LIGI_NE for k in _cl))
+    check("нито един предсезонен НЕ е сред годните",
+          all(g["liga"] != "NFL Pre Season" for g in godni))
+    check("нито един канадски НЕ е сред годните",
+          all(g["liga"] != "Canadian Football" for g in godni))
+    _sp = o["spekulativni"]
+    check("спекулативният е ТОЧНО един", len(_sp) == 1)
+    check("и това е коледният", bool(_sp) and _sp[0][0] == "Kansas City Chiefs")
+    check("спекулативният си носи дните напред", bool(_sp) and _sp[0][2] > 100)
+    check("спекулативният НЕ е сред годните",
+          all(g["dom"] != "Kansas City Chiefs" for g in godni))
+    check("сборът на отпадналите плюс годните дава ВСИЧКО",
+          o["godni"] + o["schupeni"] + o["bez_data"] + o["zapochnali"]
+          + o["izvan"] + o["bez_hendikap"] + o["bez_polovinka"]
+          + len(o["spekulativni"])
+          + sum(len(v) for v in o["chuzhda_liga"].values()) == o["vsichko"])
+    check("годните са подредени по час",
+          all(godni[i]["start_ts"] <= godni[i + 1]["start_ts"]
+              for i in range(len(godni) - 1)))
+    check("всеки годен носи дъската, която го отсъжда",
+          all(g["slug"] in ("nfl", "college-football") for g in godni))
+    check("NCAA сочи към колежанската дъска",
+          all(g["slug"] == "college-football"
+              for g in godni if g["liga"] == "NCAA"))
+    check("NFL сочи към своята дъска",
+          all(g["slug"] == "nfl" for g in godni if g["liga"] == "NFL"))
+    check("отчетът има всички графи",
+          set(prazen_otchet()) == {"vsichko", "schupeni", "bez_data",
+                                   "spekulativni", "chuzhda_liga", "zapochnali",
+                                   "izvan", "bez_hendikap", "bez_polovinka",
+                                   "godni"})
+    check("празни данни дават празен отчет, не гърмят",
+          sito({}, {}, {}, {}, _T0)[1]["vsichko"] == 0)
+    check("None данни не гърмят", sito(None, None, None, None, _T0)[0] == [])
+    check("мач без ХЕНДИКАП изобщо се брои отделно",
+          sito({"z": ("A Team", "B Team", "NCAA", "2026-09-05T16:00:00Z")},
+               {}, {}, {}, _T0)[1]["bez_hendikap"] == 1)
+    # 🔴 СЧУПЕНОТО ИМЕ. Мутация „празно/еднакво име вече не е счупено"
+    # оцеляваше срещу всичките 172: единственият счупен ред в данните беше
+    # този с ЕДНО поле (мач „9"), а него го хваща ДРУГА проверка — за
+    # дължината. Тоест пазачът за имената нямаше върху какво да падне.
+    _bzr = {"a": ("", "Ball State", "NCAA", "2026-09-05T16:30:00Z"),
+            "b": ("Duke", "Duke", "NCAA", "2026-09-05T19:30:00Z"),
+            "c": (None, None, "NCAA", "2026-09-05T19:30:00Z"),
+            "d": ("   ", "Tulane", "NCAA", "2026-09-05T19:30:00Z")}
+    _bzg, _bzo = sito(_bzr, {"a": _S["1"], "b": _S["6"], "c": _S["8"],
+                             "d": _S["6"]}, _T, _ML, _T0, None)
+    check("празно, еднакво, None и само-интервали падат като СЧУПЕНИ",
+          _bzg == [] and _bzo["schupeni"] == 4)
+    check("и нито едно от тях не е стигнало до годните", _bzo["godni"] == 0)
+    # 🔴 ГРАНИЦАТА НА ПРОЗОРЕЦА. Мутация „>= вместо >" оцеляваше: в данните
+    # нямаше нито един мач ТОЧНО на границата. `dni=1` значи „днес и утре" —
+    # мач след равно 24 часа е ВЪТРЕ, не извън.
+    _grz, _gro = sito(
+        {"g": ("Duke", "Tulane", "NCAA", "2026-08-26T16:00:00Z")},
+        {"g": {"osnovna": -6.5, "linii": {-6.5: (1.91, 1.91)}}},
+        {}, {}, _T0, 1)
+    check("мач ТОЧНО на границата на прозореца е ВЪТРЕ",
+          _gro["godni"] == 1 and _gro["izvan"] == 0 and len(_grz) == 1)
+    _grz2, _gro2 = sito(
+        {"g": ("Duke", "Tulane", "NCAA", "2026-08-26T16:00:01Z")},
+        {"g": {"osnovna": -6.5, "linii": {-6.5: (1.91, 1.91)}}},
+        {}, {}, _T0, 1)
+    check("а една секунда след нея е ИЗВЪН",
+          _gro2["godni"] == 0 and _gro2["izvan"] == 1)
+
+    # 🔴 МУТАЦИЯТА, КОЯТО РЕДЪТ ПАЗИ: съди ли се лигата СЛЕД прозореца,
+    # предсезонните (2.2 дни напред) минават през тесния прозорец и числото
+    # „отрязани предсезонни" става НУЛА — тоест мярката би казвала, че
+    # решението не прави нищо.
+    godni1, o1 = sito(_M, _S, _T, _ML, _T0, 1)
+    check("прозорецът от 1 ден оставя нула — NCAA почва след 4 дни",
+          o1["godni"] == 0)
+    check("но предсезонът пак е отрязан ПОИМЕННО, не изяден от прозореца",
+          len(o1["chuzhda_liga"].get("NFL Pre Season", [])) == 1)
+    check("и спекулативният пак е отделен от „извън прозореца\"",
+          len(o1["spekulativni"]) == 1)
+    godni14, o14 = sito(_M, _S, _T, _ML, _T0, 14)
+    check("прозорец от 14 дни хваща NCAA", o14["godni"] == 5)
+    check("а NFL остава ИЗВЪН, не изчезва", o14["izvan"] == 1)
+    check("и NCAA наистина е това, което остава",
+          all(g["liga"] == "NCAA" for g in godni14))
+
+    # ────────────────────────────────────── ХЕНДИКАПЪТ, ТОТАЛЪТ, МАРЖЪТ
+    g1 = [g for g in godni if g["dom"] == "Ohio State"]
+    check("годният носи линията", bool(g1) and g1[0]["h_liniya"] == -38.5)
+    check("годният носи двете цени",
+          bool(g1) and g1[0]["h_cena_dom"] == 1.91
+          and g1[0]["h_cena_gost"] == 1.91)
+    check("годният носи и вероятностите",
+          bool(g1) and g1[0]["h_p_dom"] is not None)
+    # 🔴 `h_osnovna` БЕШЕ УКРАСА. Мутация „винаги ИСТИНА" оцеляваше срещу
+    # всичките 172 — полето излизаше навън и никой не го мереше. То казва
+    # ГЛАВНАТА ли линия на пазара сме взели, или сме слезли на съседната;
+    # това е разликата между „както го котира той" и „както го докарахме".
+    check("основната линия се обявява за основна",
+          bool(g1) and g1[0]["h_osnovna"] is True)
+    _g6 = [g for g in godni if g["dom"] == "Duke"]
+    check("а слязлата от цяла основна се обявява за НЕосновна",
+          bool(_g6) and _g6[0]["h_liniya"] == -6.5
+          and _g6[0]["h_osnovna"] is False)
+    if g1 and g1[0]["h_p_dom"] is not None:
+        _s = g1[0]["h_p_dom"] + g1[0]["h_p_gost"]
+        check("маржът е махнат — сборът е 1", abs(_s - 1.0) < 0.002)
+        check("има какво да се маха (суровото не е 1)",
+              abs(1.0 / 1.91 + 1.0 / 1.91 - 1.0) > 0.03)
+        check("равните цени дават равни вероятности",
+              abs(g1[0]["h_p_dom"] - 0.5) < 0.001)
+    else:
+        bad.append("маржът не можа да се провери — липсва pazar")
+    g3 = [g for g in godni if g["dom"] == "Tennessee Titans"]
+    check("несиметричната цена дава несиметрична вероятност",
+          bool(g3) and g3[0]["h_p_dom"] is not None
+          and g3[0]["h_p_dom"] < g3[0]["h_p_gost"])
+    check("тоталът се носи като ЦЕНА", bool(g1) and g1[0]["t_liniya"] == 55.5)
+    check("и той минава без марж", bool(g1) and g1[0]["t_p_nad"] is not None)
+    # 🔴 МАЧ БЕЗ ТОТАЛ ПАК Е ГОДЕН: тоталът е добавка, хендикапът е картата.
+    g8 = [g for g in godni if g["dom"] == "Notre Dame"]
+    check("мач без тотал пак е годен", bool(g8))
+    check("и тоталът му МЪЛЧИ, вместо да се измисля",
+          bool(g8) and g8[0]["t_liniya"] is None and g8[0]["t_p_nad"] is None)
+    # 🔴 ЧИСТАТА ПОБЕДА СЕ ИЗНАСЯ, НО НЕ Е УСЛОВИЕ.
+    check("безполезната чиста победа се ВИЖДА, а не се крие",
+          bool(g1) and g1[0]["ml_dom"] == 1.02)
+    _bez_ml = [g for g in godni if g["ml_dom"] is None]
+    check("мач БЕЗ чиста победа пак е годен — тя не е условие",
+          len(_bez_ml) >= 1)
+    check("и това е точно мачът, който носи случая — по име, не по брой",
+          len(_bez_ml) == 1 and _bez_ml[0]["dom"] == "Pittsburgh")
+    check("чистата му победа МЪЛЧИ от ДВЕТЕ страни, вместо да се измисля",
+          bool(_bez_ml) and _bez_ml[0]["ml_dom"] is None
+          and _bez_ml[0]["ml_gost"] is None)
+    check("но хендикапът му — картата — е налице с двете си цени",
+          bool(_bez_ml) and _bez_ml[0]["h_liniya"] == -20.5
+          and _bez_ml[0]["h_cena_dom"] == 1.90
+          and _bez_ml[0]["h_cena_gost"] == 1.92)
+
+    _star_pz = sys.modules.get("pazar")
+    try:
+        class _BezPazar(object):
+            pass
+
+        sys.modules["pazar"] = _BezPazar
+        check("без pazar вероятността е None, не измислена",
+              chisti_p(1.91, 1.91) == (None, None))
+        _bp, _bo = sito(_M, _S, _T, _ML, _T0, None)
+        check("но цената остава",
+              bool(_bp) and _bp[0]["h_cena_dom"] is not None
+              and _bp[0]["h_p_dom"] is None)
+        check("и броят годни не се мени от липсата на pazar", _bo["godni"] == 6)
+    finally:
+        if _star_pz is None:
+            sys.modules.pop("pazar", None)
+        else:
+            sys.modules["pazar"] = _star_pz
+
+    # ──────────────────────────────────────────────── ТЪРСЕНЕ ПО ИМЕНА
+    ind = index(_M, _S, _T, _ML)
+    _idi = set(r["id"] for r in ind)
+    check("указателят пропуска счупения и чуждите лиги",
+          all(r["liga"] in LIGI for r in ind)
+          and not ({"9", "4", "5"} & _idi))
+    # 🔴 ЧЕТВЪРТОТО СИТО, КОЕТО ЧИСЛОТО 10 БЕШЕ ПРОПУСНАЛО. `index` хвърля и
+    # мача БЕЗ НИТО ЕДНА ЦЕНА — 7 (Rutgers, никакъв пазар) и 11 (Auburn,
+    # само цели линии). Тринайсет минус счупения, минус двете чужди лиги е
+    # 10, но указателят отговаря на въпроса „каква е цената“, а запис без
+    # цена няма какво да отговори. Правилото е в кода от самото начало и е
+    # обяснено там; сгрешено беше числото в проверката, не ситото.
+    check("указателят пропуска и записа БЕЗ НИТО ЕДНА ЦЕНА",
+          not ({"7", "11"} & _idi))
+    # 🔴 А ЗАПОЧНАЛИЯТ И СПЕКУЛАТИВНИЯТ ОСТАВАТ — ситото ги маха от КАРТИТЕ,
+    # но цена си имат и опресняването я иска. Това е разликата между двата
+    # въпроса и досега никоя проверка не я пазеше.
+    check("но ПАЗИ започналия и спекулативния — те пак носят цена",
+          {"10", "12"} <= _idi)
+    check("и остават ТОЧНО осемте, които носят цена — по имена, не по брой",
+          _idi == {"1", "2", "3", "6", "8", "10", "12", "13"})
+    c = cena("Ohio State", "Ball State", ind=ind)
+    check("пълните имена намират", c is not None)
+    check("и дават вярната линия", c and c["h_liniya"] == -38.5)
+    check("не е обърнато", c and c["obarnat"] is False)
+    o2 = cena("Ball State", "Ohio State", ind=ind)
+    check("обърнатата двойка се намира", o2 is not None)
+    check("обърнатата се обявява", o2 and o2["obarnat"] is True)
+    # 🔴 НАЙ-ВАЖНАТА ПРОВЕРКА В ТОЗИ ФАЙЛ. Линия, разменена без знак, значи
+    # карта, която твърди ТОЧНО ОБРАТНОТО на платеното.
+    check("обърнатата СМЕНЯ ЗНАКА на линията", o2 and o2["h_liniya"] == 38.5)
+    check("обърнатата разменя и чистата победа",
+          o2 and o2["ml_dom"] == 15.00 and o2["ml_gost"] == 1.02)
+    check("тоталът НЕ се обръща — сборът е един и същ от двете страни",
+          o2 and o2["t_liniya"] == 55.5)
+    _ct = cena("Tennessee Titans", "New York Jets", ind=ind)
+    check("несиметричните цени се пазят в реда си",
+          _rechnik(_ct).get("h_cena_dom") == 1.95)
+    _ct2 = cena("New York Jets", "Tennessee Titans", ind=ind)
+    check("и наопаки се разменят",
+          _rechnik(_ct2).get("h_cena_dom") == 1.87
+          and _rechnik(_ct2).get("h_liniya") == 3.5)
+    check("псевдонимът работи и в указателя",
+          _rechnik(cena("Pittsburgh", "Miami Ohio",
+                        ind=ind)).get("h_liniya") == -20.5)
+    check("отрязаната лига НЕ дава цена",
+          cena("Miami Dolphins", "Atlanta Falcons", ind=ind) is None)
+    check("канадският също НЕ дава цена",
+          cena("Saskatchewan Roughriders", "Toronto Argonauts", ind=ind) is None)
+    check("непозната двойка мълчи", cena("Иван", "Драган", ind=ind) is None)
+    check("празни имена мълчат", cena("", "", ind=ind) is None)
+    check("None имена не гърмят", cena(None, None, ind=ind) is None)
+
+    # 🔴🔴 НАЙ-ГОЛЯМАТА ДУПКА, НАМЕРЕНА С МУТАЦИЯ. Целият файл се държи на
+    # твърдението „хлабав път НЯМА — 54 лъжливи закачания". А проверките за
+    # него бяха от рода `klyuch_pin("Ohio State") != norm("Ohio")` — тоест
+    # сравняваха ДВА НИЗА и бяха верни ВИНАГИ, дори когато `cena()` вътре си
+    # има „започва с". Мутация, която добавя точно този хлабав път, ОЦЕЛЯ
+    # срещу всичките 172 проверки.
+    # Тези редове питат ПОВЕДЕНИЕ: минава ли чуждото име през самата функция.
+    check("ХЛАБАВОТО „започва с“ не дава цена: Ohio НЕ е Ohio State",
+          cena("Ohio", "Ball State", ind=ind) is None)
+    check("нито обратното: Ohio State НЕ носи цената на Ohio",
+          cena("Ohio State", "Ball", ind=ind) is None)
+    check("Miami НЕ носи цената на Miami Ohio",
+          cena("Pittsburgh", "Miami", ind=ind) is None)
+    check("Texas НЕ носи цената на Texas State",
+          cena("Texas", "Texas St", ind=ind) is None)
+    check("Tennessee НЕ носи цената на Tennessee Titans",
+          cena("Tennessee", "New York Jets", ind=ind) is None)
+    check("New York НЕ носи цената на New York Jets",
+          cena("Tennessee Titans", "New York", ind=ind) is None)
+    # ...а истинската двойка си минава — пазачът не яде здравото.
+    check("но ПЪЛНАТА двойка Texas / Texas State си има цена",
+          _rechnik(cena("Texas", "Texas State", ind=ind)).get("h_liniya")
+          == -35.5)
+
+    # 🔴 СПОРЪТ СЕ РЕШАВА С МЪЛЧАНИЕ, НЕ С ПЪРВИЯ. Мутация „вземи първия"
+    # оцеляваше: в данните нямаше ДВА записа с една и съща двойка имена.
+    # Пинакъл носи повторени двойки при разместен мач — тогава двата записа
+    # имат РАЗЛИЧНИ линии и „първият" значи произволна цена.
+    _dva = index({"a": ("Duke", "Tulane", "NCAA", "2026-09-05T19:30:00Z"),
+                  "b": ("Duke", "Tulane", "NCAA", "2026-09-12T19:30:00Z")},
+                 {"a": _S["6"], "b": _S["8"]}, {}, {})
+    check("два записа с ЕДНА И СЪЩА двойка изобщо влизат в указателя",
+          len(_dva) == 2)
+    check("но цената им е СПОР и се мълчи, вместо да се вземе първата",
+          cena("Duke", "Tulane", ind=_dva) is None)
+
+    # 🔴 ЕДИН И СЪЩ ОТБОР ОТ ДВЕТЕ СТРАНИ. Досегашната проверка беше СЛЯПА:
+    # `index()` сам изхвърля такива записи, значи указателят никога не носеше
+    # такъв ред и пазачът в `cena()` нямаше върху какво да падне. Тук
+    # указателят е ПОДАДЕН НАРЪЧНО с точно такъв ред.
+    _degenerat = [{"id": "x", "dom": "Duke", "gost": "Duke", "liga": "NCAA",
+                   "slug": "college-football", "start": "",
+                   "h_liniya": -1.5, "h_cena_dom": 1.90, "h_cena_gost": 1.92,
+                   "t_liniya": None, "t_cena_nad": None, "t_cena_pod": None,
+                   "ml_dom": None, "ml_gost": None,
+                   "nd": "duke", "ng": "duke"}]
+    check("един и същ отбор от двете страни не влиза, дори подаден наръчно",
+          cena("Duke", "Duke", ind=_degenerat) is None)
+    check("а нормалната двойка през същия пазач си остава намерена",
+          _rechnik(cena("Duke", "Tulane", ind=ind)).get("h_liniya") == -6.5)
+    check("празен указател мълчи",
+          cena("Ohio State", "Ball State", ind=[]) is None)
+    check("указател от нищо е празен", index({}, {}, {}, {}) == [])
+    check("None данни не чупят указателя", index(None, None, None, None) == [])
+
+    # ═════════════════════════════════════ ВРАТА 2: ОТСЪЖДАНЕТО
+    _dyska = {"events": [{
+        "id": "401752", "date": "2026-08-24T00:00Z",
+        "competitions": [{
+            "status": {"type": {"name": "STATUS_FINAL"}},
+            "competitors": [
+                {"homeAway": "home", "score": "19", "winner": True,
+                 "team": {"id": "10", "displayName": "Tennessee Titans",
+                          "location": "Tennessee",
+                          "shortDisplayName": "Titans"}},
+                {"homeAway": "away", "score": "16", "winner": False,
+                 "team": {"id": "26", "displayName": "Seattle Seahawks",
+                          "location": "Seattle",
+                          "shortDisplayName": "Seahawks"}}]}]}]}
+    r = razbor_espn(_dyska, "nfl")
+    check("дъската на ESPN се разбира", len(r) == 1)
+    # 🔴 РЕЗУЛТАТЪТ, НЕ ПОБЕДИТЕЛЯТ. Хендикапът иска ДВЕТЕ числа.
+    check("резултатът излиза, не само победителят",
+          bool(r) and r[0]["dom"]["toch"] == 19 and r[0]["gost"]["toch"] == 16)
+    check("краят се вижда", bool(r) and r[0]["gotov"] == "STATUS_FINAL")
+    check("и трите имена стават ключове",
+          bool(r) and "tennesseetitans" in r[0]["dom"]["klyuchove"]
+          and "tennessee" in r[0]["dom"]["klyuchove"])
+    check("незапочналият мач няма точки, но не гърми",
+          razbor_espn({"events": [{"id": "9", "competitions": [{
+              "competitors": [
+                  {"homeAway": "home", "team": {"id": "1", "displayName": "A"}},
+                  {"homeAway": "away", "team": {"id": "2", "displayName": "B"}}]
+          }]}]})[0]["dom"]["toch"] is None)
+    check("празна дъска дава празен списък", razbor_espn({}) == [])
+    check("None дъска не гърми", razbor_espn(None) == [])
+    # 🔴 МАЧ САМО С ЕДНА СТРАНА. Мутация „не d И не g" оцеляваше: в данните
+    # нямаше такъв запис. А влезе ли, `gost` е None и `sglasie` гърми на
+    # `e["gost"]["klyuchove"]` — целият рън пада.
+    check("събитие само с ЕДНА страна не влиза в дъската",
+          razbor_espn({"events": [{"id": "8", "competitions": [{
+              "competitors": [
+                  {"homeAway": "home",
+                   "team": {"id": "1", "displayName": "A Team"}}]}]}]}) == [])
+    check("събитие БЕЗ нито една страна също не влиза",
+          razbor_espn({"events": [{"id": "8",
+                                   "competitions": [{"competitors": []}]}]})
+          == [])
+    _polovin = razbor_espn({"events": [{"id": "8", "competitions": [{
+        "competitors": [{"homeAway": "home",
+                         "team": {"id": "1", "displayName": "A Team"}}]}]}]})
+    check("и съгласието НЕ гърми върху такава дъска, а честно не намира",
+          sglasie([{"dom": "A Team", "gost": "B Team", "slug": ""}],
+                  _polovin) == ([], [{"dom": "A Team", "gost": "B Team",
+                                      "slug": ""}]))
+
+    def _grumi(u):
+        raise OSError("няма мрежа")
+
+    check("паднал ESPN дава СЕНТИНЕЛ, не празен списък",
+          espn_dyska("nfl", "20260824", _grumi) is NEPITAN)
+    check("и НЕ се чете като „няма мачове\"",
+          espn_dyska("nfl", "20260824", _grumi) != [])
+    check("непълен отговор дава СЕНТИНЕЛ",
+          espn_dyska("nfl", "20260824", lambda u: ["не е речник"]) is NEPITAN)
+    _vidyan = []
+    espn_dyska("college-football", "20260905",
+               lambda u: _vidyan.append(u) or {})
+    check("адресът се строи от лигата и деня",
+          bool(_vidyan) and _vidyan[0].endswith(
+              "/football/college-football/scoreboard?dates=20260905"))
+    check("подписът е ПРАЗЕН — ESPN отговаря 403 на Chrome",
+          "User-Agent" not in ESPN_GLAVI)
+
+    # ─────────────────────────────────────────── СЪГЛАСИЕТО НА ИМЕНАТА
+    _espn = razbor_espn({"events": [
+        # 🔴🔴 КАПАНЪТ „OHIO". Стои ПЪРВИ нарочно: `sglasie` спира на първото
+        # попадение, значи хлабаво правило би закачило НАШИЯ „Ohio State" тук,
+        # ПРЕДИ да стигне до истинския му мач. Ohio Bobcats и Ball State
+        # Cardinals са двата съседа от MAC — това е истински възможен мач, не
+        # измислен. Без този ред проверката „не се закача за чуждото" беше
+        # СЛЯПА: старият ѝ капан (Miami Hurricanes) беше срещу Clemson, тоест
+        # ВТОРОТО име никога не съвпадаше и правилото нямаше как да го хване.
+        {"id": "5", "competitions": [{
+            "status": {"type": {"name": "STATUS_SCHEDULED"}},
+            "competitors": [
+                {"homeAway": "home", "team": {
+                    "id": "195", "displayName": "Ohio Bobcats",
+                    "location": "Ohio", "shortDisplayName": "Ohio"}},
+                {"homeAway": "away", "team": {
+                    "id": "2050", "displayName": "Ball State Cardinals",
+                    "location": "Ball State",
+                    "shortDisplayName": "Ball State"}}]}]},
+        {"id": "1", "competitions": [{
+            "status": {"type": {"name": "STATUS_SCHEDULED"}},
+            "competitors": [
+                {"homeAway": "home", "team": {
+                    "id": "194", "displayName": "Ohio State Buckeyes",
+                    "location": "Ohio State", "shortDisplayName": "Ohio State"}},
+                {"homeAway": "away", "team": {
+                    "id": "2050", "displayName": "Ball State Cardinals",
+                    "location": "Ball State",
+                    "shortDisplayName": "Ball State"}}]}]},
+        {"id": "2", "competitions": [{
+            "status": {"type": {"name": "STATUS_SCHEDULED"}},
+            "competitors": [
+                {"homeAway": "home", "team": {
+                    "id": "221", "displayName": "Pittsburgh Panthers",
+                    "location": "Pittsburgh", "shortDisplayName": "Pitt"}},
+                {"homeAway": "away", "team": {
+                    "id": "193", "displayName": "Miami (OH) RedHawks",
+                    "location": "Miami (OH)",
+                    "shortDisplayName": "Miami OH"}}]}]},
+        # 🔴 ЧУЖДИЯТ MIAMI. Позволи ли се хлабаво съвпадение, „Miami Ohio" би
+        # го хванал и картата щеше да носи цената на СЪВСЕМ ДРУГ отбор.
+        {"id": "3", "competitions": [{
+            "status": {"type": {"name": "STATUS_SCHEDULED"}},
+            "competitors": [
+                {"homeAway": "home", "team": {
+                    "id": "2390", "displayName": "Miami Hurricanes",
+                    "location": "Miami", "shortDisplayName": "Miami"}},
+                {"homeAway": "away", "team": {
+                    "id": "228", "displayName": "Clemson Tigers",
+                    "location": "Clemson", "shortDisplayName": "Clemson"}}]}]},
+        {"id": "4", "competitions": [{
+            "status": {"type": {"name": "STATUS_SCHEDULED"}},
+            "competitors": [
+                {"homeAway": "home", "team": {
+                    "id": "24", "displayName": "San José State Spartans",
+                    "location": "San José State",
+                    "shortDisplayName": "San José St"}},
+                {"homeAway": "away", "team": {
+                    "id": "30", "displayName": "USC Trojans",
+                    "location": "USC", "shortDisplayName": "USC"}}]}]}]},
+        "college-football")
+    _nashi = [
+        {"dom": "Ohio State", "gost": "Ball State", "slug": "college-football"},
+        {"dom": "Pittsburgh", "gost": "Miami Ohio", "slug": "college-football"},
+        {"dom": "USC", "gost": "San Jose State", "slug": "college-football"},
+        {"dom": "Няма Такъв", "gost": "Друг Няма", "slug": "college-football"}]
+    nam, prop = sglasie(_nashi, _espn)
+    check("съгласието намира трите истински", len(nam) == 3)
+    check("и НЕ измисля четвъртия", len(prop) == 1)
+    check("ударението вече не пречи",
+          any(n[0]["gost"] == "San Jose State" for n in nam))
+    check("псевдонимът вкарва Miami Ohio",
+          any(n[0]["gost"] == "Miami Ohio" for n in nam))
+    # 🔴🔴 ТУК БЕШЕ СЛЯПАТА ПРОВЕРКА. Пишеше „и НЕ го вкарва при Miami
+    # Hurricanes" с коментар „махне ли се строгостта, това хваща Miami
+    # Hurricanes". МЕРЕНО С МУТАЦИЯ: НЕ Я ХВАЩА. Хурикейнс играят с Clemson,
+    # а нашата двойка е Pittsburgh / Miami Ohio — второто име не съвпада по
+    # никакъв начин, значи и най-хлабавото правило не може да закачи този
+    # запис. Проверката беше зелена и СЪС, и БЕЗ строгостта: украса.
+    # Заместена е с капана, който наистина щраква — Ohio State срещу Ohio.
+    check("Ohio State се закача за СВОЯ мач, не за съседния Ohio",
+          any(n[0]["dom"] == "Ohio State" and n[1]["ev"] == "1" for n in nam))
+    check("нито един наш мач не е закачен за чужд отбор",
+          all(n[1]["ev"] in ("1", "2", "4") for n in nam))
+    # ВТОРИ СВИДЕТЕЛ, отделен от горните данни: измереният случай „Texas A&M
+    # би хванал Texas". Тук на дъската има САМО мача на Texas — нашият A&M
+    # мач го няма и правилният отговор е МЪЛЧАНИЕ, не чужда цена.
+    _espn_tx = razbor_espn({"events": [{"id": "77", "competitions": [{
+        "status": {"type": {"name": "STATUS_SCHEDULED"}},
+        "competitors": [
+            {"homeAway": "home", "team": {
+                "id": "251", "displayName": "Texas Longhorns",
+                "location": "Texas", "shortDisplayName": "Texas"}},
+            {"homeAway": "away", "team": {
+                "id": "87", "displayName": "Notre Dame Fighting Irish",
+                "location": "Notre Dame",
+                "shortDisplayName": "Notre Dame"}}]}]}]},
+        "college-football")
+    _ntx, _ptx = sglasie([{"dom": "Texas A&M", "gost": "Notre Dame",
+                           "slug": "college-football"}], _espn_tx)
+    check("Texas A&M НЕ се закача за мача на Texas — измерени 54 такива",
+          _ntx == [] and len(_ptx) == 1)
+    _ntx2, _ptx2 = sglasie([{"dom": "Texas", "gost": "Notre Dame",
+                             "slug": "college-football"}], _espn_tx)
+    check("а истинският Texas на същата дъска се намира",
+          len(_ntx2) == 1 and _ptx2 == [])
+    check("разменените страни се приемат",
+          any(n[0]["dom"] == "USC" for n in nam))
+    check("чужда дъска НЕ се пресича",
+          sglasie([{"dom": "Ohio State", "gost": "Ball State", "slug": "nfl"}],
+                  _espn)[0] == [])
+    check("празно съгласие не гърми", sglasie([], []) == ([], []))
+    check("None съгласие не гърми", sglasie(None, None) == ([], []))
+
+    # ──────────────────────────────────────────── ОТСЪЖДАНЕТО НА ЛИНИЯТА
+    check("домакинът дава 7.5 и печели с 8 -> покрил",
+          pokri_li(-7.5, 24, 16) is True)
+    check("домакинът дава 7.5 и печели със 7 -> НЕ покрил",
+          pokri_li(-7.5, 23, 16) is False)
+    check("домакинът получава 3.5 и губи с 3 -> покрил",
+          pokri_li(3.5, 17, 20) is True)
+    check("домакинът получава 3.5 и губи с 4 -> НЕ покрил",
+          pokri_li(3.5, 17, 21) is False)
+    # 🔴 ЦЯЛА ЛИНИЯ НЯМА ОТГОВОР — залогът се връща. Мълчаливо „не покрил"
+    # тук значи отсъдена ЗАГУБА на нещо, което не е било загубено.
+    check("цяла линия НЕ се отсъжда, а мълчи", pokri_li(-7.0, 23, 16) is None)
+    check("липсващ резултат НЕ се отсъжда", pokri_li(-7.5, None, 16) is None)
+    check("сборът над линията", nad_li(49.5, 28, 24) is True)
+    check("сборът под линията", nad_li(49.5, 21, 20) is False)
+    check("цял тотал НЕ се отсъжда", nad_li(50.0, 25, 25) is None)
+    check("липсващ сбор НЕ се отсъжда", nad_li(49.5, None, None) is None)
+    # ИСТИНСКИЯТ МАЧ ОТ ЖИВАТА ПРОВЕРКА: Titans 19 - Seahawks 16
+    check("живият мач се отсъжда: Titans -1.5 при 19:16 -> покрил",
+          pokri_li(-1.5, 19, 16) is True)
+    check("живият мач се отсъжда: Titans -3.5 при 19:16 -> НЕ покрил",
+          pokri_li(-3.5, 19, 16) is False)
+    check("живият мач се отсъжда: тотал 34.5 при 19:16 -> над",
+          nad_li(34.5, 19, 16) is True)
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # 🔴🔴 СЧЕТОВОДСТВОТО НА ХЕНДИКАПА, ЦЕЛИЯТ ПЪТ: ЛИНИЯ -> ПРИСЪДА
+    # ═══════════════════════════════════════════════════════════════════════
+    # Ако знакът е обърнат, ВСЯКА карта се отсъжда наопаки — и това не се
+    # вижда, докато не мине месец. Затова тук стои ТАБЛИЦА ОТ ИСТИНСКИ
+    # ЗАВЪРШИЛИ МАЧОВЕ, свалени от ESPN на 26.08.2026 (nfl 21-23.08.2026 и
+    # college-football 30-31.08.2025 + 06.09.2025 — 158 завършили срещи).
+    #
+    # ИЗМЕРЕНО ВЪРХУ ВСИЧКИТЕ 158: 38 078 двойки (мач x линия през 0.5 от
+    # -60 до +60) сравнени с НЕЗАВИСИМА сметка, написана от правилото на
+    # букмейкъра („точките се ДОБАВЯТ към домакина; покрил е, ако така
+    # нагласеният резултат го прави победител; равен = върнат залог").
+    # СПОРОВЕ: 0. Цели линии с истинско връщане на залог: 150 — и на всичките
+    # мълчим. За тотала: 0 спора, 158 истински връщания.
+    # Долу са замразени представителите на всеки случай.
+    #
+    # ЗНАКЪТ: минус значи „домакинът ДАВА", плюс значи „домакинът ПОЛУЧАВА".
+    _TABLICA = (
+        # (домакин, гост, точки_дом, точки_гост, линия, присъда)
+        # ── ДОМАКИН ФАВОРИТ, разлика +7 (Охайо Стейт 14:7 Тексас)
+        ("Ohio State", "Texas", 14, 7, -7.5, False),   # дава 7.5, взе 7 -> НЕ
+        ("Ohio State", "Texas", 14, 7, -6.5, True),    # дава 6.5, взе 7 -> ДА
+        ("Ohio State", "Texas", 14, 7, -7.0, None),    # ЦЯЛА: върнат залог
+        ("Ohio State", "Texas", 14, 7, 3.5, True),     # получава -> ДА
+        # ── ЗАДАНИЕТО, дума по дума: линия -7.5 при 21:14 (разлика 7)
+        ("(21:14 от заданието)", "", 21, 14, -7.5, False),
+        ("(21:14 от заданието)", "", 21, 14, -6.5, True),
+        # ── ДОМАКИН ФАВОРИТ, разлика +3 (Тайтънс 19:16 Сийхокс)
+        ("Tennessee Titans", "Seattle Seahawks", 19, 16, -1.5, True),
+        ("Tennessee Titans", "Seattle Seahawks", 19, 16, -2.5, True),
+        ("Tennessee Titans", "Seattle Seahawks", 19, 16, -3.5, False),
+        ("Tennessee Titans", "Seattle Seahawks", 19, 16, -3.0, None),
+        # ── ДОМАКИН АУТСАЙДЕР, разлика -7 (Клемсън 10:17 ЛСУ)
+        ("Clemson", "LSU", 10, 17, 7.5, True),         # получава 7.5, губи 7
+        ("Clemson", "LSU", 10, 17, 6.5, False),        # получава 6.5, губи 7
+        ("Clemson", "LSU", 10, 17, 7.0, None),         # ЦЯЛА: върнат залог
+        ("Clemson", "LSU", 10, 17, 3.5, False),
+        ("Clemson", "LSU", 10, 17, -3.5, False),       # аутсайдер, който дава
+        # ── РАЗЛИКА 1 (Бъканиърс 16:15 Чифс)
+        ("Tampa Bay", "Kansas City", 16, 15, -0.5, True),
+        ("Tampa Bay", "Kansas City", 16, 15, -1.5, False),
+        ("Tampa Bay", "Kansas City", 16, 15, 0.5, True),
+        # ── ЧУДОВИЩНА РАЗЛИКА (Рамс 34:0 Сейнтс)
+        ("LA Rams", "New Orleans", 34, 0, -33.5, True),
+        ("LA Rams", "New Orleans", 34, 0, -34.5, False),
+        ("LA Rams", "New Orleans", 34, 0, -34.0, None),
+        # ── ЧУДОВИЩНА РАЗЛИКА НАОБРАТНО (Ситадел 0:38 Норт Дакота Стейт)
+        ("The Citadel", "North Dakota State", 0, 38, 38.5, True),
+        ("The Citadel", "North Dakota State", 0, 38, 37.5, False),
+        ("The Citadel", "North Dakota State", 0, 38, 38.0, None),
+        # ── ТОЧНО ВЪРХУ ЦЯЛА ЛИНИЯ (Пърдю 31:0 Бол Стейт)
+        ("Purdue", "Ball State", 31, 0, -31.0, None),
+        ("Purdue", "Ball State", 31, 0, -30.5, True),
+        ("Purdue", "Ball State", 31, 0, -31.5, False),
+        # ── РАЗЛИКА 3 в NCAA (Канзас Стейт 38:35 Норт Дакота)
+        ("Kansas State", "North Dakota", 38, 35, -3.5, False),
+        ("Kansas State", "North Dakota", 38, 35, -2.5, True),
+        ("Kansas State", "North Dakota", 38, 35, -3.0, None),
+    )
+    for _d, _g, _td, _tg, _ln, _prisada in _TABLICA:
+        _vidyano = pokri_li(_ln, _td, _tg)
+        check("хендикап %+.1f при %s %d:%d -> %s"
+              % (_ln, _d, _td, _tg,
+                 {True: "покрил", False: "НЕ покрил",
+                  None: "върнат залог"}[_prisada]),
+              _vidyano is _prisada)
+    # 🔴 И ОБРАТНАТА ГЛЕДНА ТОЧКА. Разменят ли се страните, линията сменя
+    # знака си — и присъдата се ОБРЪЩА. Ако кодът бъркаше посоката, тази
+    # проверка щеше да е зелена заедно с горните (два пъти един и същ знак),
+    # затова тя е ОТДЕЛНО измерение, не повторение.
+    for _d, _g, _td, _tg, _ln, _prisada in _TABLICA:
+        _obratno = pokri_li(-_ln, _tg, _td)
+        if _prisada is None:
+            check("огледално %+.1f при %s -> пак върнат залог" % (_ln, _d),
+                  _obratno is None)
+        else:
+            check("огледално %+.1f при %s -> обратната присъда" % (_ln, _d),
+                  _obratno is (not _prisada))
+
+    # ── ТОТАЛЪТ, СЪЩИЯТ ПЪТ, СЪЩИТЕ ИСТИНСКИ МАЧОВЕ
+    _TABLICA_T = (
+        # (описание, точки_дом, точки_гост, линия, присъда)
+        ("Ohio State 14:7 (сбор 21)", 14, 7, 20.5, True),
+        ("Ohio State 14:7 (сбор 21)", 14, 7, 21.5, False),
+        ("Ohio State 14:7 (сбор 21)", 14, 7, 21.0, None),
+        ("Titans 19:16 (сбор 35)", 19, 16, 34.5, True),
+        ("Titans 19:16 (сбор 35)", 19, 16, 35.5, False),
+        ("Titans 19:16 (сбор 35)", 19, 16, 35.0, None),
+        # 🔴 ЗАДАНИЕТО: „над 47.5 при сбор 48 е ПОЗНАТА". Истинският мач с
+        # този сбор е Флорида Стейт 31:17 Алабама (30.08.2025).
+        ("Florida State 31:17 (сбор 48)", 31, 17, 47.5, True),
+        ("Florida State 31:17 (сбор 48)", 31, 17, 48.5, False),
+        ("Florida State 31:17 (сбор 48)", 31, 17, 48.0, None),
+        ("(24:24 от заданието, сбор 48)", 24, 24, 47.5, True),
+        ("(24:24 от заданието, сбор 48)", 24, 24, 48.5, False),
+        ("Patriots 24:21 (сбор 45)", 24, 21, 44.5, True),
+        ("Patriots 24:21 (сбор 45)", 24, 21, 45.5, False),
+        ("Rams 34:0 (сбор 34)", 34, 0, 33.5, True),
+        ("Rams 34:0 (сбор 34)", 34, 0, 34.5, False),
+        ("Texas Tech 67:7 (сбор 74)", 67, 7, 73.5, True),
+        ("Texas Tech 67:7 (сбор 74)", 67, 7, 74.5, False),
+        ("Vikings 3:13 (сбор 16)", 3, 13, 15.5, True),
+        ("Vikings 3:13 (сбор 16)", 3, 13, 16.5, False),
+    )
+    for _o, _td, _tg, _ln, _prisada in _TABLICA_T:
+        check("тотал %.1f при %s -> %s"
+              % (_ln, _o, {True: "над", False: "под",
+                           None: "върнат залог"}[_prisada]),
+              nad_li(_ln, _td, _tg) is _prisada)
+    # Тоталът НЕ зависи от това коя страна е домакин — сборът е един и същ.
+    for _o, _td, _tg, _ln, _prisada in _TABLICA_T:
+        check("тотал %.1f при %s е същият и наопаки" % (_ln, _o),
+              nad_li(_ln, _tg, _td) is _prisada)
+
+    check("броят проверки е поне 120", ok >= 120)
+
+    print("САМОПРОВЕРКА НА AMFUTBOL: " + str(ok) + " наред, "
+          + str(len(bad)) + " счупени")
+    for b in bad:
+        print("   счупено: " + b)
+    return 0 if not bad else 1
+
+
+def zhivo():
+    """Истинско питане — за очи, не за автомат."""
+    pin = _modul("pinnacle")
+    if pin is None:
+        print("🔴 pinnacle.py го няма — нищо не може да се пита")
+        return 1
+    r = fixtures_s_otchet(dni=None)
+    if r is NEPITAN:
+        print("🔴 НЕ МОЖАХ ДА ПИТАМ. Това НЕ е „днес няма мачове\".")
+        return 1
+    godni, o = r
+    print("🏈 АМЕРИКАНСКИ ФУТБОЛ от Pinnacle (id %d) · %s"
+          % (PIN_ID, time.strftime("%d.%m.%Y %H:%M UTC", time.gmtime())))
+    print("   дойдоха %d ИСТИНСКИ мача (специалните вече са хвърлени)"
+          % o["vsichko"])
+    for liga, redove in sorted(o["chuzhda_liga"].items()):
+        print("   ❌ ОТРЯЗАНА ЛИГА „%s“: %d мача" % (liga, len(redove)))
+        print("      защото: %s" % LIGI_NE.get(liga, "не е в списъка на лигите"))
+        for d, g, iso in redove[:3]:
+            print("        · %-26s vs %-26s %s" % (d[:26], g[:26], iso[:10]))
+        if len(redove) > 3:
+            print("        · ... и още %d" % (len(redove) - 3))
+    print("   счупени %d · без дата %d · започнали %d · без хендикап %d "
+          "· само цели линии %d"
+          % (o["schupeni"], o["bez_data"], o["zapochnali"],
+             o["bez_hendikap"], o["bez_polovinka"]))
+    print("   спекулативни (над %g дни напред): %d"
+          % (SPEKULA_DNI, len(o["spekulativni"])))
+    for d, g, dni, iso in o["spekulativni"][:5]:
+        print("      ❌ %-24s vs %-24s %s (%.0f дни напред)"
+              % (d[:24], g[:24], iso[:10], dni))
+    print("   ОСТАВАТ СЛЕД СИТОТО: %d" % o["godni"])
+    for m in godni[:20]:
+        p = ""
+        if m["h_p_dom"] is not None:
+            p = " · пазарът дава %4.1f%% / %4.1f%%" % (m["h_p_dom"] * 100.0,
+                                                       m["h_p_gost"] * 100.0)
+        print("      ✅ %-24s vs %-24s %s [%s]"
+              % (m["dom"][:24], m["gost"][:24], m["start"][:16], m["liga"]))
+        print("         ХЕНДИКАП %+.1f  %.2f / %.2f%s"
+              % (m["h_liniya"], m["h_cena_dom"], m["h_cena_gost"], p))
+        opashka = []
+        if m["t_liniya"] is not None:
+            opashka.append("тотал %.1f (%.2f/%.2f)"
+                           % (m["t_liniya"], m["t_cena_nad"], m["t_cena_pod"]))
+        if m["ml_dom"] is not None:
+            opashka.append("чиста победа %.2f/%.2f" % (m["ml_dom"], m["ml_gost"]))
+        else:
+            opashka.append("чиста победа: НЯМА Я при тях")
+        print("         " + " · ".join(opashka))
+    if len(godni) > 20:
+        print("      ... и още %d" % (len(godni) - 20))
+    # ═══ ВРАТА 2 НА ЖИВО: намират ли се тези мачове на дъската, която ги отсъжда
+    dni_za = {}
+    for m in godni:
+        ts = m["start_ts"]
+        for off in (-1, 0):
+            # ESPN реди по ЩАТСКА дата — питаме и деня преди, иначе късните
+            # мачове (03:00 UTC) висят на предишната дъска.
+            dni_za.setdefault(m["slug"], set()).add(
+                time.strftime("%Y%m%d", time.gmtime(ts + off * 86400)))
+    espn_redove, provali, zayavki = [], 0, 0
+    for slug, dni in sorted(dni_za.items()):
+        for dd in sorted(dni):
+            zayavki += 1
+            rr = espn_dyska(slug, dd)
+            if rr is NEPITAN:
+                provali += 1
+                continue
+            espn_redove += rr
+    nam, prop = sglasie(godni, espn_redove)
+    print("   ВРАТА 2 (ESPN): %d заявки, %d ПАДНАЛИ, %d събития на дъската"
+          % (zayavki, provali, len(espn_redove)))
+    print("   СЪПОСТАВЕНИ: %d от %d (%.0f%%)"
+          % (len(nam), len(godni), 100.0 * len(nam) / max(1, len(godni))))
+    for r0 in prop[:10]:
+        print("      ❓ ненамерен: %-26s vs %-26s [%s]"
+              % (r0["dom"][:26], r0["gost"][:26], r0["liga"]))
+    try:
+        print("   заявки към Pinnacle: %d" % pin.broi_zayavki())
+    except Exception:                                        # noqa: BLE001
+        pass
+    return 0
+
+
+# Вписването става ПРИ ВНОС, за да работи и `predictor.dobavi_pazar`, който
+# гледа `bucket in pinnacle.SPORT_ID` и не знае за този файл.
+# 🔴 ВИЖ ПРЕДУПРЕЖДЕНИЕТО В ЗАГЛАВИЕТО: този ключ отваря и вратата към чистата
+# победа. Пътят назад е PREDICT_IZKL, който днес държи спорта затворен.
+registrirai()
+
+if __name__ == "__main__":
+    if "--zhivo" in sys.argv:
+        sys.exit(zhivo())
+    sys.exit(selftest())
