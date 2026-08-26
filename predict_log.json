@@ -18736,7 +18736,9 @@
   "p": 0.6453,
   "stars": 2,
   "sample": "гледани 29 мача на единия и 27 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-08-26|tabletennis|jakubmakara|amirmahdikeshavarzi",
@@ -18796,7 +18798,9 @@
   "p": 0.8259,
   "stars": 2,
   "sample": "гледани 37 мача на единия и 120 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-08-25|volleyball|msen|guatemala|доминиканскарепублика",
@@ -19116,7 +19120,9 @@
   "p": 0.7326,
   "stars": 2,
   "sample": "гледани 25 мача на единия и 37 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-26|tabletennis|miguelpantoja|denisdorcescu",
@@ -20292,7 +20298,9 @@
   "p": 0.56,
   "stars": 2,
   "sample": "гледани 36 мача на единия и 30 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-26|baseball|lgtwins|ncdinos",
@@ -20531,7 +20539,9 @@
   "p": 0.5334,
   "stars": 1,
   "sample": "гледани 23 мача на единия и 13 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-27|baseball|chicagowhitesox|texasrangers",
@@ -20797,7 +20807,9 @@
   "p": 0.6835,
   "stars": 2,
   "sample": "гледани 24 мача на единия и 21 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-26|tabletennis|julievanhauwaert|katarzynawegrzyn",
