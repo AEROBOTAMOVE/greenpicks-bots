@@ -19450,7 +19450,11 @@
   "p": 0.7418,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:1",
+  "pazar_close": 1.19,
+  "pazar_clv": 0.0591
  },
  {
   "key": "2026-08-26|tennis|lucianodarderi|boticvandezandschulp",
@@ -19784,7 +19788,9 @@
   "p": 0.5346,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "4:1"
  },
  {
   "key": "2026-08-26|volleyball|wsen|словакия|чернагора",
@@ -19846,7 +19852,11 @@
   "p": 0.7639,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:1",
+  "pazar_close": 1.13,
+  "pazar_clv": 0.0516
  },
  {
   "key": "2026-08-27|football|riverplate|independientesantafe",
@@ -20419,7 +20429,9 @@
   "p": 0.6179,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "6:1"
  },
  {
   "key": "2026-08-26|baseball|lgtwins|ncdinos|total",
@@ -20522,7 +20534,9 @@
   "p": 0.5778,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "6:1"
  },
  {
   "key": "2026-08-26|tabletennis|benjaminfruchart|nicolascallaba",
@@ -20623,7 +20637,9 @@
   "p": 0.7273,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "6:5"
  },
  {
   "key": "2026-08-27|baseball|tokyoyakultswallows|yomiurigiants",
@@ -20656,7 +20672,9 @@
   "p": 0.7105,
   "stars": 1,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:5"
  },
  {
   "key": "2026-08-26|tabletennis|julievanhauwaert|dominikawiltschkova",
@@ -21208,7 +21226,11 @@
   "p": 0.6735,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2",
+  "pazar_close": 1.28,
+  "pazar_clv": 0.0513
  },
  {
   "key": "2026-08-26|football|aekathens|levskisofia",
@@ -21241,7 +21263,11 @@
   "p": 0.6426,
   "stars": 3,
   "sample": "гледани 34 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:0",
+  "pazar_close": 1.46,
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-08-26|football|aekathens|levskisofia|total",
@@ -21274,7 +21300,9 @@
   "p": 0.622,
   "stars": 3,
   "sample": "гледани 34 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "4:0"
  },
  {
   "key": "2026-08-26|tennis|christopheroconnell|nicolaibudkovkjaer",
@@ -21373,7 +21401,9 @@
   "p": 0.5646,
   "stars": 1,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:5"
  },
  {
   "key": "2026-08-27|baseball|chunichidragons|hanshintigers",
@@ -21406,7 +21436,9 @@
   "p": 0.5354,
   "stars": 1,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:0"
  },
  {
   "key": "2026-08-27|baseball|kiatigers|lottegiants",
@@ -21439,6 +21471,8 @@
   "p": 0.5934,
   "stars": 1,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "16:11"
  }
 ]
