@@ -6159,7 +6159,18 @@ def dobavi_pazar(an):
             _d = str(ex.get("home_en") or fx.get("home") or "")
             _g = str(ex.get("away_en") or fx.get("away") or "")
             if _b in PIN.SPORT_ID and _d and _g:
-                dom, gost, raven = PIN.ceni_za(_b, _d, _g)
+                # 🔴 ЛИГАТА СЕ ПОДАВА (26.08.2026). Без нея стъпката по
+                # СЪЩИНА в pinnacle.nameri изобщо не се пуска — тя иска лига,
+                # за да разбере ПОЛА, защото `kanon` нарочно изхвърля „Women"
+                # от името („Italy (W)" и „Italy" стават едно) и при
+                # националните отбори полът живее само в лигата.
+                #
+                # Измерено живо: канонът работи („Словакия" и „Slovakia" дават
+                # една и съща същина), а цената пак излизаше „няма" 0 от 8
+                # пъти — защото тук се викаше с ТРИ довода и `liga` беше None.
+                # Поправката в pinnacle.py беше цяла и НЕДОСТИЖИМА.
+                _lg = str(fx.get("league") or "")
+                dom, gost, raven = PIN.ceni_za(_b, _d, _g, _lg)
                 if dom or gost:
                     izt = "pinnacle"
                     sport = _b            # маржът се маха по НАШЕТО име
@@ -9658,7 +9669,9 @@ def selftest():
                 return {}
 
             @staticmethod
-            def ceni_za(sp, d, g):
+            # lg=None: истинският ceni_za вече приема и ЛИГАТА (26.08.2026).
+            # Подставеният трябва да носи същия подпис, инак TypeError.
+            def ceni_za(sp, d, g, lg=None):
                 return (None, None, None)
 
         globals()["PIN"] = _Praz
@@ -9915,7 +9928,9 @@ def selftest():
             SPORT_ID = {"tennis": 33}
 
             @staticmethod
-            def ceni_za(sp, d, g):
+            # lg=None: истинският ceni_za вече приема и ЛИГАТА (26.08.2026).
+            # Подставеният трябва да носи същия подпис, инак TypeError.
+            def ceni_za(sp, d, g, lg=None):
                 return (1.57, 2.55, None) if sp == "tennis" else (None, None, None)
 
         globals()["PIN"] = _MakPin
