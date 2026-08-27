@@ -22714,7 +22714,9 @@
   "p": 0.5884,
   "stars": 2,
   "sample": "гледани 56 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-28|baseball|newyorkyankees|houstonastros",
@@ -22947,7 +22949,9 @@
   "p": 0.5437,
   "stars": 1,
   "sample": "гледани 31 мача на единия и 23 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-27|tabletennis|joshchua|ankurbhattacharjee",
@@ -22980,7 +22984,9 @@
   "p": 0.7136,
   "stars": 2,
   "sample": "гледани 35 мача на единия и 98 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-27|volleyball|wsen|португалия|румъния",
