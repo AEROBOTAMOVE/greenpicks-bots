@@ -21570,7 +21570,8 @@
   "sample": "гледани 50 мача на единия и 11 на другия",
   "scored": true,
   "hit": true,
-  "score": "1:0"
+  "score": "1:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-27|tabletennis|misuzutakeya|minhsinchen",
@@ -21708,7 +21709,9 @@
   "p": 0.5556,
   "stars": 3,
   "sample": "гледани 58 мача на единия и 54 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-27|tabletennis|nataliabajor|zuzannawielgos",
@@ -21811,7 +21814,12 @@
   "p": 0.7172,
   "stars": 3,
   "sample": "гледани 42 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:1",
+  "pazar_close": 1.23,
+  "pazar_clv": 0.0318,
+  "combo_done": true
  },
  {
   "key": "2026-08-28|basketball|phoenixmercury|washingtonmystics",
@@ -21877,7 +21885,10 @@
   "p": 0.6589,
   "stars": 3,
   "sample": "гледани 62 мача на единия и 56 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-28|tennis|annli|alyciaparks",
@@ -21943,7 +21954,11 @@
   "p": 0.6421,
   "stars": 3,
   "sample": "гледани 37 мача на единия и 41 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "pazar_close": 1.36,
+  "pazar_clv": 0.0504
  },
  {
   "key": "2026-08-28|basketball|newyorkliberty|goldenstatevalkyries",
@@ -22009,7 +22024,11 @@
   "p": 0.4776,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3",
+  "pazar_close": 1.86,
+  "pazar_clv": 0.0376
  },
  {
   "key": "2026-08-27|tabletennis|izaacquek|jirimartinko",
@@ -22077,7 +22096,9 @@
   "p": 0.5941,
   "stars": 2,
   "sample": "ранглиста и 3 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-08-27|football|agf|бенфика|total",
@@ -22110,7 +22131,9 @@
   "p": 0.6072,
   "stars": 3,
   "sample": "гледани 37 мача на единия и 41 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-27|football|celtavigo|osasuna|total",
@@ -22143,7 +22166,9 @@
   "p": 0.5722,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-28|basketball|newyorkliberty|goldenstatevalkyries|total",
@@ -22209,7 +22234,10 @@
   "p": 0.7655,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-27|tennis|mazdrashkia|pieleanurt",
@@ -22277,7 +22305,9 @@
   "p": 0.8922,
   "stars": 3,
   "sample": "гледани 39 мача на единия и 57 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-27|football|boracbanjaluka|vikingurreykjavik",
@@ -22310,7 +22340,11 @@
   "p": 0.4589,
   "stars": 1,
   "sample": "гледани 7 мача на единия и 13 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "pazar_close": 2.0,
+  "pazar_clv": -0.0263
  },
  {
   "key": "2026-08-27|volleyball|wsen|швеция|франция",
@@ -22343,7 +22377,9 @@
   "p": 0.567,
   "stars": 3,
   "sample": "гледани 35 мача на единия и 53 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-08-27|tennis|jurijrodionov|jacobfearnley",
@@ -22376,7 +22412,9 @@
   "p": 0.5906,
   "stars": 2,
   "sample": "ранглиста и 4 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "мачът е отложен или отменен"
  },
  {
   "key": "2026-08-27|football|boracbanjaluka|vikingurreykjavik|total",
@@ -22409,7 +22447,9 @@
   "p": 0.6019,
   "stars": 1,
   "sample": "гледани 7 мача на единия и 13 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-27|tennis|juhask|spyrouc",
@@ -22475,7 +22515,9 @@
   "p": 0.8907,
   "stars": 3,
   "sample": "гледани 30 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-27|volleyball|wsen|латвия|унгария",
@@ -22508,7 +22550,9 @@
   "p": 0.5377,
   "stars": 3,
   "sample": "гледани 28 мача на единия и 33 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-27|baseball|kiwoomheroes|samsunglions",
@@ -22576,7 +22620,9 @@
   "p": 0.891,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-27|tabletennis|franziskaschreiner|amywang",
@@ -22817,7 +22863,9 @@
   "p": 0.6909,
   "stars": 2,
   "sample": "гледани 36 мача на единия и 50 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-08-28|baseball|newyorkmets|milwaukeebrewers",
@@ -22916,7 +22964,9 @@
   "p": 0.856,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-08-27|tabletennis|davidszantosi|denisdorcescu",
@@ -23019,7 +23069,9 @@
   "p": 0.6721,
   "stars": 3,
   "sample": "гледани 27 мача на единия и 29 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-27|tabletennis|misuzutakeya|amywang",
@@ -23052,7 +23104,9 @@
   "p": 0.755,
   "stars": 2,
   "sample": "гледани 71 мача на единия и 31 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-27|tabletennis|nataliabajor|mingyingloy",
@@ -23085,7 +23139,9 @@
   "p": 0.5444,
   "stars": 1,
   "sample": "гледани 76 мача на единия и 106 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-08-27|tabletennis|lubomirpistej|gaonkim",
@@ -23118,6 +23174,8 @@
   "p": 0.6369,
   "stars": 2,
   "sample": "гледани 65 мача на единия и 56 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  }
 ]
