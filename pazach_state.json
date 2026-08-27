@@ -2,8 +2,9 @@
  "kazano": {
   "daily.yml": "2026-08-26T21:46:53.962331+00:00",
   "daily.yml|matches.yml|news.yml|predict.yml|router.yml": "2026-08-27T13:54:51.577815+00:00",
+  "daily.yml|predict.yml|router.yml": "2026-08-27T23:39:15.874014+00:00",
   "score.yml": "2026-08-25T06:52:07.918549+00:00"
  },
- "posleden_obhod": "2026-08-27T13:54:51.577815+00:00",
+ "posleden_obhod": "2026-08-27T23:39:15.874014+00:00",
  "slepi_podred": 0
 }
