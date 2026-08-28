@@ -21676,7 +21676,8 @@
   "sample": "гледани 106 мача на единия и 14 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:1"
+  "score": "3:1",
+  "combo_done": true
  },
  {
   "key": "2026-08-27|volleyball|wsen|нидерландия|белгия",
@@ -21921,7 +21922,10 @@
   "p": 0.6171,
   "stars": 3,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-27|football|agf|бенфика",
@@ -21958,7 +21962,8 @@
   "hit": true,
   "score": "1:3",
   "pazar_close": 1.36,
-  "pazar_clv": 0.0504
+  "pazar_clv": 0.0504,
+  "combo_done": true
  },
  {
   "key": "2026-08-28|basketball|newyorkliberty|goldenstatevalkyries",
@@ -21991,7 +21996,11 @@
   "p": 0.557,
   "stars": 2,
   "sample": "гледани 86 мача на единия и 84 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "60:79",
+  "pazar_close": 1.61,
+  "pazar_clv": 0.0329
  },
  {
   "key": "2026-08-27|football|celtavigo|osasuna",
@@ -22201,7 +22210,9 @@
   "p": 0.5445,
   "stars": 2,
   "sample": "гледани 86 мача на единия и 84 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "60:79"
  },
  {
   "key": "2026-08-27|volleyball|wsen|czechrepublic|българия",
@@ -22482,7 +22493,9 @@
   "p": 0.95,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 5 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-27|volleyball|wsen|хърватия|чернагора",
@@ -22795,7 +22808,11 @@
   "p": 0.5934,
   "stars": 2,
   "sample": "гледани 153 мача на единия и 155 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:5",
+  "pazar_close": 1.63,
+  "pazar_clv": -0.0076
  },
  {
   "key": "2026-08-27|baseball|kiwoomheroes|samsunglions|total",
@@ -22898,7 +22915,11 @@
   "p": 0.6674,
   "stars": 1,
   "sample": "гледани 152 мача на единия и 155 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:8",
+  "pazar_close": 1.5,
+  "pazar_clv": -0.0326
  },
  {
   "key": "2026-08-28|baseball|newyorkmets|milwaukeebrewers|total",
@@ -22931,7 +22952,9 @@
   "p": 0.551,
   "stars": 1,
   "sample": "гледани 152 мача на единия и 155 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:8"
  },
  {
   "key": "2026-08-27|tennis|ambarzumjane|nawh",
