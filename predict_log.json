@@ -24825,7 +24825,11 @@
   "p": 0.6599,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2",
+  "pazar_close": 1.47,
+  "pazar_clv": -0.0142
  },
  {
   "key": "2026-08-29|football|nottscounty|burtonalbion",
@@ -25221,7 +25225,9 @@
   "p": 0.5911,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2"
  },
  {
   "key": "2026-08-30|baseball|milwaukeebrewers|texasrangers|total",
@@ -25357,7 +25363,11 @@
   "p": 0.7001,
   "stars": 3,
   "sample": "гледани 54 мача на единия и 23 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.39,
+  "pazar_clv": -0.0105
  },
  {
   "key": "2026-08-29|football|ayrunited|greenockmorton",
@@ -25555,7 +25565,9 @@
   "p": 0.5561,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-08-29|tennis|berneth|burdeta",
@@ -25588,7 +25600,9 @@
   "p": 0.9267,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 34 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-29|football|bkhäcken|västeråssk",
@@ -25621,7 +25635,11 @@
   "p": 0.6671,
   "stars": 3,
   "sample": "гледани 48 мача на единия и 18 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3",
+  "pazar_close": 1.4,
+  "pazar_clv": 0.0051
  },
  {
   "key": "2026-08-29|football|partickthistle|queenspark",
@@ -25852,7 +25870,11 @@
   "p": 0.6069,
   "stars": 3,
   "sample": "гледани по 48 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.58,
+  "pazar_clv": -0.0122
  },
  {
   "key": "2026-08-29|football|afcbournemouth|евертън",
