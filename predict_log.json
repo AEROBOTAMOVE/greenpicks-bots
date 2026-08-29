@@ -24436,7 +24436,9 @@
   "p": 0.5854,
   "stars": 1,
   "sample": "следени 7 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-08-29|baseball|saitamaseibulions|tohokurakutengoldeneagle",
@@ -24753,7 +24755,9 @@
   "p": 0.8458,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-08-29|tennis|ritscharda|perezcontris",
@@ -24786,7 +24790,9 @@
   "p": 0.7818,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-29|football|ливърпул|nottinghamforest",
@@ -25281,7 +25287,9 @@
   "p": 0.6119,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-08-29|tennis|zoldakovad|mikulskytej",
@@ -25314,7 +25322,9 @@
   "p": 0.5945,
   "stars": 2,
   "sample": "гледани 43 мача на единия и 50 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-29|football|chengdurongcheng|liaoningtieren",
