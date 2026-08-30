@@ -17724,7 +17724,8 @@
   "p": 0.8269,
   "stars": 2,
   "sample": "гледани 29 мача на единия и 34 на другия",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-08-25|tabletennis|tzuyutseng|johanhavsteen",
@@ -26234,7 +26235,9 @@
   "p": 0.8813,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-30|football|dcunited|lafc",
@@ -26483,7 +26486,9 @@
   "p": 0.6535,
   "stars": 2,
   "sample": "ранглиста и 15 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-30|tennis|denisshapovalov|miomirkecmanovic",
@@ -26930,7 +26935,11 @@
   "p": 0.6865,
   "stars": 3,
   "sample": "гледани по 61 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 1.27,
+  "pazar_clv": 0.0575
  },
  {
   "key": "2026-08-31|football|millonarios|internacionaldebogotá",
@@ -27031,7 +27040,9 @@
   "p": 0.5361,
   "stars": 3,
   "sample": "гледани по 61 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-30|baseball|torontobluejays|seattlemariners|total",
@@ -27239,7 +27250,11 @@
   "p": 0.5515,
   "stars": 1,
   "sample": "гледани 86 мача на единия и 90 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "89:81",
+  "pazar_close": 1.7,
+  "pazar_clv": 0.0135
  },
  {
   "key": "2026-08-31|tennis|kristinaliutova|zhengqinwen",
@@ -27305,7 +27320,9 @@
   "p": 0.5943,
   "stars": 1,
   "sample": "гледани 86 мача на единия и 90 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "89:81"
  },
  {
   "key": "2026-08-30|football|rbsalzburg|austriavienna|total",
@@ -27989,7 +28006,11 @@
   "p": 0.8427,
   "stars": 3,
   "sample": "гледани 62 мача на единия и 24 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.1,
+  "pazar_clv": 0.0162
  },
  {
   "key": "2026-08-31|football|bahia|internacional",
@@ -28319,7 +28340,11 @@
   "p": 0.5931,
   "stars": 3,
   "sample": "гледани по 63 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2",
+  "pazar_close": 1.4,
+  "pazar_clv": 0.0773
  },
  {
   "key": "2026-08-31|tennis|tomasbarriosvera|alexanderblockx",
@@ -28385,7 +28410,11 @@
   "p": 0.5702,
   "stars": 3,
   "sample": "гледани по 36 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.62,
+  "pazar_clv": 0.0149
  },
  {
   "key": "2026-08-31|football|independientemedellín|llanerosfc",
@@ -28562,7 +28591,9 @@
   "p": 0.6087,
   "stars": 3,
   "sample": "гледани по 36 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-08-30|baseball|tampabayrays|sandiegopadres",
@@ -28632,6 +28663,10 @@
   "p": 0.4727,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.9,
+  "pazar_clv": 0.0263
  }
 ]
