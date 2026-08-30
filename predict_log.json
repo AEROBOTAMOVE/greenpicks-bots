@@ -26570,7 +26570,11 @@
   "p": 0.5072,
   "stars": 3,
   "sample": "гледани по 40 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.83,
+  "pazar_clv": 0.0201
  },
  {
   "key": "2026-08-30|football|feyenoordrotterdam|adodenhaag",
@@ -26603,7 +26607,11 @@
   "p": 0.8157,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2",
+  "pazar_close": 1.18,
+  "pazar_clv": -0.0221
  },
  {
   "key": "2026-08-30|volleyball|wsen|франция|гърция",
@@ -27073,7 +27081,9 @@
   "p": 0.5305,
   "stars": 3,
   "sample": "гледани по 40 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-08-30|football|rbsalzburg|austriavienna",
