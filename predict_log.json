@@ -24974,7 +24974,11 @@
   "p": 0.5985,
   "stars": 2,
   "sample": "гледани 157 мача на единия и 155 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:3",
+  "pazar_close": 1.6,
+  "pazar_clv": -0.0119
  },
  {
   "key": "2026-08-30|basketball|phoenixmercury|torontotempo",
@@ -25007,7 +25011,11 @@
   "p": 0.7721,
   "stars": 3,
   "sample": "гледани 94 мача на единия и 39 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "101:69",
+  "pazar_close": 1.29,
+  "pazar_clv": -0.0313
  },
  {
   "key": "2026-08-29|football|azalkmaar|goaheadeagles",
@@ -25144,7 +25152,9 @@
   "p": 0.565,
   "stars": 2,
   "sample": "ранглиста и 15 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2"
  },
  {
   "key": "2026-08-30|volleyball|wsen|доминиканскарепублика|канада",
@@ -25177,7 +25187,9 @@
   "p": 0.5433,
   "stars": 1,
   "sample": "гледани 94 мача на единия и 82 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-08-29|basketball|newyorkliberty|chicagosky|total",
@@ -25280,7 +25292,9 @@
   "p": 0.5575,
   "stars": 2,
   "sample": "гледани 157 мача на единия и 155 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:3"
  },
  {
   "key": "2026-08-29|tennis|chepeleva|carbonil",
@@ -25778,7 +25792,11 @@
   "p": 0.5818,
   "stars": 3,
   "sample": "гледани 60 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.68,
+  "pazar_clv": -0.022
  },
  {
   "key": "2026-08-29|tennis|ignaciobuse|arthurfery",
@@ -26025,7 +26043,11 @@
   "p": 0.6967,
   "stars": 3,
   "sample": "гледани 60 мача на единия и 58 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1",
+  "pazar_close": 1.23,
+  "pazar_clv": 0.0438
  },
  {
   "key": "2026-08-29|football|rosariocentral|gimnasialaplata",
@@ -26058,7 +26080,11 @@
   "p": 0.5693,
   "stars": 3,
   "sample": "гледани 60 мача на единия и 59 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2",
+  "pazar_close": 1.6,
+  "pazar_clv": 0.0226
  },
  {
   "key": "2026-08-29|football|rosariocentral|gimnasialaplata|total",
@@ -26091,7 +26117,9 @@
   "p": 0.63,
   "stars": 3,
   "sample": "гледани 60 мача на единия и 59 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2"
  },
  {
   "key": "2026-08-30|football|alianzalima|deportivogarcilaso|total",
@@ -26124,7 +26152,9 @@
   "p": 0.5721,
   "stars": 3,
   "sample": "гледани 60 мача на единия и 58 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-08-29|football|heartofmidlothian|stjohnstone",
@@ -26227,7 +26257,11 @@
   "p": 0.4844,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 59 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0",
+  "pazar_close": 1.83,
+  "pazar_clv": 0.0201
  },
  {
   "key": "2026-08-30|tennis|martonfucsovics|danielmerida",
@@ -26701,7 +26735,9 @@
   "p": 0.6807,
   "stars": 2,
   "sample": "гледани 160 мача на единия и 158 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1"
  },
  {
   "key": "2026-08-30|volleyball|wsen|сърбия|хърватия",
@@ -26833,7 +26869,9 @@
   "p": 0.5639,
   "stars": 2,
   "sample": "гледани 154 мача на единия и 158 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "4:3"
  },
  {
   "key": "2026-08-30|football|flamengo|botafogo",
@@ -26932,7 +26970,9 @@
   "p": 0.5412,
   "stars": 2,
   "sample": "гледани 160 мача на единия и 158 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-08-30|football|flamengo|botafogo|total",
@@ -26998,7 +27038,9 @@
   "p": 0.5358,
   "stars": 2,
   "sample": "гледани 154 мача на единия и 158 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "4:3"
  },
  {
   "key": "2026-08-30|football|aberdeen|рейнджърс|total",
@@ -27262,6 +27304,105 @@
   "p": 0.5451,
   "stars": 3,
   "sample": "гледани по 35 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-08-31|tennis|amandaanisimova|ashlynkrueger",
+  "combo": 0,
+  "posted": "2026-08-30 14:15",
+  "day": "2026-08-31",
+  "bucket": "tennis",
+  "home": "Amanda Anisimova",
+  "away": "Ashlyn Krueger",
+  "home_id": "3221",
+  "away_id": "6724",
+  "league": "US Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · Amanda Anisimova",
+  "pazar_cena": 1.18,
+  "pazar_p": 0.822,
+  "p_model": 0.822,
+  "strength": 0.15754513842077045,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1634917320",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "p": 0.822,
+  "stars": 1,
+  "sample": "ранглиста и 10 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-08-31|tennis|himenosakatsume|anhelinakalinina",
+  "combo": 0,
+  "posted": "2026-08-30 14:15",
+  "day": "2026-08-31",
+  "bucket": "tennis",
+  "home": "Himeno Sakatsume",
+  "away": "Anhelina Kalinina",
+  "home_id": "11317",
+  "away_id": "2411",
+  "league": "US Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Anhelina Kalinina",
+  "pazar_cena": 1.33,
+  "pazar_p": 0.7286,
+  "p_model": 0.7286,
+  "strength": 0.09548798790367519,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1635002952",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "p": 0.7286,
+  "stars": 1,
+  "sample": "ранглиста и 8 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-08-31|tennis|loisboisson|emmanavarro",
+  "combo": 0,
+  "posted": "2026-08-30 14:15",
+  "day": "2026-08-31",
+  "bucket": "tennis",
+  "home": "Lois Boisson",
+  "away": "Emma Navarro",
+  "home_id": "6403",
+  "away_id": "3785",
+  "league": "US Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Emma Navarro",
+  "pazar_cena": 1.37,
+  "pazar_p": 0.7091,
+  "p_model": 0.7091,
+  "strength": 0.08348406674364295,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1634922493",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "p": 0.7091,
+  "stars": 1,
+  "sample": "ранглиста и 10 скорошни мача",
   "scored": false
  }
 ]
