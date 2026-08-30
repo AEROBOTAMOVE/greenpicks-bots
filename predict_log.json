@@ -17724,8 +17724,9 @@
   "p": 0.8269,
   "stars": 2,
   "sample": "гледани 29 мача на единия и 34 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-08-25|tabletennis|tzuyutseng|johanhavsteen",
