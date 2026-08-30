@@ -27139,7 +27139,9 @@
   "p": 0.804,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 42 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-30|tennis|terenceatmane|jaumemunar",
