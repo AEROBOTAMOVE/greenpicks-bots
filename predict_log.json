@@ -26635,7 +26635,8 @@
   "hit": false,
   "score": "2:2",
   "pazar_close": 1.18,
-  "pazar_clv": -0.0221
+  "pazar_clv": -0.0221,
+  "combo_done": true
  },
  {
   "key": "2026-08-30|volleyball|wsen|франция|гърция",
@@ -26707,7 +26708,8 @@
   "hit": true,
   "score": "97:71",
   "pazar_close": 1.06,
-  "pazar_clv": 0.026
+  "pazar_clv": 0.026,
+  "combo_done": true
  },
  {
   "key": "2026-08-30|tennis|raphaelcollignon|sebastiangorzny",
@@ -26740,7 +26742,10 @@
   "p": 0.8546,
   "stars": 2,
   "sample": "ранглиста и 6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-30|baseball|atlantabraves|coloradorockies",
@@ -26811,7 +26816,8 @@
   "sample": "гледани 57 мача на единия и 31 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:1"
+  "score": "3:1",
+  "combo_done": true
  },
  {
   "key": "2026-08-31|basketball|portlandfire|goldenstatevalkyries",
@@ -27414,7 +27420,9 @@
   "p": 0.822,
   "stars": 1,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-08-31|tennis|himenosakatsume|anhelinakalinina",
@@ -27482,7 +27490,9 @@
   "p": 0.7091,
   "stars": 1,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-08-30|football|tromso|sarpsborgfk",
@@ -28367,7 +28377,9 @@
   "p": 0.6034,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-30|football|águilasdoradas|boyacáchicófc",
@@ -28832,7 +28844,10 @@
   "p": 0.797,
   "stars": 2,
   "sample": "ранглиста и 1 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-09-01|baseball|atlantabraves|sanfranciscogiants",
@@ -28898,7 +28913,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 63 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-31|football|jongpsv|jongajax",
@@ -28931,7 +28948,11 @@
   "p": 0.6044,
   "stars": 3,
   "sample": "гледани по 42 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.76,
+  "pazar_clv": -0.0688
  },
  {
   "key": "2026-08-31|tennis|huberthurkacz|damirdzumhur",
@@ -29032,7 +29053,8 @@
   "sample": "гледани 59 мача на единия и 46 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:2"
+  "score": "3:2",
+  "combo_done": true
  },
  {
   "key": "2026-08-31|football|jongpsv|jongajax|total",
@@ -29065,7 +29087,9 @@
   "p": 0.5593,
   "stars": 3,
   "sample": "гледани по 42 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1"
  },
  {
   "key": "2026-09-01|baseball|atlantabraves|sanfranciscogiants|total",
@@ -29164,7 +29188,10 @@
   "p": 0.6998,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3",
+  "combo_done": true
  },
  {
   "key": "2026-08-31|tennis|taylortownsend|majachwalinska",
@@ -29197,7 +29224,10 @@
   "p": 0.6487,
   "stars": 1,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "combo_done": true
  },
  {
   "key": "2026-09-01|football|academiapuertocabello|anzoáteguifc",
@@ -29364,7 +29394,9 @@
   "p": 0.88,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-01|football|estudiantesdelaplata|newellsoldboys|total",
@@ -29566,7 +29598,9 @@
   "p": 0.88,
   "stars": 2,
   "sample": "ранглиста и 6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-09-01|tennis|zsomborpiros|mattiabellucci",
@@ -29931,7 +29965,11 @@
   "p": 0.7197,
   "stars": 3,
   "sample": "гледани по 37 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "pazar_close": 1.25,
+  "pazar_clv": 0.0481
  },
  {
   "key": "2026-08-31|football|аталанта|bologna",
@@ -30393,7 +30431,11 @@
   "p": 0.5756,
   "stars": 3,
   "sample": "гледани по 42 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.71,
+  "pazar_clv": -0.025
  },
  {
   "key": "2026-08-31|football|бешикташ|çorumfk",
