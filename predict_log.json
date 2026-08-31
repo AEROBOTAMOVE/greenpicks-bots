@@ -26343,7 +26343,9 @@
   "p": 0.7073,
   "stars": 2,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-08-29|football|селтик|falkirk",
@@ -27307,7 +27309,9 @@
   "p": 0.5646,
   "stars": 1,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2"
  },
  {
   "key": "2026-08-30|basketball|atlantadream|minnesotalynx|total",
@@ -27443,7 +27447,9 @@
   "p": 0.7286,
   "stars": 1,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0"
  },
  {
   "key": "2026-08-31|tennis|loisboisson|emmanavarro",
@@ -27649,7 +27655,9 @@
   "p": 0.7817,
   "stars": 1,
   "sample": "ранглиста и 6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-08-30|football|vikingfk|aalesund",
@@ -28215,7 +28223,9 @@
   "p": 0.9142,
   "stars": 1,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-08-31|football|vilanova|ceará",
@@ -28754,7 +28764,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 76 мача на единия и 50 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-08-31|football|бенфика|estoril",
@@ -29018,7 +29030,9 @@
   "p": 0.7106,
   "stars": 3,
   "sample": "гледани 59 мача на единия и 46 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-08-31|football|jongpsv|jongajax|total",
@@ -29416,7 +29430,9 @@
   "p": 0.8809,
   "stars": 1,
   "sample": "гледани 8 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-31|volleyball|wsen|burundi|malirepublic",
@@ -29449,7 +29465,9 @@
   "p": 0.852,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-01|basketball|dallaswings|connecticutsun",
@@ -29614,7 +29632,9 @@
   "p": 0.7567,
   "stars": 2,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-09-01|tennis|evalys|gabrielaknutson",
