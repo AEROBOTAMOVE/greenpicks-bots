@@ -27879,7 +27879,9 @@
   "p": 0.8292,
   "stars": 3,
   "sample": "ранглиста и 21 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-31|football|godoycruzantoniotomba|santelmo",
@@ -28778,7 +28780,8 @@
   "sample": "гледани 76 мача на единия и 50 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-31|football|бенфика|estoril",
@@ -28811,7 +28814,12 @@
   "p": 0.8144,
   "stars": 3,
   "sample": "гледани 36 мача на единия и 37 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.09,
+  "pazar_clv": 0.0554,
+  "combo_done": true
  },
  {
   "key": "2026-08-31|tennis|carlosalcaraz|romansafiullin",
@@ -28915,7 +28923,8 @@
   "sample": "гледани 63 мача на единия и 28 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-08-31|football|jongpsv|jongajax",
@@ -28985,7 +28994,10 @@
   "p": 0.8718,
   "stars": 2,
   "sample": "ранглиста и 5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "combo_done": true
  },
  {
   "key": "2026-09-01|baseball|tampabayrays|newyorkmets",
@@ -29293,7 +29305,11 @@
   "p": 0.6223,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.46,
+  "pazar_clv": 0.027
  },
  {
   "key": "2026-08-31|tennis|watanukiy|pankins",
@@ -29532,7 +29548,9 @@
   "p": 0.6,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "97:71"
  },
  {
   "key": "2026-08-31|tennis|shintaromochizuki|jakubmensik",
@@ -30002,7 +30020,11 @@
   "p": 0.5009,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.83,
+  "pazar_clv": 0.0088
  },
  {
   "key": "2026-08-31|tennis|learnertien|nunoborges",
@@ -30167,7 +30189,9 @@
   "p": 0.5352,
   "stars": 3,
   "sample": "гледани по 39 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-08-31|tennis|valentinroyer|daliborsvrcina",
@@ -30233,7 +30257,9 @@
   "p": 0.8029,
   "stars": 1,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-01|tennis|francestiafoe|martindamm",
@@ -30468,7 +30494,11 @@
   "p": 0.6736,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "6:2",
+  "pazar_close": 1.41,
+  "pazar_clv": -0.0051
  },
  {
   "key": "2026-09-01|tennis|rinkyhijikata|felixaugeraliassime",
@@ -30633,7 +30663,11 @@
   "p": 0.8712,
   "stars": 3,
   "sample": "гледани по 40 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:2",
+  "pazar_close": 1.1,
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-01|tennis|learnertien|nunoborges",
@@ -30765,6 +30799,8 @@
   "p": 0.6475,
   "stars": 3,
   "sample": "гледани по 40 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "5:2"
  }
 ]
