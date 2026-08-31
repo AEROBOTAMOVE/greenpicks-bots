@@ -26522,7 +26522,9 @@
   "p": 0.5626,
   "stars": 2,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-08-30|tennis|polinaiatcenko|renatazarazua",
@@ -26699,7 +26701,11 @@
   "p": 0.8767,
   "stars": 3,
   "sample": "гледани по 83 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "97:71",
+  "pazar_close": 1.06,
+  "pazar_clv": 0.026
  },
  {
   "key": "2026-08-30|tennis|raphaelcollignon|sebastiangorzny",
@@ -26767,7 +26773,8 @@
   "sample": "гледани 160 мача на единия и 158 на другия",
   "scored": true,
   "hit": true,
-  "score": "2:1"
+  "score": "2:1",
+  "combo_done": true
  },
  {
   "key": "2026-08-30|volleyball|wsen|сърбия|хърватия",
@@ -26835,7 +26842,12 @@
   "p": 0.6459,
   "stars": 3,
   "sample": "гледани 39 мача на единия и 85 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "69:86",
+  "pazar_close": 1.4,
+  "pazar_clv": 0.0386,
+  "combo_done": true
  },
  {
   "key": "2026-08-31|tennis|andreyrublev|marincilic",
@@ -26973,7 +26985,12 @@
   "p": 0.6374,
   "stars": 3,
   "sample": "гледани 70 мача на единия и 67 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0",
+  "pazar_close": 1.41,
+  "pazar_clv": 0.0099,
+  "combo_done": true
  },
  {
   "key": "2026-08-30|baseball|atlantabraves|coloradorockies|total",
@@ -27218,7 +27235,9 @@
   "p": 0.6044,
   "stars": 1,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-30|basketball|atlantadream|minnesotalynx",
@@ -27807,7 +27826,9 @@
   "p": 0.5434,
   "stars": 1,
   "sample": "ранглиста и 16 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-08-31|tennis|sebastianbaez|brandonnakashima",
@@ -27873,7 +27894,11 @@
   "p": 0.5942,
   "stars": 3,
   "sample": "гледани 26 мача на единия и 60 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 1.62,
+  "pazar_clv": -0.0279
  },
  {
   "key": "2026-08-31|football|mirassol|palmeiras",
@@ -27906,7 +27931,11 @@
   "p": 0.4624,
   "stars": 3,
   "sample": "гледани 61 мача на единия и 62 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 2.1,
+  "pazar_clv": -0.0116
  },
  {
   "key": "2026-08-30|football|spartakmoscow|gazovikorenburg|total",
@@ -27974,7 +28003,9 @@
   "p": 0.6226,
   "stars": 3,
   "sample": "гледани 26 мача на единия и 60 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-08-30|football|américamineiro|pontepreta",
@@ -28044,7 +28075,11 @@
   "p": 0.5274,
   "stars": 3,
   "sample": "гледани по 62 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2",
+  "pazar_close": 1.83,
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-08-31|football|sanmartíntucumán|güemes",
@@ -28077,7 +28112,11 @@
   "p": 0.5948,
   "stars": 3,
   "sample": "гледани 61 мача на единия и 59 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.55,
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-08-31|tennis|harrywendelken|lucianodarderi",
@@ -28209,7 +28248,11 @@
   "p": 0.4897,
   "stars": 3,
   "sample": "гледани 62 мача на единия и 24 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.76,
+  "pazar_clv": 0.0554
  },
  {
   "key": "2026-08-31|football|stlouiscitysc|fcdallas",
@@ -28242,7 +28285,11 @@
   "p": 0.4511,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 57 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:3",
+  "pazar_close": 2.3,
+  "pazar_clv": -0.0652
  },
  {
   "key": "2026-08-31|football|stlouiscitysc|fcdallas|total",
@@ -28275,7 +28322,9 @@
   "p": 0.625,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 57 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:3"
  },
  {
   "key": "2026-08-30|tennis|reisakamoto|aleksandarvukic",
@@ -28448,7 +28497,11 @@
   "p": 0.612,
   "stars": 3,
   "sample": "гледани 77 мача на единия и 65 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.62,
+  "pazar_clv": -0.045
  },
  {
   "key": "2026-08-30|football|mallorca|ceuta",
@@ -29229,7 +29282,9 @@
   "p": 0.6854,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-01|football|estudiantesdelaplata|newellsoldboys",
@@ -29592,6 +29647,72 @@
   "p": 0.6283,
   "stars": 1,
   "sample": "ранглиста и 9 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-09-01|tennis|wangxiyu|igaswiatek",
+  "combo": 0,
+  "posted": "2026-08-31 14:15",
+  "day": "2026-09-01",
+  "bucket": "tennis",
+  "home": "Wang Xiyu",
+  "away": "Iga Swiatek",
+  "home_id": "3155",
+  "away_id": "3730",
+  "league": "US Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Iga Swiatek",
+  "pazar_cena": null,
+  "pazar_p": null,
+  "p_model": null,
+  "strength": 0.1537727019477959,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "p": 0.5769,
+  "stars": 2,
+  "sample": "ранглиста и 18 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-09-01|tennis|janicetjen|mirraandreeva",
+  "combo": 0,
+  "posted": "2026-08-31 14:15",
+  "day": "2026-09-01",
+  "bucket": "tennis",
+  "home": "Janice Tjen",
+  "away": "Mirra Andreeva",
+  "home_id": "6368",
+  "away_id": "9820",
+  "league": "US Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Mirra Andreeva",
+  "pazar_cena": 1.14,
+  "pazar_p": 0.8518,
+  "p_model": 0.8518,
+  "strength": 0.08348406674364295,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1634922494",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "p": 0.8518,
+  "stars": 1,
+  "sample": "ранглиста и 10 скорошни мача",
   "scored": false
  }
 ]
