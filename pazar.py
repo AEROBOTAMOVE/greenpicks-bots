@@ -172,6 +172,10 @@ def _dumi(s):
 # защото друго няма.
 PROZOREC_CH = float((os.environ.get("PAZAR_PROZOREC") or "6").strip() or 6)
 
+# Най-късото име, което подниз-правилото има право да сравнява. Виж бележката
+# в `_kandidati`. Път назад: PAZAR_PODNIZ_MIN=1 връща старото поведение.
+PODNIZ_MIN = int((os.environ.get("PAZAR_PODNIZ_MIN") or "4").strip() or 4)
+
 
 def _chas(iso):
     """ISO низ -> aware datetime. None при боклук."""
@@ -245,6 +249,22 @@ def _kandidati(sport_path, liga, ymd, dom, gost):
     # Частично съвпадение: „Tampa Bay Rays" срещу „Rays". И двете наши имена
     # да се съдържат в техните (или обратно), в която и да е посока.
     nd, ng = _norm(dom), _norm(gost)
+    # 🔴 ПОДНИЗ-ПРАВИЛОТО ИСКА ИМЕ 4+ БУКВИ (01.09.2026).
+    #
+    # Мерено с подхвърлен индекс: „FC" срещу „City" лепваше „Bury FC /
+    # Lancaster City" — двете къси думи се съдържат в две ЧУЖДИ имена и
+    # правилото обявяваше чужд мач за наш. Това е същият капан, който вече е
+    # слагал цената на английска седма дивизия върху карта от МЛС, само че
+    # тук идва по букви, а не по фамилия.
+    #
+    # Границата е 4, защото е измерена, а не избрана: най-късото НАШЕ име по
+    # този път (бейзбол + футбол, 74 срещи днес) е 5 букви — „KTWiz". Тоест
+    # нула загубени съвпадения, а капанът се затваря.
+    #
+    # Тестът в ДВЕТЕ посоки стои в selftest(): „Rays"/„Mets" (кратки, но
+    # 4 букви и на верния мач) ТРЯБВА да минат.
+    if len(nd) < PODNIZ_MIN or len(ng) < PODNIZ_MIN:
+        return out
     for den in dati:
         for kk, v in index_za_den(sport_path, liga, den).items():
             a, b = tuple(kk)
@@ -1104,7 +1124,53 @@ def selftest():
           and pat_do_zatvaryane({"pazar_izt": "pinnacle", "pazar_ev": "1",
                                  "bucket": "mma"}) == "pinnacle")
 
-    check("броят проверки е поне 133", ok >= 133)
+    # ═══════════ ПОДНИЗ-ПРАВИЛОТО НЕ ЛЕПИ ЧУЖДА ЦЕНА (01.09.2026)
+    # Поведенчески: индексът се подхвърля, нула мрежа, нула закована дата.
+    _kd_star = globals().get("index_za_den")
+    try:
+        _dyska = {
+            frozenset((_norm("Bury FC"), _norm("Lancaster City"))): ("111", ""),
+            frozenset((_norm("Manchester City"), _norm("Coventry City"))): ("222", ""),
+            frozenset((_norm("Tampa Bay Rays"), _norm("New York Mets"))): ("333", ""),
+        }
+        globals()["index_za_den"] = lambda sp, lg, ymd: _dyska
+
+        def _nom(dm, gs):
+            return [x[0] for x in _kandidati("baseball", "mlb", "20260101", dm, gs)]
+
+        check("точното съвпадение намира своя мач",
+              _nom("Manchester City", "Coventry City") == ["222"])
+        check("късото име на СЪЩИЯ мач минава",
+              _nom("Rays", "Mets") == ["333"])
+        # 🔴 ОБРАТНАТА ПОСОКА — ДВЕ РАЗЛИЧНИ СРЕЩИ С ОБЩИ ДУМИ.
+        check("чуждият мач НЕ се лепи по общи думи",
+              _nom("Atlanta United FC", "Sporting Kansas City") == [])
+        check("двете КЪСИ думи вече не лепят чужд мач",
+              _nom("FC", "City") == [])
+        check("голата дума не хваща нищо", _nom("City", "FC") == [])
+        check("непознат мач мълчи", _nom("Real Madrid", "Barcelona") == [])
+        check("едно и също име от двете страни не дава цена",
+              cena_po_imena("baseball", "mlb", "20260101", "Rays", "Rays")
+              == (None, None, None))
+        check("празни имена не гърмят",
+              cena_po_imena("baseball", "mlb", "20260101", "", "")
+              == (None, None, None))
+        check("спорт без пазар не се пита изобщо",
+              cena_po_imena("tennis", "atp", "20260101", "Rays", "Mets")
+              == (None, None, None))
+        # Пътят назад наистина връща старото поведение.
+        _pm_star = globals()["PODNIZ_MIN"]
+        try:
+            globals()["PODNIZ_MIN"] = 1
+            check("пътят назад връща старото (и стария дефект)",
+                  _nom("FC", "City") == ["111"])
+        finally:
+            globals()["PODNIZ_MIN"] = _pm_star
+        check("границата пак е на място", _nom("FC", "City") == [])
+    finally:
+        globals()["index_za_den"] = _kd_star
+
+    check("броят проверки е поне 175", ok >= 175)
     print("САМОПРОВЕРКА НА ПАЗАРА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)

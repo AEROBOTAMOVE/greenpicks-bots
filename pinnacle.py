@@ -44,6 +44,7 @@ import io
 import json
 import os
 import sys
+import unicodedata
 import urllib.error
 import urllib.request
 
@@ -125,9 +126,45 @@ def deset(amerikansko):
     return None
 
 
+def _sgani(s):
+    """Диакритиките падат: „Delfín" -> „delfin", „Lorenço" -> „lorenco".
+
+    🔴 ЗАЩО (01.09.2026, мерено върху ЖИВАТА им дъска). Преброени са всички
+    имена в /matchups за четири спорта наведнъж — 306 тенис, 807 футбол, 18
+    ММА, 9 волейбол — и НИТО ЕДНО не носи диакритика: те пишат само ASCII.
+    Нашата страна носи. Тоест всяко наше име с ударение е НЕДОСТИЖИМО за
+    сравнението „буква по буква", колкото и вярно да е.
+
+    Мерено същия ден върху 174 наши срещи: пет имена се срещат САМО след
+    сгъване — Delfín, Técnico Universitario, Atlético Grau, Rubio Ñú,
+    Sportivo Luqueño. Тези пет днес взимат цената си от ESPN, значи КАРТА не
+    се печели; печели се НОМЕРЪТ при Pinnacle, тоест затварящата цена и CLV.
+
+    Сгъването е строго РАЗШИРЯВАЩО и не може да слее две различни имена:
+    единственото, което се маха, е ударението. „José" и „Jose" са един човек.
+    """
+    t = unicodedata.normalize("NFKD", str(s or ""))
+    return "".join(c for c in t if not unicodedata.combining(c))
+
+
 def _norm(s):
-    """Име, сведено до сравнимо: малки букви, само букви и цифри."""
-    return "".join(ch for ch in str(s or "").lower() if ch.isalnum())
+    """Име, сведено до сравнимо: малки букви, само букви и цифри, без ударения."""
+    return "".join(ch for ch in _sgani(s).lower() if ch.isalnum())
+
+
+def _dumi4(s):
+    """Думите 4+ букви от името, сгънати. Инициалите („H.", „S.") падат сами.
+
+    Четири, а не три: „Ann" (3) е дума, която се среща в много имена, докато
+    „Callejon" (8) различава. Измерено върху 1902 имена от живата им дъска —
+    наше име с 5 букви хваща средно 0.0 чужди, с 6 букви — 0.7.
+    """
+    d = set()
+    for w in _sgani(s).lower().replace("-", " ").replace(".", " ").split():
+        w = "".join(c for c in w if c.isalnum())
+        if len(w) >= 4:
+            d.add(w)
+    return d
 
 
 def _familiya(s):
@@ -513,6 +550,7 @@ def nameri(sport_key, dom, gost, liga=None):
     if not nd or not ng or nd == ng:
         return None
     fd, fg = _familiya(dom), _familiya(gost)
+    dd4, dg4 = _dumi4(dom), _dumi4(gost)
     kd, kg = ((_kanon(dom), _kanon(gost)) if po_kanon_li(sport_key) else ("", ""))
     nash_pol = _kanon_pol(liga) if liga else None
 
@@ -564,6 +602,13 @@ def nameri(sport_key, dom, gost, liga=None):
     def _po_familiya(a, b):
         return {_familiya(a), _familiya(b)} == {fd, fg}
 
+    def _po_podmnozhestvo(a, b):
+        """Всички НАШИ думи 4+ присъстват в тяхното име, и от двете страни."""
+        ta, tb = _dumi4(a), _dumi4(b)
+        if not ta or not tb:
+            return False
+        return ((dd4 <= ta and dg4 <= tb) or (dd4 <= tb and dg4 <= ta))
+
     def _po_podniz(a, b):
         na, nb = _norm(a), _norm(b)
         if not na or not nb:
@@ -594,6 +639,38 @@ def nameri(sport_key, dom, gost, liga=None):
     # английски мач от 7-а дивизия върху карта от МЛС.
     if po_familiya_li(sport_key) and fd and fg and fd != fg:
         stapki.append(_po_familiya)
+    # 🔴 ПОДМНОЖЕСТВО ОТ ДУМИ — САМО ПРИ ЛИЧНИТЕ СПОРТОВЕ (01.09.2026).
+    #
+    # ЖИВ ДЕФЕКТ, измерен днес: нашата витрина пише испанските двойни фамилии
+    # съкратено — „Callejon H. S." — а те пишат цялото име, „Sergio Callejon
+    # Hernando". `_familiya` взима ПОСЛЕДНАТА дума: наше „callejon" срещу
+    # тяхно „hernando". Различни. Подниз също не хваща („callejonhs" не се
+    # съдържа в „sergiocallejonhernando"). Тоест мач с цена на дъската им
+    # оставаше без цена при нас.
+    #
+    # ПРАВИЛОТО: всяка НАША дума 4+ букви трябва да присъства в ТЯХНОТО име.
+    # Обратното НЕ се иска — те имат повече думи (собствено име, втора
+    # фамилия), ние по-малко. Затова е подмножество, не равенство.
+    #
+    # 🔴 И ЗАЩО НЕ ЛЕПИ ЧУЖДА ЦЕНА. Проверено в ОБРАТНАТА посока върху пет
+    # капана, всичките отказани:
+    #   „Lloyd Harris" срещу „Billy Harris"        — „lloyd" липсва
+    #   „Sorana Cirstea" срещу „Joulia Cirstea"    — „sorana" липсва
+    #   „Atlanta United FC / Sporting Kansas City" срещу „Bury FC / Lancaster
+    #      City" — думите не се съдържат, и правилото и без това не важи
+    #      за отборните спортове
+    #   „Manchester City" срещу „Manchester United" — „city" липсва
+    #   „Gabriel Lorenco" срещу „Gabriel Santos"   — „lorenco" липсва
+    # Тоест общата дума НЕ стига: искат се ВСИЧКИТЕ.
+    #
+    # Измерено върху 174 наши срещи и живата им дъска: +1 нова цена,
+    # 0 развалени вече намерени, 0 нееднозначни.
+    #
+    # Стои ПРЕДИ подниза, защото е строго по-точно от него: иска ЦЕЛИ думи,
+    # не парче от буквите. И както всяка стъпка тук, минава през
+    # `_edinstveniyat` — два кандидата значи МЪЛЧАНИЕ, не хвърляне на монета.
+    if po_familiya_li(sport_key) and dd4 and dg4 and dd4 != dg4:
+        stapki.append(_po_podmnozhestvo)
     stapki.append(_po_podniz)
 
     for stapka in stapki:
@@ -1100,7 +1177,154 @@ def selftest():
     check("кешът е чист след теста", ("m", 33) not in _kesh and ("s", 29) not in _kesh)
     check("броячът на заявки работи", isinstance(broi_zayavki(), int))
     check("нула мрежа в самопроверката", broi_zayavki() == 0)
-    check("броят проверки е поне 115", ok >= 115)
+    # ═══════════════ ЦЕНАТА ЛИПСВАШЕ НА ПОЛОВИНАТА КАРТИ (01.09.2026)
+    # Поведенчески, без мрежа и без закована дата: дъската се подхвърля.
+
+    # ── СГЪВАНЕТО НА ДИАКРИТИКИТЕ ─────────────────────────────────────────
+    check("ударението не пречи на сравнението", _norm("Delfín") == _norm("Delfin"))
+    check("тилдата също", _norm("Rubio Ñú") == _norm("Rubio Nu"))
+    check("седилката също", _norm("Lorenço") == _norm("Lorenco"))
+    check("цялото име се сгъва", _norm("Atlético Grau") == "atleticograu")
+    # 🔴 ОБРАТНАТА ПОСОКА: сгъването НЕ слива различни имена.
+    check("сгъването не прави Grau и Gray едно",
+          _norm("Atlético Grau") != _norm("Atletico Gray"))
+    check("сгъването не слива два различни отбора",
+          _norm("Delfín") != _norm("Delfino"))
+    check("фамилията също се сгъва", _familiya("Gabriel Lorenço") == "lorenco")
+
+    # ── ДУМИТЕ 4+ ─────────────────────────────────────────────────────────
+    check("инициалите не са дума", _dumi4("Callejon H. S.") == {"callejon"})
+    check("двете фамилии са две думи",
+          _dumi4("Gueymard Wayenburg S.") == {"gueymard", "wayenburg"})
+    check("късата дума не се брои", "ann" not in _dumi4("Ann Li"))
+    check("тирето разделя", _dumi4("Auger-Aliassime R.") == {"auger", "aliassime"})
+    check("празното няма думи", _dumi4("") == set() and _dumi4(None) == set())
+
+    # ── СТЪПКАТА ПОДМНОЖЕСТВО, върху подхвърлена дъска ────────────────────
+    _pm_star = _kesh.get(("m", SPORT_ID["tennis"]))
+    _pm_star_f = _kesh.get(("m", SPORT_ID["football"]))
+    try:
+        _kesh[("m", SPORT_ID["tennis"])] = {
+            "A1": ("Sascha Gueymard Wayenburg", "Sergio Callejon Hernando",
+                   "ATP Challenger Mallorca - Qual", "2026-01-01T10:00"),
+            "A2": ("Billy Harris", "Hugo Grenier",
+                   "ATP Challenger Mallorca - R1", "2026-01-01T10:00"),
+            "A3": ("Joulia Cristiana Cirstea", "Julia Stamatova",
+                   "ITF Women Brasov - R1", "2026-01-01T10:00"),
+            "A4": ("Mirra Andreeva", "Janice Tjen",
+                   "WTA US Open - R1", "2026-01-01T10:00"),
+        }
+        check("съкратената двойна фамилия НАМИРА мача си",
+              nameri("tennis", "Gueymard Wayenburg S.", "Callejon H. S.") == "A1")
+        # 🔴 ОБРАТНАТА ПОСОКА — ЧУЖДА ЦЕНА НЕ СЕ ЛЕПИ.
+        check("съименник НЕ лепва (Lloyd срещу Billy Harris)",
+              nameri("tennis", "Lloyd Harris", "Ben Shelton") is None)
+        check("съименничка НЕ лепва (Sorana срещу Joulia Cirstea)",
+              nameri("tennis", "Sorana Cirstea", "Diane Parry") is None)
+        check("две КЪСИ имена не лепват чужд мач",
+              nameri("tennis", "Ann Li", "Donna Vekic") is None)
+        check("едната страна вярна, другата чужда — мълчание",
+              nameri("tennis", "Gueymard Wayenburg S.", "Ben Shelton") is None)
+        check("точното съвпадение продължава да работи",
+              nameri("tennis", "Mirra Andreeva", "Janice Tjen") == "A4")
+        check("разменените страни се приемат",
+              nameri("tennis", "Janice Tjen", "Mirra Andreeva") == "A4")
+        check("едно и също име от двете страни не дава мач",
+              nameri("tennis", "Ann Li", "Ann Li") is None)
+
+        # 🔴 ПРАВИЛОТО НЕ ВАЖИ ЗА ОТБОРНИТЕ СПОРТОВЕ — точно този капан вече
+        # е лепвал цената на английска седма дивизия върху карта от МЛС.
+        _kesh[("m", SPORT_ID["football"])] = {
+            "B1": ("Bury FC", "Lancaster City", "England - NL North",
+                   "2026-01-01T10:00"),
+            "B2": ("Manchester City", "Coventry City", "England - Cup",
+                   "2026-01-01T10:00"),
+        }
+        check("отборният спорт НЕ хваща чужд мач по общи думи",
+              nameri("football", "Atlanta United FC", "Sporting Kansas City") is None)
+        check("отборният спорт пак намира точния си мач",
+              nameri("football", "Manchester City", "Coventry City") == "B2")
+        check("отборният спорт не лепва по последна дума",
+              nameri("football", "Leicester City", "Norwich City") is None)
+    finally:
+        for _k, _v in ((("m", SPORT_ID["tennis"]), _pm_star),
+                       (("m", SPORT_ID["football"]), _pm_star_f)):
+            if _v is None:
+                _kesh.pop(_k, None)
+            else:
+                _kesh[_k] = _v
+
+    # ── КАПАНИ, КОИТО РАЗЛИЧАВАТ ПОДМНОЖЕСТВОТО ОТ СЕЧЕНИЕТО ──────────────
+    # 🔴 Тези три проверки ги нямаше и мутациите го доказаха: обстрелът смени
+    # „всички наши думи" със „поне една обща дума" и НИТО ЕДНА проверка не
+    # гръмна. Капаните долу имат обща дума и от ДВЕТЕ страни — точно затова
+    # различават двете правила.
+    _pm2_t = _kesh.get(("m", SPORT_ID["tennis"]))
+    _pm2_m = _kesh.get(("m", SPORT_ID["mma"]))
+    _pm2_f = _kesh.get(("m", SPORT_ID["football"]))
+    try:
+        _kesh[("m", SPORT_ID["tennis"])] = {
+            "C1": ("Billy Harris", "Hugo Martin",
+                   "ATP Challenger X - R1", "2026-01-01T10:00"),
+        }
+        # Двойни фамилии нарочно: така стъпката ПО ФАМИЛИЯ (последна дума)
+        # не се задейства и на изпит остава САМО подмножеството. Общата дума
+        # („harris", „martin") е налице и от двете страни — точно каквото
+        # сечението би приело за същия мач.
+        check("обща дума И ОТ ДВЕТЕ страни пак не лепи чужд мач",
+              nameri("tennis", "Harris Wayenburg", "Martin Callejon") is None)
+
+        # 🔴 ЖИВ СЛУЧАЙ ОТ 01.09.2026. Наше „Gabriel Lorenço" срещу тяхно
+        # „Gabriel Lourenco" — едно и също собствено име, фамилия с една
+        # буква разлика. Сечението би обявило мача за наш заради „gabriel";
+        # подмножеството мълчи, защото „lorenco" го няма при тях. Мълчанието
+        # тук е ПРАВИЛНИЯТ отговор: не се измисля цена от прилика.
+        _kesh[("m", SPORT_ID["mma"])] = {
+            "D1": ("Charlie Cleveland", "Gabriel Lourenco", "UFC",
+                   "2026-01-01T10:00"),
+        }
+        check("сгрешена фамилия не се спасява от общото собствено име",
+              nameri("mma", "Gabriel Lorenço", "Charlie Cleveland") is None)
+
+        # 🔴 ГЕЙТЪТ „САМО ЛИЧНИ СПОРТОВЕ" СЕ ИЗПИТВА С МАЧ, КОЙТО ПРАВИЛОТО
+        # БИ ХВАНАЛО. Разместените думи правят подниза сляп, а подмножеството
+        # — зрящо; ако гейтът падне, отборният спорт тръгва по правило, което
+        # е забранено за него (виж бележката при `_po_familiya`).
+        _kesh[("m", SPORT_ID["football"])] = {
+            "E1": ("Rangers FC Glasgow", "Celtic FC Glasgow",
+                   "Scotland - Premiership", "2026-01-01T10:00"),
+        }
+        check("правилото за думи е ИЗКЛЮЧЕНО за отборните спортове",
+              nameri("football", "Glasgow Rangers", "Glasgow Celtic") is None)
+        check("същият мач при ЛИЧЕН спорт правилото го хваща",
+              nameri("tennis", "Harris Billy", "Martin Hugo") == "C1")
+
+        # 🔴 РЕДЪТ: ТОЧНОТО СЪВПАДЕНИЕ Е ПРЕДИ ПОДМНОЖЕСТВОТО.
+        # На дъската има ДВА мача, които подмножеството не различава, и ЕДИН,
+        # който точното намира еднозначно. Тръгне ли подмножеството първо,
+        # `_edinstveniyat` вижда двама кандидати и мълчи — тоест цена, която
+        # ИМАМЕ, изчезва само заради подредбата.
+        _kesh[("m", SPORT_ID["tennis"])] = {
+            "F1": ("Sascha Gueymard Wayenburg", "Sergio Callejon Hernando",
+                   "ATP Challenger Mallorca - Qual", "2026-01-01T10:00"),
+            "F2": ("Gueymard Wayenburg", "Callejon Hernando",
+                   "ATP Challenger Mallorca - R1", "2026-01-01T10:00"),
+        }
+        check("точното съвпадение бие подмножеството",
+              nameri("tennis", "Gueymard Wayenburg", "Callejon Hernando") == "F2")
+        check("а самото подмножество при двама кандидати МЪЛЧИ",
+              nameri("tennis", "Gueymard Wayenburg S.", "Callejon H. S.") is None)
+    finally:
+        for _k, _v in ((("m", SPORT_ID["tennis"]), _pm2_t),
+                       (("m", SPORT_ID["mma"]), _pm2_m),
+                       (("m", SPORT_ID["football"]), _pm2_f)):
+            if _v is None:
+                _kesh.pop(_k, None)
+            else:
+                _kesh[_k] = _v
+
+    check("новите проверки също не пипат мрежата", broi_zayavki() == 0)
+    check("броят проверки е поне 145", ok >= 145)
 
     print("САМОПРОВЕРКА НА PINNACLE: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:

@@ -213,17 +213,130 @@ POBEDITEL_BEZ_SETOVE = _Sentinel("POBEDITEL_BEZ_SETOVE")
 # който тръгва от `fixtures()` без нито един аргумент — вместо да подава
 # готови речници на вътрешни сметки. Модул с 45 зелени проверки, чиято
 # главна функция връща None винаги, вече е хващан в тази къща.
-def _http_json(url, timeout=25):
+# 🔴 КАЗВАМЕ КАКВО УМЕЕМ ДА ЧЕТЕМ (измерено на живо на 01.09.2026).
+#
+# Днес тенисът на маса излезе „0 срещи“. В predictor.py календарът на WTT се
+# връща с Content-Encoding: br, а модул brotli няма — тялото е нечетимо.
+# Измерено срещу самия CDN, четири различни молби, същият адрес:
+#     нищо не искаме (urllib праща identity) -> 200, br, 6044 байта
+#     Accept-Encoding: gzip, deflate         -> 200, br, 6044 байта
+#     Accept-Encoding: identity              -> 200, br, 6044 байта
+#     Range: bytes=0-100000                  -> 206, br, 6044 байта
+# Там молбата НЕ помага: файлът е Azure блоб (x-ms-blob-type: BlockBlob),
+# записан вече сгъстен, главата е закована и Vary липсва. WTT без brotli е
+# затворена врата — и това НЕ е нещо, което този модул може да поправи.
+#
+# ТУК обаче същото измерване излезе обратно, и то е причината за кръпката:
+#     Smarkets срещи : без молба 113 124 байта · с „gzip, deflate“ 7 273 (−94%)
+#     Kambi цени     : без молба  83 199 байта · с „gzip, deflate“ 6 530 (−92%)
+# Затова молбата се праща. В нея НЯМА „br“ — не защото brotli е лош, а защото
+# НЕ УМЕЕМ да го отворим, а глава, която не разбираме, трябва да стане
+# МЪЛЧАНИЕ, не празен отговор. Виж _razsgasti.
+#
+# ПЪТ НАЗАД: TT_LIGI_ISKAME=identity връща точно старото питане.
+ISKAME = (os.environ.get("TT_LIGI_ISKAME") or "gzip, deflate").strip()
+
+
+def _razsgasti(surovo, ce):
+    """Сурови байтове + глава Content-Encoding -> четими байтове.
+
+    🔴 ХВЪРЛЯ при глава, която НЕ УМЕЕМ. Нарочно. Старият ред беше
+    `if r.headers.get("Content-Encoding") == "gzip"` — точно, чувствително към
+    главни букви сравнение — и всичко друго минаваше НЕПИПНАТО към json.loads.
+    Измерено срещу истински сървър на 127.0.0.1 преди кръпката:
+        „GZIP“    -> None (мълчание)
+        „gzip, “  -> None
+        „deflate“ -> None
+        „br“      -> None
+    Четири различни повода дават едно и също: нечетим отговор изглежда точно
+    като празен ден. Тук такъв отговор гърми, _http_json връща None, а
+    fixtures() го превръща в ZAPUSHENO — сентинел, който не е празен списък.
+    """
     import gzip
+    import zlib
+    e = str(ce or "").lower().strip()
+    if not e or "identity" in e:
+        return surovo
+    if "gzip" in e:
+        return gzip.decompress(surovo)
+    if "deflate" in e:
+        try:
+            return zlib.decompress(surovo)
+        except zlib.error:              # някои сървъри пращат СУРОВ deflate
+            return zlib.decompress(surovo, -zlib.MAX_WBITS)
+    raise ValueError("не умея Content-Encoding: " + e[:30])
+
+
+def _http_json(url, timeout=25):
     import urllib.request
     try:
-        r = urllib.request.urlopen(urllib.request.Request(url), timeout=timeout)
-        b = r.read()
-        if r.headers.get("Content-Encoding") == "gzip":
-            b = gzip.decompress(b)
+        req = urllib.request.Request(url, headers={"Accept-Encoding": ISKAME})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            b = _razsgasti(r.read(), r.headers.get("Content-Encoding"))
         return json.loads(b.decode("utf-8"))
     except Exception:                                        # noqa: BLE001
         return None
+
+
+_PROBA_TYALO = {"ok": True, "n": 7}
+
+
+def _proba_sgastyavane():
+    """Истински сървър на 127.0.0.1 — какво ИЗЛИЗА от _http_json.
+
+    🔴 БЕЗ ДАТА И БЕЗ МРЕЖА НАВЪН. Проверката не пита „стои ли редът в
+    кода“, а вдига сървър, който отговаря с шест различни глави, и гледа
+    какво се връща. Заковани дати вече са падали два пъти в тази къща —
+    тук часовникът изобщо не участва.
+
+    Връща (прочетено, премълчано, каквото сме поискали).
+    """
+    import gzip as _gz
+    import threading
+    import zlib as _zl
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    tyalo = json.dumps(_PROBA_TYALO).encode("utf-8")
+    sluchai = {
+        "/a": ("(няма)", tyalo),
+        "/b": ("gzip", _gz.compress(tyalo)),
+        "/c": ("GZIP", _gz.compress(tyalo)),
+        "/d": ("gzip, ", _gz.compress(tyalo)),
+        "/e": ("deflate", _zl.compress(tyalo)),
+        "/f": ("br", b"\x1b\x0e\x00\xf8\x25\x14"),
+    }
+    vidyano = {}
+
+    class H(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            ce, telo = sluchai[self.path]
+            vidyano["iskano"] = self.headers.get("Accept-Encoding") or ""
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            if ce != "(няма)":
+                self.send_header("Content-Encoding", ce)
+            self.send_header("Content-Length", str(len(telo)))
+            self.end_headers()
+            self.wfile.write(telo)
+
+    srv = HTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    baza = "http://127.0.0.1:" + str(srv.server_address[1])
+    chete, tisho = {}, {}
+    try:
+        for pat, (ce, _t) in sluchai.items():
+            got = _http_json(baza + pat, timeout=5)
+            if got is None:
+                tisho[ce] = None
+            else:
+                chete[ce] = got
+    finally:
+        srv.shutdown()
+        srv.server_close()
+    return chete, tisho, vidyano.get("iskano", "")
 
 
 _MREZHA = [_http_json]          # списък, за да е подменяем на едно място
@@ -1423,6 +1536,26 @@ def selftest():
               _chestni(0, 2) is None and _chestni("а", "б") is None)
         check("честната вероятност отказва цена под 1", _chestni(0.5, 2.0) is None)
 
+        # ═══ 14. КАКВО УМЕЕМ ДА ПРОЧЕТЕМ ═══
+        # 🔴 ПОВЕДЕНЧЕСКА, НЕ ТЕКСТОВА. Вдига се истински сървър на
+        # 127.0.0.1 и се пита какво ИЗЛИЗА от _http_json, не дали някакъв ред
+        # стои в кода. Никаква дата, никаква мрежа навън.
+        _chete, _tisho, _iskano = _proba_sgastyavane()
+        check("чете НЕсгъстен отговор", _chete.get("(няма)") == _PROBA_TYALO)
+        check("чете gzip", _chete.get("gzip") == _PROBA_TYALO)
+        check("чете GZIP с ГЛАВНИ букви", _chete.get("GZIP") == _PROBA_TYALO)
+        check("чете „gzip, “ със запетая", _chete.get("gzip, ") == _PROBA_TYALO)
+        check("чете deflate", _chete.get("deflate") == _PROBA_TYALO)
+        # 🔴 СЪРЦЕТО НА КРЪПКАТА: нечетимото НЕ бива да прилича на
+        # празен ден. Ако тук някой върне {} или [], тенисът на маса пак ще
+        # става тихо на нула — точно както стана днес.
+        check("нечетимият br е МЪЛЧАНИЕ (None), не празен отговор",
+              "br" in _tisho and _tisho["br"] is None and "br" not in _chete)
+        _tok = [x.strip().lower() for x in _iskano.split(",")]
+        check("молбата стига до сървъра и иска gzip", "gzip" in _tok)
+        check("молбата НЕ обещава br, който не умеем да отворим",
+              "br" not in _tok)
+
         check("броят проверки е поне 80", ok >= 80)
     finally:
         _MREZHA[0] = star_mr
@@ -1576,6 +1709,35 @@ def mutacii():
         return _MREZHA[0](url)             # 🐛 без кеш — всяко питане е ново
     opiti.append(("_json без кеш (всеки въпрос е нова заявка)",
                   "_json", _kesh_izklyuchen))
+
+    def _samo_tochno_gzip(surovo, ce):
+        """Старото сравнение: точно „gzip“, чувствително към главни букви."""
+        import gzip as _g
+        if str(ce or "") == "gzip":
+            return _g.decompress(surovo)
+        return surovo
+
+    opiti.append(("_razsgasti пак сравнява ТОЧНО „gzip“ (GZIP/deflate замлъкват)",
+                  "_razsgasti", _samo_tochno_gzip))
+
+    def _praznoto_vmesto_mylchanie(surovo, ce):
+        """Нечетимата глава се преструва на празен отговор вместо да гърми."""
+        e = str(ce or "").lower()
+        if not e or "identity" in e:
+            return surovo
+        if "gzip" in e:
+            import gzip as _g
+            return _g.decompress(surovo)
+        if "deflate" in e:
+            import zlib as _z
+            return _z.decompress(surovo)
+        return b"{}"
+
+    opiti.append(("_razsgasti връща празно {} вместо да мълчи при br",
+                  "_razsgasti", _praznoto_vmesto_mylchanie))
+
+    opiti.append(("ISKAME обещава br, който не умеем да отворим",
+                  "ISKAME", "br, gzip"))
 
     g["_setove_ot_sabitie_ORIG"] = g["_setove_ot_sabitie"]
     g["_cena_ORIG"] = g["cena"]

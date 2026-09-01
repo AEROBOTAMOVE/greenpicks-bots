@@ -42,6 +42,38 @@ import sys
 
 # Файлове, които НЕ се пускат: тези, чийто selftest пипа Telegram или мрежа
 # по устройство, и еднократните инструменти. Всеки с причина, не по усет.
+# Имената, под които един модул излага проверките си. И ДВЕТЕ се приемат.
+#
+# 🔴 ЗАЩО СА ДВЕ (01.09.2026): пускачът търсеше само „selftest“, а daily_bot.py
+# и news_bot.py пишат „run_selftest“. Резултат: 261 проверки не се броеха и
+# никой не знаеше. Преименуването на двата файла щеше да е по-чисто, но
+# приемането на двете имена не може да СЧУПИ нищо, а преименуването може.
+IMENA_NA_VHODA = ("selftest", "run_selftest")
+
+# ---------------------------------------------------------------- ДОЛНАТА ГРАНИЦА
+#
+# 🔴 ЗАЩО Я ИМА (01.09.2026). Оборващ агент махна десет проверки от един модул
+# и пускачът отпечата:  „4143 проверки · 0 счупени“  и излезе с код 0.
+# Тоест 73.6% от проверките можеха да изчезнат, без нищо да почервенее.
+# Броят зелени НЕ Е доказателство — това вече е ставало в проекта, когато
+# прескачане след regex изяде десет проверки без нито един червен ред.
+#
+# Числото се ВДИГА, когато проверките растат. СВАЛЯ се само с причина, написана
+# тук. Свалено без причина, то е точно дупката, срещу която стои.
+#
+#   01.09.2026: измерено 4760 наред, 0 счупени, 31 модула. Границата е ~5%
+#   по-ниско, за да не гърми от една махната проверка, но да хване изчезнал модул.
+DOLNA_GRANITSA = int(os.environ.get("TESTOVE_DOLNA_GRANICA") or "4500")
+
+# И ИМЕНАТА, не само броят. Модул може да изчезне от списъка мълчаливо —
+# преименуван вход, синтактична грешка, добавен ред в PROPUSKAY. Тогава броят
+# пада с неговите проверки, а границата може и да не гръмне.
+ZADALZHITELNI = (
+    "predictor", "scorer", "pazar", "pinnacle", "sglasie", "pazach",
+    "cyalost", "zabraneni", "budilnik", "router_bot", "support_bot",
+    "news_bot", "daily_bot", "tt_ligi", "zalozhimo", "zdrave", "esport_rez",
+)
+
 PROPUSKAY = {
     "vsichki_testove.py": "този файл",
     "reset.py": "нулира групата — не се пуска в проверка",
@@ -61,6 +93,11 @@ BROYACHI = (
     re.compile(r"(\d+)\s+наред,\s*(\d+)\s+счупени"),
     re.compile(r"(\d+)\s+мина\w*,\s*(\d+)\s+падна\w*"),
     re.compile(r"(\d+)\s+проверки,\s*(\d+)\s+червени"),
+    # 🔴 Форматът на daily_bot и news_bot (01.09.2026). Те печатат
+    # „SELFTEST: 70 наред, 0 проблема.“ — дума „проблема“, не „счупени“.
+    # Без този ред пускачът ги виждаше, пускаше ги, и после ги броеше за
+    # непрочетени. Тоест втора мълчалива дупка веднага след първата.
+    re.compile(r"(\d+)\s+наред,\s*(\d+)\s+проблем\w*"),
 )
 
 
@@ -99,8 +136,13 @@ def moduli(papka=None):
         p = os.path.join(papka, f)
         try:
             with io.open(p, encoding="utf-8") as fh:
-                if "def selftest" not in fh.read():
-                    continue
+                _sadarzhanie = fh.read()
+            # 🔴 И ДВЕТЕ ИМЕНА (01.09.2026). Пускачът търсеше САМО „def selftest“.
+            # daily_bot.py и news_bot.py пишат „def run_selftest“ — тоест 261
+            # проверки бяха невидими за него, а той рапортуваше зелено.
+            # Измерено: ръчно пуснати дават 70 и 191 проверки.
+            if not any(("def " + _i) in _sadarzhanie for _i in IMENA_NA_VHODA):
+                continue
         except Exception:                                    # noqa: BLE001
             continue
         out.append(f[:-3])
@@ -136,12 +178,19 @@ def razcheti(izhod):
     return nay
 
 
+# Викаме КОЕТО ОТ ДВЕТЕ съществува, а не заковано име. Закованото име е точно
+# причината 261 проверки да не се броят.
+VIK = ("import %s as M; "
+       "(getattr(M, 'selftest', None) or getattr(M, 'run_selftest'))()"
+       "  # %s")
+
+
 def pusni(ime, papka=None, timeout=180):
     """(наред, счупени, бележка) за един модул. Свой процес."""
     papka = papka or os.path.dirname(os.path.abspath(__file__))
     try:
         r = subprocess.run(
-            [sys.executable, "-c", "import %s as M; M.selftest()" % ime],
+            [sys.executable, "-c", VIK % (ime, ime)],
             cwd=papka, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -185,6 +234,24 @@ def main():
     print("=" * 62)
     print("   ОБЩО: %d проверки · %d счупени · %d модула проблемни"
           % (obshto_ok, obshto_bad, len(padnali)))
+    # 🔴 ДВЕ ГРАНИЦИ, ПРЕДИ ПРИСЪДАТА. Зелено при изчезнали проверки е по-лошо
+    # от червено при счупени: счупеното се вижда, изчезналото — не.
+    _lipsvat = [m for m in ZADALZHITELNI if m not in set(imena)]
+    if _lipsvat:
+        padnali.append(("липсващи модули",
+                        "не се пуснаха: " + ", ".join(_lipsvat)))
+        print("")
+        print("🔴 МОДУЛИ, КОИТО ТРЯБВА ДА СЕ ПУСКАТ, А НЕ СЕ ПУСНАХА:")
+        for m in _lipsvat:
+            print("   • " + m)
+    if obshto_ok < DOLNA_GRANITSA:
+        padnali.append(("долна граница",
+                        "%d < %d" % (obshto_ok, DOLNA_GRANITSA)))
+        print("")
+        print("🔴 ПРОВЕРКИТЕ СА НАМАЛЕЛИ: %d, а долната граница е %d."
+              % (obshto_ok, DOLNA_GRANITSA))
+        print("   Това значи, че някъде проверки са изчезнали БЕЗ да гръмнат.")
+        print("   Ако намалението е нарочно, свали DOLNA_GRANITSA с причина.")
     if padnali:
         print("")
         print("🔴 ЗА ОПРАВЯНЕ:")
