@@ -234,7 +234,28 @@ jobs:
           PREDICT_IZKL: ${{ vars.PREDICT_IZKL || 'hockey,amfootball' }}
           PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '0' }}
           PREDICT_BOKS_MAX: ${{ vars.PREDICT_BOKS_MAX || '0' }}
-          PREDICT_ESPORT_MAX: ${{ vars.PREDICT_ESPORT_MAX || '0' }}
+          # 🎮 ЕСПОРТЪТ СЕ БУДИ — САМО CS2 (01.09.2026).
+          #
+          # Вратата за резултати е НАМЕРЕНА и ИЗМЕРЕНА: Smarkets дава
+          # победителя ПОИМЕННО, без ключ и без преправен подпис.
+          #   api.smarkets.com/v3/markets/{id}/contracts/ → 200
+          #   {"name":"Team WE","state_or_outcome":"winner"}
+          #
+          # ПОКРИТИЕТО Е РАЗЛИЧНО ПО ИГРА, измерено на живо:
+          #   CS2     37 мача на 31.08, 36 с победител  →  97%
+          #   Dota 2   4 мача,           4 с победител  → 100%
+          #   LoL      5 от 15                          →  33%  ← НЕ
+          #   Valorant Smarkets няма такъв тип събитие  →   0%  ← НЕ
+          # Целият кръг, изпитан на десет истински вчерашни мача:
+          #   10 от 10 = 100% (вкл. G2 срещу Natus Vincere → G2)
+          #
+          # 🔴 ЗАТОВА САМО CS2. Карта без път до присъда виси вечно и
+          # трови процента на целия спорт — урокът от ITF. LoL и
+          # Valorant влизат, когато и за тях има извор.
+          #
+          # НАЗАД: PREDICT_ESPORT_MAX=0 и спортът заспива.
+          PREDICT_ESPORT_MAX: ${{ vars.PREDICT_ESPORT_MAX || '3' }}
+          PREDICT_ESPORT_IGRI: ${{ vars.PREDICT_ESPORT_IGRI || 'cs2' }}
           PREDICT_STAYA_REZHIM: ${{ vars.PREDICT_STAYA_REZHIM || 'pak' }}
           # 💰 ЦЕНАТА И ЛИНКЪТ НА КАРТАТА (01.09.2026).
           #
