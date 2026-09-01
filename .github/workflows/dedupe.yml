@@ -97,7 +97,10 @@ jobs:
           CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
           DEDUPE_MODE: ${{ github.event.inputs.mode }}
           DEDUPE_THREAD: ${{ github.event.inputs.thread }}
-          DEDUPE_WINDOW: ${{ github.event.inputs.window }}
+          # 🔴 Празно поле при ръчно пускане дава празен низ, а
+          # dedupe_clean.py прави int(.get(K,"400")) → ValueError още при
+          # внасянето. Тоест workflow-ът пада, преди да е направил нищо.
+          DEDUPE_WINDOW: ${{ github.event.inputs.window || '400' }}
           # Скоростта на сондирането. По подразбиране 1.2 сек на съобщение —
           # безопасно, но при прозорец от 900 съобщения това са 18 минути само
           # за проверката и рънът се уби на 30-та минута (виж timeout-minutes

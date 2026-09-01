@@ -24,6 +24,11 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ vars.CHAT_ID }}
-          CHANNEL_ID: ${{ vars.CHANNEL_ID }}
+          # 🔴 РЕЗЕРВАТА Е ЗАДЪЛЖИТЕЛНА (01.09.2026). Незададена GitHub
+          # променлива пристига като ПРАЗЕН НИЗ, а скриптът чете
+          # .get("CHANNEL_ID", "-1004403334702") — стандартът в .get СЕ
+          # ПОЛЗВА само при ЛИПСВАЩ ключ, не при празен. Тоест празният
+          # низ бие канала и ботът пише в никъде.
+          CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
           RESET_MODE: ${{ github.event.inputs.mode }}
         run: python reset.py

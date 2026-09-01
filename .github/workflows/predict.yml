@@ -160,6 +160,14 @@ jobs:
         env:
           PREDICT_DRY_RUN: '1'
           PREDICT_THREAD_ID: '27'
+          # 🔴 БЕЗ ТЕЗИ ДВА РЕДА ДВЕ ПРОВЕРКИ НЕ СЕ ПУСКАТ (01.09.2026).
+          # Проверките на адреса са зад `if PZ is not None and LINK_VKL`,
+          # а LINK_VKL се чете от PAZAR_LINK. Стъпката не го подаваше →
+          # функцията работеше ВКЛЮЧЕНА в производството, а тестът ѝ
+          # вървеше ИЗКЛЮЧЕН. Мъртво покритие точно върху линка, който
+          # собственикът поиска изрично.
+          PAZAR_LINK: '1'
+          PAZAR_IZTOCHNIK: '1'
         run: python predictor.py selftest
 
       # 🔴 ОСЕМ МОДУЛА ВЪРВЯХА НЕПРОВЕРЕНИ (25.08.2026). Лов на слепи петна
@@ -308,6 +316,10 @@ jobs:
           PREDICT_ISKAM_PAZAR: ${{ vars.PREDICT_ISKAM_PAZAR || '1' }}
           PREDICT_PRICHINI: ${{ vars.PREDICT_PRICHINI || '2' }}
           PREDICT_SHOW_RECORD: ${{ vars.PREDICT_SHOW_RECORD || '1' }}
+          # 🔴 ПЕНСИОНИРАНА РЪЧКА (отбелязано 01.09.2026). Тя НЕ управлява
+          # нищо: KOEF_VKL се среща само в дефиницията си, защото
+          # obratno_na_procenta е спряна на 25.08. Редът остава, за да не
+          # чупи чужда настройка, но НЕ Е път назад — не разчитай на него.
           PREDICT_KOEF: ${{ vars.PREDICT_KOEF || '1' }}
           PREDICT_SPORTS: ${{ vars.PREDICT_SPORTS }}
           PREDICT_MMA_LIGI: ${{ vars.PREDICT_MMA_LIGI }}
