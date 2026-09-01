@@ -57,9 +57,23 @@ def _cyalo(ime, po_podrazbirane, dolna, gorna):
     return max(dolna, min(gorna, n))
 
 
-# Работните часове на предсказателя (predictor.RUN_HOURS = 8..22).
-OT_CHAS = _cyalo("BUDILNIK_OT", 8, 0, 23)
-DO_CHAS = _cyalo("BUDILNIK_DO", 22, 0, 23)
+# Работните часове на предсказателя.
+#
+# 🔴 ОТ КЛЮЧОВЕТЕ, НЕ ОТ ТЕКСТА (02.09.2026). Дотук самопроверката тук
+# ЧЕТЕШЕ predictor.py като текст и търсеше низа „RUN_HOURS = tuple(range(“.
+# В деня, в който часовете станаха подвижни (решение на собственика:
+# „без ограничения в часовете“), този низ изчезна и будилникът гръмна —
+# 146 наред, 1 счупено, без нито един истински дефект.
+#
+# Сега двамата четат ЕДНИ И СЪЩИ ключове от средата, а workflow-ът им е
+# същият. Разминаване по устройство не може да има.
+_QT = _cyalo("PREDICT_QUIET_TO", 8, 0, 11)
+_QF = _cyalo("PREDICT_QUIET_FROM", 23, 12, 23)
+# Предсказателят пуска в целия прозорец при пълен ден, инак без последния
+# час (той е гратис за закъснял крон). Тук се повтаря СЪЩОТО правило.
+_PALEN = (_QT == 0 and _QF == 23)
+OT_CHAS = _cyalo("BUDILNIK_OT", _QT, 0, 23)
+DO_CHAS = _cyalo("BUDILNIK_DO", _QF if _PALEN else _QF - 1, 0, 23)
 
 # Таванът. Пусканията са на час, но закъсняват неравномерно: рън, закъснял с
 # 10 мин, следван от рън, закъснял със 70, дава 120 минути разстояние БЕЗ да е
@@ -621,7 +635,8 @@ def selftest():
           "13" in reshi(d(12, 50), d(13, 20), opit=None)[1]
           and "пропуснат" in reshi(d(12, 50), d(13, 20), opit=None)[1])
     check("извън работните часове НЕ будим дори при пропуснат час",
-          reshi(d(3, 0), d(4, 30), opit=None)[0] is False)
+          reshi(d(3, 0), d(4, 30), opit=None)[0]
+          is (OT_CHAS <= 4 <= DO_CHAS))
     check("почивката бие пропуснатия час",
           reshi(d(12, 50), d(13, 20), opit=d(13, 10))[0] is False)
     check("гратисът е разумен", 3 <= GRATIS_MIN <= 20)
@@ -629,15 +644,35 @@ def selftest():
     check("смяна на деня не подлудява правилото",
           reshi(datetime(2026, 8, 12, 23, 50, tzinfo=SOFIA),
                 datetime(2026, 8, 13, 9, 30, tzinfo=SOFIA), opit=None)[0] is True)
-    check("нощем НЕ будим дори при огромна дупка",
-          reshi(d(12, 0), datetime(2026, 8, 13, 3, 0, tzinfo=SOFIA), opit=None)[0] is False)
-    check("в 07:59 НЕ будим", reshi(d(4, 0), d(7, 59), opit=None)[0] is False)
+    check("извън прозореца НЕ будим дори при огромна дупка",
+          reshi(d(12, 0), datetime(2026, 8, 13, 3, 0, tzinfo=SOFIA),
+                opit=None)[0] is (OT_CHAS <= 3 <= DO_CHAS))
+    # 🔴 ЧАСОВЕТЕ СЛЕДВАТ КЛЮЧОВЕТЕ (02.09.2026). Тези проверки заковаваха
+    # 07:59 / 23:00 / 03:00 — тоест денонощният режим ги чупеше, без нито
+    # един истински дефект. Сега питат ПРАВИЛОТО: буди се в работния час,
+    # не се буди извън него, каквито и да са границите.
+    _b_izvun = None
+    for _hh in range(24):
+        if not (OT_CHAS <= _hh <= DO_CHAS):
+            _b_izvun = _hh
+            break
+    check("в 07:59 НЕ будим",
+          reshi(d(4, 0), d(7, 59), opit=None)[0] is (OT_CHAS <= 7))
     check("в 08:00 будим", reshi(datetime(2026, 8, 11, 22, 0, tzinfo=SOFIA),
                                  d(8, 0), opit=None)[0] is True)
     check("в 22:00 още будим", reshi(d(19, 0), d(22, 0), opit=None)[0] is True)
-    check("в 23:00 вече не", reshi(d(19, 0), d(23, 0), opit=None)[0] is False)
+    check("в 23:00 будим само ако е в прозореца",
+          reshi(d(19, 0), d(23, 0), opit=None)[0] is (DO_CHAS >= 23))
     check("липсващ тефтер буди", reshi(None, d(12, 0), opit=None)[0] is True)
-    check("липсващ тефтер НЕ буди нощем", reshi(None, d(3, 0), opit=None)[0] is False)
+    check("липсващ тефтер буди само в работен час",
+          reshi(None, d(3, 0), opit=None)[0] is (OT_CHAS <= 3 <= DO_CHAS))
+    # И правилото в чист вид: извън прозореца НЕ се буди, какъвто и да е той.
+    if _b_izvun is not None:
+        check("извън прозореца не се буди изобщо",
+              reshi(None, d(_b_izvun, 0), opit=None)[0] is False)
+    else:
+        check("при денонощен режим няма час без будене",
+              OT_CHAS == 0 and DO_CHAS == 23)
     check("час от бъдещето буди", reshi(d(15, 0), d(12, 0), opit=None)[0] is True)
     check("една минута напред НЕ е бъдеще", reshi(d(12, 1), d(12, 0), opit=None)[0] is False)
 
@@ -682,14 +717,16 @@ def selftest():
         with io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   "predictor.py"), encoding="utf-8-sig") as f:
             src = f.read()
-        igla = "RUN_HOURS = tuple(range("
-        i = src.find(igla)
-        check("намирам работните часове в predictor.py", i >= 0)
-        if i >= 0:
-            j = src.find(")", i + len(igla))
-            a, b = [int(x.strip()) for x in src[i + len(igla):j].split(",")[:2]]
-            check("будилникът почва когато и предсказателят", OT_CHAS == a)
-            check("будилникът спира когато и предсказателят", DO_CHAS == b - 1)
+        # 🔴 СВЕРЯВА СЕ ПО КЛЮЧОВЕТЕ, НЕ ПО ТЕКСТА (02.09.2026).
+        # Старата проверка търсеше низ в predictor.py и гръмна в деня, в
+        # който часовете станаха подвижни. Сега пита за ПРАВИЛОТО.
+        check("предсказателят строи часовете от прозореца",
+              "_PROZORETS" in src and "QUIET_TO <= h <= QUIET_FROM" in src)
+        check("будилникът почва когато и предсказателят", OT_CHAS == _QT)
+        check("будилникът спира когато и предсказателят",
+              DO_CHAS == (_QF if _PALEN else _QF - 1))
+        check("при денонощен режим будилникът също е денонощен",
+              (OT_CHAS == 0 and DO_CHAS == 23) if _PALEN else True)
     except Exception as e:                                   # noqa: BLE001
         bad.append("не мога да сверя часовете с predictor.py: " + str(e)[:50])
 
