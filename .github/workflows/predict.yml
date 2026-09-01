@@ -281,6 +281,52 @@ jobs:
           # НАЗАД: PREDICT_ESPORT_MAX=0 и спортът заспива.
           PREDICT_ESPORT_MAX: ${{ vars.PREDICT_ESPORT_MAX || '3' }}
           PREDICT_ESPORT_IGRI: ${{ vars.PREDICT_ESPORT_IGRI || 'cs2' }}
+          # 🔑 ОСТАНАЛИТЕ РЪЧКИ (01.09.2026).
+          #
+          # Одитен агент преброи: 17 от 32 ключа в кода НЕ СЪЩЕСТВУВАХА за
+          # собственика — тоест „пътят назад" за тях беше редакция на код и
+          # ново качване, не завъртане на ключ. Това чупи правило 3 от
+          # протокола („изход, не надежда").
+          # Най-лошият случай: PREDICT_ISKAM_PAZAR=0 е записан В КОМЕНТАРА
+          # като път назад, а го нямаше в нито един workflow.
+          #
+          # ВСЯКА РЕЗЕРВА Е РАВНА НА ДНЕШНОТО ПОВЕДЕНИЕ. Незададена
+          # променлива в GitHub идва като ПРАЗЕН НИЗ, а празният низ БИЕ
+          # подразбиращото се в скрипта — без `|| ...` тук всичко би се
+          # обърнало наопаки.
+          #
+          #   POKAZHI_CENA=0       маха 💰 от картите И от фиша
+          #   POKAZHI_IZTOCHNIK=1  добавя „(ESPN)" до цената
+          #   ISKAM_PAZAR=0        пуска и карти без пазарна цена
+          #   PRICHINI=1..4        колко реда 📊 на картата
+          #   SHOW_RECORD=0        маха реда „Футболът досега: N от M"
+          #   KOEF=0               маха обратната сметка от процента
+          #   SPORTS="football,tennis"   само изброените спортове
+          #   MMA_LIGI / AMFUTBOL_LIGI / ESPORT_AKADEMII   стеснения
+          PREDICT_POKAZHI_CENA: ${{ vars.PREDICT_POKAZHI_CENA || '1' }}
+          PREDICT_POKAZHI_IZTOCHNIK: ${{ vars.PREDICT_POKAZHI_IZTOCHNIK || '0' }}
+          PREDICT_ISKAM_PAZAR: ${{ vars.PREDICT_ISKAM_PAZAR || '1' }}
+          PREDICT_PRICHINI: ${{ vars.PREDICT_PRICHINI || '2' }}
+          PREDICT_SHOW_RECORD: ${{ vars.PREDICT_SHOW_RECORD || '1' }}
+          PREDICT_KOEF: ${{ vars.PREDICT_KOEF || '1' }}
+          PREDICT_SPORTS: ${{ vars.PREDICT_SPORTS }}
+          PREDICT_MMA_LIGI: ${{ vars.PREDICT_MMA_LIGI }}
+          PREDICT_AMFUTBOL_LIGI: ${{ vars.PREDICT_AMFUTBOL_LIGI }}
+          PREDICT_ESPORT_AKADEMII: ${{ vars.PREDICT_ESPORT_AKADEMII || '0' }}
+          # ➕ ОЩЕ ОТ СЪЩИЯ МАЧ — гол-гол, очакван резултат, тотал сетове.
+          #
+          # 🔴 ДВЕ ТВОИ ПОРЪЧКИ СИ ПРОТИВОРЕЧАТ:
+          #   „гол-гол" — поискано поименно
+          #   25.08: „картите са дълги и странни" → блокът е МАХНАТ и има
+          #          заключваща проверка, която го държи махнат
+          #   01.09: „трябва да има ФУЛ ИНФО" → обратното
+          #
+          # Данните се смятат и се хвърлят: полетата second и third се
+          # пълнят на ОСЕМ места, а картата не ги четеше — нула читатели.
+          # Затова: ключ, ИЗКЛЮЧЕН по подразбиране. Днес нищо не се мени.
+          # PREDICT_OSHTE=1 връща гол-гола на ЕДИН ред.
+          # Цената: картата расте с един ред и получава втори процент.
+          PREDICT_OSHTE: ${{ vars.PREDICT_OSHTE || '0' }}
           PREDICT_STAYA_REZHIM: ${{ vars.PREDICT_STAYA_REZHIM || 'pak' }}
           # 💰 ЦЕНАТА И ЛИНКЪТ НА КАРТАТА (01.09.2026).
           #
@@ -306,6 +352,9 @@ jobs:
           #    чист, но адресът води при тях. Собственикът го знае.
           PAZAR_IZTOCHNIK: ${{ vars.PAZAR_IZTOCHNIK || '1' }}
           PAZAR_LINK: ${{ vars.PAZAR_LINK || '1' }}
+          PAZAR_PROZOREC: ${{ vars.PAZAR_PROZOREC || '6' }}
+          PAZAR_TIMEOUT: ${{ vars.PAZAR_TIMEOUT || '12' }}
+          PREDICT_TT_SCALE_NISKA: ${{ vars.PREDICT_TT_SCALE_NISKA }}
           PREDICT_HORIZON_H: ${{ vars.PREDICT_HORIZON_H }}
           PREDICT_LEAD_MIN: ${{ vars.PREDICT_LEAD_MIN }}
           # 🔴 ВТОРАТА ПРОГНОЗА ОТ СЪЩИЯ МАЧ (19.08.2026): над/под ЛИНИЯТА

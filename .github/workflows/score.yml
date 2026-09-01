@@ -147,6 +147,27 @@ jobs:
           SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
           WINS_THREAD_ID: ${{ vars.WINS_THREAD_ID || '10' }}
           SCORE_DRY_RUN: ${{ github.event.inputs.dry_run }}
+          # 🔑 РЪЧКИТЕ НА ОЦЕНИТЕЛЯ (01.09.2026).
+          # Одит преброи 17 ключа в кода, недостижими за собственика.
+          # Всяка резерва е РАВНА на днешното поведение — незададена
+          # променлива в GitHub идва като празен низ и БИЕ подразбиращото се.
+          #   OBZOR_MACHOVE   колко мача се изброяват в ОБЗОРА
+          #   MAX_AGE_DAYS    докога се гони резултат на стара карта
+          #   ARHIV_DNI       след колко дни записът отива в архива
+          #   DOHOD_MIN       под колко отсъдени не се смята доходност
+          #   CLV_MIN         същото за затварящата цена
+          #   PAZAR_MIN       същото за сравнението с пазара
+          #   WTT_TURNIRI     колко турнира се питат при тениса на маса
+          #   COMBO_OPITI     колко пъти се пробва отчет на фиш
+          SCORE_OBZOR_MACHOVE: ${{ vars.SCORE_OBZOR_MACHOVE || '24' }}
+          SCORE_MAX_AGE_DAYS: ${{ vars.SCORE_MAX_AGE_DAYS || '5' }}
+          SCORE_ARHIV_DNI: ${{ vars.SCORE_ARHIV_DNI || '60' }}
+          SCORE_DOHOD_MIN: ${{ vars.SCORE_DOHOD_MIN || '40' }}
+          SCORE_CLV_MIN: ${{ vars.SCORE_CLV_MIN || '20' }}
+          SCORE_PAZAR_MIN: ${{ vars.SCORE_PAZAR_MIN || '40' }}
+          SCORE_WTT_TURNIRI: ${{ vars.SCORE_WTT_TURNIRI || '12' }}
+          SCORE_COMBO_OPITI: ${{ vars.SCORE_COMBO_OPITI }}
+          SCORE_COMBO_TAVAN: ${{ vars.SCORE_COMBO_TAVAN }}
         run: python scorer.py
 
       # Дневникът пази кои твърдения вече са отсъдени. Без връщане в
