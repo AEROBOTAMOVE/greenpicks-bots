@@ -29690,7 +29690,9 @@
   "p": 0.6566,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-08-31|tennis|cristinabucsa|sarabejlek",
@@ -29828,7 +29830,9 @@
   "p": 0.8518,
   "stars": 1,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-09-01|baseball|chunichidragons|hiroshimatoyocarp",
@@ -30001,7 +30005,9 @@
   "p": 0.5707,
   "stars": 1,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-08-31|football|fckøbenhavn|sønderjyskefodbold",
@@ -30423,7 +30429,9 @@
   "p": 0.6479,
   "stars": 2,
   "sample": "ранглиста и 5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-01|football|deportestolima|cúcutadeportivo",
@@ -31175,7 +31183,11 @@
   "p": 0.5524,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "pazar_close": 1.71,
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-01|volleyball|wsen|türkiye|azerbaijan",
@@ -31459,7 +31471,9 @@
   "p": 0.7066,
   "stars": 1,
   "sample": "гледани 24 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:6"
  },
  {
   "key": "2026-09-02|baseball|texasrangers|athletics",
@@ -31701,7 +31715,9 @@
   "p": 0.6257,
   "stars": 1,
   "sample": "гледани 24 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:6"
  },
  {
   "key": "2026-09-01|esports|hotu|color",
@@ -31843,7 +31859,9 @@
   "p": 0.5955,
   "stars": 2,
   "sample": "гледани 25 мача на единия и 24 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:5"
  },
  {
   "key": "2026-09-02|baseball|clevelandguardians|torontobluejays",
@@ -31947,7 +31965,9 @@
   "p": 0.6643,
   "stars": 2,
   "sample": "гледани 24 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-09-02|baseball|yomiurigiants|yokohamabaystars",
@@ -31981,7 +32001,9 @@
   "p": 0.5792,
   "stars": 1,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:3"
  },
  {
   "key": "2026-09-01|esports|lp|eternalfire",
@@ -32303,7 +32325,9 @@
   "p": 0.6263,
   "stars": 1,
   "sample": "гледани 5 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-09-01|tabletennis|1550|oskarjadach|igorszymanski",
@@ -32549,7 +32573,9 @@
   "p": 0.6156,
   "stars": 2,
   "sample": "гледани 18 мача на единия и 16 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-02|esports|flyquest|nexvoid",
@@ -32617,7 +32643,9 @@
   "p": 0.5304,
   "stars": 2,
   "sample": "гледани 18 мача на единия и 16 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-09-01|tabletennis|1800|tomasvinter|milankolar",
@@ -32929,7 +32957,11 @@
   "p": 0.5948,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2",
+  "pazar_close": 1.68,
+  "pazar_clv": -0.0298
  },
  {
   "key": "2026-09-01|football|bradfordcity|cambridgeunited",
@@ -32963,7 +32995,11 @@
   "p": 0.4581,
   "stars": 3,
   "sample": "гледани 51 мача на единия и 49 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2",
+  "pazar_close": 1.95,
+  "pazar_clv": 0.025
  },
  {
   "key": "2026-09-01|football|leicestercity|plymouthargyle",
@@ -32997,7 +33033,11 @@
   "p": 0.4963,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 2.05,
+  "pazar_clv": -0.0385
  },
  {
   "key": "2026-09-01|tennis|annabondar|luciehavlickova",
@@ -33031,7 +33071,9 @@
   "p": 0.6025,
   "stars": 1,
   "sample": "ранглиста и 6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-01|esports|procyon|meianoite",
@@ -33065,7 +33107,9 @@
   "p": 0.5491,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-01|football|northamptontown|crawleytown",
@@ -33099,6 +33143,10 @@
   "p": 0.533,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.62,
+  "pazar_clv": 0.0491
  }
 ]
