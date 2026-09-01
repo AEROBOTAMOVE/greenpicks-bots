@@ -1,12 +1,12 @@
 {
  "kazano": {
-  "daily.yml": "2026-09-01T04:09:48.851648+00:00",
+  "daily.yml": "2026-09-01T18:14:22.128207+00:00",
   "daily.yml|matches.yml|news.yml|predict.yml|router.yml": "2026-08-27T13:54:51.577815+00:00",
   "daily.yml|predict.yml": "2026-09-01T14:36:32.468208+00:00",
   "daily.yml|predict.yml|router.yml": "2026-08-30T08:01:22.775546+00:00",
   "daily.yml|router.yml": "2026-08-29T15:31:58.984841+00:00",
   "score.yml": "2026-08-25T06:52:07.918549+00:00"
  },
- "posleden_obhod": "2026-09-01T14:36:32.468208+00:00",
+ "posleden_obhod": "2026-09-01T18:14:22.128207+00:00",
  "slepi_podred": 0
 }
