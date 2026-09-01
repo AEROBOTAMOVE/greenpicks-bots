@@ -1213,6 +1213,9 @@ def log_pick(an, now, combo=0):
         # се, за да може после да се отговори на въпроса, който наистина мери
         # качество: бием ли пазара, или само познаваме фаворити.
         "pazar_cena": an.get("pazar_cena"),
+        # Цената на ДРУГАТА страна — за да се вижда колко неравен е
+        # мачът и да може грешката да се мери в двете посоки.
+        "pazar_cena_drug": an.get("pazar_cena_drug"),
         "pazar_p": an.get("pazar_p"),
         # 🔴 НАШЕТО СОБСТВЕНО ЧИСЛО, ПРЕДИ СМЕСВАНЕТО (25.08.2026).
         #
@@ -6664,6 +6667,30 @@ def dobavi_pazar(an):
         cena = raven
     if cena:
         an["pazar_cena"] = cena
+        # 🔴 И ДРУГАТА СТРАНА (01.09.2026). Дотук вадехме dom, gost И raven
+        # от една и съща заявка, а записвахме САМО нашата — другата се
+        # хвърляше. Одитен агент го измери: половината вече платена цена
+        # изчезва, а с нея и възможността да се види КОЛКО НЕРАВЕН е мачът.
+        #
+        # Читателят вижда „1.25" и не знае дали срещу него стои 3.80 (мач
+        # без история) или 1.45 (истински равностоен). Числото само по себе
+        # си не казва това — двойката го казва.
+        #
+        # И оценителят получава с какво да мери грешката в ДРУГАТА посока:
+        # без цената на противника не може да се смята какво би върнал
+        # обратният залог.
+        _dr = None
+        if pick.startswith("1"):
+            _dr = gost
+        elif pick.startswith("2"):
+            _dr = dom
+        if _dr:
+            try:
+                _dv = float(_dr)
+                if 1.0 < _dv < 1000.0:
+                    an["pazar_cena_drug"] = _dv
+            except (TypeError, ValueError):
+                pass
         # 🔴 МАРЖЪТ НА БУКМЕЙКЪРА (18.08.2026).
         # На КАРТАТА стои суровата цена — тя е това, което пазарът наистина
         # плаща, и читателят има право на нея непокътната.
@@ -7040,8 +7067,21 @@ def combo_duma(total):
 def combo_card(idx, legs, now):
     """Един фиш: краката, общата вероятност и честна дума за нея."""
     total = 1.0
+    # 💰 ЦЕНАТА НА ФИША (01.09.2026). Умножава се както вероятността —
+    # това е същото число, казано в друга мярка.
+    # 🔴 САМО когато ВСИЧКИ крака имат цена. 53% от картите нямат, а
+    # произведение с липсващ множител е ЛЪЖА, не приближение.
+    obshta_cena, vsi_s_cena = 1.0, True
     for a in legs:
         total *= float(a["p"])
+        try:
+            _c = float(a.get("pazar_cena"))
+        except (TypeError, ValueError):
+            _c = 0.0
+        if 1.0 < _c < 1000.0:
+            obshta_cena *= _c
+        else:
+            vsi_s_cena = False
     lines = ["🎫 <b>ФИШ " + str(idx) + " НА ДЕНЯ</b> · " + date_bg(now),
              "<i>" + n_match(len(legs)) + " · всички трябва да познаят</i>", ""]
     for a in legs:
@@ -7051,13 +7091,30 @@ def combo_card(idx, legs, now):
         chas = when.astimezone(SOFIA).strftime("%H:%M") if when is not None else ""
         lines.append(emo + " <b>" + esc(fx.get("home")) + "</b> — <b>"
                      + esc(fx.get("away")) + "</b>" + ((" · " + chas) if chas else ""))
-        lines.append("    🎯 " + esc(a["pick"]) + " · <b>" + pct(a["p"]) + "</b>")
+        # Цената на КРАКА, до неговия процент. Липсва ли — само процентът.
+        _kc = ""
+        if CENA_VKL:
+            try:
+                _v = float(a.get("pazar_cena"))
+                if 1.0 < _v < 1000.0:
+                    _kc = " · " + ("%.2f" % _v)
+            except (TypeError, ValueError):
+                _kc = ""
+        lines.append("    🎯 " + esc(a["pick"]) + " · <b>" + pct(a["p"]) + "</b>" + _kc)
+    # 💰 ОБЩАТА ЦЕНА. Стои ПРЕДИ думата за риска, защото думата съди
+    # вероятността, а цената е другата ѝ страна — човекът иска и двете
+    # наведнъж, не на два реда разстояние.
+    _fc = []
+    if CENA_VKL and vsi_s_cena and 1.0 < obshta_cena < 100000.0:
+        _kand = "💰 <b>" + ("%.2f" % obshta_cena) + "</b> · " + CENA_OPASHKA
+        if banned_word(_kand) is None:
+            _fc = [_kand]
     lines += ["",
               "📊 И " + ("двата" if len(legs) == 2 else
                          ("трите" if len(legs) == 3 else
                           ("четирите" if len(legs) == 4 else "петте")))
               + " заедно: <b>" + pct(total) + "</b>",
-              combo_duma(total),
+              combo_duma(total)] + _fc + [
               "🟢 THE GREEN ROOM"]
     return NL.join([x for x in lines if x is not None])
 
@@ -11702,6 +11759,26 @@ def selftest():
     # ── 1. Числото излиза, и то на самата карта, не само от функцията.
     _cn_txt = card(_cn_an(pazar_cena=1.55, pazar_izt="pinnacle"), _cn_sega)
     check("цената излиза на картата", "1.55" in _cn_txt and "💰" in _cn_txt)
+    # 💰 ЦЕНАТА НА ФИША — ПОВЕДЕНЧЕСКИ (01.09.2026).
+    # Питаме какво ИЗЛИЗА от combo_card, а не дали редът стои в кода:
+    # точно тук се роди дефектът — данните бяха налице, редът липсваше.
+    _fs_now = datetime(2026, 9, 1, 12, 0, tzinfo=SOFIA)
+    def _fs_krak(p, c):
+        return {"p": p, "pazar_cena": c, "bucket": "football", "pick": "1 · А",
+                "fx": {"home": "А", "away": "Б", "league": "Л"}}
+    _fs_dva = [_fs_krak(0.70, 1.25), _fs_krak(0.65, 1.38)]
+    _fs_txt = combo_card(1, _fs_dva, _fs_now)
+    check("💰 фишът показва ОБЩАТА цена (1.25 × 1.38 = 1.72)",
+          "1.72" in _fs_txt)
+    check("💰 и цената на всеки крак", "1.25" in _fs_txt and "1.38" in _fs_txt)
+    check("💰 фишът пак минава покрай пазача", banned_word(_fs_txt) is None)
+    # 🔴 ЕДИН КРАК БЕЗ ЦЕНА → НЯМА ОБЩА. Произведение с липсващ множител
+    # е лъжа, не приближение.
+    _fs_bez = [_fs_krak(0.70, 1.25), _fs_krak(0.65, None)]
+    _fs_txt2 = combo_card(1, _fs_bez, _fs_now)
+    check("💰 липсва ли цена на крак, обща НЕ се показва",
+          "толкова пъти се връща" not in _fs_txt2)
+    check("но процентът си остава", "%" in _fs_txt2)
     # 🔗 ЛИНКЪТ — ПОВЕДЕНЧЕСКИ, не по текст в кода (01.09.2026).
     # Проверката пита какво ИЗЛИЗА от cena_red, защото точно тук се роди
     # дефектът: функцията в pazar съществуваше и работеше, а картата не я
