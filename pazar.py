@@ -631,6 +631,89 @@ def red_za_karta(nasha_p, cena_nash_izhod):
     return "📊 Пазар: " + ("%.2f" % float(cena_nash_izhod))
 
 
+# ═══════════════════ ИЗТОЧНИКЪТ И ЛИНКЪТ КЪМ МАЧА (01.09.2026)
+#
+# ДВА КЛЮЧА, И ДВАТА ИЗКЛЮЧЕНИ ПО ПОДРАЗБИРАНЕ. Решението е на собственика,
+# не мое — включва се с променлива на средата, не с редакция на код:
+#
+#   PAZAR_IZTOCHNIK=1  →  „📊 Пазар: 1.85 (ESPN)“            ниво (б)
+#   PAZAR_LINK=1       →  добавя и адрес на САМИЯ мач        ниво (в)
+#
+# 🔴 ИМЕ НА БУКМЕЙКЪР НЕ СЕ ПИШЕ, В НИКАКВА АЗБУКА.
+# Проверено на живо с predictor.banned_word: „Pinnacle“ се спира, „Пинакъл“
+# МИНАВА. Това не е разрешение — пазачът мери БУКВИ, а забраната е за НЕЩО.
+# Затова тук се назовава само ESPN (медия, не оператор), а записите от
+# Pinnacle излизат БЕЗ етикет и БЕЗ адрес. Мълчанието е отговорът.
+#
+# 🔴 И ЕДНО, КОЕТО СОБСТВЕНИКЪТ ТРЯБВА ДА ЗНАЕ, ПРЕДИ ДА ВКЛЮЧИ PAZAR_LINK.
+# Сверено в тази сесия със свалена страница: самата страница на мача при ESPN
+# съдържа „draftkings“ 51 пъти, „bet365“ 2 пъти и „odds“ 97 пъти. Нашият ред
+# е чист, но адресът води при тях. Това е негов избор, не наш — затова ключът
+# стои изключен и нищо не се мени, докато той не каже.
+PAZAR_LINK_VKL = (os.environ.get("PAZAR_LINK") or "0").strip() in ("1", "true", "да")
+PAZAR_IZT_VKL = (os.environ.get("PAZAR_IZTOCHNIK") or "0").strip() in ("1", "true", "да")
+
+
+def _bezopasen_slug(s):
+    """Само букви, цифри и - . _ — иначе празно. Чуждо име не влиза в адрес."""
+    t = str(s or "").strip().lower()
+    if not t:
+        return ""
+    return t if all(ch.isalnum() or ch in "-._" for ch in t) else ""
+
+
+def link_kam_macha(zapis):
+    """Адресът на САМИЯ мач при ESPN, или „“ когато такъв не се сглобява.
+
+    🔴 ИЗМЕРЕНО НА ЖИВО 01.09.2026 — истински номер срещу измислен:
+        soccer      /soccer/match/_/gameId/401908124  → 200 · измислен → 404
+        baseball    /mlb/game/_/gameId/401878657      → 200 · измислен → 404
+        basketball  /nba/game/_/gameId/401902644      → 200 · измислен → 404
+    Тоест правилото НЕ Е „по спорта“: футболът ползва думата match и пътя
+    soccer, а другите — думата game и пътя на ЛИГАТА (mlb, nba). Сверено, че
+    /baseball/game/… и /basketball/game/… дават 404. Затова двата клона.
+
+    Само ESPN. Pinnacle НЯМА проверим адрес: същия ден техният сайт върна 200
+    и ЕДИН И СЪЩ отговор от 14258 байта за истински номер, за нулев номер и за
+    пълна безсмислица — тоест кодът 200 там не доказва нищо и не бива да се
+    приема за доказателство.
+    """
+    z = zapis if isinstance(zapis, dict) else {}
+    if pat_do_zatvaryane(z) != "espn":
+        return ""
+    ev = str(z.get("pazar_ev") or "").strip()
+    if not ev.isdigit():
+        return ""
+    sport = _bezopasen_slug(z.get("pazar_sport"))
+    liga = _bezopasen_slug(z.get("pazar_liga"))
+    if sport == "soccer":
+        return "https://www.espn.com/soccer/match/_/gameId/" + ev
+    if not liga:
+        return ""
+    return "https://www.espn.com/" + liga + "/game/_/gameId/" + ev
+
+
+def red_za_karta_puln(nasha_p, cena_nash_izhod, zapis=None):
+    """Редът за картата с толкова, колкото ключовете разрешават.
+
+    С двата ключа изключени връща ТОЧНО каквото връща red_za_karta — тоест
+    закачането ѝ вместо старата функция не мени нито един знак, докато
+    собственикът не реши. Това е пътят назад: изключи ключа, върни се.
+    """
+    red = red_za_karta(nasha_p, cena_nash_izhod)
+    if not red:
+        return ""
+    if PAZAR_IZT_VKL:
+        izt = str((zapis or {}).get("pazar_izt") or "").strip().lower()
+        if izt == "espn":
+            red += " (ESPN)"
+    if PAZAR_LINK_VKL:
+        adres = link_kam_macha(zapis or {})
+        if adres:
+            red += " · " + adres
+    return red
+
+
 def selftest():
     ok, bad = 0, []
 
@@ -752,6 +835,46 @@ def selftest():
         red = red_za_karta(nasha, cena).lower()
         for z in zabraneni:
             check("редът е чист от " + z, z not in red)
+
+    # ── ЛИНКЪТ КЪМ МАЧА (01.09.2026)
+    _fb = {"pazar_izt": "espn", "pazar_ev": "401908124",
+           "pazar_sport": "soccer", "pazar_liga": "eng.league_cup"}
+    _bb = {"pazar_izt": "espn", "pazar_ev": "401878657",
+           "pazar_sport": "baseball", "pazar_liga": "mlb"}
+    check("футболът ползва пътя soccer и думата match",
+          link_kam_macha(_fb) == "https://www.espn.com/soccer/match/_/gameId/401908124")
+    check("бейзболът ползва пътя на ЛИГАТА и думата game",
+          link_kam_macha(_bb) == "https://www.espn.com/mlb/game/_/gameId/401878657")
+    # 🔴 МУТАЦИИТЕ: всяка от тях трябва да върне празно, не крив адрес.
+    check("Pinnacle няма адрес",
+          link_kam_macha(dict(_fb, pazar_izt="pinnacle")) == "")
+    check("витрината няма адрес",
+          link_kam_macha(dict(_fb, pazar_izt="vitrina")) == "")
+    check("без номер няма адрес", link_kam_macha(dict(_fb, pazar_ev=None)) == "")
+    check("номер, който не е число, няма адрес",
+          link_kam_macha(dict(_fb, pazar_ev="401x/../зло")) == "")
+    check("чужд знак в лигата не влиза в адрес",
+          link_kam_macha(dict(_bb, pazar_liga="mlb/../evil")) == "")
+    check("не-речник не гърми", link_kam_macha("абв") == "")
+    check("спорт без пазар няма адрес",
+          link_kam_macha(dict(_fb, pazar_sport="tennis", pazar_liga="atp")) == "")
+
+    # ИЗКЛЮЧЕНИТЕ КЛЮЧОВЕ НЕ МЕНЯТ НИЩО — това е пътят назад.
+    if not PAZAR_LINK_VKL and not PAZAR_IZT_VKL:
+        check("с изключени ключове редът е дословно старият",
+              red_za_karta_puln(0.62, 2.00, _fb) == red_za_karta(0.62, 2.00))
+    check("без цена няма ред и в пълния вид",
+          red_za_karta_puln(0.62, None, _fb) == "")
+
+    # 🔴 И ПЪЛНИЯТ РЕД МИНАВА ПАЗАЧА. Списъкът е същият като по-долу, но без
+    # „http“: на ниво (в) адресът Е самата поръчка и не може да е забранен.
+    _bez_http = ("draftkings", "bet365", "sportsbook", "залож", "букмейкър",
+                 "коеф", "odds", "залагай", "pinnacle", "пинакъл")
+    for _z in (_fb, _bb):
+        _r = (red_za_karta_puln(0.62, 2.00, _z) + " "
+              + link_kam_macha(_z)).lower()
+        for _w in _bez_http:
+            check("пълният ред е чист от " + _w, _w not in _r)
 
     # Търсене по имена — без мрежа, с подхвърлен индекс.
     _star = globals().get("index_za_den")
