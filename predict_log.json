@@ -29859,7 +29859,9 @@
   "p": 0.551,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:5"
  },
  {
   "key": "2026-09-01|baseball|chibalottemarines|saitamaseibulions",
@@ -29892,7 +29894,9 @@
   "p": 0.5434,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-09-01|baseball|chunichidragons|hiroshimatoyocarp|total",
@@ -29925,7 +29929,9 @@
   "p": 0.5561,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:5"
  },
  {
   "key": "2026-08-31|tennis|alejandrotabilo|yannickhanfmann",
@@ -30948,7 +30954,9 @@
   "p": 0.6232,
   "stars": 2,
   "sample": "гледани 24 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-09-01|baseball|samsunglions|lottegiants",
@@ -31016,7 +31024,9 @@
   "p": 0.8756,
   "stars": 1,
   "sample": "гледани 8 мача на единия и 14 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-09-01|esports|pcific|brute",
@@ -31118,7 +31128,9 @@
   "p": 0.6234,
   "stars": 2,
   "sample": "гледани 22 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-01|football|huddersfieldtown|oxfordunited",
@@ -31492,7 +31504,9 @@
   "p": 0.5497,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-01|tabletennis|nazymserikbay|mariapanfilova",
