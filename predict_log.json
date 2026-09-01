@@ -29758,7 +29758,9 @@
   "p": 0.6283,
   "stars": 1,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-01|tennis|wangxiyu|igaswiatek",
@@ -30491,7 +30493,9 @@
   "p": 0.7051,
   "stars": 1,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-08-31|football|jongaz|jongfcutrecht",
@@ -30993,7 +30997,8 @@
   "sample": "гледани 17 мача на единия и 15 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-09-01|volleyball|wsen|rwanda|ghana",
@@ -31204,7 +31209,9 @@
   "p": 0.8901,
   "stars": 3,
   "sample": "гледани 72 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-01|tennis|flaviocobolli|franciscocomesana",
@@ -31238,7 +31245,9 @@
   "p": 0.802,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-01|tabletennis|nursayanurman|mariiatailakova",
@@ -31309,7 +31318,10 @@
   "p": 0.5924,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 57 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3",
+  "combo_done": true
  },
  {
   "key": "2026-09-02|tennis|gaelmonfils|adolfodanielvallejo",
@@ -31723,7 +31735,9 @@
   "p": 0.62,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-01|baseball|doosanbears|lgtwins",
@@ -31793,7 +31807,9 @@
   "p": 0.714,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-02|baseball|chunichidragons|hiroshimatoyocarp",
@@ -31999,7 +32015,9 @@
   "p": 0.7792,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-01|esports|borracheiros|alka",
@@ -32033,7 +32051,9 @@
   "p": 0.6537,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-01|tabletennis|1330|tadeaszika|ondrejparil",
@@ -32247,7 +32267,9 @@
   "p": 0.5979,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-01|tabletennis|2030|ondrejsvacha|vlastimilkolar",
@@ -32315,7 +32337,9 @@
   "p": 0.6023,
   "stars": 2,
   "sample": "гледани 30 мача на единия и 20 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-01|tennis|darwinblanch|taylorfritz",
@@ -32349,7 +32373,9 @@
   "p": 0.9435,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-02|tennis|arthurrinderknech|jaumemunar",
@@ -32451,7 +32477,9 @@
   "p": 0.6322,
   "stars": 2,
   "sample": "гледани 22 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-09-01|tabletennis|ainazadilgereyeva|mariyalukyanova",
@@ -32485,7 +32513,9 @@
   "p": 0.6676,
   "stars": 2,
   "sample": "гледани по 52 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-09-02|baseball|samsunglions|lottegiants",
@@ -32621,7 +32651,9 @@
   "p": 0.5878,
   "stars": 1,
   "sample": "гледани 8 мача на единия и 10 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-09-01|tabletennis|daryafu|noilakhaniyazova",
@@ -32655,7 +32687,9 @@
   "p": 0.5389,
   "stars": 1,
   "sample": "гледани 58 мача на единия и 36 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-09-02|tabletennis|2300|jakubhradecky|jakubtazler",
@@ -32859,7 +32893,9 @@
   "p": 0.5912,
   "stars": 2,
   "sample": "гледани 16 мача на единия и 30 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-09-01|football|sheffieldunited|boltonwanderers",
