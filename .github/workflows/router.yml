@@ -209,6 +209,33 @@ jobs:
           #   HORIZON_H  докъде напред гледаме — далечният мач чака своя час
           #   LEAD_MIN   колко минути преди начало спираме да пускаме карта
           PREDICT_MAX_DAY: ${{ vars.PREDICT_MAX_DAY }}
+          # 🔴 КЛЮЧАЛКИТЕ НА СПЯЩИТЕ СПОРТОВЕ (01.09.2026).
+          #
+          # Дотук тези пет променливи НЕ СЕ ПОДАВАХА изобщо — тоест
+          # ключалките в predictor.py бяха недостижими отвън и амер.
+          # футболът остана на нула карти, макар NCAA да отвори на 29.08.
+          #
+          # ВСЯКА Е С РЕЗЕРВА, и това не е украса: незададена променлива в
+          # GitHub идва като ПРАЗЕН НИЗ, а празният низ БИЕ подразбиращото
+          # се в скрипта. Без `|| ...` празният PREDICT_IZKL би отворил
+          # хокея И амер. футбола ВЕДНАГА, без никой да е поискал.
+          # Резервите са равни на днешното поведение: нищо не се мени,
+          # докато собственикът не сложи стойност.
+          #
+          #   PREDICT_IZKL          кои спортове мълчат.
+          #                         „hockey" пуска амер. футбола.
+          #                         „" пуска всичко (внимателно).
+          #   PREDICT_AMFUTBOL_MAX  карти на пускане за амер. футбол (0 = спи)
+          #   PREDICT_BOKS_MAX      същото за бокса. ❗ Боксът НЯМА кой да
+          #                         го отсъди — карта без присъда виси вечно.
+          #   PREDICT_ESPORT_MAX    същото за електронните спортове.
+          #   PREDICT_STAYA_REZHIM  pak (както днес) · kratko (един ред в
+          #                         стаята на спорта) · bez (само в канала)
+          PREDICT_IZKL: ${{ vars.PREDICT_IZKL || 'hockey,amfootball' }}
+          PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '0' }}
+          PREDICT_BOKS_MAX: ${{ vars.PREDICT_BOKS_MAX || '0' }}
+          PREDICT_ESPORT_MAX: ${{ vars.PREDICT_ESPORT_MAX || '0' }}
+          PREDICT_STAYA_REZHIM: ${{ vars.PREDICT_STAYA_REZHIM || 'pak' }}
           PREDICT_HORIZON_H: ${{ vars.PREDICT_HORIZON_H }}
           PREDICT_LEAD_MIN: ${{ vars.PREDICT_LEAD_MIN }}
         run: python predictor.py
