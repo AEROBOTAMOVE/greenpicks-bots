@@ -1215,6 +1215,64 @@ def mma_result(rec):
     return None
 
 
+def esport_result(rec):
+    """(точки_дом, точки_гост) за електронните спортове, или None.
+
+    1:0 или 0:1 — при CS2/LoL/Dota 2 картата е чиста победа, както при ММА.
+
+    🔴 ЗАЩО НЕ МИНАВА ПРЕЗ PINNACLE. Цената идва оттам, резултатът — не:
+    /matchups/{id}/settlements, /results и /score дават 404, а
+    /settlements?sportId=12 дава 204 с празно тяло (и за футбола 29 също,
+    тоест не е защото няма мачове). Освен това Pinnacle ИЗХВЪРЛЯ мача от
+    витрината, щом свърши. Затова изворът е ДРУГ: Smarkets — борса, където
+    победителят не е новина, а сетълмънт, по който са платени пари.
+
+    Измерено на 01.09.2026: 41 техни завършили мача на 31.08, 40 с обявен
+    победител (41-вият е отменен). Сверено срещу втори независим извор
+    (op.gg): 91 мача по LoL, 91 съгласни, 0 несъгласни.
+
+    ЗАЯВКИ: 1–3 за списъка на деня (кешира се по игра и ден) + 2 за самия
+    мач. Вторият отсъден мач от същия ден струва две заявки.
+
+    🔴 ПОКРИТИЕТО НЕ Е ЕДНАКВО ПО ИГРИ (31 живи среща, 01.09.2026):
+    CS2 15 от 16, Dota 2 1 от 1, League of Legends 5 от 15 (само големите
+    лиги), Valorant 0 — Smarkets НЯМА такъв тип събитие. Затова стойността
+    PREDICT_ESPORT_IGRI="cs2" е честната първа стъпка: карта, за която няма
+    път до присъда, виси вечно и трови процента на целия спорт (същият урок
+    като с ITF при тениса).
+
+    МЪЛЧАНИЕТО НЕ Е НУЛА: None значи „не можах да отсъдя", картата остава
+    неотсъдена — точно както преди кръпката. Измислен изход не се връща.
+    """
+    try:
+        import esport_rez
+    except Exception as e:                             # noqa: BLE001
+        print("    еспорт/резултат не се зареди (" + str(e)[:50] + ")")
+        return None
+    dom, gost = rec.get("home"), rec.get("away")
+    if not dom or not gost:
+        return None
+    # Играта се пише в дневника от log_pick. Липсва ли (стар запис), тя се
+    # чете от името на лигата — предсказателят го сглобява като
+    # „CS2 · BLAST Open Porto". Не се ГАДАЕ: няма ли и там, се мълчи.
+    igra = str(rec.get("igra") or "")
+    if not igra:
+        glava = str(rec.get("league") or "").split("·")[0].strip().lower()
+        igra = {"cs2": "cs2", "counter-strike 2": "cs2",
+                "league of legends": "lol", "dota 2": "dota2"}.get(glava, "")
+    if not igra:
+        return None
+    for day in okolni_dni(rec.get("day")):
+        try:
+            r = esport_rez.rezultat(dom, gost, day, igra)
+        except Exception as e:                         # noqa: BLE001
+            print("    еспорт/резултат: " + str(e)[:60])
+            return None
+        if r is not None:
+            return r
+    return None
+
+
 def sport_result(rec):
     """ЕДИНСТВЕНАТА врата към резултат. Всеки спорт минава оттук.
 
@@ -1255,6 +1313,11 @@ def sport_result(rec):
         return wtt_result(rec)
     if b == "mma":
         return mma_result(rec)
+    if b == "esports":
+        # 🎮 СОБСТВЕНА ВРАТА (01.09.2026). Дотук всяка еспорт карта падаше в
+        # espn_result(), а ESPN не знае такъв спорт: sport 'esports' е
+        # „invalid" (HTTP 400, мерено). Тоест присъда нямаше как да излезе.
+        return esport_result(rec)
     # 🔴 БЕЗ slug ESPN не може да го намери — това са срещите от резервния
     # източник (виж дългото обяснение при sdb_result). Дотук такава прогноза
     # висеше вечно: 22 за WNBA, нула отсъдени.
@@ -3045,6 +3108,33 @@ def selftest():
            and "return mma" + "_result(rec)" in _iztochnik_scorer))
     check("ММА НЕ е обявен за спорт без източник", "mma" not in NO_RESULT)
     check("питат се седем лиги", len(MMA_LIGI) == 7)
+    # 🎮 ЕЛЕКТРОННИТЕ СПОРТОВЕ. Нито една от тези проверки не пуска заявка:
+    # всяка спира ПРЕДИ мрежата — на липсващо име, на непозната игра или на
+    # счупен ден. Врата без проверка е врата, за която узнаваш, че е зазидана,
+    # чак когато цяла стая е висяла седмица неотсъдена.
+    check("еспортът минава през своята врата",
+          ('if b == "esports"' in _iztochnik_scorer
+           and "return esport" + "_result(rec)" in _iztochnik_scorer))
+    check("esports НЕ е обявен за спорт без източник",
+          "esports" not in NO_RESULT)
+    _e = {"bucket": "esports", "src": "esport", "day": "2026-08-31",
+          "igra": "cs2", "league": "CS2 · Проба"}
+    check("еспорт без имена не се отсъжда",
+          esport_result(dict(_e, home="", away="")) is None)
+    check("еспорт без гост не се отсъжда",
+          esport_result(dict(_e, home="MOUZ", away="")) is None)
+    check("еспорт с боклук вместо ден не гърми",
+          esport_result(dict(_e, home="MOUZ", away="G2", day="абв")) is None)
+    check("еспорт без игра и без разпознаваема лига мълчи",
+          esport_result(dict(_e, home="MOUZ", away="G2", igra="",
+                             league="Esports · Проба")) is None)
+    # 🔴 VALORANT НЯМА ИЗВОР. Оставено нарочно като проверка, а не като
+    # коментар: сложи ли се някога valorant в картата, тази проверка ще падне
+    # и ще накара някого да ИЗМЕРИ, вместо да предположи, че работи.
+    check("valorant се разпознава като БЕЗ извор",
+          esport_result(dict(_e, home="LOUD", away="MIBR", igra="",
+                             league="Valorant · Champions Tour")) is None)
+
     # 🔴 СВЕРКА С ПРЕДСКАЗАТЕЛЯ. Пусне ли той лига, която оценителят не пита,
     # боевете от нея висят вечно. Списъкът се чете от неговия код, не се
     # преписва — препис се разминава мълчаливо.

@@ -5872,6 +5872,30 @@ def cena_red(an):
     if not (1.0 < c < 1000.0):
         return ""
     red = "💰 <b>" + ("%.2f" % c) + "</b> · " + CENA_OPASHKA
+    # 🔗 АДРЕСЪТ НА САМИЯ МАЧ (01.09.2026, по изрично решение на собственика:
+    # „да пускай цените на картите и линкове давай на макс").
+    #
+    # 🔴 ДОТУК pazar.link_kam_macha БЕШЕ МЪРТЪВ КОД: построен, изпитан с осем
+    # проверки, доказан на живо (истински номер → 200, измислен → 404) — и
+    # НИКОЙ НЕ ГО ВИКАШЕ. Намерено от оборващ агент. Пети такъв случай в този
+    # проект; затова всяка нова връзка се доказва с ЖИВО пускане, не с тест.
+    #
+    # Адресът се лепи НАКРАЯ на СЪЩИЯ ред, а не на нов: собственикът се е
+    # оплаквал, че картите са „дълги и странни".
+    #
+    # Има го само за футбол, бейзбол и баскетбол през ESPN — 244 от 1082
+    # карти. Pinnacle адресите връщат едни и същи 14258 байта за истински
+    # номер и за безсмислица, тоест не са доказуеми, и link_kam_macha дава
+    # "" за тях НАРОЧНО.
+    if PZ is not None:
+        try:
+            _adr = PZ.link_kam_macha(an)
+        except Exception:                                    # noqa: BLE001
+            _adr = ""
+        if _adr:
+            _kand = red + " · " + _adr
+            if banned_word(_kand) is None:
+                red = _kand
     if IZTOCHNIK_VKL:
         ime = IZTOCHNIK_IME.get(str(an.get("pazar_izt") or "").strip().lower(), "")
         if ime:
@@ -11678,6 +11702,23 @@ def selftest():
     # ── 1. Числото излиза, и то на самата карта, не само от функцията.
     _cn_txt = card(_cn_an(pazar_cena=1.55, pazar_izt="pinnacle"), _cn_sega)
     check("цената излиза на картата", "1.55" in _cn_txt and "💰" in _cn_txt)
+    # 🔗 ЛИНКЪТ — ПОВЕДЕНЧЕСКИ, не по текст в кода (01.09.2026).
+    # Проверката пита какво ИЗЛИЗА от cena_red, защото точно тук се роди
+    # дефектът: функцията в pazar съществуваше и работеше, а картата не я
+    # викаше. Тест, който търси реда в кода, би бил зелен и тогава.
+    _lk_an = {"pazar_cena": 1.85, "pazar_izt": "espn", "pazar_ev": "401908124",
+              "pazar_liga": "eng.league_cup", "pazar_sport": "soccer",
+              "bucket": "football"}
+    _lk_txt = cena_red(_lk_an)
+    if PZ is not None and os.environ.get("PAZAR_LINK", "0") in ("1", "true", "да"):
+        check("🔗 адресът стига до картата", "espn.com" in _lk_txt)
+        check("и е на СЪЩИЯ ред с цената", "1.85" in _lk_txt and "espn.com" in _lk_txt)
+    check("🔗 без номер няма адрес",
+          "espn.com" not in cena_red(dict(_lk_an, pazar_ev=None)))
+    check("🔗 при недоказуем източник няма адрес",
+          "espn.com" not in cena_red(dict(_lk_an, pazar_izt="pinnacle")))
+    check("🔗 редът с адрес пак минава покрай пазача",
+          banned_word(_lk_txt) is None)
     check("цената е с ДВЕ цифри след точката",
           "2.00" in cena_red({"pazar_cena": 2.0}))
 
