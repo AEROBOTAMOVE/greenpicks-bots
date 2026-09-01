@@ -58,6 +58,19 @@ except Exception as _itf_err:                                # noqa: BLE001
     print("малкият тенис тур не се зареди (" + str(_itf_err)[:70]
           + ") — ITF картите остават неотсъдени.")
 
+# 🏓 ДВЕТЕ МАЛКИ ЛИГИ НА ТЕНИСА НА МАСА (26.08.2026). tt_ligi.py е готов,
+# проверен и качен — но досега беше вързан С НИЩО: оценителят пращаше ЦЯЛАТА
+# кошница „tabletennis" към wtt_result(). Измерено на живо върху 4 свършили
+# чешки мача: WTT връща None и на четирите, а tt_ligi връща истинските сетове.
+# Тоест пусне ли собственикът тези лиги, всяка тяхна карта би висяла вечно.
+# Отделен try: липсва ли модулът, WTT картите се отсъждат ТОЧНО както преди.
+try:
+    import tt_ligi as TTL
+except Exception as _ttl_err:                                # noqa: BLE001
+    TTL = None
+    print("лигите тенис на маса не се заредиха (" + str(_ttl_err)[:70]
+          + ") — WTT картите се отсъждат както преди.")
+
 NL = chr(10)
 SOFIA = ZoneInfo("Europe/Sofia")
 
@@ -829,6 +842,126 @@ def _wtt_turniri(godina=None):
     return _wtt_events
 
 
+def tt_liga_klyuch(rec):
+    """Ключът на нашата лига за този запис, или None, ако не е наша.
+
+    🔴 РАЗПОЗНАВАНЕТО Е ПО ЛИГАТА, НЕ ПО КОША. Кошницата „tabletennis" носи
+    и WTT, и двете малки лиги — кошът не ги различава. Дневникът пише лигата
+    така, както я е дал източникът, а източниците лепят подзаглавие след
+    средната точка („WTT Feeder Olomouc 2026 · Men's Singles"). Затова се
+    пробва целият низ И всяко парче поотделно, но се приема САМО ако самият
+    tt_ligi я признае за своя. Нито едно WTT име не съдържа „Czech Liga Pro"
+    или „TT Elite Series", тоест по-широкото търсене не може да открадне
+    WTT мач — а обратното вече ни е ухапвало (фамилията лепеше чужда цена).
+    """
+    if TTL is None:
+        return None
+    s = str(rec.get("league") or "")
+    if not s.strip():
+        return None
+    for p in [s] + s.split("·"):
+        p = p.strip()
+        if not p:
+            continue
+        try:
+            lk = TTL.liga_klyuch(p)
+        except Exception:                                    # noqa: BLE001
+            return None
+        if lk:
+            return lk
+    return None
+
+
+def _tt_liga_forma(r):
+    """Само двойка разумни цели числа минава оттук. Всичко друго -> None.
+
+    🔴 ЧУЖДИЯТ МОДУЛ НЕ Е ДОВЕРЕН СЪДИЯ. tt_ligi има ТРИ свои сентинела
+    (ZAPUSHENO, OTLOZHEN, POBEDITEL_BEZ_SETOVE) и едно доказано сляпо петно:
+    при паднал адрес _nameri_sabitie връща чуканче с name=None ВМЕСТО
+    ZAPUSHENO. Сентинелите му при това са ЛЪЖЛИВО ИСТИННИ (__bool__ = True),
+    тоест `if not r` не ги хваща, а `hs, as_ = r` в главния цикъл би гръмнало
+    и би спряло отсъждането на ВСИЧКИ спортове, не само на този.
+    Границите са наши, не преписани: сет-резултат няма равен изход, победи-
+    телят има 2, 3 или 4 сета, а сборът не минава 7.
+    """
+    if isinstance(r, bool) or not isinstance(r, (tuple, list)) or len(r) != 2:
+        return None
+    hs, as_ = r
+    if isinstance(hs, bool) or isinstance(as_, bool):
+        return None
+    if not isinstance(hs, int) or not isinstance(as_, int):
+        return None
+    if hs < 0 or as_ < 0 or hs == as_:
+        return None
+    if max(hs, as_) < 2 or max(hs, as_) > 4 or (hs + as_) > 7:
+        return None
+    return (hs, as_)
+
+
+def tt_liga_result(rec):
+    """Резултатът за Czech Liga Pro / TT Elite Series. None = още не знаем.
+
+    🔴 ОГЛЕДАЛНАТА СВЕРКА — И СТРУВА НУЛА ЗАЯВКИ.
+    Сляпото петно на tt_ligi има втора половина: чуканчето носи name=None,
+    а точно името е това, по което се поправя обърнатият запис (Smarkets
+    пише страните в свой ред). Тоест при паднал адрес запис с разменени
+    страни получава ОГЛЕДАЛНАТА присъда — а тя не гърми, само лъже.
+
+    Затова питаме съдията ДВА ПЪТИ: веднъж както е записано и веднъж с
+    разменени страни. Ключът на двойката в tt_ligi е неподреден набор
+    (frozenset), значи и двата въпроса стигат до СЪЩОТО събитие и до
+    същите адреси — а те са в кеша от първия въпрос, тоест втората заявка
+    е нула. Ако съдията вижда името, вторият отговор е точното огледало на
+    първия. Ако е сляп, ще върне ЕДНО И СЪЩО и за двете посоки — и тогава
+    тук се връща None. None не е нито „познах", нито „сгреших": главният
+    цикъл го подминава и пита пак утре.
+    """
+    if TTL is None:
+        return None
+    lk = tt_liga_klyuch(rec)
+    if lk is None:
+        return None                          # не е наша лига — не е наш мач
+    # 🔴 ЛИГАТА СЕ ПОДАВА ИЗЧИСТЕНА. tt_ligi познава своята лига само по
+    # ЦЯЛОТО име, а дневникът лепи подзаглавие след средната точка
+    # („Czech Liga Pro · Men"). Измерено с хартиената мрежа: СЪС суфикса
+    # rezultat() връща None, БЕЗ него — (1, 3). Тоест по-широкото
+    # разпознаване без това привеждане само би пращало картата в стена:
+    # оценителят я взима от WTT и после мълчи. Първата ми версия правеше
+    # точно това и проверката я почерви.
+    try:
+        _ime_lg = TTL.LIGI[lk]["ime"]
+    except Exception:                                        # noqa: BLE001
+        _ime_lg = rec.get("league")
+    rec = dict(rec, league=_ime_lg)
+    try:
+        r = TTL.rezultat(rec)
+    except Exception as e:                                   # noqa: BLE001
+        print("    лигите тенис на маса: " + str(e)[:60])
+        return None
+    # 🔴 ПЪРВО None, ЧАК ПОСЛЕ СЕНТИНЕЛЪТ. Обратният ред е капан: липсва ли
+    # TTL.OTLOZHEN, getattr връща None и „r is None" би минало за отменен мач.
+    if r is None:
+        return None
+    _otl = getattr(TTL, "OTLOZHEN", None)
+    if _otl is not None and r is _otl:
+        return OTLOZHEN
+    prav = _tt_liga_forma(r)
+    if prav is None:
+        return None
+    dom, gost = rec.get("home"), rec.get("away")
+    if not dom or not gost:
+        return None                          # без двете имена няма сверка
+    try:
+        r2 = TTL.rezultat(dict(rec, home=gost, away=dom))
+    except Exception as e:                                   # noqa: BLE001
+        print("    лигите тенис на маса (сверка): " + str(e)[:60])
+        return None
+    obrat = _tt_liga_forma(r2)
+    if obrat is None or obrat != (prav[1], prav[0]):
+        return None
+    return prav
+
+
 def wtt_result(rec):
     """Резултатът на един мач тенис на маса. None = още не знаем.
 
@@ -1112,6 +1245,13 @@ def sport_result(rec):
             return azia_result(rec)
         return baseball_result(rec)
     if b == "tabletennis":
+        # 🔴 ЕДНА КОШНИЦА, ДВА ИЗТОЧНИКА — както при тениса и бейзбола.
+        # WTT си остава при wtt_result; Czech Liga Pro и TT Elite Series ги
+        # знае САМО tt_ligi. Разпознава се по ЛИГАТА на записа, не по коша:
+        # кошът е един за трите. Липсва ли модулът, tt_liga_klyuch връща
+        # None и всичко минава по стария път — доказано с проверка.
+        if tt_liga_klyuch(rec):
+            return tt_liga_result(rec)
         return wtt_result(rec)
     if b == "mma":
         return mma_result(rec)
@@ -3360,6 +3500,197 @@ def selftest():
         _wtt_index.clear()
         _wtt_index.update(_stari_i)
         globals()["_wtt_events"] = _stari_e
+    # ═══════════ 🏓 ДВЕТЕ МАЛКИ ЛИГИ: ИМА ЛИ ПЪТ ДО ПРИСЪДА (26.08.2026)
+    #
+    # Мрежа НЕ се пипа: подменя се САМО tt_ligi._MREZHA[0] — единственият шев
+    # към света — и през проверката минава ИСТИНСКИЯТ път: разпределяне по
+    # лига, tt_ligi.rezultat, огледалната сверка и накрая verdict().
+    check("лигите тенис на маса са вързани в оценителя", TTL is not None)
+    check("разпределянето е по ЛИГА, не по кош",
+          "tt_liga_klyuch(rec)" in _iztochnik_scorer
+          and "return tt_liga_result(rec)" in _iztochnik_scorer)
+    check("WTT си остава на своя път", "return wtt_result(rec)" in _iztochnik_scorer)
+    if TTL is not None:
+        _tt_star_mr = TTL._MREZHA[0]
+        _tt_star_ev = globals().get("_wtt_events")
+        _tt_star_ttl = globals().get("TTL")
+        try:
+            TTL._MREZHA[0] = TTL._falshiva_mrezha
+            TTL.izchisti_kesh()
+            TTL._FALSHIVI.clear()
+            # WTT да не пипа мрежата в тази обиколка: празен календар значи
+            # „няма турнир за деня" и wtt_result излиза преди първата заявка.
+            globals()["_wtt_events"] = []
+
+            def _tt_rec(h, a, lg="Czech Liga Pro", pick=None, **kw):
+                r = {"bucket": "tabletennis", "home": h, "away": a,
+                     "league": lg, "day": "2026-08-25",
+                     "pick": pick if pick else ("1 · " + h)}
+                r.update(kw)
+                return r
+
+            # Хартиената книга казва: „Jan Szotkowski vs Tadeas Zika" = 1-3.
+            check("свършил чешки мач се отсъжда",
+                  sport_result(_tt_rec("Jan Szotkowski", "Tadeas Zika")) == (1, 3))
+            # 🔴 ОБЪРНАТИЯТ ЗАПИС. Присъдата трябва да Е огледална, защото
+            # огледален е ВЪПРОСЪТ — а не да е същата.
+            check("обърнатият запис получава обърната присъда",
+                  sport_result(_tt_rec("Tadeas Zika", "Jan Szotkowski")) == (3, 1))
+            check("обърнатият запис по НОМЕР също не е огледален",
+                  sport_result(_tt_rec("Tadeas Zika", "Jan Szotkowski",
+                                       slug="1001")) == (3, 1)
+                  and sport_result(_tt_rec("Jan Szotkowski", "Tadeas Zika",
+                                           slug="1001")) == (1, 3))
+            check("полската лига минава по същия път",
+                  sport_result(_tt_rec("Grzegorz Marud", "Kaczynski Piotr",
+                                       "TT Elite Series")) == (3, 1))
+            check("подзаглавието след средната точка не крие лигата",
+                  sport_result(_tt_rec("Jan Szotkowski", "Tadeas Zika",
+                                       "Czech Liga Pro · Men")) == (1, 3))
+            check("отмененият мач връща сентинела за отложен",
+                  sport_result(_tt_rec("Michal Vesely", "Daniel Tuma")) is OTLOZHEN)
+            # 🔴 ЗНАЕ СЕ КОЙ, НЕ СЕ ЗНАЕ С КОЛКО. Чуждият сентинел НЕ бива да
+            # стигне до главния цикъл: там го чака „hs, as_ = res".
+            check("победител без сетове не става присъда",
+                  sport_result(_tt_rec("Samo Pobeditel", "Bez Setove")) is None)
+            check("непознат мач не се отсъжда",
+                  sport_result(_tt_rec("Nyakoy Nikoy", "Vtori Nikoy")) is None)
+            # Присъдата стига до verdict() в ДВЕТЕ посоки.
+            _tt_p = _tt_rec("Jan Szotkowski", "Tadeas Zika")
+            check("сгрешен избор = невярно", verdict(_tt_p, 1, 3) is False)
+            check("познат избор = вярно",
+                  verdict(dict(_tt_p, pick="2 · Tadeas Zika"), 1, 3) is True)
+
+            # 🔴 ЗАПУШЕН ИЗВОР НЕ Е „НЯМА". Мъртва мрежа -> ZAPUSHENO, а той е
+            # ЛЪЖЛИВО ИСТИНЕН обект: без този пласт „hs, as_ = res" гърми.
+            TTL.izchisti_kesh()
+            TTL._FALSHIVI["myrtva"] = True
+            check("мъртва мрежа не ражда присъда",
+                  sport_result(_tt_rec("Jan Szotkowski", "Tadeas Zika")) is None)
+            check("мъртва мрежа не ражда и „отложен“",
+                  sport_result(_tt_rec("Michal Vesely", "Daniel Tuma"))
+                  is not OTLOZHEN)
+            TTL._FALSHIVI.pop("myrtva", None)
+            TTL.izchisti_kesh()
+
+            # 🔴 БЛИЗНАКЪТ. Паднал САМО адресът на самото събитие: tt_ligi
+            # връща чуканче с name=None и НЕ може да поправи посоката —
+            # тоест дава ЕДИН И СЪЩ отговор за двете страни. Първо се
+            # доказва, че лъжата наистина идва оттам, после че тук спира.
+            _sliap_adres = TTL.SM + "/events/1001/"
+
+            def _sliapa(url):
+                if url == _sliap_adres:
+                    return None
+                return TTL._falshiva_mrezha(url)
+
+            TTL._MREZHA[0] = _sliapa
+            TTL.izchisti_kesh()
+            _s1 = TTL.rezultat({"slug": "1001", "home": "Jan Szotkowski",
+                                "away": "Tadeas Zika", "day": "2026-08-25"})
+            TTL.izchisti_kesh()
+            _s2 = TTL.rezultat({"slug": "1001", "home": "Tadeas Zika",
+                                "away": "Jan Szotkowski", "day": "2026-08-25"})
+            check("сляпото петно наистина дава ЕДНО И СЪЩО за двете посоки",
+                  _s1 == (1, 3) and _s2 == (1, 3))
+            TTL.izchisti_kesh()
+            check("оценителят НЕ приема сляпата присъда",
+                  sport_result(_tt_rec("Tadeas Zika", "Jan Szotkowski",
+                                       slug="1001")) is None)
+            TTL.izchisti_kesh()
+            check("сляпата присъда не минава и в правилната посока",
+                  sport_result(_tt_rec("Jan Szotkowski", "Tadeas Zika",
+                                       slug="1001")) is None)
+            TTL._MREZHA[0] = TTL._falshiva_mrezha
+            TTL.izchisti_kesh()
+
+            # 🔴 WTT НЕ СМЕЕ ДА МИНЕ ОТТУК. Мери се с брояча на хартиената
+            # мрежа: WTT запис не бива да я докосне НИТО ВЕДНЪЖ.
+            TTL._FALSHIVI["vikan"] = 0
+            _wtt_lg = "WTT Feeder Olomouc 2026 · Men's Singles"
+            _wtt_rec = {"bucket": "tabletennis", "home": "Adam", "away": "Boris",
+                        "day": "2026-08-25", "league": _wtt_lg,
+                        "pick": "1 · Adam"}
+            check("WTT картата НЕ тръгва към лигите",
+                  tt_liga_klyuch(_wtt_rec) is None)
+            check("WTT картата не се отсъжда от лигите",
+                  _bez_grum(lambda: sport_result(_wtt_rec)) is None)
+            # 🔴 И ОБРАТНОТО, ЗАЩОТО ЕДНАТА ПОЛОВИНА НЕ Е ПРОВЕРКА.
+            # „Не влиза в лигите" и „стига до своя съдия" са две различни
+            # твърдения: разпределяне, което праща ВСИЧКО към лигите, минава
+            # първото (лигите връщат None) и убива WTT — измерено с мутация,
+            # която оцеля точно тук. Затова се подхвърля един мач в указателя
+            # на WTT (мрежа НЕ се пипа) и се иска присъдата да излезе ОТТАМ.
+            _wtt_index[9998] = {frozenset(("adam", "boris")): ("adam", 3, 1)}
+            globals()["_wtt_events"] = [(9998, "2026-08-25", "2026-08-25")]
+            check("WTT картата стига до своя съдия",
+                  _bez_grum(lambda: sport_result(_wtt_rec)) == (3, 1))
+            globals()["_wtt_events"] = []
+            _wtt_index.pop(9998, None)
+            check("WTT картата не докосва мрежата на лигите",
+                  TTL._FALSHIVI.get("vikan") == 0)
+            check("запис без лига не тръгва към лигите",
+                  tt_liga_klyuch({"bucket": "tabletennis"}) is None)
+            check("чужда лига тенис на маса не тръгва към нашите",
+                  tt_liga_klyuch({"league": "TT Cup"}) is None)
+
+            # 🔴 ЛИПСВАЩИЯТ МОДУЛ. Частичното качване НЕ бива да убива бота:
+            # без tt_ligi всичко трябва да върви по стария път, а не да гърми.
+            globals()["TTL"] = None
+            check("липсващ модул: разпознаването мълчи",
+                  tt_liga_klyuch(_tt_rec("Jan Szotkowski", "Tadeas Zika")) is None)
+            check("липсващ модул: съдията мълчи",
+                  tt_liga_result(_tt_rec("Jan Szotkowski", "Tadeas Zika")) is None)
+            check("липсващ модул: оценителят работи както преди",
+                  _bez_grum(lambda: sport_result(
+                      _tt_rec("Jan Szotkowski", "Tadeas Zika"))) is None)
+            globals()["TTL"] = _tt_star_ttl
+
+            # 🔴 КАПАНЪТ В СОБСТВЕНАТА МИ ПОПРАВКА. Редът
+            # „r is getattr(TTL, 'OTLOZHEN', None)" изглежда невинно: липсва
+            # ли сентинелът у чуждия модул, getattr връща None и ВСЯКО „още
+            # не знам" би минало за отменен мач — тоест картата се затваря
+            # ЗАВИНАГИ вместо да се пита утре. Затова None се хваща ПЪРВИ.
+            # Ето подставка без сентинел, за да не е това само разсъждение.
+            class _TTL_bez_sentinel(object):
+                LIGI = {"czech liga pro": {"ime": "Czech Liga Pro"}}
+
+                @staticmethod
+                def liga_klyuch(ime):
+                    return "czech liga pro"
+
+                @staticmethod
+                def rezultat(rec):
+                    return None
+
+            globals()["TTL"] = _TTL_bez_sentinel
+            check("липсващ чужд сентинел не прави „не знам“ на „отменен“",
+                  tt_liga_result(_tt_rec("A", "B")) is None)
+            globals()["TTL"] = _tt_star_ttl
+
+            # Формата: всичко, което не е двойка разумни цели числа, е „не знам".
+            check("сентинелът не минава за резултат",
+                  _tt_liga_forma(TTL.ZAPUSHENO) is None
+                  and _tt_liga_forma(TTL.POBEDITEL_BEZ_SETOVE) is None)
+            check("равен сет-резултат не съществува",
+                  _tt_liga_forma((2, 2)) is None)
+            check("боклук не минава за резултат",
+                  _tt_liga_forma((5, 0)) is None and _tt_liga_forma((1, 0)) is None
+                  and _tt_liga_forma("3-1") is None and _tt_liga_forma(None) is None
+                  and _tt_liga_forma((True, False)) is None
+                  and _tt_liga_forma((3, 2, 1)) is None
+                  and _tt_liga_forma((3.0, 2.0)) is None
+                  and _tt_liga_forma((4, 4)) is None)
+            check("истинска двойка минава",
+                  _tt_liga_forma((3, 2)) == (3, 2)
+                  and _tt_liga_forma([1, 3]) == (1, 3))
+        finally:
+            TTL._MREZHA[0] = _tt_star_mr
+            TTL.izchisti_kesh()
+            TTL._FALSHIVI.clear()
+            globals()["_wtt_events"] = _tt_star_ev
+            globals()["TTL"] = _tt_star_ttl
+
     check("волейболът НЕ е без източник", "volleyball" not in NO_RESULT)
     check("тенисът НЕ е без източник", "tennis" not in NO_RESULT)
 

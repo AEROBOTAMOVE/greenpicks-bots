@@ -65,6 +65,44 @@ THE GREEN ROOM — ХОКЕЯТ 🏒
    Записано, за да не го „открие" някой утре като ръб.
 
 ═══════════════════════════════════════════════════════════════════════════
+🔴 ПРЕМЕРЕНО НАНОВО 26.08.2026 — ЧЕТИРИ ДЕФЕКТА ОТ ЕДНО СЕМЕЙСТВО
+═══════════════════════════════════════════════════════════════════════════
+
+Семейството е едно: МОСТ МЕЖДУ ДВЕ ИЗПИСВАНИЯ, ЧИЯТО ПОСОКА Е ПРЕДПОЛОЖЕНА.
+Веднъж намерен близнак — търси се тризнак. Намериха се четири.
+
+1) СЪДИЯТА, НХЛ (поправено): картата носи „New York Rangers" (Pinnacle),
+   а api-web дава „Rangers". Питаше се само „изворът свършва ли на нашето
+   име" -> Лъжа, НИТО ЕДНА НХЛ карта не се отсъждаше. `_kraj` е симетрична.
+2) СЪДИЯТА, КОЛЕЖ (поправено): Pinnacle пише „Penn State", ЕСПН пише
+   „Penn State Nittany Lions" — там връзката НЕ Е наставка, а ПРЕДСТАВКА,
+   тоест Лъжа И В ДВЕТЕ посоки. ЕСПН дава училището в отделно поле
+   `location`; сравнява се ТОЧНО, наставка върху него НЕ се пуска.
+3) НАЗАДНИЯТ ХОД (подсилено): `MOST_ESPN_NHL` превежда съкращенията към
+   формата на `predictor`. Мерено днес: таблото на ЕСПН дава „UTA" и мостът
+   е пълен, НО адресът им за отбори вече пише „UTAH", а model_hockey(„UTAH")
+   връща None. Редът е добавен ПРЕДИ да потрябва.
+4) ЖИВИЯТ РЕЖИМ (поправено): `zhivo` разопаковаше реда с ЧЕТИРИ имена, а
+   ЕСПН редовете станаха ШЕСТ. Пуснато днес: ValueError на първия
+   колежански ден. Четенето е по индекси, в `red_ukratko`.
+
+ПУСНАТО ЖИВО ДНЕС, ЦЕЛИЯТ ПЪТ С ИМЕНАТА ОТ PINNACLE:
+    НХЛ, 7 дни (01-16.04 и 10.05):  39 мача, 39 вярно отсъдени
+    мъжки колеж, 3 дни:             56 от 56 · женски колеж, 3 дни: 44 от 44
+    сблъсъци от симетрията, 10 дни, 850 имена:  НУЛА
+    32 имена на Pinnacle x 32 прякора на api-web: всяко хваща ТОЧНО ЕДНО
+    съкращенията на НХЛ: всичките 32 са ТРИзнакови; най-късият прякор е
+        ЧЕТИРИзнаков („Wild", „Jets") -> прагът MIN_IME=4 ги дели без
+        изключение
+    `hokey.py --nazad` (01-16.04): с цена 125/125 · с модел 125/125 ·
+        целият път 125/125
+
+МУТАЦИИ СРЕЩУ ТОЗИ ФАЙЛ (26.08.2026): 61 пуснати, 58 убити, 3 оцелели.
+И трите оцелели са РАВНОСИЛНИ, доказано с 268 проби поведение: пазачът за
+празно в `_kraj`, ранното връщане при два точни записа в `cena` и `nd == ng`
+в `otsadi` са ВТОРИ КОЛАНИ — първият колан хваща случая и без тях.
+
+═══════════════════════════════════════════════════════════════════════════
 🔴 ТРИТЕ ВРАТИ. ДВЕ СА ОТВОРЕНИ, ТРЕТАТА ЧАКА ДАТА.
 ═══════════════════════════════════════════════════════════════════════════
 
@@ -300,6 +338,24 @@ SADII = {
 # Стоят като ЧИСЛА, за да може `sezon_status` да каже „остават N дни", вместо
 # някой да помни „някъде през септември" — фраза, която в sezon.py вече сбърка
 # посоката два пъти.
+# 🔴 ЧЕТВЪРТОТО МЯСТО ОТ СЪЩОТО СЕМЕЙСТВО (26.08.2026): МОСТ, КОЙТО
+# ПРЕДПОЛАГА ФОРМАТА НА ДРУГАТА СТРАНА. `nazad` праща на `predictor` номера
+# на отбора, а двата извора го пишат различно. Мерено живо днес:
+#     ЕСПН /nhl/scoreboard      LA · NJ · SJ · TB   (останалите 28 съвпадат)
+#     ЕСПН /nhl/teams           LA · NJ · SJ · TB · UTAH
+#     api-web /standings/now    LAK · NJD · SJS · TBL · UTA
+# Тоест ДВАТА адреса на ЕСПН се разминават помежду си за Utah Mammoth, а
+# `predictor.nhl_table` държи ключ „UTA". Пуснато живо в тази сесия:
+#     model_hockey(UTA  vs VGK) -> p_home 0.563
+#     model_hockey(UTAH vs VGK) -> None
+# Днес таблото дава „UTA" и мостът е пълен (125 от 125, пуснато днес). Но
+# ЕСПН вече пише „UTAH" на СОБСТВЕНИЯ си адрес за отбори — тръгне ли същото
+# и на таблото, всеки мач на Utah тихо остава без модел и числото „с модел"
+# пада с осем на прозорец, без нито една дума. Затова редът стои ПРЕДИ да
+# потрябва, а не след.
+MOST_ESPN_NHL = {"LA": "LAK", "NJ": "NJD", "SJ": "SJS", "TB": "TBL",
+                 "UTAH": "UTA"}
+
 DATI = [
     ("ncaahw", "2026-09-18", "женски колеж — СЪДИЯ ДА, ЦЕНА НЕ"),
     ("nhl_pre", "2026-09-19", "НХЛ предсезон — predictor го РЕЖЕ (gameType 1)"),
@@ -979,6 +1035,67 @@ def _rez_espn(j):
     return out
 
 
+def red_ukratko(red):
+    """Един ред от извора -> („дом", „гост", гол_д, гол_г) или None.
+
+    🔴 СЪЩЕСТВУВА, ЗАЩОТО ЖИВИЯТ РЕЖИМ ГРЪМНА (26.08.2026). `zhivo` пишеше
+    `hn, an, hs, as_ = rr[0]`, а редовете на ЕСПН станаха ШЕСТ полета, когато
+    училището влезе в тях. Пуснато днес, дословно:
+        ValueError: too many values to unpack (expected 4)
+    на първия колежански ден, тоест целият режим „за очи" умираше по средата.
+    Докстрингът на `otsadi` предупреждаваше точно за това и въпреки това
+    съседната функция го правеше — предупреждение в текст не е пазач в код.
+
+    Затова четенето е по ИНДЕКСИ и живее на ЕДНО място, което проверката
+    може да пипне БЕЗ мрежа.
+    """
+    if not isinstance(red, (list, tuple)) or len(red) < 4:
+        return None
+    return (str(red[0]), str(red[1]), red[2], red[3])
+
+
+def _redove_espn(j):
+    """Суровият ЕСПН scoreboard -> редовете на назадния ход. ЧИСТА функция.
+
+    🔴 СЪЩЕСТВУВА, ЗАЩОТО БЕШЕ НЕПРОВЕРИМА. Дотук този разбор живееше вътре в
+    `nazad`, който има мрежа и самопроверката не го пуска. Измерено с мутация
+    26.08.2026: занулиш ли моста ЕСПН->НХЛ вътре в `nazad`, ВСИЧКИТЕ проверки
+    остават зелени. Място, до което мутация не стига, е място без покритие —
+    затова разборът излиза тук, а `nazad` само го вика.
+
+    `hid`/`aid` са номерата, с които `predictor.model_hockey` работи, тоест
+    минават през `MOST_ESPN_NHL`. Сгреши ли се мостът, мачът тихо остава без
+    модел: `model_hockey` връща None, а числото „с модел" пада без нито дума.
+    """
+    out = []
+    for ev in ((j or {}).get("events") or []):
+        if not isinstance(ev, dict):
+            continue
+        c = (ev.get("competitions") or [{}])[0]
+        if (((c.get("status") or {}).get("type") or {}).get("name")
+                != "STATUS_FINAL"):
+            continue
+        h = a = None
+        for k in (c.get("competitors") or []):
+            if k.get("homeAway") == "home":
+                h = k
+            elif k.get("homeAway") == "away":
+                a = k
+        if not h or not a:
+            continue
+        ab_h = (h.get("team") or {}).get("abbreviation") or ""
+        ab_a = (a.get("team") or {}).get("abbreviation") or ""
+        out.append({
+            "id": ev.get("id"), "den": str(ev.get("date") or "")[:10],
+            "hn": (h.get("team") or {}).get("displayName"),
+            "an": (a.get("team") or {}).get("displayName"),
+            "hid": MOST_ESPN_NHL.get(ab_h, ab_h),
+            "aid": MOST_ESPN_NHL.get(ab_a, ab_a),
+            "hs": int(h.get("score") or 0), "as": int(a.get("score") or 0),
+            "hw": bool(h.get("winner"))})
+    return out
+
+
 def rezultati(sadiya_kod, ymd, vzemi=None):
     """[(дом, гост, гол_дом, гол_гост)] за един ден. NEPITAN при отказ.
 
@@ -1187,6 +1304,12 @@ _NHL_DEN = {"games": [
     {"gameState": "FUT",
      "homeTeam": {"name": {"default": "Ducks"}, "abbrev": "ANA", "score": None},
      "awayTeam": {"name": {"default": "Kings"}, "abbrev": "LAK", "score": None}},
+    # 🔴 ЖИВ мач, С ЧИСЛА на таблото. Без него мутацията „приемай и LIVE"
+    # минаваше през всичките проверки: „FUT" няма резултат и отпада по
+    # ВТОРА причина, тоест пазачът за състоянието не се изпитваше.
+    {"gameState": "LIVE",
+     "homeTeam": {"name": {"default": "Kraken"}, "abbrev": "SEA", "score": 1},
+     "awayTeam": {"name": {"default": "Flames"}, "abbrev": "CGY", "score": 0}},
 ]}
 # Истински отговор на ESPN mens-college-hockey, съкратен. Първата среща е от
 # 03.03, останалите две са ДОСЛОВНО от 10.01.2026 и стоят тук заради КАПАНА:
@@ -1221,6 +1344,15 @@ _ESPN_DEN = {"events": [
             {"homeAway": "away", "score": "1",
              "team": {"displayName": "Bemidji State Beavers",
                       "location": "Bemidji State"}}]}]},
+    # 🔴 НЕЗАВЪРШЕН, С ЧИСЛА. Същата причина като „LIVE" при НХЛ.
+    {"competitions": [{
+        "status": {"type": {"name": "STATUS_IN_PROGRESS"}},
+        "competitors": [
+            {"homeAway": "home", "score": "2",
+             "team": {"displayName": "Colgate Raiders", "location": "Colgate"}},
+            {"homeAway": "away", "score": "1",
+             "team": {"displayName": "Cornell Big Red",
+                      "location": "Cornell"}}]}]},
 ]}
 
 # 🔴 СЪКРАЩЕНИЕ ВМЕСТО ИМЕ. Три реда, всеки отговаря на отделен въпрос:
@@ -1233,9 +1365,23 @@ _A = {
     "902": ("New York Rangers", "Buffalo Sabres", "NHL",
             "2026-09-29T21:00:00Z"),
     "903": ("RIT", "Colgate", "NCAA", "2026-10-02T23:00:00Z"),
+    # 🔴 САМО ЕДНАТА СТРАНА Е СЪКРАЩЕНИЕ. Без този ред мутацията, която сменя
+    # „ИЛИ" с „И" в пазача, минаваше през всичките проверки — 901 има ДВЕ
+    # съкратени страни и пада и по двете условия. Карта „BUF vs Boston
+    # Bruins" е точно толкова неотсъдима, колкото „NYR vs BUF".
+    "904": ("BUF", "Boston Bruins", "NHL", "2026-09-29T21:00:00Z"),
+    # 🔴 И ОБРАТНАТА СТРАНА. С 901 и 904 съкращението стоеше или от двете
+    # страни, или само отляво — тоест пазач, който гледа САМО домакина, беше
+    # неразличим от верния. Близнакът на всяка поправка.
+    "905": ("Boston Bruins", "BUF", "NHL", "2026-09-29T21:00:00Z"),
+    # 🔴 И ЗАПОЧНАЛ МАЧ СЪС СЪКРАЩЕНИЕ. Редът на отпадането е част от
+    # отговора: съкращенията се броят ПРЕДИ прозореца на деня. Без този ред
+    # мутация, която ги мери СЛЕД него, не се различаваше от верния код.
+    "906": ("NYR", "BUF", "NHL", "2026-08-25T16:05:00Z"),
 }
 _AC = {"901": (1.90, 1.90, None), "902": (1.90, 1.90, None),
-       "903": (1.90, 1.90, None)}
+       "903": (1.90, 1.90, None), "904": (1.90, 1.90, None),
+       "905": (1.90, 1.90, None), "906": (1.90, 1.90, None)}
 
 
 class _FalshivPinnacle(object):
@@ -1555,9 +1701,24 @@ def selftest():
     _ga, _go = sito(_A, _AC, _T0, None)
     _imena = [g["dom"] for g in _ga]
     check("🔴 НХЛ картата „NYR vs BUF\" НЕ излиза",
-          "NYR" not in _imena and len(_go["abreviaturi"]) == 1)
+          "NYR" not in _imena and len(_go["abreviaturi"]) == 4)
     check("и се брои ПОИМЕННО, не като число",
           _go["abreviaturi"][0][0] == "NYR" and _go["abreviaturi"][0][1] == "BUF")
+    # 🔴 ЕДНАТА СТРАНА СТИГА. Пазачът е „ИЛИ", не „И": сгреши ли се съюзът,
+    # картата „BUF vs Boston Bruins" излиза и виси вечно неотсъдена.
+    check("🔴 стига ЕДНАТА страна да е съкращение",
+          "Boston Bruins" not in _imena
+          and _go["abreviaturi"][1][0] == "BUF"
+          and _go["abreviaturi"][1][1] == "Boston Bruins")
+    check("🔴 и от ДРУГАТА страна също",
+          _go["abreviaturi"][2][0] == "Boston Bruins"
+          and _go["abreviaturi"][2][1] == "BUF")
+    # 🔴 РЕДЪТ НА ОТПАДАНЕТО, ИЗМЕРЕН: започнал мач със съкращение се брои
+    # като СЪКРАЩЕНИЕ, не като „започнал". Обратният ред прави числото
+    # „съкращения" по-малко от истината и мярката спира да значи каквото
+    # твърди.
+    check("🔴 съкращението се брои ПРЕДИ прозореца на деня",
+          _go["abreviaturi"][3][0] == "NYR" and _go["zapochnali"] == 0)
     # 🔴 БЕЗ ТАЗИ ПРОВЕРКА горната е зелена и когато пазачът яде ВСИЧКО.
     check("СЪЩИЯТ мач с истинските имена ИЗЛИЗА",
           "New York Rangers" in _imena)
@@ -1578,7 +1739,7 @@ def selftest():
           _go["godni"] + _go["bez_data"] + _go["zapochnali"] + _go["bez_cena"]
           + _go["schupeni"] + _go["izvan"] + len(_go["spekulativni"])
           + len(_go["abreviaturi"]) + sum(_go["nesadimi"].values())
-          == _go["vsichko"] == 3)
+          == _go["vsichko"] == 6)
 
     # ─────────────────────────────────────────────────── КРЪСТОСВАНЕТО
     kr = krastosvane(_M)
@@ -1709,6 +1870,37 @@ def selftest():
     check("два прякора от ЕДНА страна мълчат",
           cena("Hurricanes", "Maple Leafs", ind=ind) is None)
     check("твърде къс прякор мълчи", cena("Bru", "Ran", ind=ind) is None)
+    # 🔴 И ТУК ПРАГЪТ Е ПОВЕДЕНИЕ, НЕ ЧИСЛО. „Bru"/„Ran" не са наставки на
+    # нищо, тоест мълчат и БЕЗ праг — проверката над тази беше зелена и при
+    # праг ДВА. Истинският случай е свален живо от витрината: „AIK IF
+    # Stockholm" срещу „Almtuna IS", където „IS" НАИСТИНА е наставка.
+    _kys = [{"id": "600", "dom": "AIK IF Stockholm", "gost": "Almtuna IS",
+             "liga": "NHL", "start": "", "cena_dom": 1.37, "cena_gost": 2.83,
+             "nd": "aikifstockholm", "ng": "almtunais"}]
+    check("предпоставката е вярна — двузнаковото НАИСТИНА е наставка",
+          _kys[0]["ng"].endswith(_norm("IS")))
+    check("🔴 и въпреки това двузнаковото име МЪЛЧИ",
+          _dvoyka_po_nastavka(_kys, "Stockholm", "IS") == []
+          and cena("Stockholm", "IS", ind=_kys) is None)
+    check("а пълното име до него се връзва през СЪЩИЯ мост",
+          _rechnik(cena("Stockholm", "Almtuna IS", ind=_kys)).get("dom") == 1.37)
+    # 🔴 ДВЕ ЕДНАКВИ ТОЧНИ СЪВПАДЕНИЯ СА СПОР, НЕ ИЗБОР — и тук стои и едно
+    # ЧЕСТНО ЧИСЛО ЗА САМАТА ПРОВЕРКА. Мутацията „приемай и повече от едно
+    # точно съвпадение" (`len(tochni) > 1` -> `> 99`) ОЦЕЛЯВА и с този ред, и
+    # това НЕ Е дупка в проверката, а измерено свойство на кода: всеки точно
+    # съвпаднал запис задължително пасва и по наставка, тоест същите два
+    # записа пак стигат до `len(dvoyki) != 1` и пак мълчат. Ранното връщане е
+    # ВТОРИ КОЛАН, не единственият. Записано, за да не тръгне някой утре да
+    # „поправя" оцеляла мутация, която няма какво да убие.
+    _bliz = [dict(_kys[0], id="601", nd="bostonbruins", ng="newyorkrangers",
+                  dom="Boston Bruins", gost="New York Rangers", cena_dom=1.5),
+             dict(_kys[0], id="602", nd="bostonbruins", ng="newyorkrangers",
+                  dom="Boston Bruins", gost="New York Rangers", cena_dom=2.5)]
+    check("🔴 два записа с ЕДНА И СЪЩА точна двойка мълчат",
+          cena("Boston Bruins", "New York Rangers", ind=_bliz) is None)
+    check("а сам по себе си всеки от тях се намира",
+          _rechnik(cena("Boston Bruins", "New York Rangers",
+                        ind=[_bliz[0]])).get("dom") == 1.5)
     check("непозната двойка мълчи", cena("Иван", "Драган", ind=ind) is None)
     check("празни имена мълчат", cena("", "", ind=ind) is None)
     check("None имена не гърмят", cena(None, None, ind=ind) is None)
@@ -1850,8 +2042,156 @@ def selftest():
           otsadi("Rangers", "Sabres",
                  [("Rangers", "Sabres", 1, 2), ("Rangers", "Sabres", 3, 0)])
           is None)
+    # 🔴 КЪС РЕД НЕ Е РЕД. Изворът може да върне двойка без резултат; четенето
+    # по индекси значи, че такъв ред ГЪРМИ с IndexError, ако прагът за
+    # дължина падне. Проверката иска и двете: да не гърми И да не спре
+    # четенето на добрия ред след него.
+    check("🔴 счупен ред нито гърми, нито спира добрия",
+          otsadi("Rangers", "Sabres",
+                 [("Rangers", "Sabres"), ("Rangers", "Sabres", 3, 5)]) == "2")
+    check("ред, който не е списък, също не гърми",
+          otsadi("Rangers", "Sabres",
+                 [None, "боклук", 7, ("Rangers", "Sabres", 3, 5)]) == "2")
+    # 🔴 ЕДИН И СЪЩ ОТБОР ОТ ДВЕТЕ СТРАНИ НЕ Е МАЧ — и ЧЕСТНОТО ЧИСЛО ДО НЕГО:
+    # мутацията, която маха `nd == ng`, ОЦЕЛЯВА и с този ред. Не е дупка, а
+    # измерено свойство: при еднакви имена изразите за „пряко" и „обратно"
+    # стават ДОСЛОВНО еднакви, тоест пазачът срещу двупосочния сблъсък хваща
+    # случая и без ранното връщане. Ранното връщане е ВТОРИ КОЛАН. Проверката
+    # остава, защото пази ПОВЕДЕНИЕТО, а не конкретния ред код.
+    check("🔴 еднакви имена от двете страни МЪЛЧАТ",
+          otsadi("Rangers", "Rangers", r_nhl) is None
+          and otsadi("New York Rangers", "new york rangers", r_nhl) is None)
+    # ───────────────────────── НАЗАДНИЯТ ХОД: МОСТЪТ ЕСПН -> НХЛ
+    # Подхвърленият ден носи ТРИТЕ случая наведнъж: отбор, чието съкращение
+    # съвпада (BOS), отбор, който ЕСПН пише по-късо (LA -> LAK), и Utah,
+    # който ЕСПН вече пише „UTAH" на адреса си за отбори, а НХЛ пише „UTA".
+    _espn_nazad = {"events": [
+        {"id": "401", "date": "2026-04-08T23:00:00Z", "competitions": [{
+            "status": {"type": {"name": "STATUS_FINAL"}},
+            "competitors": [
+                {"homeAway": "home", "score": "4", "winner": True,
+                 "team": {"displayName": "Boston Bruins",
+                          "abbreviation": "BOS"}},
+                {"homeAway": "away", "score": "1",
+                 "team": {"displayName": "Los Angeles Kings",
+                          "abbreviation": "LA"}},
+                # 🔴 ТРЕТИ УЧАСТНИК, КОЙТО НЕ Е НИТО ДОМАКИН, НИТО ГОСТ.
+                # Без него мутация, която сменя `elif away` с голо `else`,
+                # беше неразличима от верния код — а тя мълчаливо подменя
+                # госта с последния срещнат запис.
+                {"homeAway": "neutral", "score": "0",
+                 "team": {"displayName": "Няма такъв отбор",
+                          "abbreviation": "XXX"}}]}]},
+        {"id": "402", "date": "2026-04-08T01:00:00Z", "competitions": [{
+            "status": {"type": {"name": "STATUS_FINAL"}},
+            "competitors": [
+                {"homeAway": "home", "score": "2",
+                 "team": {"displayName": "Utah Mammoth",
+                          "abbreviation": "UTAH"}},
+                {"homeAway": "away", "score": "3", "winner": True,
+                 "team": {"displayName": "Vegas Golden Knights",
+                          "abbreviation": "VGK"}}]}]},
+        {"id": "403", "date": "2026-04-09T01:00:00Z", "competitions": [{
+            "status": {"type": {"name": "STATUS_IN_PROGRESS"}},
+            "competitors": [
+                {"homeAway": "home", "score": "1",
+                 "team": {"displayName": "Seattle Kraken",
+                          "abbreviation": "SEA"}},
+                {"homeAway": "away", "score": "0",
+                 "team": {"displayName": "Calgary Flames",
+                          "abbreviation": "CGY"}}]}]},
+    ]}
+    _nz = _redove_espn(_espn_nazad)
+    check("назадният ход чете само завършените", len(_nz) == 2)
+    check("и не пипа съвпадащото съкращение", _nz[0]["hid"] == "BOS")
+    check("а по-късото го превежда", _nz[0]["aid"] == "LAK")
+    # 🔴 ТОЧНО ТОЗИ РЕД БЕШЕ НЕПРОВЕРИМ ДО ДНЕС. „UTAH" не е ключ в
+    # `predictor.nhl_table` — пуснато живо 26.08.2026: model_hockey(UTA) дава
+    # p_home 0.563, model_hockey(UTAH) дава None. Тоест без превода мачът
+    # мълчаливо остава без модел.
+    check("🔴 и Utah получава НХЛ формата, не ЕСПН",
+          _nz[1]["hid"] == "UTA" and _nz[1]["aid"] == "VGK")
+    check("резултатът и победителят се пренасят",
+          _nz[0]["hs"] == 4 and _nz[0]["as"] == 1 and _nz[0]["hw"] is True
+          and _nz[1]["hw"] is False)
+    check("денят се реже до дата", _nz[0]["den"] == "2026-04-08")
+    check("празен и счупен вход не гърмят",
+          _redove_espn({}) == [] and _redove_espn(None) == []
+          and _redove_espn({"events": [None, 7, "боклук"]}) == [])
+    check("третият участник НЕ подменя госта",
+          _nz[0]["aid"] == "LAK" and _nz[0]["an"] == "Los Angeles Kings")
+    # 🔴 СЪЩИЯТ ПАЗАЧ И ПРИ СЪДИЯТА. `_rez_espn` чете от СЪЩИЯ адрес; счупено
+    # събитие там значи гръмнал отчет вместо мълчание, тоест един боклучав
+    # запис събаря отсъждането на ЦЕЛИЯ ден.
+    check("🔴 счупено събитие при съдията също не гърми",
+          _rez_espn({"events": [None, 7, "боклук"]}) == []
+          and _rez_espn({}) == [] and _rez_espn(None) == [])
+    check("и през rezultati също",
+          rezultati("ncaam", "2026-03-03",
+                    vzemi=lambda u: {"events": [None, "боклук"]}) == [])
+    # 🔴 ЧЕТЕНЕТО ПО ИНДЕКСИ, А НЕ ПО РАЗОПАКОВАНЕ. Живият режим гръмна точно
+    # тук на 26.08.2026: „too many values to unpack (expected 4)" върху
+    # шестополевия ред на ЕСПН. Проверката иска ЕДНО И СЪЩО поведение за
+    # четирите полета на НХЛ и за шестте на ЕСПН.
+    check("🔴 четириполевият ред се чете", red_ukratko(r_nhl[0]) is not None)
+    check("🔴 и шестополевият СЪЩО, без да гърми",
+          red_ukratko(r_esp[0]) is not None
+          and len(red_ukratko(r_esp[0])) == 4)
+    check("двата реда дават еднаква форма",
+          len(red_ukratko(r_nhl[0])) == len(red_ukratko(r_esp[0])))
+    check("и точно първите четири полета",
+          red_ukratko(r_esp[1])[0] == "Penn State Nittany Lions"
+          and red_ukratko(r_esp[1])[2] == 5)
+    check("къс или счупен ред дава None, не изключение",
+          red_ukratko(("A", "B")) is None and red_ukratko(None) is None
+          and red_ukratko("боклук") is None and red_ukratko([]) is None)
     check("ESPN адресът е за scoreboard", "scoreboard" in SADII["ncaam"])
     check("НХЛ адресът е на api-web", "api-web.nhle.com" in SADII["nhl"])
+    # 🔴 ЖИВИЯТ И НЕЗАВЪРШЕНИЯТ МАЧ НЕ СА РЕЗУЛТАТ. И двата носят числа на
+    # таблото, тоест отпадат САМО заради състоянието си — точно това, което
+    # мутацията „приемай и LIVE" беше свободна да развали, докато в
+    # подхвърления ден имаше единствено мач БЕЗ числа.
+    check("🔴 ЖИВИЯТ мач НЕ влиза в резултатите",
+          all(x[0] != "Kraken" for x in r_nhl) and len(r_nhl) == 1)
+    check("🔴 и незавършеният при ЕСПН също не влиза",
+          all(x[0] != "Colgate Raiders" for x in r_esp) and len(r_esp) == 3)
+    # 🔴 ПРАГЪТ ЧЕТИРИ Е ЧАСТ ОТ МОСТА, НЕ УКРАСА. Симетрията отвори втората
+    # посока; без долна граница „ins" е наставка на „bostonbruins" и
+    # тризнакови съкращения биха се връзвали за когото сварят. Мерено живо
+    # днес: всичките 32 съкращения на НХЛ са ТРИзнакови, а най-късият прякор
+    # е ЧЕТИРИзнаков („Wild", „Jets") — прагът разделя двете множества без
+    # нито едно изключение.
+    check("🔴 къс низ НЕ е наставка, колкото и да пасва",
+          _kraj("bostonbruins", "ins") is False
+          and _kraj("newyorkrangers", "ers") is False)
+    check("а четири знака се връзват", _kraj("winnipegjets", "jets") is True)
+    check("празното не се връзва за нищо",
+          _kraj("", "bruins") is False and _kraj("bruins", "") is False)
+    # 🔴 ЦЕНАТА НА СИМЕТРИЯТА, ПЛАТЕНА НА ГЛАС. Откакто `_kraj` пита и в двете
+    # посоки, един ред може да пасне И ДВУПОСОЧНО: „Stars" е наставка на
+    # „Red Stars". Тогава коя страна е нашият домакин НЕ СЕ ЗНАЕ, а гадаенето
+    # ѝ обръща присъдата на 180 градуса. Мълчанието тук не е предпазливост, а
+    # единственият честен изход. Мерено живо върху 10 дни и 850 имена: нула
+    # такива сблъсъка днес — но „днес" не е „никога".
+    _dvup = [("Stars", "Red Stars", 2, 1)]
+    check("предпоставката е вярна — редът пасва И В ДВЕТЕ посоки",
+          _strana(_norm("Stars"), "", _norm("Stars"))
+          and _strana(_norm("Red Stars"), "", _norm("Stars"))
+          and _strana(_norm("Stars"), "", _norm("Red Stars")))
+    check("🔴 и точно затова двупосочният ред МЪЛЧИ",
+          otsadi("Stars", "Red Stars", _dvup) is None)
+    check("а еднопосочният до него пак се отсъжда",
+          otsadi("Red Stars", "Blue Wings",
+                 [("North Red Stars", "Blue Wings", 3, 1)]) == "1")
+    # 🔴 МОСТЪТ ЕСПН -> НХЛ: числото, а не думата. Пуснато живо 26.08.2026
+    # срещу api-web /standings/now и ЕСПН /nhl/teams.
+    check("мостът покрива петте разминаващи се съкращения",
+          MOST_ESPN_NHL == {"LA": "LAK", "NJ": "NJD", "SJ": "SJS",
+                            "TB": "TBL", "UTAH": "UTA"})
+    check("мостът не пипа съвпадащите",
+          all(a not in MOST_ESPN_NHL for a in ("BOS", "NYR", "UTA", "WSH")))
+    check("всяко изходно съкращение е НХЛ формата — три знака",
+          all(len(v) == 3 for v in MOST_ESPN_NHL.values()))
 
     # ─────────────────────────────────────────── КАПАНЪТ НА 29.09
     class _TabPrazna(object):
@@ -1969,9 +2309,10 @@ def zhivo():
             print("   🔴 %-6s %s  ОТКАЗ" % (kod, ymd))
             continue
         print("   ✅ %-6s %s  %d завършени мача" % (kod, ymd, len(rr)))
-        if rr:
-            hn, an, hs, as_ = rr[0]
-            print("        %s %d : %d %s   ->   присъда „%s\""
+        _pryv = red_ukratko(rr[0]) if rr else None
+        if _pryv:
+            hn, an, hs, as_ = _pryv
+            print("        %s %s : %s %s   ->   присъда „%s\""
                   % (hn, hs, as_, an, otsadi(hn, an, rr)))
     try:
         print()
@@ -2005,31 +2346,9 @@ def nazad(prozorec="20260401-20260416", kolko=5):
     if j is None:
         print("🔴 ESPN не отговори")
         return 1
-    # ESPN пише LA/NJ/SJ/TB, НХЛ пише LAK/NJD/SJS/TBL. Четири от 32.
-    MOST = {"LA": "LAK", "NJ": "NJD", "SJ": "SJS", "TB": "TBL"}
-    redove = []
-    for ev in (j.get("events") or []):
-        c = (ev.get("competitions") or [{}])[0]
-        if (((c.get("status") or {}).get("type") or {}).get("name")
-                != "STATUS_FINAL"):
-            continue
-        h = a = None
-        for k in (c.get("competitors") or []):
-            if k.get("homeAway") == "home":
-                h = k
-            elif k.get("homeAway") == "away":
-                a = k
-        if not h or not a:
-            continue
-        ab_h = (h.get("team") or {}).get("abbreviation") or ""
-        ab_a = (a.get("team") or {}).get("abbreviation") or ""
-        redove.append({
-            "id": ev.get("id"), "den": str(ev.get("date") or "")[:10],
-            "hn": (h.get("team") or {}).get("displayName"),
-            "an": (a.get("team") or {}).get("displayName"),
-            "hid": MOST.get(ab_h, ab_h), "aid": MOST.get(ab_a, ab_a),
-            "hs": int(h.get("score") or 0), "as": int(a.get("score") or 0),
-            "hw": bool(h.get("winner"))})
+    # Разборът е в `_redove_espn` — чиста функция, за да може мостът
+    # ЕСПН->НХЛ да бъде изпитан без мрежа. Виж докстринга ѝ.
+    redove = _redove_espn(j)
     print("🏒 НАЗАДНИЯТ ХОД · прозорец %s" % prozorec)
     print("   завършени мача: %d" % len(redove))
     s_cena = s_model = s_pat = 0
