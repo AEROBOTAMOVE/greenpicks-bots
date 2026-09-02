@@ -168,17 +168,113 @@ OTVARYA = {
 }
 
 
-def razcheti_izkl(raw):
-    """PREDICT_IZKL -> множеството затворени спортове. Копие на predictor.
+def izkl_ot_yml(chetec=None):
+    """Подразбирането на PREDICT_IZKL, ПРОЧЕТЕНО от predict.yml. None = не знам.
 
-    ЗАЩО копие: `predictor.py` (редове 420-423, четени на 25.08.2026) прави
-    точно това — липсваща променлива значи закованото „hockey,amfootball",
-    а ПРАЗЕН низ значи „нищо не е затворено". Двете НЕ са едно и също и
-    точно тази разлика решава дали алармата има право да гърми.
+    🔴 ЗАЩО СЪЩЕСТВУВА (02.09.2026). Долу стоеше заковано
+    {"hockey", "amfootball"} — копие на подразбирането в predictor.py от
+    11.08. Същия ден амер. футбол беше ОТВОРЕН (predict.yml вече казва
+    'hockey', черната кутия го потвърждава с 6 срещи и излязла карта), а
+    стъпката в daily.yml НЕ подава ключа изобщо. Резултат: будилникът
+    викаше «ncaaf играе, а кошът е затворен» и връщаше изход 2 — вечно, за
+    спорт, който вече работи.
+    Копие, което помни, изгнива. Затова тук се ЧЕТЕ живият файл.
+    """
+    import re as _re
+    if chetec is not None:
+        t = chetec()
+    else:
+        t = None
+        for baza in (".github/workflows", "../.github/workflows"):
+            p = os.path.join(baza, "predict.yml")
+            if os.path.exists(p):
+                # 🔴 ВГРАДЕНИЯТ open, не io.open (02.09.2026): sezon.py НЕ
+                # внася `io`, тоест io.open вдигаше NameError — а долният
+                # `except` го преглъщаше и връщаше «не знам». Пазач, който
+                # крие собствената си програмна грешка, е по-лош от липсващ.
+                # Затова се хваща САМО грешка при ЧЕТЕНЕ; всичко останало
+                # гърми на глас.
+                try:
+                    with open(p, encoding="utf-8-sig") as f:
+                        t = f.read()
+                except (OSError, UnicodeDecodeError):
+                    return None
+                break
+    if t is None:
+        return None
+    m = _re.search(r"PREDICT_IZKL:\s*\$\{\{[^}]*\|\|\s*'([^']*)'", t)
+    if m:
+        return m.group(1)
+    m = _re.search(r"^\s*PREDICT_IZKL:\s*(.+)$", t, _re.M)
+    if m and "${{" not in m.group(1):
+        return m.group(1).strip().strip("'").strip('"')
+    if m:
+        # редът го има, но без подразбиране -> празно значи «нищо затворено»
+        return ""
+    return None
+
+
+def razcheti_izkl(raw, chetec=None):
+    """PREDICT_IZKL -> множеството затворени спортове.
+
+    ПРАЗЕН низ значи „нищо не е затворено"; None значи „не ми подадоха
+    ключа" — и тогава се пита predict.yml, а не паметта. Двете НЕ са едно
+    и също и точно тази разлика решава дали алармата има право да гърми.
     """
     if raw is None:
+        ot_yml = izkl_ot_yml(chetec)
+        if ot_yml is not None:
+            return {s.strip().lower() for s in ot_yml.split(",") if s.strip()}
         return {"hockey", "amfootball"}
     return {s.strip().lower() for s in str(raw).split(",") if s.strip()}
+
+
+def _proveri_izkl(ck):
+    """Пазач за izkl_ot_yml/razcheti_izkl. Викан от selftest.
+
+    🔴 ЗАЩО (02.09.2026). Стъпката «Сезонен будилник» в daily.yml НЕ подаваше
+    PREDICT_IZKL, а razcheti_izkl(None) връщаше заковано {"hockey",
+    "amfootball"} — копие на подразбирането от 11.08. Същия ден амер. футбол
+    беше ОТВОРЕН и будилникът викаше «ncaaf играе, а кошът е затворен»,
+    връщайки изход 2 при всяко пускане. Вечна фалшива тревога.
+    И втори дефект в самата поправка: първата ѝ версия ползваше io.open, а
+    този файл НЕ внася io — NameError се преглъщаше от широк except и
+    функцията пак връщаше «не знам». Пазач, който крие собствената си
+    програмна грешка.
+    """
+    # ЧЕТЕНЕТО НА YML-А — поведенчески, с подхвърлен текст
+    ck("чете подразбирането от yml",
+       izkl_ot_yml(lambda: "  PREDICT_IZKL: ${{ vars.PREDICT_IZKL || 'hockey' }}")
+       == "hockey")
+    ck("чете и празно подразбиране",
+       izkl_ot_yml(lambda: "  PREDICT_IZKL: ${{ vars.PREDICT_IZKL || '' }}") == "")
+    ck("чете и закована стойност без ${{ }}",
+       izkl_ot_yml(lambda: "  PREDICT_IZKL: hockey,amfootball")
+       == "hockey,amfootball")
+    ck("ред без подразбиране значи «нищо затворено»",
+       izkl_ot_yml(lambda: "  PREDICT_IZKL: ${{ vars.PREDICT_IZKL }}") == "")
+    ck("липсващ ред дава «не знам», не празно",
+       izkl_ot_yml(lambda: "on: {}") is None)
+    ck("липсващ файл дава «не знам»", izkl_ot_yml(lambda: None) is None)
+
+    # РАЗЧИТАНЕТО — трите състояния са РАЗЛИЧНИ
+    ck("подаден ключ бие всичко", razcheti_izkl("hockey") == {"hockey"})
+    ck("празен низ значи НИЩО затворено", razcheti_izkl("") == set())
+    ck("без ключ се пита yml-ът, не паметта",
+       razcheti_izkl(None, chetec=lambda: "  PREDICT_IZKL: ${{ v || 'hockey' }}")
+       == {"hockey"})
+    ck("без ключ и без yml се пада на стария списък",
+       razcheti_izkl(None, chetec=lambda: None) == {"hockey", "amfootball"})
+
+    # 🔴 ЖИВИЯТ ФАЙЛ. Ако този ред падне, значи или predict.yml се е сменил,
+    # или четенето пак е счупено — и двете искат да се видят веднага.
+    zhiv = izkl_ot_yml()
+    ck("живият predict.yml се чете наистина (%s)" % repr(zhiv), zhiv is not None)
+
+    # И че поправката на io.open не се е върнала: широк except върху
+    # програмна грешка би върнал None вместо да гръмне.
+    izv = izkl_ot_yml.__code__.co_names
+    ck("не се лови всичко подред", "Exception" not in izv)
 
 
 def zatvoreni_pri_starta():
@@ -994,8 +1090,18 @@ def selftest():
           nhl_imena_na_den(None, d0) == [] and nhl_imena_na_den({}, d0) == [])
 
     # --- ключалката: липсваща променлива и празна променлива НЕ са едно
-    check("ключалка: липсваща променлива = закованото в predictor",
-          razcheti_izkl(None) == {"hockey", "amfootball"})
+    # 🔴 ОБЪРНАТА 02.09.2026, не изтрита. Дотук тук се заковаваше, че
+    # липсващата променлива значи {"hockey","amfootball"} — копие на
+    # подразбирането от 11.08. Същия ден амер. футбол беше ОТВОРЕН
+    # (predict.yml вече казва «hockey»), а копието държеше будилника
+    # да вика «затворен спорт играе» вечно. Сега липсващата променлива
+    # значи «питай живия predict.yml», и САМО ако и той мълчи — старият
+    # списък. Намерението е същото: липсващо и празно НЕ са едно.
+    check("ключалка: липсваща променлива пита ЖИВИЯ yml",
+          razcheti_izkl(None, chetec=lambda: "PREDICT_IZKL: ${{ v || 'hockey' }}") == {"hockey"})
+    check("ключалка: без ключ И без yml = старият списък",
+          razcheti_izkl(None, chetec=lambda: None)
+          == {"hockey", "amfootball"})
     check("🔴 ключалка: ПРАЗЕН низ = нищо затворено (не е същото като липсваща)",
           razcheti_izkl("") == set())
     check("ключалка: един спорт", razcheti_izkl("hockey") == {"hockey"})
@@ -1204,7 +1310,8 @@ def selftest():
     # Долна граница на БРОЯ: проверка, която тихо се самоизключи (върнат
     # рано `if`, изяден блок), се вижда само тук. Числото е измереното на
     # 25.08.2026 след добавянето на алармата — 50 стари + 39 нови.
-    check("броят проверки е поне 96", ok >= 96)
+    _proveri_izkl(check)
+    check("броят проверки е поне 107", ok >= 107)
 
     print("САМОПРОВЕРКА НА SEZON: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
