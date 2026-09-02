@@ -82,7 +82,36 @@ VAZHNI = (
 # Измерено върху 55 пускания (12.08.2026): медиана 65 мин, 34 от 55 над час.
 # Гратисът е по-голям от медианата НАРОЧНО — пазач, който крещи напразно, се
 # научава да се пренебрегва.
-GRATIS_MIN = max(15, min(600, int((os.environ.get("ZDRAVE_GRATIS") or "100").strip() or 100)))
+# 🔴 ИЗМЕРЕН, НЕ ПРЕЦЕНЕН (02.09.2026). Беше 100 мин и това правеше пазача
+# лъжец: на 25 рънa назад support.yml надхвърляше допуска си при 24 от 24
+# паузи, pazach.yml при 22 от 24, news при 4, score при 4, daily при 3.
+# Тоест редът «не е успявал от» — който е в тежките на daily.yml — е бил
+# ФАЛШИВ през повечето дни. Пазач, който вика на вятъра, спира да се чете.
+#
+# Закъснението на GitHub НЕ зависи от периода на крона: то е на опашката.
+# Измерено над периода: router 0.1ч · predict 2.7ч · pazach 6.5ч ·
+# score 7.2ч · support 7.9ч · news 8.9ч · matches 10.7ч.
+# 720 мин (12 ч) покрива най-голямото измерено, с запас.
+#
+# ⚠ ЦЕНАТА, честно: истинско мълчание се хваща след ~13 ч вместо след 2.7 ч.
+# Приемам я, защото при стария праг тревогата беше вярна 1 път на 24.
+# Стягането става с ключ, без пипане на код: ZDRAVE_GRATIS=100.
+def gratis_ot_sreda(sur=None):
+    """Гратисът в минути. Изнесен във функция НАРОЧНО (02.09.2026).
+
+    Мутация «махни ключа» ОЦЕЛЯ, защото проверката търсеше името му в
+    ТЕКСТА на файла — а то стои и в обяснителния коментар отгоре. Функция
+    се пита поведенчески и такава мутация няма къде да се скрие.
+    """
+    s = sur if sur is not None else os.environ.get("ZDRAVE_GRATIS")
+    try:
+        v = int(str(s or "720").strip())
+    except ValueError:
+        v = 720
+    return max(15, min(1200, v))
+
+
+GRATIS_MIN = gratis_ot_sreda()
 
 # Заключенията, които БРОИМ ЗА ЧЕРВЕНО. Останалите (cancelled, skipped,
 # neutral) НЕ са провал, но не са и успех — за тях се пише „не мога да
@@ -419,13 +448,41 @@ def _lokalen_yml(ime):
     return None
 
 
-def dopusk_min(ime, chetec=None):
-    """Колко минути мълчание са ДОПУСТИМИ за този workflow. None = не знам."""
+VANSHNI_SABITIYA = ("workflow_dispatch", "repository_dispatch")
+GRATIS_VANSHEN = gratis_ot_sreda(os.environ.get("ZDRAVE_GRATIS_VANSHEN") or "60")
+
+
+def vanshno_budeno(rr, prag=0.5):
+    """Буди ли се този workflow ОТВЪН, а не от разписанието на GitHub.
+
+    🔴 Това е ПРИЧИНАТА за закъсненията, не периодът (измерено 02.09.2026).
+    router.yml върви на 10 минути и никога не закъсва — 97% от рънoвете му
+    идват от външния будилник. Всички останали са 100% schedule и закъсняват
+    6-11 ч, независимо дали кронът им е 15-минутен или денонощен.
+    """
+    if not rr or rr is NEPITAN:
+        return False
+    n = 0
+    for r in rr:
+        if str((r or {}).get("event") or "") in VANSHNI_SABITIYA:
+            n += 1
+    return (float(n) / len(rr)) >= prag
+
+
+def dopusk_min(ime, chetec=None, rr=None):
+    """Колко минути мълчание са ДОПУСТИМИ за този workflow. None = не знам.
+
+    Гратисът е ДВОЕН: външно будените стигат с малък (иначе истинско
+    мълчание се крие с часове), а разчитащите на GitHub искат голям (иначе
+    пазачът вика на вятъра при всяка втора пауза).
+    """
     t = (chetec or _lokalen_yml)(ime)
     if t is None:
         return None
     p = period_min(cron_ot_yml(t))
-    return None if p is None else p + GRATIS_MIN
+    if p is None:
+        return None
+    return p + (GRATIS_VANSHEN if vanshno_budeno(rr) else GRATIS_MIN)
 
 
 def _kogato(r):
@@ -517,8 +574,16 @@ def obhod(chetec=None, yml=None, sega=None):
     """
     chetec = chetec or runove_na
     sega = sega or datetime.now(timezone.utc)
-    return [sadi_workflow(ime, opis, chetec(ime), dopusk_min(ime, yml), sega)
-            for ime, opis in VAZHNI]
+    # 🔴 Рънoвете се четат ВЕДНЪЖ и се подават и на двете: присъдата ги
+    # ползва за поредните провали, а допускът — за да разбере КОЙ буди
+    # workflow-а. Дотук списъчното извличане ги четеше само за присъдата,
+    # а допускът гадаеше по периода на крона — и грешеше.
+    out = []
+    for ime, opis in VAZHNI:
+        _r = chetec(ime)
+        out.append(sadi_workflow(ime, opis, _r,
+                                 dopusk_min(ime, yml, _r), sega))
+    return out
 
 
 def kraj_za_visyashti(sc):
@@ -1256,9 +1321,11 @@ def main():
 # Тестовете тук са ПОВЕДЕНЧЕСКИ: подхвърлят се рънове и yml-текст, гледа се
 # ИЗХОДЪТ. Текстова игла, чиято копа сено е съседният коментар, минава и на
 # счупен файл — това ни ухапа четири пъти в този проект.
-def _run(zakl, chasa_nazad, sega, status="completed"):
+def _run(zakl, chasa_nazad, sega, status="completed", event="schedule"):
+    # `event` е добавен 02.09.2026: гратисът зависи от КОЙ буди workflow-а,
+    # значи подхвърленият рън трябва да може да каже това.
     t = sega - timedelta(hours=chasa_nazad)
-    return {"name": "x", "status": status, "conclusion": zakl,
+    return {"name": "x", "status": status, "conclusion": zakl, "event": event,
             "run_started_at": t.strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
@@ -1546,6 +1613,96 @@ def selftest():
           cron_ot_yml("# - cron: '0 1 * * *'\n  - cron: '0 2 * * *'")
           == ["0 2 * * *"])
     check("липсващ yml → няма праг", dopusk_min("nyama.yml", lambda i: None) is None)
+
+    # ── 5б. ДОПУСКЪТ ПОКРИВА ИЗМЕРЕНОТО ЗАКЪСНЕНИЕ (02.09.2026) ──────────
+    # Измерено на 25 рънa назад: най-голямото закъснение НАД периода е
+    # 10.7 ч (matches.yml), а най-честият лъжец беше support.yml — 15
+    # минутен крон, чиито паузи стигат 8.1 ч. Тези проверки заковават
+    # измерването: върне ли някой гратиса на 100 мин, те гърмят.
+    check("гратисът покрива измерените 10.7 ч закъснение",
+          GRATIS_MIN >= 11 * 60)
+    check("15-минутен крон издържа 8 часа пауза",
+          dopusk_min("x.yml", lambda i: "  - cron: '7,22,37,52 * * * *'\n")
+          > 8 * 60)
+    check("денонощен крон издържа 34 часа пауза",
+          dopusk_min("x.yml", lambda i: "  - cron: '30 3 * * *'\n") > 34 * 60)
+    # И ОБРАТНАТА ПОСОКА: гратисът не бива да е толкова широк, че истинско
+    # мълчание да не се хване.
+    # 🔴 15 ч, НЕ 20 ч. Първата версия пишеше 20*60 = 1200 — точно колкото е
+    # стягането в gratis_ot_sreda. Тоест мутация «сложи 24 ч» се свеждаше до
+    # 1200 и проверката минаваше: таван на проверка, равен на стягането в
+    # кода, не може да гръмне никога. Мутацията ОЦЕЛЯ и това го извади.
+    check("гратисът НЕ ослепява пазача", GRATIS_MIN <= 15 * 60)
+    # 🔴 ПОВЕДЕНЧЕСКИ, не по текст. Първата версия търсеше «ZDRAVE_GRATIS» в
+    # целия файл — а името стои и в коментара отгоре, значи мутация «махни
+    # ключа» оцеляваше. Тук се пита самата функция.
+    check("ключът наистина се чете", gratis_ot_sreda("137") == 137)
+    check("боклук в ключа пада на подразбирането",
+          gratis_ot_sreda("боклук") == 720)
+    check("празен ключ пада на подразбирането", gratis_ot_sreda("") == 720)
+    check("огромна стойност се стяга", gratis_ot_sreda("99999") == 1200)
+    check("отрицателна стойност се вдига", gratis_ot_sreda("-5") == 15)
+
+    # ── 5в. ГРАТИСЪТ СЛЕДВА КОЙ БУДИ (02.09.2026) ───────────────────────
+    # Измерено: router.yml е 97% workflow_dispatch и иска 0 мин гратис;
+    # support.yml е 100% schedule, върви на 15 мин и иска 663 мин.
+    # Периодът НЕ обяснява това — будителят го обяснява.
+    _vansh = [{"event": "workflow_dispatch"}] * 29 + [{"event": "schedule"}]
+    _kron = [{"event": "schedule"}] * 30
+    check("външно будените се разпознават", vanshno_budeno(_vansh) is True)
+    check("кронските НЕ минават за външно будени",
+          vanshno_budeno(_kron) is False)
+    check("празен списък не е външно буден", vanshno_budeno([]) is False)
+    check("непитаният не е външно буден", vanshno_budeno(NEPITAN) is False)
+    _10m = lambda _i: "  - cron: '*/10 * * * *'\n"      # noqa: E731
+    check("външно буден на 10 мин има ТЯСЪН прозорец",
+          dopusk_min("x.yml", _10m, _vansh) < 3 * 60)
+    check("кронски на 10 мин има ШИРОК прозорец",
+          dopusk_min("x.yml", _10m, _kron) > 11 * 60)
+    check("двата гратиса се РАЗЛИЧАВАТ",
+          dopusk_min("x.yml", _10m, _vansh) != dopusk_min("x.yml", _10m, _kron))
+    # Без рънoве се пада на широкия — по-добре тиха фалшива тревога, отколкото
+    # пропуснато мълчание при непознат режим.
+    check("без рънoве се пада на широкия гратис",
+          dopusk_min("x.yml", _10m, None) == dopusk_min("x.yml", _10m, _kron))
+    check("тесният гратис пак покрива измереното 0.1 ч",
+          GRATIS_VANSHEN >= 30)
+
+    # 🔴 ПРЕЗ ОБХОДА, не само по функцията (мутация М6, 02.09.2026).
+    # Всичките проверки горе викат `dopusk_min` ПРЯКО — значи мутация
+    # «обходът спира да подава рънoвете» ги минаваше, а пътят
+    # обход → рънoве → допуск оставаше неизпитан от нищо. Трети път днес
+    # същият клас: тестът мери функцията, производството ползва друг вход.
+    _sega_o = datetime(2026, 9, 2, 12, 0, tzinfo=timezone.utc)
+    _yml10 = lambda _i: "  - cron: '*/10 * * * *'\n"       # noqa: E731
+
+    def _ch_vansh(_i):
+        return [_run("success", 0.2, _sega_o, event="workflow_dispatch")
+                for _ in range(20)]
+
+    def _ch_kron(_i):
+        return [_run("success", 0.2, _sega_o) for _ in range(20)]
+
+    _a = {d["ime"]: d for d in obhod(_ch_vansh, _yml10, _sega_o)}
+    _b = {d["ime"]: d for d in obhod(_ch_kron, _yml10, _sega_o)}
+    _p0 = VAZHNI[0][0]
+    check("обходът ПОДАВА рънoвете на допуска",
+          (_a[_p0] or {}).get("dopusk_ch") < (_b[_p0] or {}).get("dopusk_ch"))
+    check("обходът съди всичките важни", len(_a) == len(VAZHNI))
+    # 🔴 ПРЕЗ СРЕДАТА, не само като довод (мутация М3, 02.09.2026).
+    # Всичките проверки горе подават стойността ЯВНО, значи мутация «не чети
+    # средата изобщо» ги минаваше — пътят от os.environ до числото не беше
+    # изпитан от нищо. Тук се минава точно по него.
+    _sg = os.environ.get("ZDRAVE_GRATIS")
+    try:
+        os.environ["ZDRAVE_GRATIS"] = "137"
+        check("ключът се чете ОТ СРЕДАТА", gratis_ot_sreda() == 137)
+        os.environ.pop("ZDRAVE_GRATIS", None)
+        check("без ключ в средата пада на 720", gratis_ot_sreda() == 720)
+    finally:
+        os.environ.pop("ZDRAVE_GRATIS", None)
+        if _sg is not None:
+            os.environ["ZDRAVE_GRATIS"] = _sg
 
     # ── 6. ЖИВИТЕ .yml ФАЙЛОВЕ се четат наистина ─────────────────────────
     # Ако някой преименува workflow или махне крона, това пада ТУК, а не в

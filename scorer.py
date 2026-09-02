@@ -73,6 +73,7 @@ except Exception as _ttl_err:                                # noqa: BLE001
 
 NL = chr(10)
 SOFIA = ZoneInfo("Europe/Sofia")
+UTC = ZoneInfo("UTC")
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = (os.environ.get("CHAT_ID") or "-1004426592150").strip()
@@ -492,6 +493,31 @@ def okolni_dni(den):
     return [(d0 + timedelta(days=k)).strftime("%Y-%m-%d") for k in (0, -1, 1)]
 
 
+def sofia_den(iso):
+    """Датата В СОФИЯ на момент, записан по UTC («2026-08-14T22:00:00Z»).
+
+    ЗАЩО СЪЩЕСТВУВА. Календарният ден на един източник НЕ Е нашият ден.
+    Измерено на живо на 02.09.2026 срещу statsapi.mlb.com: от 279 намерени
+    МЛБ мача 160 започват в София на ден, СЛЕДВАЩ датата, под която ги дава
+    schedule?date=, и само 119 — на същата. Тоест « денят на графика » и
+    « нашият ден » се разминават в мнозинството от случаите.
+
+    Празен низ при нечетимо. Празното значи « не знам », а не « друг ден » —
+    повикващият трябва да падне към старото поведение, не да изхвърли мача.
+    """
+    s = str(iso or "").strip()
+    if not s:
+        return ""
+    # Z-то не се маха отделно: s[:19] и без това спира преди него, а и преди
+    # « +00:00 ». Мутационен тест на 02.09.2026 махна отделния блок и НУЛА
+    # проверки паднаха — два реда украса, които нищо не вършат.
+    try:
+        t = datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S")
+    except Exception:                                  # noqa: BLE001
+        return ""
+    return t.replace(tzinfo=UTC).astimezone(SOFIA).strftime("%Y-%m-%d")
+
+
 def volley_result(rec):
     """(сетове домакин, сетове гост) или None, ако мачът още не е официален."""
     ha, hb = rec.get("home"), rec.get("away")
@@ -672,7 +698,8 @@ def mlb_day(day):
                 try:
                     rows.append((str(ht.get("id")), str(at.get("id")),
                                  int(h.get("score")), int(a.get("score")),
-                                 ht.get("name") or "", at.get("name") or ""))
+                                 ht.get("name") or "", at.get("name") or "",
+                                 sofia_den(g.get("gameDate"))))
                 except Exception:                      # noqa: BLE001
                     continue
     except Exception as e:                             # noqa: BLE001
@@ -733,10 +760,40 @@ def azia_result(rec):
 
 
 def baseball_result(rec):
+    """(точки дом, точки гост) за МЛБ, или None.
+
+    🔴 ПОПРАВЕНО 02.09.2026 — ПРОЗОРЕЦЪТ ЛЕПЕШЕ МАЧ ОТ СЪЩАТА СЕРИЯ.
+
+    МЯРКАТА, не спомен. Изтеглих живия predict_log.json (1208 записа) и
+    сверих всеки отсъден МЛБ запис срещу statsapi.mlb.com:
+      · 120 отсъдени МЛБ записа
+      · 12 от тях носят резултата на СЪСЕДЕН мач (8 от вчера, 4 от утре)
+      · засегнати 16 реда в дневника, от които 4 ПРИСЪДИ СА ОБЪРНАТИ
+        (3 фалшиви познавания и 1 незаписано познаване)
+    Двойките са проверени поименно: Къбс–Кардиналс на 15.08 е 4:8, а в лога
+    стои 3:0 — резултатът от 14.08. Бруърс–Брейвс на 22.08 е 4:1, в лога
+    стои 2:1 — от 21.08. В МЛБ същите два отбора играят серия по три дни
+    поред, затова ±1 ден намира « същия сблъсък » и на съседния ден.
+
+    ЗАЩО ПРОЗОРЕЦЪТ НЕ СЕ МАХА. schedule?date=D връща и мачове, които в
+    София започват на D+1 — нощните. Измерено: 160 такива срещу 119 дневни.
+    Махне ли се ден-1, нощните мачове изчезват изцяло.
+
+    ЦЕНАТА НА СТЯГАНЕТО Е НУЛА, И ТЯ Е ИЗМЕРЕНА. И 120-те отсъдени МЛБ
+    записа имат ЗАВЪРШЕН мач, чието начало по софийско време пада точно на
+    техния ден. Тоест филтърът по софийска дата не оставя неотсъден нито
+    един легитимен мач — печели 12, губи 0.
+
+    Празна софийска дата (стар кеш, липсващ gameDate) НЕ отхвърля мача:
+    « не знам » не е « друг ден ».
+    """
     hid, aid = str(rec.get("home_id") or ""), str(rec.get("away_id") or "")
     ha, hb = rec.get("home"), rec.get("away")
+    nash = str(rec.get("day") or "")
     for day in okolni_dni(rec.get("day")):
-        for h, a, hs, as_, hn, an in mlb_day(day):
+        for h, a, hs, as_, hn, an, sof in mlb_day(day):
+            if sof and nash and sof != nash:
+                continue                   # чужд ден по СОФИЙСКО време
             if hid and aid and h == hid and a == aid:
                 return hs, as_
             if same_team(hn, ha) and same_team(an, hb):
@@ -4618,6 +4675,158 @@ def selftest():
     # щеше да значи 0 прегледани.
     check("пазачът на равносметките добави поне 35 свои проверки",
           ok - _ok_predi_ravn >= 35)
+
+    # ======================================================================
+    #  🔴 ±1 ДЕН И СЕРИЯТА  (измерено на живо 02.09.2026)
+    #  Виж дългото обяснение в baseball_result. Тук се заковават И ДВЕТЕ
+    #  посоки: чуждият ден да НЕ влиза, а нощният мач под вчерашната дата на
+    #  графика да ВЛИЗА. Спечели ли само едната, поправката е половин.
+    # ======================================================================
+    _ok_predi_serii = ok
+
+    check("22:00 UTC на 14-ти е вече 15-ти в София",
+          sofia_den("2026-08-14T22:00:00Z") == "2026-08-15")
+    check("18:20 UTC на 14-ти още е 14-ти в София",
+          sofia_den("2026-08-14T18:20:00Z") == "2026-08-14")
+    check("софийската дата НЕ е първите десет знака на низа",
+          sofia_den("2026-08-14T23:30:00Z") != "2026-08-14")
+    check("празното дава празно, не днешна дата",
+          sofia_den("") == "" and sofia_den(None) == "")
+    check("боклукът дава празно и не гърми", sofia_den("вчера") == "")
+    check("без Z пак се чете", sofia_den("2026-08-14T22:00:00") == "2026-08-15")
+    check("редът на прозореца е свой, вчера, утре",
+          okolni_dni("2026-08-25") == ["2026-08-25", "2026-08-24", "2026-08-26"])
+
+    _s_mlb_kesh = dict(_mlb_days)
+    _s_hj = globals()["http_json"]
+    try:
+        def _mlb_falshiv(sast):
+            def _f(url, timeout=25):
+                return {"dates": [{"games": [
+                    {"gameDate": "2026-08-14T23:10:00Z",
+                     "status": {"detailedState": sast},
+                     "teams": {
+                         "home": {"team": {"id": 1, "name": "Алфа"}, "score": 5},
+                         "away": {"team": {"id": 2, "name": "Бета"}, "score": 3}}}]}]}
+            return _f
+
+        globals()["http_json"] = _mlb_falshiv("Final")
+        _mlb_days.clear()
+        _red = mlb_day("2026-08-14")
+        check("МЛБ редът има седем полета",
+              len(_red) == 1 and len(_red[0]) == 7)
+        check("седмото поле е СОФИЙСКАТА дата, не датата на графика",
+              _red[0][6] == "2026-08-15")
+        check("МЛБ редът пази номера и точките",
+              _red[0][0] == "1" and _red[0][2] == 5 and _red[0][3] == 3)
+        globals()["http_json"] = _mlb_falshiv("In Progress")
+        _mlb_days.clear()
+        check("незавършеният мач не влиза в деня", mlb_day("2026-08-14") == [])
+        globals()["http_json"] = _s_hj
+
+        # -- СЕРИЯТА: същите два отбора на два поредни дни
+        _mlb_days.clear()
+        _mlb_days["2026-08-14"] = [("112", "138", 3, 0, "Chicago Cubs",
+                                    "St. Louis Cardinals", "2026-08-14")]
+        _mlb_days["2026-08-15"] = [("112", "138", 4, 8, "Chicago Cubs",
+                                    "St. Louis Cardinals", "2026-08-15")]
+        _mlb_days["2026-08-16"] = []
+        _mlb_days["2026-08-13"] = []
+        _kabs15 = {"day": "2026-08-15", "home": "Chicago Cubs",
+                   "away": "St. Louis Cardinals", "home_id": "112",
+                   "away_id": "138", "pick": "1 · Chicago Cubs"}
+        check("серията НЕ лепи вчерашния мач (Къбс 15.08 е 4:8, не 3:0)",
+              baseball_result(_kabs15) == (4, 8))
+        check("серията НЕ лепи утрешния мач (Къбс 14.08 е 3:0)",
+              baseball_result(dict(_kabs15, day="2026-08-14")) == (3, 0))
+        check("точно това обръщаше присъдата",
+              verdict(_kabs15, 3, 0) is True and verdict(_kabs15, 4, 8) is False)
+
+        # -- ОБРАТНАТА ПОСОКА: нощният мач стои под ВЧЕРАШНАТА дата на графика
+        _mlb_days.clear()
+        _mlb_days["2026-08-14"] = [("111", "147", 5, 2, "Boston Red Sox",
+                                    "New York Yankees", "2026-08-15")]
+        _mlb_days["2026-08-15"] = []
+        _mlb_days["2026-08-16"] = []
+        _nosht = {"day": "2026-08-15", "home": "Boston Red Sox",
+                  "away": "New York Yankees", "home_id": "111",
+                  "away_id": "147", "pick": "1 · Boston Red Sox"}
+        check("нощният мач под вчерашната дата на графика СЕ намира",
+              baseball_result(_nosht) == (5, 2))
+
+        # -- чужд софийски ден: и по номер, и по име
+        _mlb_days.clear()
+        _mlb_days["2026-08-20"] = [("158", "134", 7, 1, "Milwaukee Brewers",
+                                    "Pittsburgh Pirates", "2026-08-20")]
+        _mlb_days["2026-08-21"] = []
+        _mlb_days["2026-08-22"] = []
+        _chuzhd = {"day": "2026-08-21", "home": "Milwaukee Brewers",
+                   "away": "Pittsburgh Pirates", "home_id": "158",
+                   "away_id": "134", "pick": "1 · Milwaukee Brewers"}
+        check("чуждият софийски ден НЕ се отсъжда по номер",
+              baseball_result(_chuzhd) is None)
+        check("чуждият софийски ден НЕ се отсъжда и по име",
+              baseball_result(dict(_chuzhd, home_id="", away_id="")) is None)
+
+        # -- « не знам » не е « друг ден »: празна дата пази старото поведение
+        _mlb_days["2026-08-20"] = [("158", "134", 7, 1, "Milwaukee Brewers",
+                                    "Pittsburgh Pirates", "")]
+        check("празната софийска дата НЕ изхвърля мача",
+              baseball_result(_chuzhd) == (7, 1))
+
+        # -- двойна програма: два мача същия ден пак дават резултат
+        _mlb_days.clear()
+        _mlb_days["2026-08-23"] = [
+            ("120", "143", 2, 1, "Washington Nationals",
+             "Philadelphia Phillies", "2026-08-23"),
+            ("120", "143", 6, 4, "Washington Nationals",
+             "Philadelphia Phillies", "2026-08-23")]
+        _mlb_days["2026-08-22"] = []
+        _mlb_days["2026-08-24"] = []
+        check("двойната програма пак дава резултат",
+              baseball_result({"day": "2026-08-23",
+                               "home": "Washington Nationals",
+                               "away": "Philadelphia Phillies",
+                               "home_id": "120", "away_id": "143",
+                               "pick": "1 · Washington Nationals"}) == (2, 1))
+
+        # -- своят ден се пита ПРЪВ, дори когато съседният също съвпада
+        _mlb_days.clear()
+        _mlb_days["2026-08-25"] = [("133", "136", 1, 9, "Athletics",
+                                    "Seattle Mariners", "2026-08-25")]
+        _mlb_days["2026-08-24"] = [("133", "136", 9, 1, "Athletics",
+                                    "Seattle Mariners", "2026-08-25")]
+        _mlb_days["2026-08-26"] = []
+        check("своят ден се пита пръв",
+              baseball_result({"day": "2026-08-25", "home": "Athletics",
+                               "away": "Seattle Mariners", "home_id": "133",
+                               "away_id": "136",
+                               "pick": "1 · Athletics"}) == (1, 9))
+    finally:
+        globals()["http_json"] = _s_hj
+        _mlb_days.clear()
+        _mlb_days.update(_s_mlb_kesh)
+    check("мрежата е върната на истинската",
+          globals()["http_json"] is _s_hj)
+
+    # -- 🏐 ЗАКЛЮЧВАЩО ЗА ВОЛЕЙБОЛА (измерено 02.09.2026, не пипано)
+    #  В живия дневник 53 от 219 волейболни записа носят сетов резултат В
+    #  САМАТА прогноза — и ВСИЧКИТЕ 53 са пуснати до 11.08.2026 01:07.
+    #  След 12.08 такъв запис няма нито един (0 от 168). Предсказателят го е
+    #  извадил на 11.08 (виж predictor.py, « ОПРАВЕНО 11.08.2026 »). Тоест
+    #  картата вече не обещава точен резултат и няма какво да се стяга тук.
+    #  Проверката заковава ЧЕТИМОТО ОТ ОЦЕНИТЕЛЯ поведение: върне ли се
+    #  някога сетовият резултат в текста, присъдата пак е по ПОБЕДИТЕЛЯ.
+    _vol = {"pick": "2 · победа Корея (3:0)", "home": "Тайван",
+            "away": "Корея", "bucket": "volleyball"}
+    check("волейбол: сетовете в текста не менят присъдата по победител",
+          verdict(_vol, 1, 3) is True)
+    check("волейбол: същата карта пада, щом победителят е друг",
+          verdict(_vol, 3, 1) is False)
+
+    check("блокът за серията добави поне 20 свои проверки",
+          ok - _ok_predi_serii >= 20)
+
 
 
     print("САМОПРОВЕРКА НА ОЦЕНИТЕЛЯ: " + str(ok) + " наред, " + str(len(bad)) + " счупени")

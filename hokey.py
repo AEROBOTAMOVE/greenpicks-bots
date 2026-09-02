@@ -271,7 +271,9 @@ Ontario Hockey League (ключът им 1293 съществува), „Kitchene
   python hokey.py --nazad      — назадният ход по истински минали мачове
 """
 import calendar
+import datetime as _dt
 import json
+import os
 import sys
 import time
 import unicodedata
@@ -1237,6 +1239,323 @@ def sezon_kapan(pred=None):
         return (False, "таблицата е с %d отбора — под 20; всяка карта ще "
                        "умре без число" % len(tab))
     return (True, "таблицата носи %d отбора" % len(tab))
+
+
+# ═══════════════ КОШНИЦАТА ЗА ПРЕДСКАЗАТЕЛЯ (многодневна)
+#
+# 🔴 ЗАЩО СЪЩЕСТВУВА, ЩОМ `predictor.hockey_fixtures` РАБОТИ.
+#
+# Измерено живо на 02.09.2026, не прието наум:
+#
+#   `predictor.hockey_fixtures(now, ymd_dash)` пита за ЕДИН ДЕН — днешния.
+#   А `HORIZONT_PO_SPORT["hockey"]` е 120 часа (5 дни) и се подава от
+#   predict.yml като `PREDICT_HORIZON_HOK`. Тоест лостът СЪЩЕСТВУВА, но не
+#   е вързан за нищо: прозорецът приема пет дни, въпросът стига до един.
+#   Самият predictor.py го признава на свой ред 617: «hockey_fixtures се
+#   вика с ymd_dash, а НЕ с ymd_za, тоест въпросът му остава ЕДИН ДЕН».
+#   Пуснато днес: `horizont_za("hockey")` -> 120 ч, `hockey_fixtures` за
+#   днес -> 0 срещи, за 2026-09-29 -> 5 срещи.
+#
+# КОЛКО СТРУВА МЪЛЧАНИЕТО, ИЗМЕРЕНО ВЪРХУ ИСТИНСКИЯ КАЛЕНДАР (75 дни,
+# теглени един по един от `/score/<дата>` на 02.09.2026, 330 мача):
+#   хоризонт  |  дни с ГЛАС от 61
+#      24 ч   |  35        48 ч  |  36        120 ч  |  39
+#      30 ч   |  35        72 ч  |  37        168 ч  |  41
+# Тоест петте дни носят +4 дни глас на стаята от 61. НЕ носят нови мачове:
+# НХЛ играе 34 от 61 дни и всеки мач влиза в прозореца сам на своя ден.
+# Печалбата е ГЛАС В ПРАЗНИТЕ ДНИ, не спасени мачове — казано с число, за
+# да не се чете като повече, отколкото е.
+#
+# 🔴 И ЦЕНАТА Е НУЛА ЗАЯВКИ. Тук е цялата разлика от амер. футбола.
+# `/schedule/<дата>` връща СЕДЕМ ДНИ наведнъж. Пуснато днес, четири дати:
+#   /schedule/2026-09-02 -> 7 дни (09-02..09-08),  0 мача (извън сезон)
+#   /schedule/2026-09-19 -> 7 дни, 51 мача, ВСИЧКИТЕ gameType 1 (предсезон)
+#   /schedule/2026-10-03 -> 7 дни, 48 мача, всичките gameType 2
+#   /schedule/2026-10-06 -> 7 дни, 46 мача, всичките gameType 2
+# И четирите започват ТОЧНО от питаната дата — не от границата на календарна
+# седмица. Тоест пет дни напред струват ЕДНА заявка, колкото и днешният един
+# ден. Хоризонт над 168 ч иска втора и `sedmici_za` я брои на глас.
+#
+# 🔴 ВТОРАТА ПЕЧАЛБА: ПЪЛНОТО ИМЕ. `/score` дава САМО прякора („Hurricanes"),
+# `/schedule` дава `placeName` + `commonName` („Carolina" + „Hurricanes").
+# Измерено върху 32-та отбора днес:
+#   predictor.bg_name сменя ПРЯКОРА при 1 от 32 („Rangers" -> „Рейнджърс")
+#   predictor.bg_name сменя ПЪЛНОТО ИМЕ при 0 от 32
+# Тоест днес пълното име минава непокътнато, а Pinnacle пише точно него
+# („New York Rangers") — с него `pinnacle.nameri` хваща на ПЪРВАТА стъпка
+# (точно съвпадение), вместо да пада на хлабавия подниз.
+#
+# 🔴 КАКВО НЕ ПРАВИ ТОЗИ ФАЙЛ И НЕ ТРЯБВА ДА ПРАВИ.
+# НЕ реже по хоризонта. Прозорецът е СОБСТВЕНОСТ на `predictor.too_far` и
+# той вече го реже с ТОЧНО СЪЩИЯ ключ. Отрежем ли и тук, диагностиката
+# „N далече — чакат" в черната кутия ще чете нула завинаги и никой няма да
+# види, че прозорецът изобщо работи. Ключът решава КОЛКО ШИРОК Е ВЪПРОСЪТ;
+# прозорецът си остава там, където е бил.
+#
+# 🔴 И НЕ ДОБАВЯ ВТОРИ ИЗВОР. Мерено днес защо не:
+#   `predictor.match_key` за ЕДИН И СЪЩИ мач по двата пътя дава
+#      api-web:  2026-10-02|hockey|рейнджърс|bruins
+#      Pinnacle: 2026-10-02|hockey|newyorkrangers|bostonbruins
+#   Различни ключове -> `already_posted` не хваща -> ДВЕ КАРТИ за един мач.
+# Затова изворът тук е ЕДИН. Pinnacle остава за ЦЕНАТА (през `registrirai`)
+# и за колежанския хокей, който api-web изобщо не покрива — но това е друга
+# кошница и още не е отворена.
+#
+# ПЪТ НАЗАД (правило 3), без нито ред промяна по код:
+#   PREDICT_HORIZON_HOK=30  -> прозорецът се свива до днешния и кошницата
+#                              дава същите карти като преди (въпросът остава
+#                              широк, но `too_far` реже всичко след 30 ч).
+#   PREDICT_HOKEY_MAX=1     -> таван една среща на пускане.
+# А самото включване се маха с двата реда в predictor.py, които го викат.
+NHL_BAZA = "https://api-web.nhle.com/v1"
+NHL_SEDMICA = NHL_BAZA + "/schedule/%s"
+
+# Един въпрос към `/schedule` носи толкова дни. ИЗМЕРЕНО, не прието: четири
+# различни дати днес дадоха точно 7 и всяка започна от питаната дата.
+SEDMICA_DNI = 7
+
+# Ключът е ТОЧНО този, който predictor.py вече чете (негов ред 556) и който
+# predict.yml вече подава. Числата също са неговите — един ключ с две
+# различни граници е начин двата файла да се разминат мълчаливо.
+HORIZONT_KLYUCH = "PREDICT_HORIZON_HOK"
+HORIZONT_PODR, HORIZONT_DOLU, HORIZONT_GORE = 120, 2, 336
+
+# Таван на кошницата. Не е таван на деня (той е в predictor), а колан срещу
+# една патологична седмица: измерено, най-пълната седмица днес е 51 мача.
+TAVAN_KLYUCH = "PREDICT_HOKEY_MAX"
+TAVAN_PODR, TAVAN_DOLU, TAVAN_GORE = 60, 1, 200
+
+# Колкото и голям да е ключът, толкова заявки най-много. 336 ч (таванът на
+# ключа) са две седмици; третата е само предпазител срещу бъдеща промяна.
+SEDMICI_TAVAN = 3
+
+# Полетата на реда са ТОЧНО тези на `predictor.hockey_fixtures` — сверени с
+# живо пускане днес: ['away','away_id','bucket','emoji','extra','home',
+# 'home_id','league','src','weight','when'].
+NHL_LIGA_BG = "НХЛ"
+NHL_TEZHEST = 7
+NHL_EMOJI = "🏒"
+
+# Същото сито като в predictor: чакащи мачове, БЕЗ предсезонните.
+# `gameType 1` е предсезон и predictor го реже нарочно; мерено днес:
+# 19-26.09 дават 65 мача и ВСИЧКИТЕ са gameType 1.
+NHL_SASTOYANIYA = ("FUT", "PRE")
+NHL_PREDSEZON = 1
+
+# По-късо от това не е име, а съкращение. Същата причина като MIN_IME:
+# „CAR" не може да бъде вързано нито от съдия, нито от пазар.
+NHL_MIN_IME = 4
+
+
+def _cyalo_ot(sreda, klyuch, podr, dolu, gore):
+    """Цяло число от средата, свито между двете граници.
+
+    Огледало на `predictor.env_int` — нарочно същото поведение, включително
+    че боклук пада на подразбиращото се, вместо да гърми. `sreda=None` значи
+    истинската среда; подаден речник прави проверката без да пипа os.environ.
+    """
+    izvor = os.environ if sreda is None else sreda
+    try:
+        v = int(str(izvor.get(klyuch) or "").strip())
+    except (TypeError, ValueError):
+        v = podr
+    return max(dolu, min(gore, v))
+
+
+def chasove_napred(sreda=None):
+    """Колко часа напред гледа хокеят. Същият ключ като в predictor."""
+    return _cyalo_ot(sreda, HORIZONT_KLYUCH, HORIZONT_PODR,
+                     HORIZONT_DOLU, HORIZONT_GORE)
+
+
+def tavan_kosnica(sreda=None):
+    """Най-много срещи в една кошница."""
+    return _cyalo_ot(sreda, TAVAN_KLYUCH, TAVAN_PODR, TAVAN_DOLU, TAVAN_GORE)
+
+
+def sedmici_za(chasove):
+    """Колко пъти да питаме `/schedule`. ЧИСТА функция.
+
+    Един въпрос носи SEDMICA_DNI дни. Закръгля НАГОРЕ: 120 ч (5 дни) са една
+    заявка, 169 ч са две. Никога под едно и никога над SEDMICI_TAVAN.
+    """
+    try:
+        ch = int(float(chasove))
+    except (TypeError, ValueError):
+        ch = HORIZONT_PODR
+    if ch < 1:
+        ch = 1
+    v_sedmica = SEDMICA_DNI * 24
+    n = (ch + v_sedmica - 1) // v_sedmica
+    return max(1, min(SEDMICI_TAVAN, n))
+
+
+def dati_za(sega=None, chasove=None):
+    """Датите, които трябва да се питат. ЧИСТА функция.
+
+    Първата е ДНЕС, всяка следваща е седем дни по-нататък — точно колкото
+    носи един въпрос, тоест без застъпване и без дупка.
+    """
+    s = float(sega if sega is not None else time.time())
+    n = sedmici_za(chasove_napred() if chasove is None else chasove)
+    out = []
+    for i in range(n):
+        out.append(time.strftime("%Y-%m-%d",
+                                 time.gmtime(s + i * SEDMICA_DNI * 86400.0)))
+    return out
+
+
+def _pole(vazel, klyuch):
+    """„placeName": {"default": „Carolina"} -> „Carolina". Иначе празно."""
+    v = (vazel or {}).get(klyuch) if isinstance(vazel, dict) else None
+    if isinstance(v, dict):
+        v = v.get("default")
+    return str(v or "").strip()
+
+
+def pylno_ime(otbor):
+    """„Carolina" + „Hurricanes" -> „Carolina Hurricanes". Празно, ако няма.
+
+    🔴 ПРАЗНО, А НЕ СЪКРАЩЕНИЕТО. Съблазнително е при липса на име да върнем
+    „CAR" — редът тогава ИЗГЛЕЖДА пълен и минава по-нататък. Но „CAR" не
+    може да бъде вързано от нито един пазар и от нито един съдия (виж
+    MIN_IME, измерено: всичките 32 съкращения са ТРИзнакови). Тоест такъв ред
+    е карта, която ще виси неотсъдена — по-лошо от липсваща карта.
+    `/score` дава само `name`; `/schedule` дава `placeName`+`commonName`.
+    И двете форми се приемат, за да работи функцията и с двата адреса.
+    """
+    t = otbor if isinstance(otbor, dict) else {}
+    myasto = _pole(t, "placeName")
+    pryakor = _pole(t, "commonName") or _pole(t, "name")
+    cyalo = (myasto + " " + pryakor).strip()
+    return cyalo if len(cyalo) >= NHL_MIN_IME else ""
+
+
+def prazen_otchet_nhl():
+    """Отчетът на кошницата, преди да е минал един мач."""
+    return {"dni": 0, "surovi": 0, "predsezon": 0, "ne_chakat": 0,
+            "bez_ime": 0, "bez_chas": 0, "dubli": 0, "nad_tavan": 0,
+            "godni": 0, "sledvasht": ""}
+
+
+def nhl_redove(sedmici, sega=None, tavan=None, ime=None):
+    """(редове, отчет) във формата на кошницата. ЧИСТА функция.
+
+    `sedmici` е списък от суровите отговори на `/schedule`. Нито една заявка
+    вътре — точно затова самопроверката може да я изпита изцяло без мрежа.
+
+    `ime` е по избор преводачът на имената (predictor подава своя `bg_name`).
+    Подаден или не, `extra.home_en` носи НЕПРЕВЕДЕНОТО име — пазарът знае
+    само латиница и това вече ни ухапа с футбола („Фенербахче" срещу
+    „Fenerbahce").
+
+    🔴 РЕДЪТ НА ОТПАДАНЕТО Е ЧАСТ ОТ ОТГОВОРА, както в `sito`. Предсезонните
+    се броят ПРЕДИ липсващото име: предсезонен мач с пълни имена е „режем
+    нарочно", а не „изворът не каза кой играе". Обратният ред би слял двете
+    в едно число и нито едно от двете нямаше да значи нищо.
+    """
+    s = float(sega if sega is not None else time.time())
+    tav = int(tavan if tavan is not None else tavan_kosnica())
+    prevod = ime if callable(ime) else (lambda x: x)
+    o = prazen_otchet_nhl()
+    vidyani = set()
+    redove = []
+    for j in (sedmici or []):
+        if not isinstance(j, dict):
+            continue
+        if not o["sledvasht"]:
+            o["sledvasht"] = str(j.get("nextStartDate") or "")
+        for den in (j.get("gameWeek") or []):
+            if not isinstance(den, dict):
+                continue
+            o["dni"] += 1
+            for g in (den.get("games") or []):
+                if not isinstance(g, dict):
+                    continue
+                o["surovi"] += 1
+                if g.get("gameType") == NHL_PREDSEZON:
+                    o["predsezon"] += 1
+                    continue
+                if str(g.get("gameState") or "").upper() not in NHL_SASTOYANIYA:
+                    o["ne_chakat"] += 1
+                    continue
+                dom = pylno_ime(g.get("homeTeam"))
+                gost = pylno_ime(g.get("awayTeam"))
+                if not dom or not gost or _norm(dom) == _norm(gost):
+                    o["bez_ime"] += 1
+                    continue
+                ts = epoh(g.get("startTimeUTC"))
+                if ts is None:
+                    o["bez_chas"] += 1
+                    continue
+                # Самоличността е ТЕХНИЯТ номер, а не двойката имена: една и
+                # съща двойка се среща по два пъти в седмица (гостуване и
+                # реванш) и ключ по имена би изял единия мач.
+                nomer = str(g.get("id") or (dom + "|" + gost + "|" + str(ts)))
+                if nomer in vidyani:
+                    o["dubli"] += 1
+                    continue
+                vidyani.add(nomer)
+                redove.append({
+                    "bucket": NASH_KLYUCH, "emoji": NHL_EMOJI, "src": "nhl",
+                    "home": prevod(dom), "away": prevod(gost),
+                    "home_id": str((g.get("homeTeam") or {}).get("abbrev") or ""),
+                    "away_id": str((g.get("awayTeam") or {}).get("abbrev") or ""),
+                    "league": NHL_LIGA_BG, "weight": NHL_TEZHEST,
+                    "when": _dt.datetime.fromtimestamp(ts, _dt.timezone.utc),
+                    "extra": {"home_en": dom, "away_en": gost,
+                              "nhl_id": nomer,
+                              "den": str(den.get("date") or "")},
+                    # НЕ е поле на кошницата — стои за сортиране и се маха
+                    # преди връщането. predictor чете само изброените по-горе.
+                    "_ts": ts,
+                })
+    # Най-близкият мач е най-ценният: остарее ли цената, остарява отдалече.
+    redove.sort(key=lambda r: r["_ts"])
+    if len(redove) > tav:
+        o["nad_tavan"] = len(redove) - tav
+        redove = redove[:tav]
+    for r in redove:
+        r.pop("_ts", None)
+    o["godni"] = len(redove)
+    _ = s
+    return redove, o
+
+
+def kosnica_s_otchet(sega=None, chasove=None, tavan=None, ime=None, vzemi=None):
+    """(редове, отчет) или NEPITAN. Тук живее ЕДИНСТВЕНОТО питане към НХЛ.
+
+    🔴 ПРАЗНО И „НЕ МОЖАХ ДА ПИТАМ" СЕ РАЗДЕЛЯТ ТУК, както при бокса — и при
+    хокея разликата е по-важна, отколкото при който и да е друг спорт: ИЗВЪН
+    СЕЗОН е нормалното състояние четири месеца в годината. Паднала мрежа и
+    спокоен юли изглеждат еднакво, ако не се разделят нарочно.
+    Правилото: НИТО ЕДИН отговор не е дошъл -> NEPITAN. Дошъл е отговор без
+    мачове -> честна нула, а `sledvasht` в отчета казва откога има.
+    """
+    vz = vzemi if callable(vzemi) else _vzemi
+    dati = dati_za(sega, chasove)
+    sedmici = []
+    for d in dati:
+        j = vz(NHL_SEDMICA % d)
+        if isinstance(j, dict):
+            sedmici.append(j)
+    if not sedmici:
+        return NEPITAN
+    r, o = nhl_redove(sedmici, sega, tavan, ime)
+    o["pitani_dati"] = list(dati)
+    return r, o
+
+
+def kosnica(sega=None, chasove=None, tavan=None, ime=None, vzemi=None):
+    """Хокейните срещи за предсказателя. NEPITAN = не можах да питам.
+
+    🔴 ГОЛОТО `kosnica()` ТРЯБВА ДА РАБОТИ — същото правило като при
+    `fixtures` по-горе и по същата причина: в този проект вече хванахме
+    модул, чиито проверки минаваха, а естественото извикване връщаше празно
+    ВИНАГИ. Точно този път се изпитва в самопроверката.
+    """
+    r = kosnica_s_otchet(sega, chasove, tavan, ime, vzemi)
+    return NEPITAN if r is NEPITAN else r[0]
 
 
 # ═══════════════════════════════ САМОПРОВЕРКА
@@ -2408,6 +2727,262 @@ def selftest():
         check("и „%s“ е записано ПОИМЕННО в отчета" % _ab,
               any(_ab == d for d, _g, _l in _ro["abreviaturi"]))
 
+    # ────────────── КОШНИЦАТА ЗА ПРЕДСКАЗАТЕЛЯ (многодневна)
+    #
+    # Суровият отговор долу е СВАЛЕНАТА ЖИВО на 02.09.2026 форма на
+    # `/schedule/<дата>`, съкратена до полетата, които четем. Числата в
+    # проверките идват от същото пускане, не са измислени.
+
+    # Ключът: същите граници като predictor.HORIZONT_PO_SPORT.
+    check("хоризонтът по подразбиране е 120 ч", chasove_napred({}) == 120)
+    # 🔴 ДОСЛОВНОТО ИМЕ НА КЛЮЧА. Тук всичко се подаваше като
+    # `{HORIZONT_KLYUCH: ...}` и мутацията «ключът става друга дума»
+    # ОЦЕЛЯ: преименуваш ли константата, преименуваш и двете страни на
+    # проверката. А predict.yml продължава да подава СТАРОТО име, тоест
+    # лостът умира мълчаливо. Затова низът стои дословно, и се пита
+    # и обратното: чуждо име да НЕ се чете.
+    check("ключът е ДОСЛОВНО този на predict.yml",
+          HORIZONT_KLYUCH == "PREDICT_HORIZON_HOK")
+    check("таванът е ДОСЛОВНО PREDICT_HOKEY_MAX",
+          TAVAN_KLYUCH == "PREDICT_HOKEY_MAX")
+    check("ключът се чете от средата под ТОЧНО това име",
+          chasove_napred({"PREDICT_HORIZON_HOK": "72"}) == 72)
+    check("а под ДРУГО име НЕ се чете",
+          chasove_napred({"PREDICT_HORIZON_HOKEY": "72"}) == 120)
+    check("и таванът не се чете под чуждо име",
+          tavan_kosnica({"PREDICT_HOKEY_MAXX": "4"}) == 60)
+    check("боклук пада на подразбиращото се",
+          chasove_napred({HORIZONT_KLYUCH: "утре"}) == 120)
+    # 🔴 ЧИСЛАТА СА ДОСЛОВНИ, А НЕ ПРЕЗ КОНСТАНТИТЕ. Тук стоеше
+    # `== HORIZONT_GORE` и мутацията «горната граница става 300» ОЦЕЛЯ:
+    # проверката четеше мутиралата константа И ОТ ДВЕТЕ СТРАНИ, тоест
+    # съдържаше собствения си отговор и не можеше да падне. 2 и 336 са
+    # числата на `predictor.HORIZONT_PO_SPORT["hockey"]` — разминаването
+    # С ТЯХ е дефектът, който се лови.
+    check("под долната граница се вдига до 2",
+          chasove_napred({HORIZONT_KLYUCH: "0"}) == 2)
+    check("над горната граница се сваля до 336",
+          chasove_napred({HORIZONT_KLYUCH: "9999"}) == 336)
+    check("границите са ТОЧНО тези на predictor",
+          (HORIZONT_PODR, HORIZONT_DOLU, HORIZONT_GORE) == (120, 2, 336))
+    check("празното е като липсващо",
+          chasove_napred({HORIZONT_KLYUCH: ""}) == 120)
+    check("таванът на кошницата е свой ключ",
+          tavan_kosnica({TAVAN_KLYUCH: "4"}) == 4
+          and tavan_kosnica({}) == 60)
+
+    # Колко заявки: 5 дни струват ЕДНА, както и 7.
+    check("120 часа са ЕДНА заявка", sedmici_za(120) == 1)
+    check("168 часа са пак ЕДНА", sedmici_za(168) == 1)
+    check("169 часа искат втора", sedmici_za(169) == 2)
+    check("таванът на ключа (336) е две", sedmici_za(336) == 2)
+    check("никога под една заявка", sedmici_za(0) == 1 and sedmici_za(-5) == 1)
+    check("никога над тавана (три заявки)", sedmici_za(100000) == 3)
+    check("боклук не гърми", sedmici_za("много") == 1)
+
+    # Датите: първата е днес, следващата е точно седем дни по-нататък.
+    _d1 = dati_za(_T0, 120)
+    _d2 = dati_za(_T0, 336)
+    check("при 120 ч се пита ЕДНА дата", len(_d1) == 1)
+    check("и тя е днешната", _d1 == ["2026-08-25"])
+    check("при 336 ч се питат ДВЕ", len(_d2) == 2)
+    check("втората е точно седем дни по-нататък",
+          _d2 == ["2026-08-25", "2026-09-01"])
+    check("датите не се застъпват", len(set(_d2)) == len(_d2))
+    # 🔴 Проверката, която може да обори цялата глава: спре ли `/schedule` да
+    # носи седем дни, SEDMICA_DNI лъже и хоризонтът тихо се свива. Тук се
+    # пита дали ЧИСЛОТО и стъпката на датите са едно и също; живото сверяване
+    # е в `zhivo`.
+    check("стъпката на датите Е SEDMICA_DNI",
+          (epoh(_d2[1] + "T00:00:00Z") - epoh(_d2[0] + "T00:00:00Z"))
+          == SEDMICA_DNI * 86400.0)
+
+    # Имената: пълното име, а не прякорът.
+    check("мястото и прякорът се сглобяват",
+          pylno_ime({"placeName": {"default": "Carolina"},
+                     "commonName": {"default": "Hurricanes"},
+                     "abbrev": "CAR"}) == "Carolina Hurricanes")
+    check("само прякор (както го дава /score) също минава",
+          pylno_ime({"name": {"default": "Hurricanes"}, "abbrev": "CAR"})
+          == "Hurricanes")
+    check("СЪКРАЩЕНИЕТО НЕ Е ИМЕ — празно, а не „CAR“",
+          pylno_ime({"abbrev": "CAR"}) == "")
+    check("късото име пада (под NHL_MIN_IME)",
+          pylno_ime({"commonName": {"default": "Ice"}, "abbrev": "ICE"}) == "")
+    check("нищо не гърми при боклук",
+          pylno_ime(None) == "" and pylno_ime("Carolina") == "")
+
+    # Ситото на кошницата — върху ИСТИНСКАТА форма на отговора.
+    def _igra(nomer, dom_m, dom_p, dom_a, gost_m, gost_p, gost_a,
+              chas, tip=2, sast="FUT"):
+        return {"id": nomer, "gameType": tip, "gameState": sast,
+                "startTimeUTC": chas,
+                "homeTeam": {"placeName": {"default": dom_m},
+                             "commonName": {"default": dom_p}, "abbrev": dom_a},
+                "awayTeam": {"placeName": {"default": gost_m},
+                             "commonName": {"default": gost_p}, "abbrev": gost_a}}
+
+    _SEDMICA = {"nextStartDate": "2026-09-29", "gameWeek": [
+        {"date": "2026-09-29", "games": [
+            _igra(2026020001, "Carolina", "Hurricanes", "CAR",
+                  "Florida", "Panthers", "FLA", "2026-09-29T21:00:00Z"),
+            _igra(2026020002, "Toronto", "Maple Leafs", "TOR",
+                  "Montreal", "Canadiens", "MTL", "2026-09-29T23:00:00Z")]},
+        {"date": "2026-09-30", "games": [
+            _igra(2026020003, "Boston", "Bruins", "BOS",
+                  "New York", "Rangers", "NYR", "2026-09-30T00:00:00Z")]},
+        {"date": "2026-10-01", "games": [
+            # предсезонен — predictor го реже, значи и ние
+            _igra(2026010004, "Edmonton", "Oilers", "EDM",
+                  "Vancouver", "Canucks", "VAN", "2026-10-01T02:00:00Z", tip=1),
+            # вече играещ — не чака
+            _igra(2026020005, "Vegas", "Golden Knights", "VGK",
+                  "Chicago", "Blackhawks", "CHI", "2026-10-01T02:30:00Z",
+                  sast="LIVE"),
+            # без име на госта
+            {"id": 2026020006, "gameType": 2, "gameState": "FUT",
+             "startTimeUTC": "2026-10-01T23:00:00Z",
+             "homeTeam": {"placeName": {"default": "Dallas"},
+                          "commonName": {"default": "Stars"}, "abbrev": "DAL"},
+             "awayTeam": {"abbrev": "STL"}},
+            # без час
+            _igra(2026020007, "Seattle", "Kraken", "SEA",
+                  "Calgary", "Flames", "CGY", "")]}]}
+
+    _rk, _ok_ = nhl_redove([_SEDMICA], _T0)
+    check("кошницата пуска точно ТРИТЕ годни", len(_rk) == 3)
+    check("и ги брои в отчета", _ok_["godni"] == 3)
+    check("суровите са седем", _ok_["surovi"] == 7)
+    check("предсезонният е отрязан и преброен", _ok_["predsezon"] == 1)
+    check("играещият е отрязан и преброен", _ok_["ne_chakat"] == 1)
+    check("безименният е отрязан и преброен", _ok_["bez_ime"] == 1)
+    check("безчасовият е отрязан и преброен", _ok_["bez_chas"] == 1)
+    check("дните са преброени", _ok_["dni"] == 3)
+    check("следващата дата се носи от отговора",
+          _ok_["sledvasht"] == "2026-09-29")
+    check("сумата на отпадналите + годните е суровите",
+          _ok_["predsezon"] + _ok_["ne_chakat"] + _ok_["bez_ime"]
+          + _ok_["bez_chas"] + _ok_["dubli"] + _ok_["nad_tavan"]
+          + _ok_["godni"] == _ok_["surovi"])
+
+    # Формата — ТОЧНО полетата на predictor.hockey_fixtures.
+    _POLETA = {"bucket", "emoji", "src", "home", "away", "home_id", "away_id",
+               "league", "weight", "when", "extra"}
+    check("редът носи ТОЧНО полетата на кошницата",
+          all(set(r.keys()) == _POLETA for r in _rk))
+    check("вътрешното поле за сортиране НЕ изтича",
+          all("_ts" not in r for r in _rk))
+    check("кофата е нашата", all(r["bucket"] == NASH_KLYUCH for r in _rk))
+    check("лигата е на български", all(r["league"] == NHL_LIGA_BG for r in _rk))
+    check("тежестта е същата като в predictor",
+          all(r["weight"] == 7 for r in _rk))
+    check("името е ПЪЛНО, не прякор", _rk[0]["home"] == "Carolina Hurricanes")
+    check("съкращението пътува за модела (model_hockey го иска)",
+          _rk[0]["home_id"] == "CAR" and _rk[0]["away_id"] == "FLA")
+    check("часът е datetime СЪС ЗОНА",
+          isinstance(_rk[0]["when"], _dt.datetime)
+          and _rk[0]["when"].tzinfo is not None)
+    check("и е верният час",
+          _rk[0]["when"].strftime("%Y-%m-%dT%H:%M") == "2026-09-29T21:00")
+    check("подредени са по НАЙ-БЛИЗКИЯ",
+          [r["extra"]["nhl_id"] for r in _rk]
+          == ["2026020001", "2026020002", "2026020003"])
+    check("extra носи НЕПРЕВЕДЕНОТО име за пазара",
+          _rk[0]["extra"]["home_en"] == "Carolina Hurricanes")
+    check("и деня, от който е дошъл редът",
+          _rk[0]["extra"]["den"] == "2026-09-29")
+
+    # Преводачът: подаден отвън, и НЕ пипа extra.
+    _rp, _ = nhl_redove([_SEDMICA], _T0, ime=lambda s: "БГ:" + s)
+    check("преводачът се прилага върху видимото име",
+          _rp[0]["home"] == "БГ:Carolina Hurricanes")
+    check("но extra остава латиница",
+          _rp[0]["extra"]["home_en"] == "Carolina Hurricanes")
+    check("без преводач името е непокътнато",
+          _rk[0]["home"] == "Carolina Hurricanes")
+
+    # Таванът и близнаците.
+    _rt, _ot = nhl_redove([_SEDMICA], _T0, tavan=2)
+    check("таванът реже до числото", len(_rt) == 2)
+    check("и казва колко е отрязал", _ot["nad_tavan"] == 1)
+    check("реже ДАЛЕЧНИТЕ, пази близките",
+          [r["extra"]["nhl_id"] for r in _rt] == ["2026020001", "2026020002"])
+    _rd, _od = nhl_redove([_SEDMICA, _SEDMICA], _T0)
+    check("един и същи отговор два пъти НЕ удвоява", len(_rd) == 3)
+    check("и близнаците се броят", _od["dubli"] == 3)
+
+    # Една и съща двойка два пъти в седмицата (реванш) НЕ е близнак.
+    _REVANSH = {"gameWeek": [{"date": "2026-09-29", "games": [
+        _igra(2026020011, "Boston", "Bruins", "BOS", "New York", "Rangers",
+              "NYR", "2026-09-29T21:00:00Z"),
+        _igra(2026020012, "Boston", "Bruins", "BOS", "New York", "Rangers",
+              "NYR", "2026-10-02T21:00:00Z")]}]}
+    _rr, _or_ = nhl_redove([_REVANSH], _T0)
+    check("реваншът НЕ се брои за близнак", len(_rr) == 2 and _or_["dubli"] == 0)
+
+    # Празно и счупено.
+    _rz, _oz = nhl_redove([{"gameWeek": [{"date": "2026-09-02", "games": []}],
+                            "nextStartDate": "2026-09-16"}], _T0)
+    check("извън сезон дава ЧЕСТНА НУЛА, не гръм",
+          _rz == [] and _oz["godni"] == 0)
+    check("и казва откога има мачове", _oz["sledvasht"] == "2026-09-16")
+    check("боклук вместо отговор не гърми",
+          nhl_redove([None, "низ", 7, {}], _T0)[0] == [])
+    check("празен списък не гърми", nhl_redove([], _T0)[0] == [])
+
+    # Целият път без мрежа: НЕПИТАН срещу честна нула.
+    check("нула отговора значи НЕ МОЖАХ ДА ПИТАМ",
+          kosnica(_T0, vzemi=lambda u: None) is NEPITAN)
+    check("отговор без мачове значи ЧЕСТНА НУЛА",
+          kosnica(_T0, vzemi=lambda u: {"gameWeek": []}) == [])
+    check("и двете НЕ са едно и също",
+          (kosnica(_T0, vzemi=lambda u: None) is NEPITAN)
+          and (kosnica(_T0, vzemi=lambda u: {"gameWeek": []}) is not NEPITAN))
+    check("подаденият отговор стига до редовете",
+          len(kosnica(_T0, vzemi=lambda u: _SEDMICA)) == 3)
+    _pitani = []
+
+    def _shpionin(u):
+        _pitani.append(u)
+        return _SEDMICA
+
+    kosnica(_T0, chasove=120, vzemi=_shpionin)
+    check("120 ч правят ТОЧНО ЕДНА заявка", len(_pitani) == 1)
+    check("и тя е към /schedule на api-web",
+          _pitani[0] == "https://api-web.nhle.com/v1/schedule/2026-08-25")
+    del _pitani[:]
+    kosnica(_T0, chasove=336, vzemi=_shpionin)
+    check("336 ч правят ДВЕ заявки към ДВЕ различни дати",
+          len(_pitani) == 2 and len(set(_pitani)) == 2)
+    check("и втората е седем дни по-нататък",
+          _pitani[1].endswith("2026-09-01"))
+    check("адресът е на НХЛ, а НЕ на ЕСПН",
+          all("api-web.nhle.com" in u for u in _pitani))
+    check("а главата за него е ПРАЗЕН User-Agent (иначе 403)",
+          glavi_za(_pitani[0]).get("User-Agent") == "")
+    check("кошницата с отчет връща ДВОЙКА",
+          isinstance(kosnica_s_otchet(_T0, vzemi=lambda u: _SEDMICA), tuple))
+    check("и питаните дати са записани в отчета",
+          kosnica_s_otchet(_T0, vzemi=lambda u: _SEDMICA)[1]["pitani_dati"]
+          == ["2026-08-25"])
+    check("отказът минава и през кошницата с отчет",
+          kosnica_s_otchet(_T0, vzemi=lambda u: None) is NEPITAN)
+
+    # 🔴 ГОЛОТО `kosnica()` — БЕЗ подаден `vzemi`. Подменя се самият `_vzemi`
+    # в модула, за да се докаже, че естественият път стига до него; връща се
+    # на място в `finally`, за да не отрови следващите проверки.
+    _star_vzemi = globals()["_vzemi"]
+    try:
+        globals()["_vzemi"] = lambda u: _SEDMICA
+        check("ГОЛОТО kosnica() минава по истинския път",
+              len(kosnica(_T0)) == 3)
+        globals()["_vzemi"] = lambda u: None
+        check("и голото kosnica() отказва, когато изворът мълчи",
+              kosnica(_T0) is NEPITAN)
+    finally:
+        globals()["_vzemi"] = _star_vzemi
+    check("и _vzemi е върнато на място", globals()["_vzemi"] is _star_vzemi)
+
     check("броят проверки е поне 175", ok >= 175)
 
     print("САМОПРОВЕРКА НА HOKEY: " + str(ok) + " наред, "
@@ -2429,6 +3004,43 @@ def zhivo():
     print("КОГА ТРЪГВА (измерено в sezon.py, OTVARYA):")
     for kod, data, dni, beleshka in sezon_status():
         print("   %-9s %s  след %5.1f дни   %s" % (kod, data, dni, beleshka))
+    print()
+
+    # 🔴 ЖИВОТО СВЕРЯВАНЕ НА СЕДМИЦАТА. Самопроверките са без мрежа по
+    # устройство — тоест ако `/schedule` спре да носи седем дни, НИТО ЕДНА
+    # от тях няма да падне, а хоризонтът ще се свие мълчаливо. Числото се
+    # пита тук, на глас, срещу истинския извор.
+    _ch = chasove_napred()
+    print("КОШНИЦАТА ЗА ПРЕДСКАЗАТЕЛЯ (%s = %d ч, %d заявка/и):"
+          % (HORIZONT_KLYUCH, _ch, sedmici_za(_ch)))
+    _dati = dati_za(None, _ch)
+    _j = _vzemi(NHL_SEDMICA % _dati[0])
+    if not isinstance(_j, dict):
+        print("   🔴 НЕ МОЖАХ ДА ПИТАМ api-web (%s)" % _dati[0])
+    else:
+        _gw = _j.get("gameWeek") or []
+        print("   /schedule/%s върна %d дни (кодът очаква %d)%s"
+              % (_dati[0], len(_gw), SEDMICA_DNI,
+                 "" if len(_gw) == SEDMICA_DNI
+                 else "   🔴 РАЗМИНАВАНЕ — SEDMICA_DNI лъже!"))
+        if _gw and str((_gw[0] or {}).get("date") or "") != _dati[0]:
+            print("   🔴 седмицата НЕ започва от питаната дата (%s срещу %s)"
+                  % ((_gw[0] or {}).get("date"), _dati[0]))
+        # ЕДНО повикване, в променлива. Тройният израз тук питаше
+        # извора ДВА ПЪТИ — в файл, чиято мярка е «нула нови заявки».
+        _r2 = kosnica_s_otchet(None, _ch)
+        _rk, _ok = (([], prazen_otchet_nhl()) if _r2 is NEPITAN else _r2)
+        print("   сурови %d · предсезон %d · не чакат %d · без име %d · "
+              "без час %d · ГОДНИ %d"
+              % (_ok["surovi"], _ok["predsezon"], _ok["ne_chakat"],
+                 _ok["bez_ime"], _ok["bez_chas"], _ok["godni"]))
+        if not _rk:
+            print("   празно. Следващи мачове от: %s"
+                  % (_ok.get("sledvasht") or "източникът не каза"))
+        for _x in _rk[:3]:
+            print("      %s   %s vs %s   (%s / %s)"
+                  % (_x["when"].strftime("%d.%m %H:%M UTC"),
+                     _x["home"], _x["away"], _x["home_id"], _x["away_id"]))
     print()
 
     r = fixtures_s_otchet(dni=None)
