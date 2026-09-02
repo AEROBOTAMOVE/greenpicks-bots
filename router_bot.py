@@ -30,6 +30,8 @@ import json
 import os
 import re
 import sys
+import inspect
+import time
 import urllib.error
 import urllib.request
 import urllib.parse
@@ -89,24 +91,113 @@ FISH_PAT = (r"✅|❌|уцели|уцелен|паднал|спечелихме|
             r"печеливш|ударихме|зелен[оа]|\+\s?\d+([.,]\d+)?\s?(ед|лв|unit)|#печеливш")
 
 
-def api(method, **params):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
-    data = urllib.parse.urlencode(params).encode()
-    req = urllib.request.Request(url, data=data)
+# ═══════════════════════ ЕДНА ТРЪБА КЪМ ТЕЛЕГРАМ (429) ════════════════════
+# 🔴 ДЕФЕКТ Б, намерен 01.09.2026. Рутерът беше единствената жива тръба в
+# проекта, която НЕ четеше parameters.retry_after. Телеграм при 429 казва
+# „изчакай N секунди“; старият api() (router_bot.py:92-109) печаташе
+# „copyMessage HTTP 429“ и връщаше None — тоест блъскаше и се предаваше.
+# Другите го четат от седмици: support_bot.py:776, scorer.py:227,
+# predictor.py:1517, poster.py:32. Тук просто липсваше.
+#
+# И най-лошото: дефект Б умножаваше дефект А. 429 при залп от постове ->
+# copyMessage връща None -> старият ред 230 вече беше мръднал offset-а ->
+# постът се губи БЕЗВЪЗВРАТНО, а тефтерът пазеше само едно число и не
+# оставяше следа какво липсва.
+TG_OPITI = int(os.environ.get("TG_OPITI") or "4")            # опита на едно викане
+TG_PODRAZBIRANE = int(os.environ.get("TG_PODRAZBIRANE") or "5")   # 429 без число
+TG_TAVAN_EDNO = int(os.environ.get("TG_TAVAN_EDNO") or "60")      # таван на едно чакане
+TG_TAVAN_OBSHTO = int(os.environ.get("TG_TAVAN_OBSHTO") or "180")  # таван за целия рън
+
+# ШЕВ за самопроверката. Тестът подменя ТУК и вика ИСТИНСКИЯ api(), вместо да
+# преписва логиката му. Тест, който преписва кода, не може да гръмне — това
+# вече ни е излизало в този проект (фантомният стоп на AERO).
+_otvori = urllib.request.urlopen
+_ZASPIVANIYA = []       # всяко чакане в секунди — за да бъде ИЗМЕРЕНО
+_BEZ_SUN = False        # вдига се САМО от самопроверката
+
+
+def _spi(sekundi):
+    """Едно чакане. Записва се, за да може да бъде проверено, не предположено."""
+    _ZASPIVANIYA.append(sekundi)
+    if not _BEZ_SUN:
+        time.sleep(sekundi)
+
+
+def retry_after_ot(surovo):
+    """Изважда parameters.retry_after от тялото на 429. Няма ли го — 0."""
     try:
-        with urllib.request.urlopen(req, timeout=25) as r:
-            resp = json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", "replace")[:300]
-        print(f"{method} HTTP {e.code}: {body}")
+        telo = json.loads(surovo) or {}
+        return int((telo.get("parameters") or {}).get("retry_after") or 0)
+    except Exception:                           # noqa: BLE001
+        return 0
+
+
+def chakane_za_429(surovo):
+    """Колко да чакаме: казаното от Телеграм; няма ли — подразбиране; с таван.
+
+    Таванът е срещу абсурдни числа: рънът има 25 минути, а видяно е
+    retry_after от часове. По-добре пропуснат опит сега, отколкото убит рън.
+    """
+    wait = retry_after_ot(surovo)
+    if wait <= 0:
+        wait = TG_PODRAZBIRANE
+    return min(wait, TG_TAVAN_EDNO)
+
+
+def tryba_chete_429(fn):
+    """Дали дадена тръба чете retry_after. Мери ИЗВОРА ѝ, не ѝ вярва.
+
+    Връща True / False / None (неизмерима). Ползва се и на живо, в
+    support_hooks(), за да се ОБЯВИ чужда тръба, която блъска при 429.
+    """
+    if fn is None:
         return None
-    except Exception as e:
-        print(f"{method} FAIL: {e}")
+    try:
+        izvor = inspect.getsource(fn)
+    except Exception:                           # noqa: BLE001
+        # НИЩО тук не бива да гърми: router.yml:71 пуска селфтеста ПРЕДИ рънa,
+        # тоест паднал селфтест = спрени карти. Не се измери -> „неизмерима“.
         return None
-    if not resp.get("ok"):
-        print(f"{method} ERROR:", resp)
-        return None
-    return resp["result"]
+    return "retry_after" in izvor
+
+
+def api(method, **params):
+    """ЕДИНСТВЕНАТА тръба на рутера към Телеграм. И getUpdates, и copyMessage."""
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
+    for opit in range(TG_OPITI):
+        data = urllib.parse.urlencode(params).encode()
+        req = urllib.request.Request(url, data=data)
+        try:
+            with _otvori(req, timeout=25) as r:
+                resp = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "replace")
+            if e.code == 429 and opit < TG_OPITI - 1:
+                wait = chakane_za_429(body)
+                if sum(_ZASPIVANIYA) + wait > TG_TAVAN_OBSHTO:
+                    print(f"429 при {method}: чаканото минава тавана за рън "
+                          f"({TG_TAVAN_OBSHTO} сек) — спирам да чакам. Ъпдейтът")
+                    print("остава необработен и offset-ът НЕ го подминава.")
+                    return None
+                print(f"429 при {method} — чакам {wait} сек (казано от Телеграм).")
+                _spi(wait)
+                continue
+            if e.code == 409:
+                # Друг процес чете същата опашка в същия миг. Не повтаряме:
+                # offset-ът не е мръднал, след 10 минути пак.
+                print(f"409 Conflict при {method} — друг чете опашката сега.")
+                return None
+            print(f"{method} HTTP {e.code}: {body[:300]}")
+            return None
+        except Exception as e:                  # noqa: BLE001
+            print(f"{method} FAIL: {e}")
+            return None
+        if not resp.get("ok"):
+            print(f"{method} ERROR:", resp)
+            return None
+        return resp["result"]
+    print(f"{method}: {TG_OPITI} опита не стигнаха (429 докрай).")
+    return None
 
 
 def pick_rooms(text):
@@ -153,6 +244,14 @@ def support_hooks():
         print("съпортът не се зареди (" + str(e)[:90] + ") — личните съобщения")
         print("ще бъдат само маркирани, за да не задръстят опашката.")
         return None, None
+    # ТРЕТАТА ТРЪБА. Съпорт-тръбата не минава през нашия api() — тя си има
+    # свой. Не можем да я сменим оттук, но можем да я ИЗМЕРИМ и да обявим,
+    # ако блъска при 429. Мълчаливо предположение = точно дефект Б.
+    znae = tryba_chete_429(getattr(S, "api", None))
+    if znae is False:
+        print("⚠ съпорт-тръбата НЕ чете retry_after — при 429 ще блъска.")
+    elif znae is None:
+        print("⚠ съпорт-тръбата не може да бъде измерена за 429.")
     try:
         return S, S.load_state()
     except Exception as e:                      # noqa: BLE001
@@ -160,23 +259,245 @@ def support_hooks():
         return S, None
 
 
+# ═════════════════════════════ ПАМЕТТА НА РУТЕРА ══════════════════════════
+# Дотук тефтерът пазеше ЕДНО число: {"offset": 320389819} (прочетено живо на
+# 01.09.2026). Тоест ако нещо се загубеше, нямаше и следа, че се е загубило.
+# Сега пази и: колко опита има всеки провален ъпдейт, кои стаи вече са
+# получили дадения пост, и списък на ПРЕСКОЧЕНИТЕ. Тефтерът се комитва от
+# router.yml („Save state“), значи следата се вижда ОТВЪН — логът на Actions
+# не се вижда отвън (мерено 11.08.2026).
+MAX_OPITI = int(os.environ.get("ROUTER_MAX_OPITI") or "3")
+MAX_PROPUSNATI = 20
+
+
+def prazno_sastoyanie():
+    return {"offset": 0, "opiti": {}, "chastichni": {}, "propusnati": []}
+
+
+def zaredi_sastoyanie(pat=None):
+    """Чете тефтера. СТАРИЯТ формат (само offset) се чете без гърмеж."""
+    st = prazno_sastoyanie()
+    pat = pat or STATE_FILE
+    if not os.path.exists(pat):
+        return st
+    try:
+        with open(pat, encoding="utf-8-sig") as f:
+            surovo = json.load(f)
+    except (json.JSONDecodeError, OSError, ValueError):
+        print("WARN: повреден router state — започвам от 0.")
+        return st
+    if not isinstance(surovo, dict):
+        return st
+    try:
+        st["offset"] = int(surovo.get("offset", 0))
+    except (TypeError, ValueError):
+        st["offset"] = 0
+    if isinstance(surovo.get("opiti"), dict):
+        for k, v in surovo["opiti"].items():
+            try:
+                st["opiti"][str(k)] = int(v)
+            except (TypeError, ValueError):
+                continue
+    if isinstance(surovo.get("chastichni"), dict):
+        for k, v in surovo["chastichni"].items():
+            if isinstance(v, list):
+                st["chastichni"][str(k)] = list(v)
+    if isinstance(surovo.get("propusnati"), list):
+        st["propusnati"] = surovo["propusnati"][-MAX_PROPUSNATI:]
+    return st
+
+
+def pochisti_sastoyanie(st):
+    """Маха бележките за ъпдейти, които вече са минали. Иначе растат вечно."""
+    off = st.get("offset", 0)
+    for ime in ("opiti", "chastichni"):
+        for k in list(st.get(ime) or {}):
+            try:
+                mine = int(k) <= off
+            except (TypeError, ValueError):
+                mine = True
+            if mine:
+                del st[ime][k]
+    st["propusnati"] = (st.get("propusnati") or [])[-MAX_PROPUSNATI:]
+    return st
+
+
+def zapishi_sastoyanie(st, pat=None):
+    pochisti_sastoyanie(st)
+    with open(pat or STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(st, f, ensure_ascii=False)
+
+
+# ══════════════════════════════ РАЗНАСЯНЕ НА ПОСТ ═════════════════════════
+def raznesi_post(post, veche=()):
+    """Копира един пост в стаите му. Връща (наред, доставени_стаи).
+
+    ВЕЧЕ ДОСТАВЕНОТО НЕ СЕ ПРАЩА ПАК. Един пост може да иска три стаи; ако
+    втората гръмне, при повторния опит първата НЕ бива да получи дубъл.
+    Изтриване в Телеграм е без път назад (правило 3), а дубълът се вижда от
+    хората — затова частичната доставка се ПОМНИ, не се гадае.
+    """
+    text = post.get("text") or post.get("caption") or ""
+    mid = post.get("message_id")
+    dostaveni = list(veche)
+    nared = True
+    for room in pick_rooms(text):
+        if room in dostaveni:
+            print(f"Пост {mid} вече е в стая {room} — не го пращам пак.")
+            continue
+        res = api("copyMessage", chat_id=CHAT_ID,
+                  from_chat_id=CHANNEL_ID,
+                  message_id=mid,
+                  message_thread_id=room)
+        if res is not None:
+            dostaveni.append(room)
+            print(f"Пост {mid} -> стая {room}")
+        else:
+            nared = False
+            print(f"Пост {mid} НЕ мина (стая {room}).")
+    return nared, dostaveni
+
+
+def obsluji_lichno(u, S, sup_state, budget):
+    """Лично съобщение или бутон. Връща (наред, нов_бюджет, обслужени).
+
+    „Наред“ значи РАБОТАТА Е СВЪРШЕНА. Липсващ съпорт, нечетима негова памет
+    и изчерпан таван НЕ са свършена работа — старият код ги маркираше за
+    обработени и съобщението изчезваше безшумно.
+    """
+    uid = u.get("update_id", 0)
+    cb = u.get("callback_query")
+    msg = u.get("message") or {}
+    if S is None:
+        print("Ъпдейт " + str(uid) + ": съпортът не е зареден — НЕ го обявявам")
+        print("за обработен. Ще бъде опитан пак.")
+        return False, budget, 0
+    try:
+        if cb:
+            S.handle_callback(cb)
+            return True, budget, 1
+        if sup_state is None:
+            print("Ъпдейт " + str(uid) + ": паметта на съпорта не се чете —")
+            print("оставям съобщението, вместо да го изям.")
+            return False, budget, 0
+        text = (msg.get("text") or "").strip().lower()
+        is_cmd = (text == "/o" or text.startswith("/o ")
+                  or text.startswith("/o@"))
+        if is_cmd or S.target_from_card(msg.get("reply_to_message")):
+            S.handle_relay(msg, sup_state)          # отговор от екипа
+            return True, budget, 1
+        if (msg.get("chat") or {}).get("type") == "private":
+            if budget <= 0:
+                print("Ъпдейт " + str(uid) + ": таванът за предаване е стигнат —")
+                print("оставям го за следващото минаване, вместо да го изям.")
+                return False, budget, 0
+            if S.handle_private(msg, sup_state, budget) == 1:
+                budget -= 1
+            return True, budget, 1
+        return True, budget, 0      # чуждо съобщение в група — няма работа
+    except Exception as e:                      # noqa: BLE001
+        # Едно счупено съобщение не бива да спира цялата опашка ЗАВИНАГИ —
+        # затова има брояч на опитите, а не сляпо повтаряне.
+        print("съпортът се спъна в ъпдейт " + str(uid) + ": " + str(e)[:90])
+        return False, budget, 0
+
+
+def obhodi(updates, st, S=None, sup_state=None, budget=0):
+    """Обхожда опашката. ЕДИНСТВЕНОТО място, където offset-ът напредва.
+
+    🔴 ДЕФЕКТ А, намерен 01.09.2026. В старата версия
+        router_bot.py:227  last_id = max(last_id, u.get("update_id", 0))
+        router_bot.py:230  last_id = max(last_id, u.get("update_id", 0))
+    се изпълняваха БЕЗУСЛОВНО: ред 227 — вътре в блока, който току-що е хванал
+    изключение на съпорта; ред 230 — ПРЕДИ copyMessage изобщо да е опитан.
+    Тоест едно 429 или един мрежов трепет и постът изчезваше завинаги.
+
+    ЗАЩО НЕ САМО „не мърдай при провал“: offset-ът на Телеграм е ВОДОМЕР, не
+    списък — потвърдиш ли 101, потвърждаваш и 100. Значи ъпдейт, който гърми
+    всеки път, би блокирал опашката ВЕЧНО (безкраен цикъл от преработване).
+    Затова три неща заедно:
+      1. БАРИЕРА — спираме на първия провал и нищо след него не се пипа.
+         Ако продължавахме, следващите биха се обработили СЕГА и ПАК при
+         повторението — тоест дубли в стаите.
+      2. БРОЯЧ — MAX_OPITI пъти (по един опит на рън, рънът е на 10 мин),
+         после ъпдейтът се ПРЕСКАЧА и опашката тръгва.
+      3. ОБЯВЯВАНЕ — прескочените влизат в тефтера и в лога с 🔴. Прескочен
+         ъпдейт е ЗАГУБА; загуба, която се крие, е втори дефект върху първия.
+    """
+    routed = 0
+    answered = 0
+    spryan = None
+    novo_propusnati = []
+    for u in updates:
+        uid = int(u.get("update_id") or 0)
+        klyuch = str(uid)
+        if u.get("callback_query") or u.get("message"):
+            nared, budget, n = obsluji_lichno(u, S, sup_state, budget)
+            answered += n
+            kakvo = "лично съобщение / бутон"
+        else:
+            nared = True
+            kakvo = "ъпдейт без работа"
+            post = u.get("channel_post")
+            chat = (post or {}).get("chat") or {}
+            if post and str(chat.get("id")) == str(CHANNEL_ID):
+                veche = st["chastichni"].get(klyuch) or []
+                nared, dostaveni = raznesi_post(post, veche)
+                routed += max(0, len(dostaveni) - len(veche))
+                kakvo = "пост " + str(post.get("message_id"))
+                if nared:
+                    st["chastichni"].pop(klyuch, None)
+                else:
+                    st["chastichni"][klyuch] = dostaveni
+
+        if nared:
+            st["offset"] = max(st["offset"], uid)
+            st["opiti"].pop(klyuch, None)
+            continue
+
+        opit = int(st["opiti"].get(klyuch) or 0) + 1
+        st["opiti"][klyuch] = opit
+        if opit >= MAX_OPITI:
+            belezhka = {
+                "update_id": uid,
+                "kakvo": kakvo,
+                "opiti": opit,
+                "koga": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()),
+            }
+            st["propusnati"].append(belezhka)
+            novo_propusnati.append(belezhka)
+            print("🔴 ПРЕСКАЧАМ ъпдейт " + str(uid) + " (" + kakvo + ") след "
+                  + str(opit) + " неуспешни опита.")
+            print("   НЕ Е обработен. Записан е в " + STATE_FILE + ".")
+            st["offset"] = max(st["offset"], uid)
+            st["opiti"].pop(klyuch, None)
+            st["chastichni"].pop(klyuch, None)
+            continue
+
+        spryan = uid
+        print("Ъпдейт " + str(uid) + " (" + kakvo + ") не мина — опит "
+              + str(opit) + " от " + str(MAX_OPITI) + ".")
+        print("   Спирам дотук: offset-ът остава ПРЕД него, за да не се загуби.")
+        break
+
+    return {"routed": routed, "answered": answered, "spryan": spryan,
+            "propusnati": novo_propusnati, "budget": budget}
+
+
 def main():
     if not BOT_TOKEN or not CHAT_ID:
         print("Missing BOT_TOKEN/CHAT_ID")
         sys.exit(1)
 
-    offset = 0
-    if os.path.exists(STATE_FILE):
-        try:
-            with open(STATE_FILE, encoding="utf-8-sig") as f:
-                st = json.load(f)
-            offset = int(st.get("offset", 0)) if isinstance(st, dict) else 0
-        except (json.JSONDecodeError, OSError, ValueError):
-            print("WARN: повреден router state — започвам от 0.")
+    st = zaredi_sastoyanie()
+    if st["opiti"]:
+        print("Чакащи неуспешни ъпдейти от предишен рън: "
+              + ", ".join(k + " (опит " + str(v) + " от " + str(MAX_OPITI) + ")"
+                          for k, v in sorted(st["opiti"].items())))
 
     # СЪЮЗЪТ, не само channel_post: стесним ли списъка, Telegram спира да създава
     # личните съобщения до бота и съпортът остава без поща (виж главата на файла).
-    updates = api("getUpdates", offset=offset + 1, timeout=0,
+    updates = api("getUpdates", offset=st["offset"] + 1, timeout=0,
                   allowed_updates='["channel_post", "message", "callback_query"]')
     if updates is None:
         sys.exit(1)
@@ -184,70 +505,12 @@ def main():
         print("Няма нови постове.")
         return
 
-    routed = 0
-    answered = 0
-    last_id = offset
+    # ЕДИН ЧЕТЕЦ ЗА ДВЕТЕ РАБОТИ (виж support_hooks по-горе).
     S, sup_state = support_hooks()
     budget = getattr(S, "MAX_FORWARDS", 25) if S else 0
+    itog = obhodi(updates, st, S, sup_state, budget)
 
-    for u in updates:
-        # ЕДИН ЧЕТЕЦ ЗА ДВЕТЕ РАБОТИ. По-рано тук се СПИРАШЕ пред всяко лично
-        # съобщение, за да го остави на съпорта — и точно това го задушаваше
-        # (виж support_hooks по-горе). Сега личното се обслужва НА МЯСТО и
-        # обхождането продължава, тоест offset-ът върви и опашката не засяда.
-        cb = u.get("callback_query")
-        msg = u.get("message")
-        if cb or msg:
-            if S is None:
-                print("Ъпдейт " + str(u.get("update_id", 0)) + ": съпортът липсва —")
-                print("маркирам го, за да не запуши опашката.")
-            else:
-                try:
-                    if cb:
-                        S.handle_callback(cb)
-                        answered += 1
-                    elif sup_state is not None:
-                        text = (msg.get("text") or "").strip().lower()
-                        is_cmd = (text == "/o" or text.startswith("/o ")
-                                  or text.startswith("/o@"))
-                        if is_cmd or S.target_from_card(msg.get("reply_to_message")):
-                            S.handle_relay(msg, sup_state)      # отговор от екипа
-                        elif (msg.get("chat") or {}).get("type") == "private":
-                            if budget > 0:
-                                if S.handle_private(msg, sup_state, budget) == 1:
-                                    budget -= 1
-                                answered += 1
-                            else:
-                                print("Таванът за предаване е стигнат — спирам да")
-                                print("обслужвам, но offset-ът се мести напред.")
-                except Exception as e:          # noqa: BLE001
-                    # Едно счупено съобщение не бива да спира цялата опашка.
-                    print("съпортът се спъна в ъпдейт "
-                          + str(u.get("update_id", 0)) + ": " + str(e)[:90])
-            last_id = max(last_id, u.get("update_id", 0))
-            continue
-
-        last_id = max(last_id, u.get("update_id", 0))
-        post = u.get("channel_post")
-        if not post:
-            continue
-        chat = post.get("chat") or {}
-        if str(chat.get("id")) != str(CHANNEL_ID):
-            continue   # не е нашият канал
-        text = post.get("text") or post.get("caption") or ""
-        for room in pick_rooms(text):
-            res = api("copyMessage", chat_id=CHAT_ID,
-                      from_chat_id=CHANNEL_ID,
-                      message_id=post.get("message_id"),
-                      message_thread_id=room)
-            if res is not None:
-                routed += 1
-                print(f"Пост {post.get('message_id')} -> стая {room}")
-            else:
-                print(f"Пост {post.get('message_id')} НЕ мина (стая {room}).")
-
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump({"offset": last_id}, f)
+    zapishi_sastoyanie(st)
 
     # Паметта на съпорта (кой какво е питал, дневните тавани) — записва я той,
     # не ние, за да остане форматът на едно място. Без този запис същият човек
@@ -259,8 +522,15 @@ def main():
             print("паметта на съпорта не се записа (" + str(e)[:70] + ") —")
             print("следващото минаване може да повтори отговор.")
 
-    print("Разнесени " + str(routed) + " поста, обслужени "
-          + str(answered) + " съобщения до бота. Offset=" + str(last_id) + ".")
+    print("Разнесени " + str(itog["routed"]) + " поста, обслужени "
+          + str(itog["answered"]) + " съобщения до бота. Offset="
+          + str(st["offset"]) + ".")
+    if itog["spryan"] is not None:
+        print("Опашката е СПРЯНА пред ъпдейт " + str(itog["spryan"])
+              + " — ще бъде опитан пак след 10 минути.")
+    if itog["propusnati"]:
+        print("🔴 ПРЕСКОЧЕНИ В ТОЗИ РЪН: " + str(len(itog["propusnati"]))
+              + ". Виж " + STATE_FILE + ".")
 
 
 def selftest():
@@ -330,6 +600,348 @@ def selftest():
         check(_d + " не е фишова дума", not re.search(FISH_PAT, _d))
     for _d in ("не мина", "паднал", "спечелихме", "печеливш"):
         check(_d + " не е статистическа дума", not re.search(STAT_PAT, _d))
+
+    # ═══════════════ ДЕФЕКТ Б: 429 и retry_after (ИЗМЕРЕНО) ═══════════════
+    # Тестът подменя ШЕВА _otvori и вика ИСТИНСКИЯ api(). Не преписва логиката.
+    import io as _io
+    import tempfile as _tmp
+
+    def _telo(rezultat=True):
+        return json.dumps({"ok": True, "result": rezultat}).encode()
+
+    class _Otgovor:
+        def __init__(self, telo):
+            self._t = telo
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return self._t
+
+    def _greshka(kod, params=None):
+        """Връща ФАБРИКА за грешка, не готова грешка.
+
+        🔴 Намерено на 01.09.2026 в самия този тест: HTTPError.read() изпразва
+        буфера си. `[_greshka(...)] * 9` слагаше ЕДИН обект девет пъти, второто
+        четене връщаше празно тяло, retry_after ставаше 0 и чакането падаше на
+        подразбирането — тоест тестът мереше СЕБЕ СИ, не кода. На живо всяка
+        заявка ражда нова грешка, значи трябва и тук.
+        """
+        telo = {"ok": False, "error_code": kod}
+        if params is not None:
+            telo["parameters"] = params
+        surovo = json.dumps(telo).encode()
+
+        def _napravi():
+            return urllib.error.HTTPError(
+                "http://t", kod, "err", {}, _io.BytesIO(surovo))
+        return _napravi
+
+    def _transport(shema):
+        """shema: списък; елемент = грешка за хвърляне или None (=успех)."""
+        broi = {"n": 0}
+
+        def _o(req, timeout=0):
+            i = broi["n"]
+            broi["n"] += 1
+            stapka = shema[i] if i < len(shema) else None
+            if stapka is not None:
+                raise stapka()          # ПРЯСНА грешка, не преизползвана
+            return _Otgovor(_telo())
+        return _o, broi
+
+    global _otvori, _BEZ_SUN
+    _star_otvori, _star_bez = _otvori, _BEZ_SUN
+    _BEZ_SUN = True
+    try:
+        check("таванът на опитите е поне 2 (иначе тестовете долу лъжат)",
+              MAX_OPITI >= 2)
+
+        # 🔴 ПРОВЕРКА НА САМАТА ПРОВЕРКА. Ако транспортът връща един и същ
+        # HTTPError, второто e.read() е ПРАЗНО и всяко следващо чакане тихо
+        # пада на подразбирането — тоест тестовете за 429 биха мерили себе си.
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 60})] * 2)
+        api("copyMessage")
+        check("тестовият транспорт дава ПРЯСНА грешка всеки път",
+              _ZASPIVANIYA[:2] == [60, 60])
+
+        # --- 429: чете ли се retry_after
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 7})])
+        _r = api("copyMessage", chat_id=1)
+        check("429: чакаме ТОЧНО каквото каза Телеграм (7 сек)",
+              _ZASPIVANIYA == [7])
+        check("429: след чакането ПРОБВАМЕ ПАК и успяваме",
+              _r is True and _br["n"] == 2)
+
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {})])
+        api("copyMessage")
+        check("429 без retry_after: разумно подразбиране "
+              + str(TG_PODRAZBIRANE), _ZASPIVANIYA == [TG_PODRAZBIRANE])
+
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, None)])
+        api("copyMessage")
+        check("429 съвсем без parameters: пак подразбиране",
+              _ZASPIVANIYA == [TG_PODRAZBIRANE])
+
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 3600})])
+        api("copyMessage")
+        check("429 с абсурдно число: таван " + str(TG_TAVAN_EDNO) + " сек",
+              _ZASPIVANIYA == [TG_TAVAN_EDNO])
+
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 1})] * 10)
+        _r = api("copyMessage")
+        check("429 докрай: None след точно " + str(TG_OPITI) + " опита, не вечно",
+              _r is None and _br["n"] == TG_OPITI)
+
+        # --- таван за целия рън
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 60})] * 9)
+        api("copyMessage")
+        check("общото чакане не минава тавана за рън ("
+              + str(TG_TAVAN_OBSHTO) + " сек)",
+              sum(_ZASPIVANIYA) <= TG_TAVAN_OBSHTO)
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 10})])
+        _r = api("copyMessage")
+        check("изчерпан таван за рън: спираме да чакаме, не блъскаме",
+              _r is None and _br["n"] == 1
+              and sum(_ZASPIVANIYA) <= TG_TAVAN_OBSHTO)
+
+        # --- ВСЯКА ТРЪБА минава през същия помощник
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 3})])
+        api("getUpdates", offset=1)
+        check("ТРЪБА 1 (getUpdates) уважава 429", _ZASPIVANIYA == [3])
+
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(429, {"retry_after": 2})])
+        _n, _d = raznesi_post({"message_id": 1, "text": "добро утро"})
+        check("ТРЪБА 2 (copyMessage/raznesi_post) уважава 429",
+              _ZASPIVANIYA == [2] and _n is True and _d == [ROOM_PICKS])
+
+        # ТРЪБА 3 е съпортът: свой api(), не минава оттук — затова се МЕРИ.
+        check("проверчикът на тръби познава тръба, която ЧЕТЕ retry_after",
+              tryba_chete_429(api) is True
+              or tryba_chete_429(chakane_za_429) is True)
+
+        def _tryba_bez_429(x):
+            return x
+        check("проверчикът на тръби НЕ е печат: хваща тръба без retry_after",
+              tryba_chete_429(_tryba_bez_429) is False)
+        check("проверчикът на тръби казва „неизмерима“, не „наред“",
+              tryba_chete_429(None) is None)
+        try:
+            import support_bot as _SB
+            check("ТРЪБА 3 (съпортът) чете retry_after",
+                  tryba_chete_429(getattr(_SB, "api", None)) is True)
+        except Exception as _e:                 # noqa: BLE001
+            print("⚠ съпортът не се зареди за проверка ("
+                  + str(_e)[:60] + ") — тръба 3 остава НЕИЗМЕРЕНА.")
+
+        # --- не-429 грешки не чакат напразно
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(409, {})])
+        _r = api("copyMessage")
+        check("409 Conflict не се блъска повторно",
+              _r is None and _br["n"] == 1 and _ZASPIVANIYA == [])
+        del _ZASPIVANIYA[:]
+        _otvori, _br = _transport([_greshka(400, {})])
+        _r = api("copyMessage")
+        check("HTTP 400 не чака напразно",
+              _r is None and _br["n"] == 1 and _ZASPIVANIYA == [])
+
+        # ═══════════ ДЕФЕКТ А: offset-ът, броячът, бариерата ═══════════════
+        del _ZASPIVANIYA[:]
+        _post = {"update_id": 500, "channel_post": {
+            "message_id": 77, "text": "добро утро",
+            "chat": {"id": CHANNEL_ID}}}
+
+        _otvori, _br = _transport([])                    # всичко минава
+        _st = prazno_sastoyanie()
+        _it = obhodi([_post], _st)
+        check("А: при УСПЕХ offset-ът напредва", _st["offset"] == 500)
+        check("А: при успех броячът на опитите е чист", _st["opiti"] == {})
+        check("А: успешният пост се брои", _it["routed"] == 1)
+
+        _otvori, _br = _transport([_greshka(400, {})] * 9)
+        _st = prazno_sastoyanie()
+        _it = obhodi([_post], _st)
+        check("А: при ПРОВАЛ offset-ът НЕ мърда", _st["offset"] == 0)
+        check("А: провалът вдига брояча на 1", _st["opiti"] == {"500": 1})
+        check("А: провалът спира опашката пред себе си", _it["spryan"] == 500)
+
+        _st = prazno_sastoyanie()
+        for _i in range(MAX_OPITI - 1):
+            _otvori, _br = _transport([_greshka(400, {})] * 9)
+            obhodi([_post], _st)
+        check("А: броячът расте при всеки нов провал",
+              _st["opiti"] == {"500": MAX_OPITI - 1} and _st["offset"] == 0)
+        _otvori, _br = _transport([_greshka(400, {})] * 9)
+        _it = obhodi([_post], _st)
+        check("А: след " + str(MAX_OPITI) + " опита ъпдейтът се ПРЕСКАЧА",
+              _st["offset"] == 500 and _st["opiti"] == {})
+        # Индексът е ЗАЩИТЕН нарочно: празен списък трябва да даде ЧЕРВЕН РЕД
+        # С ИМЕ, а не IndexError. Гейтът пада и в двата случая, но само единият
+        # казва коя защита е паднала.
+        _b0 = (_st["propusnati"] or [{}])[0]
+        check("А: прескачането се ОБЯВЯВА в тефтера",
+              len(_st["propusnati"]) == 1
+              and _b0.get("update_id") == 500
+              and _b0.get("opiti") == MAX_OPITI)
+        check("А: обявеното казва КАКВО е пропуснато",
+              "77" in str(_b0.get("kakvo")))
+        check("А: прескачането се обявява и в изхода на рънa",
+              len(_it["propusnati"]) == 1)
+
+        # --- БАРИЕРАТА (срещу дубли)
+        _post2 = {"update_id": 501, "channel_post": {
+            "message_id": 78, "text": "волейбол", "chat": {"id": CHANNEL_ID}}}
+        _otvori, _br = _transport([_greshka(400, {})] * 9)
+        _st = prazno_sastoyanie()
+        _it = obhodi([_post, _post2], _st)
+        check("А: БАРИЕРА — след провала следващият НЕ се обработва",
+              _br["n"] == 1 and "501" not in _st["opiti"])
+        check("А: бариерата не подминава провала",
+              _st["offset"] == 0 and _it["spryan"] == 500)
+
+        # --- ЧАСТИЧНА ДОСТАВКА: две стаи, втората гърми
+        _post3 = {"update_id": 502, "channel_post": {
+            "message_id": 79, "text": "футбол ❌ фишът не мина",
+            "chat": {"id": CHANNEL_ID}}}
+        check("подготовка: постът наистина иска две стаи",
+              len(pick_rooms("футбол ❌ фишът не мина")) == 2)
+        _st = prazno_sastoyanie()
+        _otvori, _br = _transport([None, _greshka(400, {})])
+        obhodi([_post3], _st)
+        check("А: частичната доставка се ПОМНИ",
+              len(_st["chastichni"].get("502") or []) == 1)
+        check("А: частичният пост не мести offset-а", _st["offset"] == 0)
+        _dostavena = (_st["chastichni"].get("502") or [None])[0]
+        _otvori, _br = _transport([])
+        obhodi([_post3], _st)
+        check("А: при повторение доставената стая НЕ получава ДУБЪЛ",
+              _br["n"] == 1)
+        check("А: след пълната доставка следата се чисти",
+              _st["offset"] == 502 and _st["chastichni"] == {}
+              and _st["opiti"] == {})
+        check("А: доставената стая е истинска стая",
+              _dostavena in (ROOM_FOOT, ROOM_WINS))
+
+        # --- СЪПОРТ-ТРЪБАТА: провалите ѝ вече не изяждат съобщението
+        _msg = {"update_id": 700, "message": {
+            "text": "здрасти", "chat": {"id": 1, "type": "private"}}}
+
+        _st = prazno_sastoyanie()
+        obhodi([_msg], _st, S=None)
+        check("А: липсващ съпорт вече НЕ изяжда съобщението",
+              _st["offset"] == 0 and _st["opiti"] == {"700": 1})
+
+        class _SpanatS:
+            MAX_FORWARDS = 5
+
+            @staticmethod
+            def target_from_card(x):
+                return None
+
+            @staticmethod
+            def handle_private(m, s, b):
+                raise RuntimeError("нарочно счупен за теста")
+
+        _st = prazno_sastoyanie()
+        obhodi([_msg], _st, S=_SpanatS, sup_state={}, budget=5)
+        check("А: спънат съпорт вече НЕ изяжда съобщението",
+              _st["offset"] == 0 and _st["opiti"] == {"700": 1})
+
+        class _DobarS:
+            MAX_FORWARDS = 5
+
+            @staticmethod
+            def target_from_card(x):
+                return None
+
+            @staticmethod
+            def handle_private(m, s, b):
+                return 1
+
+        _st = prazno_sastoyanie()
+        _it = obhodi([_msg], _st, S=_DobarS, sup_state={}, budget=5)
+        check("А: обслуженото лично съобщение МЕСТИ offset-а",
+              _st["offset"] == 700 and _it["answered"] == 1)
+
+        _st = prazno_sastoyanie()
+        obhodi([_msg], _st, S=_DobarS, sup_state={}, budget=0)
+        check("А: изчерпаният таван оставя съобщението за следващия рън",
+              _st["offset"] == 0 and _st["opiti"] == {"700": 1})
+
+        _st = prazno_sastoyanie()
+        obhodi([_msg], _st, S=_DobarS, sup_state=None, budget=5)
+        check("А: нечетима памет на съпорта не изяжда съобщението",
+              _st["offset"] == 0 and _st["opiti"] == {"700": 1})
+
+        # ═══════════════════ ТЕФТЕРЪТ: четене, чистене, рязане ═════════════
+        _pat = os.path.join(_tmp.gettempdir(), "router_state_selftest.json")
+        _st = prazno_sastoyanie()
+        _st["offset"] = 600
+        _st["opiti"] = {"590": 2, "610": 1}
+        _st["chastichni"] = {"590": [5], "610": [6]}
+        _st["propusnati"] = [{"update_id": i} for i in range(40)]
+        zapishi_sastoyanie(_st, _pat)
+        _ob = zaredi_sastoyanie(_pat)
+        check("тефтер: бележките ПОД offset-а се чистят (не растат вечно)",
+              "590" not in _ob["opiti"] and "590" not in _ob["chastichni"])
+        check("тефтер: чакащите НАД offset-а оцеляват",
+              _ob["opiti"].get("610") == 1
+              and _ob["chastichni"].get("610") == [6])
+        # ДВЕТЕ СТРАНИ ПООТДЕЛНО. Рязането е на две места (при запис и при
+        # четене); едно измерване през двете не доказва нито едното — махнеш
+        # ли което и да е, другото го прикрива. Проверено с мутация.
+        with open(_pat, encoding="utf-8") as _f:
+            _surov = json.load(_f)
+        check("тефтер/ЗАПИС: самият ФАЙЛ пази най-много "
+              + str(MAX_PROPUSNATI) + " пропуснати",
+              len(_surov.get("propusnati") or []) == MAX_PROPUSNATI)
+        with open(_pat, "w", encoding="utf-8") as _f:
+            json.dump({"offset": 600,
+                       "propusnati": [{"update_id": i} for i in range(40)]}, _f)
+        _ob2 = zaredi_sastoyanie(_pat)
+        check("тефтер/ЧЕТЕНЕ: чужд препълнен файл също се реже до "
+              + str(MAX_PROPUSNATI),
+              len(_ob2["propusnati"]) == MAX_PROPUSNATI)
+        check("тефтер: пропуснатите се режат до " + str(MAX_PROPUSNATI),
+              len(_ob["propusnati"]) == MAX_PROPUSNATI)
+        check("тефтер: offset-ът се връща цял", _ob["offset"] == 600)
+
+        with open(_pat, "w", encoding="utf-8") as _f:
+            _f.write('{"offset": 320389819}')
+        _ob = zaredi_sastoyanie(_pat)
+        check("тефтер: СТАРИЯТ формат (само offset) се чете без гърмеж",
+              _ob["offset"] == 320389819 and _ob["opiti"] == {}
+              and _ob["propusnati"] == [])
+        with open(_pat, "w", encoding="utf-8") as _f:
+            _f.write("{счупен")
+        try:
+            _ob = zaredi_sastoyanie(_pat)
+            _cyalo = _ob["offset"] == 0
+        except Exception as _e:                 # noqa: BLE001
+            print("   (повреденият тефтер хвърли " + type(_e).__name__ + ")")
+            _cyalo = False
+        check("тефтер: повреден файл не гърми, а почва от 0", _cyalo)
+        try:
+            os.remove(_pat)
+        except OSError:
+            pass
+    finally:
+        _otvori, _BEZ_SUN = _star_otvori, _star_bez
+        del _ZASPIVANIYA[:]
 
     print("САМОПРОВЕРКА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:

@@ -330,6 +330,59 @@ def env_float(name, default, lo, hi):
     return max(lo, min(hi, v))
 
 
+# 🔴 КЛЮЧ, КОЙТО НЕ СТИГА ДО ПРОЦЕСА, Е МЪРТВА РЪЧКА (01.09.2026).
+# Измерено: predictor.py чете 93 ключа от средата, а predict.yml подаваше 43.
+# Между неподадените бяха ТРИ неща, направени същия ден — денонощните часове,
+# прагът за пресмелите карти и местният тенис на маса. Кодът ги четеше,
+# самопроверката ги мереше зелени, и въпреки това собственикът нямаше как да
+# ги завърти: редът с тази променлива изобщо не съществуваше в yml-а.
+# Този списък са ръчките, които ТРЯБВА да стигат до процеса. Проверката в
+# selftest чете самия predict.yml — както прави и сверката на кроновете.
+KLYUCHOVE_ZA_YML = (
+    "MAX_PICKS", "PREDICT_POOL", "PREDICT_HTTP_BUDGET", "PREDICT_MAX_DAY",
+    "PREDICT_IZKL", "PREDICT_AMFUTBOL_MAX",
+    "PREDICT_QUIET_TO", "PREDICT_QUIET_FROM", "PREDICT_SMELOST_MAX",
+    "PREDICT_TTLOKAL", "PREDICT_TTLOKAL_MAX", "PREDICT_TTLOKAL_SCALE",
+    "PREDICT_ITF_MAX", "PREDICT_HORIZON_AMF", "PREDICT_HORIZON_HOK",
+    "PREDICT_HORIZON_MMA", "PREDICT_MAX_URGENT", "PREDICT_URGENT_LEAD_H",
+)
+
+
+def klyuchove_diag():
+    """С какви настройки е работило ТОВА пускане — и коя откъде идва.
+
+    🔴 Защо съществува (01.09.2026): собственикът сложи променливите, рънът
+    мина зелен, а амер. футбол пак го нямаше в черната кутия — и отвън НЯМАШЕ
+    как да се разбере дали променливата изобщо е стигнала до процеса. Кутията
+    отговаряше на «колко срещи видях», но не и на «с какви настройки».
+    Пише се СТОЙНОСТТА и ИЗТОЧНИКЪТ. Никакви токени и тайни: списъкът е
+    затворен и се пази от проверка.
+    """
+    d = {}
+    for klyuch in KLYUCHOVE_ZA_YML:
+        sur = (os.environ.get(klyuch) or "").strip()
+        d[klyuch] = {"ot": ("ключ" if sur else "по подразбиране")}
+    g = globals()
+    for klyuch, ime in (("MAX_PICKS", "MAX_PICKS"),
+                        ("PREDICT_POOL", "POOL"),
+                        ("PREDICT_HTTP_BUDGET", "HTTP_BUDGET"),
+                        ("PREDICT_MAX_DAY", "MAX_DAY"),
+                        ("PREDICT_AMFUTBOL_MAX", "AMFUTBOL_MAX"),
+                        ("PREDICT_QUIET_TO", "QUIET_TO"),
+                        ("PREDICT_QUIET_FROM", "QUIET_FROM"),
+                        ("PREDICT_SMELOST_MAX", "SMELOST_MAX"),
+                        ("PREDICT_TTLOKAL_MAX", "TTLOKAL_MAX"),
+                        ("PREDICT_TTLOKAL_SCALE", "TTLOKAL_SCALE")):
+        if klyuch in d and ime in g:
+            d[klyuch]["stoynost"] = g[ime]
+    d["PREDICT_IZKL"]["stoynost"] = sorted(g.get("IZKLYUCHENI") or [])
+    d["ACTIVE_SPORTS"] = {"ot": "пресметнато",
+                          "stoynost": list(g.get("ACTIVE_SPORTS") or [])}
+    d["RUN_HOURS"] = {"ot": "пресметнато",
+                      "stoynost": list(g.get("RUN_HOURS") or [])}
+    return d
+
+
 # 6, не 4. Откакто списъците със срещи спряха (собственикът: „искам всичко
 # прогнози, а не какво предстои като някакви списъци"), спортните стаи живеят
 # САМО от прогнози. При четири карти на пускане и девет спорта една стая
@@ -1185,7 +1238,11 @@ def save_state(state, now):
             # съдба — този файл се връща в хранилището и се чете отвън.
             json.dump({"v": 1, "posted": posted,
                        "diag": {"koga": now.strftime("%Y-%m-%d %H:%M"),
-                                "sportove": DIAG},
+                                "sportove": DIAG,
+                                # с какви настройки е работило пускането — за
+                                # да не се гадае отвън дали променливата
+                                # изобщо е стигнала до процеса
+                                "klyuchove": klyuchove_diag()},
                        "karti": {"koga": now.strftime("%Y-%m-%d %H:%M"),
                                  "prateni": OTCHET["prateni"],
                                  "suho": OTCHET["suho"],
@@ -10796,6 +10853,52 @@ def selftest():
     check("тефтерът носи черната кутия", "diag" in _got)
     check("черната кутия помни часа", bool(_got["diag"].get("koga")))
     check("черната кутия помни спорта", "proba" in (_got["diag"].get("sportove") or {}))
+    # 🔴 И НАСТРОЙКИТЕ, не само срещите. Тези проверки пазят отговора на
+    # въпроса «стигна ли променливата до процеса», който на 01.09 не можеше
+    # да бъде зададен отвън изобщо.
+    _kl = _got["diag"].get("klyuchove") or {}
+    check("черната кутия помни настройките",
+          all(_k in _kl for _k in KLYUCHOVE_ZA_YML))
+    check("кутията казва и ОТКЪДЕ идва всяка",
+          all((_kl.get(_k) or {}).get("ot") in ("ключ", "по подразбиране")
+              for _k in KLYUCHOVE_ZA_YML))
+    check("кутията помни кои спортове са били живи", "ACTIVE_SPORTS" in _kl)
+    check("кутията помни работните часове", "RUN_HOURS" in _kl)
+    # 🔴 СПИСЪКЪТ НЕ БИВА ДА СЪДЪРЖА СОБСТВЕНИЯ СИ ОТГОВОР (мутация М13,
+    # 01.09.2026). Проверката «predict.yml подава всяка ръчка» пита
+    # KLYUCHOVE_ZA_YML какво да търси. Махне ли се ключ ОТ НЕГО, тя пак минава
+    # — ръчката тихо умира, а зеленото остава. Затова ядрото се изброява ТУК,
+    # на друго място, и има долна граница на броя. Същият шаблон като при
+    # тестовете, които се самоизключваха: сравнявай ИМЕНАТА, не броя зелени.
+    _yadro = ("PREDICT_QUIET_TO", "PREDICT_QUIET_FROM", "PREDICT_IZKL",
+              "PREDICT_AMFUTBOL_MAX", "PREDICT_MAX_DAY", "PREDICT_POOL",
+              "PREDICT_HTTP_BUDGET", "PREDICT_SMELOST_MAX",
+              "PREDICT_TTLOKAL_MAX", "MAX_PICKS")
+    _nyama = [_k for _k in _yadro if _k not in KLYUCHOVE_ZA_YML]
+    check("списъкът с ръчки пази ядрото си (%s)" % (", ".join(_nyama) or "-"),
+          not _nyama)
+    check("списъкът с ръчки не е орязан", len(KLYUCHOVE_ZA_YML) >= 18)
+    # НИКАКВИ ТАЙНИ. Списъкът е затворен; това е пазачът, че ще си остане.
+    check("в кутията НЯМА токени и чатове",
+          not [_k for _k in _kl if ("TOKEN" in _k or "CHAT" in _k
+                                    or "CHANNEL" in _k or "SECRET" in _k)])
+    _staro = os.environ.get("PREDICT_MAX_DAY")
+    try:
+        os.environ["PREDICT_MAX_DAY"] = "77"
+        check("подаден ключ се отчита като «ключ»",
+              (klyuchove_diag()["PREDICT_MAX_DAY"] or {}).get("ot") == "ключ")
+        os.environ.pop("PREDICT_MAX_DAY", None)
+        check("липсващ ключ се отчита като «по подразбиране»",
+              (klyuchove_diag()["PREDICT_MAX_DAY"] or {}).get("ot")
+              == "по подразбиране")
+        os.environ["PREDICT_MAX_DAY"] = ""
+        check("ПРАЗЕН ключ НЕ се брои за подаден",
+              (klyuchove_diag()["PREDICT_MAX_DAY"] or {}).get("ot")
+              == "по подразбиране")
+    finally:
+        os.environ.pop("PREDICT_MAX_DAY", None)
+        if _staro is not None:
+            os.environ["PREDICT_MAX_DAY"] = _staro
     check("черната кутия помни колко срещи",
           (_got["diag"]["sportove"]["proba"] or {}).get("suredi") == 3)
     check("черната кутия помни колко са започнали",
@@ -10835,6 +10938,13 @@ def selftest():
               set(RUN_HOURS) <= set(_chas_yml))
         check("кроновете покриват денонощието",
               len(_chas_yml) == 24 or _chas_yml == sorted(RUN_HOURS))
+        # 🔴 МЪРТВИТЕ РЪЧКИ. Кодът чете ключ, yml не го подава, ботът
+        # работи по подразбиране, а самопроверката е ЗЕЛЕНА — защото тя мери
+        # КОДА, не ПЪТЯ до него. Измерено 01.09.2026: 93 четени срещу 43
+        # подадени. Тук пътят се сверява, както се сверяват и кроновете.
+        _lipsvat = [_k for _k in KLYUCHOVE_ZA_YML if (_k + ":") not in _txt]
+        check("predict.yml подава всяка ръчка на собственика (%s)"
+              % (", ".join(_lipsvat) or "-"), not _lipsvat)
         if _chas_yml != sorted(RUN_HOURS):
             print("   ⚠ yml казва " + str(_chas_yml)
                   + ", кодът казва " + str(sorted(RUN_HOURS)))

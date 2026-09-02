@@ -264,7 +264,233 @@ def post_room(thread_id, text):
     return poster.send_message(CHAT_ID, clip(text), thread_id=tid, preview=False)
 
 
+# ---------- 🔢 ТРИТЕ ЧИСЛА: ВЗЕТИ / МИНАЛИ ФИЛТРИТЕ / ПУБЛИКУВАНИ ----------
+# ЗАЩО СЪЩЕСТВУВА (01.09.2026)
+#
+# Ботът излизаше УСПЕШНО с нула публикации и печаташе едно-единствено
+# изречение: Няма сериозни срещи днес (или API мълчи). Тоест ДВЕ различни
+# състояния бяха слети в един ред и в един изход 0:
+#     а) наистина няма мачове  -> нормално, случва се;
+#     б) източникът мълчи      -> счупено, и никой отвън не разбира.
+# Дневникът на Actions иска права и изчезва, така че нулата беше неразличима.
+#
+# ИЗМЕРЕНО НА ЖИВО от тази машина на 01.09.2026: тенисът на маса върна 0 срещи,
+# защото липсваше модулът brotli, а самият predictor извика на глас, че това е
+# провал на източника. Редът, който ТОЗИ файл отпечата, беше дума по дума
+# същият като за празен ден: tabletennis: 0 срещи от ESPN за 1 дни.
+#
+# Затова всеки източник вече оставя ЧЕТИРИ числа, не едно:
+#   vzeti    - колко срещи подаде
+#   zaqvki   - колко пъти изобщо посегнахме навън заради него
+#   provali  - колко от тези посягания се счупиха
+#   grimna   - текстът на изключението, ако е гръмнал
+# Присъдата се прави от тях, а не от голото нула.
+IZVORI = {}
+
+
+def vpishi_izvor(bucket, vzeti=0, zaqvki=0, provali=0, grimna=""):
+    """Един ред в тефтера. СЪБИРА се, не се презаписва: един спорт може да е
+    питан на два двигателя (ESPN, после TheSportsDB) и двата опита се броят."""
+    z = IZVORI.setdefault(str(bucket), {"vzeti": 0, "zaqvki": 0,
+                                        "provali": 0, "grimna": ""})
+    z["vzeti"] += int(vzeti or 0)
+    z["zaqvki"] += int(zaqvki or 0)
+    z["provali"] += int(provali or 0)
+    if grimna and not z["grimna"]:
+        z["grimna"] = str(grimna)[:120]
+    return z
+
+
+def prisada(z):
+    """ПРОВАЛ / ПРАЗНО / НАРЕД - присъда за ЕДИН източник.
+
+    Редът на правилата е нарочен и е писан по измерване, не по усет:
+
+      1. дошла е поне една среща -> НАРЕД. Изворът е доказано жив, каквото и
+         да се е счупило по пътя. Това правило е ПЪРВО нарочно: иначе една
+         преименувана вътрешност на predictor щеше да боядисва в червено ден
+         с 36 взети футболни срещи.
+      2. гръмнал е                -> ПРОВАЛ. Изключение не е празен ден.
+      3. нула заявки              -> ПРОВАЛ. Не сме питали, значи нямаме право
+         да твърдим, че няма. Тук влиза и случаят, в който броячите липсват.
+      4. питали сме и ВСИЧКО се е счупило -> ПРОВАЛ. Точно днешният тенис на
+         маса: 1 заявка, 1 счупена, 0 срещи.
+      5. питали сме, отговорът е бил здрав, вътре нямаше нищо -> ПРАЗНО.
+         Това е ЕДИНСТВЕНОТО състояние, което значи наистина няма мачове."""
+    z = z or {}
+    vzeti = int(z.get("vzeti") or 0)
+    zaqvki = int(z.get("zaqvki") or 0)
+    provali = int(z.get("provali") or 0)
+    if vzeti > 0:
+        opashka = ""
+        if z.get("grimna") or provali:
+            opashka = " (но " + str(provali) + " счупени заявки)"
+        return "НАРЕД", str(vzeti) + " срещи" + opashka
+    if z.get("grimna"):
+        return "ПРОВАЛ", "източникът гръмна: " + str(z.get("grimna"))[:80]
+    if zaqvki <= 0:
+        return "ПРОВАЛ", "нула заявки - изворът изобщо не беше питан"
+    if provali > 0:
+        return "ПРОВАЛ", ("питахме " + str(zaqvki) + " пъти, счупиха се "
+                          + str(provali) + " - нулата не е празен ден")
+    return "ПРАЗНО", "питахме " + str(zaqvki) + " пъти, отговорът беше празен"
+
+
+# ПРАГЪТ. Под колко ВЗЕТИ срещи за целия рън обявяваме, че изворът е рухнал.
+#
+# ИЗМЕРЕНО НА 01.09.2026 от тази машина, ден по ден през същите функции на
+# predictor.py, които ботът вика (футбол + баскетбол + волейбол + тенис на
+# маса), БЕЗ модула brotli и с половин отминал ден:
+#     01.09 -> 24 взети · 02.09 -> 56 · 03.09 -> 30 · 04.09 -> 67
+#     бойните спортове отделно: 18 за 7 дни напред
+# Най-слабият измерен ден е 24, и то с изключен цял спорт. Работният рън в
+# 08:30 има и brotli, и целия ден пред себе си. Затова 5 е достатъчно ниско,
+# за да не гърми на слаба неделя, и достатъчно високо, за да хване срутване.
+# Числото е КЛЮЧ, не константа - за да се мести без пипане на код.
+try:
+    MIN_VZETI = max(0, min(500, int((os.environ.get("MATCHES_MIN_VZETI") or "5").strip())))
+except ValueError:
+    MIN_VZETI = 5
+
+# ПЪТЯТ НАЗАД без редакция на файла: MATCHES_MEK=1 обявява провала на глас,
+# но връща зелен изход. Слага се в workflow-а и се маха, когато мине бурята.
+MEK = (os.environ.get("MATCHES_MEK") or "").strip() in ("1", "true", "yes", "да")
+
+# 🔴 ЧЕРНАТА КУТИЯ НА МАЧ-БОТА (01.09.2026).
+# Тефтерът горе печата три числа и присъда по спорт — и толкова. Изходът на
+# Actions иска админски права и изчезва; отвън се вижда само зелено или
+# червено на рънa. Проверено живо срещу дървото на `main`: хранилището носи
+# budilnik_state.json, predict_state.json, pazach_state.json и още девет —
+# `matches_state.json` НЕ СЪЩЕСТВУВАШЕ. Тоест на въпроса «кога публикува
+# последно и колко» нямаше отговор отвън, а четирийсет и седем зелени рънa
+# не доказваха нито една публикация.
+# Похватът е същият като в predictor.py (виж «ЧЕРНАТА КУТИЯ» там): пише се
+# атомарно през .tmp и os.replace, за да не остане счупен JSON, ако рънърът
+# бъде убит по средата.
+# ⚠ Записът е безполезен без стъпката за връщане в matches.yml — затова
+# долу в самопроверката се чете самият yml.
+STATE_FILE = ((os.environ.get("MATCHES_STATE_FILE") or "").strip()
+              or "matches_state.json")
+
+
+def zapishi_sastoyanie(kod_surov, kod_varnat, publikuvani, preseti, gledani,
+                       vzeti, now=None):
+    """Тефтерът, но в ХРАНИЛИЩЕТО, не само в дневника на Actions.
+
+    Връща True при успех. НИКОГА не хвърля: загубен запис е лошо, но паднал
+    рън СЛЕД като постовете вече са тръгнали е по-лошо.
+    """
+    zapis = {
+        "v": 1,
+        "koga": (now or datetime.now(timezone.utc).astimezone(SOFIA)
+                 ).strftime("%Y-%m-%d %H:%M"),
+        # 🔴 ДВАТА кода, не един. MATCHES_MEK=1 връща 0 върху истински провал;
+        # пише ли се само върнатият, мекият режим става невидим отвън — а
+        # точно това е случаят, заради който човек отваря кутията.
+        "izhod": int(kod_surov or 0),
+        "izhod_varnat": int(kod_varnat or 0),
+        "mek": bool(MEK),
+        "prag": int(MIN_VZETI),
+        "chisla": {"vzeti": int(vzeti or 0),
+                   "preseti": int(preseti or 0),
+                   "publikuvani": int(publikuvani or 0),
+                   "gledani": int(gledani or 0)},
+        "izvori": {},
+    }
+    for b in sorted(IZVORI):
+        z = IZVORI[b] or {}
+        p, zashto = prisada(z)
+        zapis["izvori"][b] = {
+            "prisada": p,
+            "zashto": zashto,
+            "vzeti": int(z.get("vzeti") or 0),
+            "zaqvki": int(z.get("zaqvki") or 0),
+            "provali": int(z.get("provali") or 0),
+            "grimna": str(z.get("grimna") or ""),
+        }
+    try:
+        tmp = STATE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(zapis, f, ensure_ascii=False, indent=1, sort_keys=True)
+        os.replace(tmp, STATE_FILE)   # атомарно: убит рън не оставя счупено
+        return True
+    except Exception as e:                                   # noqa: BLE001
+        print("Тефтерът НЕ се записа (" + str(e)[:70] + ") — постовете вече"
+              " са тръгнали, затова това не сваля рънa.")
+        return False
+
+
+def ravnosmetka(publikuvani, preseti=0, gledani=0):
+    """ТРИТЕ ЧИСЛА на глас, после присъда. Връща изходния код на целия рън.
+
+    Нула публикации НЕ Е сама по себе си провал. Провал е нула публикации,
+    която НЕ МОЖЕМ да обясним с жив и празен извор."""
+    vzeti = sum(int((z or {}).get("vzeti") or 0) for z in IZVORI.values())
+    provaleni, prazni = [], []
+    print("")
+    print("=== ТЕФТЕР НА ИЗТОЧНИЦИТЕ ===")
+    for b in sorted(IZVORI):
+        z = IZVORI[b] or {}
+        p, zashto = prisada(z)
+        if p == "ПРОВАЛ":
+            provaleni.append(b)
+        elif p == "ПРАЗНО":
+            prazni.append(b)
+        print("   %-12s %-7s взети=%-5d заявки=%-4d счупени=%-4d %s"
+              % (b, p, int(z.get("vzeti") or 0), int(z.get("zaqvki") or 0),
+                 int(z.get("provali") or 0), zashto))
+    print("ВЗЕТИ ОТ ИЗТОЧНИКА: " + str(vzeti))
+    print("МИНАЛИ ФИЛТРИТЕ:    " + str(int(preseti or 0))
+          + ((" (от " + str(gledani) + " разровени)") if gledani else ""))
+    print("ПУБЛИКУВАНИ:        " + str(int(publikuvani or 0)))
+
+    kod = 0
+    if publikuvani:
+        if provaleni:
+            print("ЧАСТИЧНО: " + ", ".join(provaleni) + " мълчи по ПРОВАЛ, не по"
+                  " празен ден. Публикуваното идва от останалите източници.")
+    elif vzeti < MIN_VZETI:
+        print("ПРОВАЛ: " + str(vzeti) + " взети срещи при праг " + str(MIN_VZETI)
+              + " - това НЕ е празен ден, това е мълчащ източник.")
+        kod = 2
+    elif provaleni:
+        print("ПРОВАЛ: нула публикации, а източниците " + ", ".join(provaleni)
+              + " се счупиха - мълчанието НЕ е доказан празен ден.")
+        kod = 2
+    else:
+        print("Нула публикации, но всеки източник беше питан и отговори здраво: "
+              + str(vzeti) + " взети, " + str(int(preseti or 0))
+              + " минали филтрите"
+              + ((", празни днес: " + ", ".join(prazni)) if prazni else "")
+              + ". Днес наистина няма какво да се каже - това е"
+              " нормално и обяснено, не провал.")
+    if kod and MEK:
+        print("(мек режим MATCHES_MEK=1: провалът е обявен, рънът остава зелен.)")
+        varnat = 0
+    else:
+        varnat = kod
+    # Кутията се пише ВИНАГИ и накрая — тук вече всичко е преброено и
+    # присъдено. И двата кода влизат вътре, за да не скрие мекият режим
+    # истинския провал от човека, който гледа файла отвън.
+    zapishi_sastoyanie(kod, varnat, publikuvani, preseti, gledani, vzeti)
+    return varnat
+
+
+def _broiachi_na_predictor(P):
+    """(заявки, счупени) от предсказателя. Липсват ли - (None, None), а това
+    се вписва като гръмване: неизмеримото не бива да минава за празен ден."""
+    try:
+        return int(P._http_used[0]), int(P._http_fail[0])
+    except Exception:                            # noqa: BLE001
+        return None, None
+
+
 # ---------- ДАННИ ----------
+# Собствените заявки на този файл (TheSportsDB / football-data). Броят се тук,
+# защото ESPN върви през predictor и има свои броячи.
+MREZHA = {"zaqvki": 0, "provali": 0}
+
+
 def fetch_json(url, timeout=20, headers=None):
     # ESPN пуска само непреправени клиенти. Измерено на 11.08.2026: подпис
     # „GreenPicksBot/1.0" -> 403 Forbidden; без подпис -> 200. Същият дефект
@@ -276,8 +502,15 @@ def fetch_json(url, timeout=20, headers=None):
     if "thesportsdb.com" in url:
         time.sleep(2.1)    # free ключът е ~30 заявки/мин — дишаме
     req = urllib.request.Request(url, headers=hd)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8", "replace"))
+    # Броим ПОСЯГАНЕТО, не успеха: точно разликата между посегнахме и не
+    # посегнахме отличава празен ден от мълчащ източник.
+    MREZHA["zaqvki"] += 1
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8", "replace"))
+    except Exception:                            # noqa: BLE001
+        MREZHA["provali"] += 1
+        raise
 
 
 def league_weight(bucket, league):
@@ -359,7 +592,14 @@ def sportsdb_fixtures(bucket):
     """Чистите срещи за един спорт от TheSportsDB, вече прецедени по турнир."""
     cfg = SPORTS[bucket]
     rows = []
-    for e in get_todays_events(cfg["api"]):
+    _z0, _p0 = MREZHA["zaqvki"], MREZHA["provali"]
+    _surovi = get_todays_events(cfg["api"])
+    # ВЗЕТИ е суровото число ПРЕДИ филтъра по турнир. Филтърът е наш избор,
+    # а не мълчание на извора - двете не бива да се броят на едно място.
+    vpishi_izvor(bucket, vzeti=len(_surovi),
+                 zaqvki=MREZHA["zaqvki"] - _z0,
+                 provali=MREZHA["provali"] - _p0)
+    for e in _surovi:
         w = league_weight(bucket, e.get("strLeague"))
         if w <= 0:
             continue
@@ -389,15 +629,19 @@ def combat_fixtures():
     except Exception as e:                       # noqa: BLE001
         print("бойни спортове: predictor.py не се зареди (" + str(e)[:90]
               + ") — стаята мълчи.")
+        vpishi_izvor("combat", grimna="predictor.py не се зареди: " + str(e)[:60])
         return []
 
     now = datetime.now(SOFIA)
     old_window = getattr(P, "MMA_DAYS_AHEAD", COMBAT_DAYS)
+    z0, f0 = _broiachi_na_predictor(P)
+    gr = "" if z0 is not None else "броячите на заявки в predictor липсват"
     try:
         P.MMA_DAYS_AHEAD = COMBAT_DAYS
         raw = P.mma_fixtures(now) or []
     except Exception as e:                       # noqa: BLE001
         print("бойни спортове: ESPN мълчи (" + str(e)[:90] + ").")
+        vpishi_izvor("combat", grimna="mma_fixtures: " + str(e)[:70])
         return []
     finally:
         P.MMA_DAYS_AHEAD = old_window
@@ -417,6 +661,14 @@ def combat_fixtures():
             "src": "mma", "fd_id": None,
             "home_id": r.get("home_id"), "away_id": r.get("away_id"),
         })
+    z1, f1 = _broiachi_na_predictor(P)
+    vpishi_izvor("combat", vzeti=len(rows),
+                 zaqvki=(z1 - z0) if (z0 is not None and z1 is not None) else 0,
+                 provali=(f1 - f0) if (f0 is not None and f1 is not None) else 0,
+                 grimna=gr)
+    _p, _zashto = prisada(IZVORI.get("combat"))
+    print("  combat: " + str(len(rows)) + " боя за " + str(COMBAT_DAYS)
+          + " дни напред. [" + _p + ": " + _zashto + "]")
     return rows
 
 
@@ -453,13 +705,17 @@ def espn_rows(bucket):
         import predictor as P
     except Exception as e:                       # noqa: BLE001
         print("  " + bucket + ": predictor.py не се зареди (" + str(e)[:80] + ")")
+        vpishi_izvor(bucket, grimna="predictor.py не се зареди: " + str(e)[:60])
         return []
 
     fname, kind = ESPN_SOURCES[bucket]
     fn = getattr(P, fname, None)
     if fn is None:
         print("  " + bucket + ": " + fname + " липсва в predictor.py")
+        vpishi_izvor(bucket, grimna=fname + " липсва в predictor.py")
         return []
+    z0, f0 = _broiachi_na_predictor(P)
+    gr = "" if z0 is not None else "броячите на заявки в predictor липсват"
 
     now = datetime.now(SOFIA)
     seen = set()
@@ -471,6 +727,7 @@ def espn_rows(bucket):
             raw = fn(now, stamp) or []
         except Exception as e:                   # noqa: BLE001
             print("  " + bucket + " " + stamp + ": източникът мълчи (" + str(e)[:70] + ")")
+            gr = gr or (stamp + ": " + str(e)[:70])
             continue
         for r in raw:
             when = r.get("when")
@@ -505,8 +762,16 @@ def espn_rows(bucket):
                 "rec_h_home": (r.get("extra") or {}).get("rec_h_home") or "",
                 "rec_a_road": (r.get("extra") or {}).get("rec_a_road") or "",
             })
+    z1, f1 = _broiachi_na_predictor(P)
+    vpishi_izvor(bucket, vzeti=len(rows),
+                 zaqvki=(z1 - z0) if (z0 is not None and z1 is not None) else 0,
+                 provali=(f1 - f0) if (f0 is not None and f1 is not None) else 0,
+                 grimna=gr)
+    _p, _zashto = prisada(IZVORI.get(bucket))
+    # 🔴 РЕДЪТ В ДНЕВНИКА ВЕЧЕ РАЗЛИЧАВА ДВЕТЕ НУЛИ. Дотук и празният ден, и
+    # счупеният източник печатаха една и съща дума по дума фраза.
     print("  " + bucket + ": " + str(len(rows)) + " срещи от ESPN за "
-          + str(MATCHES_DAYS) + " дни.")
+          + str(MATCHES_DAYS) + " дни. [" + _p + ": " + _zashto + "]")
     return rows
 
 
@@ -927,6 +1192,11 @@ def predict_card(picks, now, news_titles):
 # ---------- ГЛАВНО ----------
 def collect():
     """Всички днешни срещи, по кошници, вече прецедени и подредени."""
+    # Тефтерът се чисти в началото на всяко събиране: стар запис от предишно
+    # викане би превърнал днешния провал във вчерашно НАРЕД.
+    IZVORI.clear()
+    MREZHA["zaqvki"] = 0
+    MREZHA["provali"] = 0
     buckets = {}
 
     # РЕДЪТ НА ИЗТОЧНИЦИТЕ (най-богатият пръв):
@@ -980,8 +1250,11 @@ def main():
     buckets = collect()
     total = sum(len(v) for v in buckets.values())
     if not total:
-        print("Няма сериозни срещи днес (или API мълчи) — мълчим и ние.")
-        return
+        # 🔴 ТУК БЕШЕ ДЕФЕКТЪТ (ред 982-983 преди 01.09.2026). Един ред текст и
+        # изход 0 за две различни неща: няма мачове ИЛИ API мълчи. Скобата в
+        # самото изречение признаваше, че не знаем кое от двете е - и въпреки
+        # това рънът светеше зелено. Сега присъдата се произнася от числата.
+        return ravnosmetka(0, preseti=0)
 
     # 1) СПИСЪЦИТЕ СЪС СРЕЩИ СА СПРЕНИ (29.07.2026).
     # Собственикът беше пределно ясен: „Даваш срещите за деня или някви
@@ -1054,16 +1327,44 @@ def main():
         # predictor.py — този файл няма какво да добави днес.
         print("Нито една среща с данни от " + str(gledani) + " гледани — стая "
               + str(PREDICT_THREAD) + " мълчи. Прегледът без числа е празен преглед.")
-        print(f"Готово: {sent_rooms} спортни стаи.")
-        return
+        return ravnosmetka(sent_rooms, preseti=len(pool), gledani=gledani)
 
     news_titles = load_recent_news_titles()
     if post_room(PREDICT_THREAD, predict_card(picks, now, news_titles)):
+        sent_rooms += 1
         print(f"Анализ: {len(picks)} срещи -> стая {PREDICT_THREAD}")
-    print(f"Готово: {sent_rooms} спортни стаи, {total} срещи общо.")
+    else:
+        # Отказаното пращане беше НЕВИДИМО: сметката отдолу броеше само стаите
+        # със списъци, а те са спрени - тоест провалът излизаше като нула.
+        print("Анализът НЕ замина към стая " + str(PREDICT_THREAD) + ".")
+    return ravnosmetka(sent_rooms, preseti=len(pool), gledani=gledani)
 
 
 # ---------- SELFTEST (без мрежа, без реални пращания) ----------
+def _sobstveniyat_izhoden_tekst():
+    """Собственият сорс. Проверка, която ГО ЧЕТЕ, не може да бъде подведена от
+    променлива, презаписана в паметта по време на теста."""
+    with open(os.path.abspath(__file__), encoding="utf-8-sig") as f:
+        return f.read()
+
+
+def _insp_src_na_praga():
+    t = _sobstveniyat_izhoden_tekst()
+    i = t.find("MIN_VZETI = max(")
+    return t[max(0, i - 200):i + 200]
+
+
+def _insp_src_na_izhoda():
+    # 🔴 rfind, НЕ find (01.09.2026). С find търсенето попадаше върху
+    # СОБСТВЕНИЯ СИ литерал няколко реда по-горе, а не върху истинския блок
+    # накрая на файла. Опашката тогава съдържаше и реда на самата проверка -
+    # тоест проверката намираше СЕБЕ СИ и не можеше да падне никога.
+    # Мутационният тест го хвана: развалих изхода и selftest остана зелен.
+    t = _sobstveniyat_izhoden_tekst()
+    i = t.rfind('if __name__ ==')
+    return t[i:] if i >= 0 else ""
+
+
 def selftest():
     results = []
 
@@ -1245,6 +1546,282 @@ def selftest():
     all_out = (card1 + " " + card2 + " " + " ".join(ns_small) + " " + " ".join(ns_even)).lower()
     check("тонът е чист", not any(b in all_out for b in bad_words))
 
+    # ══════════════════════════════════════════════════════════════════
+    #  🔢 ТРИТЕ ЧИСЛА И ПРИСЪДАТА ЗА ИЗТОЧНИКА (01.09.2026)
+    #  Дотук нула публикации и нула взети срещи бяха ЕДНО И СЪЩО за бота:
+    #  един ред текст и изход 0. Проверките отдолу пазят разликата.
+    # ══════════════════════════════════════════════════════════════════
+    import contextlib as _ctx
+    import io as _io
+
+    check("гръмнал източник е ПРОВАЛ",
+          prisada({"vzeti": 0, "zaqvki": 3, "provali": 0, "grimna": "бум"})[0] == "ПРОВАЛ")
+    check("нула заявки е ПРОВАЛ, не празен ден",
+          prisada({"vzeti": 0, "zaqvki": 0, "provali": 0})[0] == "ПРОВАЛ")
+    check("всички заявки счупени е ПРОВАЛ",
+          prisada({"vzeti": 0, "zaqvki": 1, "provali": 1})[0] == "ПРОВАЛ")
+    check("питан и празен е ПРАЗНО, не провал",
+          prisada({"vzeti": 0, "zaqvki": 2, "provali": 0})[0] == "ПРАЗНО")
+    check("дошли срещи е НАРЕД",
+          prisada({"vzeti": 7, "zaqvki": 2, "provali": 0})[0] == "НАРЕД")
+    # Живият извор бие всичко: 36 футболни срещи не бива да почервенеят,
+    # защото една вътрешност на predictor се е преименувала.
+    check("живият извор бие счупен брояч",
+          prisada({"vzeti": 36, "zaqvki": 0, "provali": 4,
+                   "grimna": "броячите липсват"})[0] == "НАРЕД")
+    check("двете нули имат РАЗЛИЧНИ обяснения",
+          prisada({"vzeti": 0, "zaqvki": 1, "provali": 1})[1]
+          != prisada({"vzeti": 0, "zaqvki": 2, "provali": 0})[1])
+    # Тефтерът СЪБИРА: един спорт минава през два двигателя.
+    IZVORI.clear()
+    vpishi_izvor("proba", vzeti=2, zaqvki=1)
+    vpishi_izvor("proba", vzeti=3, zaqvki=2, provali=1)
+    check("тефтерът събира двата опита",
+          IZVORI["proba"] == {"vzeti": 5, "zaqvki": 3, "provali": 1, "grimna": ""})
+
+    # ---- прагът е ключ с измерена стойност
+    check("прагът е положително число", isinstance(MIN_VZETI, int) and MIN_VZETI > 0)
+    check("прагът е под измерения най-слаб ден (24)", MIN_VZETI < 24)
+    check("прагът се чете от ключ MATCHES_MIN_VZETI",
+          "MATCHES_MIN_VZETI" in _insp_src_na_praga())
+
+    # ---- посягането навън се брои (иначе нула заявки не значи нищо).
+    # Адресът е с непознат вид - urllib гърми ПРЕДИ да отвори сокет.
+    _z, _p = MREZHA["zaqvki"], MREZHA["provali"]
+    try:
+        fetch_json("bogus://nyama-takyv-adres")
+    except Exception:                            # noqa: BLE001
+        pass
+    check("посягането навън се брои", MREZHA["zaqvki"] == _z + 1)
+    check("счупената заявка се брои", MREZHA["provali"] == _p + 1)
+
+    # ---- липсваща функция в predictor е ПРОВАЛ, не празен ден.
+    # Истинският predictor НЕ се внася: подменяме го в sys.modules, за да
+    # остане проверката без мрежа и без секунди.
+    import types as _types
+    _star_pred = sys.modules.get("predictor")
+    try:
+        sys.modules["predictor"] = _types.ModuleType("predictor")
+        IZVORI.clear()
+        with _ctx.redirect_stdout(_io.StringIO()):
+            _r = espn_rows("football")
+        # Записът трябва да СЪЩЕСТВУВА, не само да дава ПРОВАЛ: липсва ли
+        # го, източникът изобщо не се появява в тефтера и мълчи невидимо.
+        check("липсваща функция в predictor е ПРОВАЛ, не празен ден",
+              _r == [] and "football" in IZVORI
+              and prisada(IZVORI["football"])[0] == "ПРОВАЛ")
+    finally:
+        if _star_pred is None:
+            sys.modules.pop("predictor", None)
+        else:
+            sys.modules["predictor"] = _star_pred
+    IZVORI.clear()
+    # Неизмеримото НЕ бива да минава за нула: липсват ли броячите, връщаме
+    # сентинел, а не 0 - защото 0 заявки е твърдение, а не незнание.
+    check("липсващите броячи се признават за неизмерими",
+          _broiachi_na_predictor(_types.ModuleType("nishto")) == (None, None))
+
+    # ---- събирането чисти вчерашния тефтер (иначе стар запис маскира провал)
+    _es, _cf, _sd, _fd = espn_rows, combat_fixtures, sportsdb_fixtures, fd_fixtures
+    try:
+        globals()["espn_rows"] = lambda b: []
+        globals()["combat_fixtures"] = lambda: []
+        globals()["sportsdb_fixtures"] = lambda b: []
+        globals()["fd_fixtures"] = lambda: []
+        vpishi_izvor("stara_stoyka", vzeti=99, zaqvki=1)
+        with _ctx.redirect_stdout(_io.StringIO()):
+            collect()
+        check("събирането чисти вчерашния тефтер", "stara_stoyka" not in IZVORI)
+    finally:
+        globals()["espn_rows"] = _es
+        globals()["combat_fixtures"] = _cf
+        globals()["sportsdb_fixtures"] = _sd
+        globals()["fd_fixtures"] = _fd
+    IZVORI.clear()
+
+    # ---- равносметката: изходният код носи разликата
+    _posleden = {}
+
+    def _run_rav(zapisi, publikuvani, preseti=0):
+        IZVORI.clear()
+        for ime, z in zapisi.items():
+            vpishi_izvor(ime, **z)
+        _buf = _io.StringIO()
+        # 🔴 Тефтерът вече се ЗАПИСВА на диск. Без това пренасочване
+        # самопроверката би презаписвала ИСТИНСКИЯ matches_state.json —
+        # тест, който мени производството, е по-лош от липсващ тест.
+        import shutil as _sh
+        import tempfile as _tf
+        _star, _d = STATE_FILE, _tf.mkdtemp()
+        globals()["STATE_FILE"] = os.path.join(_d, "matches_state.json")
+        try:
+            with _ctx.redirect_stdout(_buf):
+                _kod = ravnosmetka(publikuvani, preseti=preseti)
+            _zap = None
+            if os.path.exists(STATE_FILE):
+                with open(STATE_FILE, encoding="utf-8") as _f:
+                    _zap = json.load(_f)
+            _posleden["zapis"] = _zap
+            _posleden["ostatak"] = sorted(x for x in os.listdir(_d)
+                                          if x.endswith(".tmp"))
+        finally:
+            globals()["STATE_FILE"] = _star
+            _sh.rmtree(_d, ignore_errors=True)
+        return _kod, _buf.getvalue()
+
+    _kod, _txt = _run_rav({}, 0)
+    check("нула взети и нула публикации е ПРОВАЛ (изход != 0)", _kod != 0)
+    check("провалът се обявява с думата ПРОВАЛ", "ПРОВАЛ" in _txt)
+    _kod, _txt = _run_rav({"football": {"vzeti": 40, "zaqvki": 9},
+                           "tabletennis": {"vzeti": 0, "zaqvki": 1, "provali": 1}}, 0)
+    check("нула публикации при счупен източник е ПРОВАЛ", _kod != 0)
+    _kod, _txt = _run_rav({"football": {"vzeti": 40, "zaqvki": 9},
+                           "tabletennis": {"vzeti": 0, "zaqvki": 1, "provali": 1}}, 1)
+    check("публикуваното при счупен източник е ЧАСТИЧНО, не провал",
+          _kod == 0 and "ЧАСТИЧНО" in _txt)
+    _kod, _txt = _run_rav({"football": {"vzeti": 40, "zaqvki": 9},
+                           "combat": {"vzeti": 0, "zaqvki": 2}}, 0, preseti=12)
+    check("нула публикации при жив и празен извор е НОРМАЛНО (изход 0)", _kod == 0)
+    check("нормалната нула е ОБЯСНЕНА, не премълчана", "нормално и обяснено" in _txt)
+    check("и трите числа се печатат",
+          "ВЗЕТИ ОТ ИЗТОЧНИКА" in _txt and "МИНАЛИ ФИЛТРИТЕ" in _txt
+          and "ПУБЛИКУВАНИ" in _txt)
+    check("тефтерът показва всеки източник поименно",
+          "football" in _txt and "combat" in _txt)
+    _kod, _txt = _run_rav({"football": {"vzeti": 40, "zaqvki": 9}}, 2)
+    check("публикувано е зелено", _kod == 0)
+    # Мекият режим е ПЪТЯТ НАЗАД: обявява провала, но не боядисва рънa.
+    _sm = MEK
+    try:
+        globals()["MEK"] = True
+        _kod, _txt = _run_rav({}, 0)
+        check("мекият режим обявява провала, но пуска зелено",
+              _kod == 0 and "ПРОВАЛ" in _txt)
+    finally:
+        globals()["MEK"] = _sm
+    IZVORI.clear()
+
+    # ---- ЧЕРНАТА КУТИЯ: тефтерът в ХРАНИЛИЩЕТО, не само в дневника
+    # 🔴 01.09.2026. Трите числа отиваха само в изхода на Actions — той иска
+    # админски права и изчезва. Отвън се виждаше зелено или червено и нищо
+    # друго, а matches_state.json изобщо НЕ СЪЩЕСТВУВАШЕ в хранилището.
+    _kod, _txt = _run_rav({"football": {"vzeti": 40, "zaqvki": 9},
+                           "tabletennis": {"vzeti": 0, "zaqvki": 1,
+                                           "provali": 1,
+                                           "grimna": "brotli липсва"}},
+                          3, preseti=7)
+    _z = _posleden.get("zapis")
+    check("тефтерът се ЗАПИСВА на диск", isinstance(_z, dict))
+    _z = _z if isinstance(_z, dict) else {}
+    check("записът има версия", _z.get("v") == 1)
+    check("записът има час", len(str(_z.get("koga") or "")) >= 16)
+    _ch = _z.get("chisla") or {}
+    check("записът носи ВЗЕТИ", _ch.get("vzeti") == 40)
+    check("записът носи МИНАЛИ ФИЛТРИТЕ", _ch.get("preseti") == 7)
+    check("записът носи ПУБЛИКУВАНИ", _ch.get("publikuvani") == 3)
+    check("записът носи изходния код", _z.get("izhod") == _kod)
+    check("записът носи прага", _z.get("prag") == MIN_VZETI)
+    _iz = _z.get("izvori") or {}
+    check("записът има ред за всеки източник",
+          set(_iz) == {"football", "tabletennis"})
+    check("редът носи присъдата",
+          (_iz.get("tabletennis") or {}).get("prisada") == "ПРОВАЛ"
+          and (_iz.get("football") or {}).get("prisada") == "НАРЕД")
+    check("редът носи ЗАЩО",
+          len(str((_iz.get("tabletennis") or {}).get("zashto") or "")) > 3)
+    check("редът носи и гръмването",
+          "brotli" in str((_iz.get("tabletennis") or {}).get("grimna") or ""))
+    check("редът носи четирите числа",
+          all(k in (_iz.get("football") or {})
+              for k in ("vzeti", "zaqvki", "provali", "grimna")))
+    check("записът НЕ оставя .tmp след себе си",
+          _posleden.get("ostatak") == [])
+    # 🔴 МЕКИЯТ РЕЖИМ НЕ БИВА ДА Е НЕВИДИМ ОТВЪН.
+    _sm = MEK
+    try:
+        globals()["MEK"] = True
+        _kod, _txt = _run_rav({}, 0)
+        _z = _posleden.get("zapis") or {}
+        check("мекият режим е ЗАПИСАН като мек", _z.get("mek") is True)
+        check("суровият изход остава ненулев при мек режим",
+              int(_z.get("izhod") or 0) != 0)
+        check("върнатият изход е 0 при мек режим",
+              _z.get("izhod_varnat") == 0 and _kod == 0)
+    finally:
+        globals()["MEK"] = _sm
+    # Незаписуем път НЕ бива да сваля рън, чиито постове вече са тръгнали.
+    _star = STATE_FILE
+    try:
+        globals()["STATE_FILE"] = os.path.join("nyama", "takava", "p.json")
+        IZVORI.clear()
+        vpishi_izvor("football", vzeti=40, zaqvki=9)
+        _buf2 = _io.StringIO()
+        with _ctx.redirect_stdout(_buf2):
+            _k2 = ravnosmetka(2, preseti=2)
+        check("незаписуем път НЕ сваля рънa", _k2 == 0)
+        check("незаписуемият път се ОБЯВЯВА", "НЕ се записа" in _buf2.getvalue())
+    finally:
+        globals()["STATE_FILE"] = _star
+    IZVORI.clear()
+
+    # 🔴 ВРЪЗКАТА С matches.yml. Записът е безполезен, ако workflow-ът няма
+    # право да пише и няма стъпка, която го връща в хранилището. Точно този
+    # клас — «кодът може, но пътят навън липсва» — ни ухапа същия ден при
+    # PREDICT_QUIET_TO. Затова се чете САМИЯТ yml, а не се вярва на паметта.
+    try:
+        _p = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          ".github", "workflows", "matches.yml")
+        with open(_p, encoding="utf-8") as _f:
+            _yml = _f.read()
+        check("matches.yml дава право за запис", "contents: write" in _yml)
+        check("matches.yml не е останал само за четене",
+              "contents: read" not in _yml)
+        # 🔴 СТРУКТУРНО, НЕ ПО РАЗПРЪСНАТИ ДУМИ (01.09.2026). Първата версия
+        # търсеше «if: always()» в ЦЕЛИЯ файл и мутацията «махни го от
+        # стъпката» ОЦЕЛЯ — защото същите думи стоят и в обяснителния
+        # коментар над нея. Измерено: «if: always()» 2 пъти, «git add» 2
+        # пъти, «matches_state.json» 3 пъти. Проверка, която брои
+        # споменавания, не проверява нищо.
+        # Затова тук се реже БЛОКЪТ на стъпката по име (коментарите остават
+        # извън него) и се гледа какво има ВЪТРЕ.
+        _blok, _redove = "", _yml.split("\n")
+        for _i, _r in enumerate(_redove):
+            if _r.strip() == "- name: Запази тефтера на мачовете":
+                _ot = len(_r) - len(_r.lstrip())
+                _blok = _r + "\n"
+                for _r2 in _redove[_i + 1:]:
+                    if _r2.strip() and (len(_r2) - len(_r2.lstrip())) <= _ot:
+                        break
+                    _blok += _r2 + "\n"
+                break
+        check("има стъпка «Запази тефтера на мачовете»", bool(_blok))
+        check("тя връща ИМЕННО тефтера", "matches_state.json" in _blok)
+        # `git add "$f"`, не голото «git add»: вътре в блока стои и коментарът
+        # от 12.08 за `git add a b nyama.json`, който съдържа същите две думи.
+        check("тя добавя файла един по един",
+              'git add "$f"' in _blok)
+        check("тя бута нагоре", "git push" in _blok)
+        check("тя се пуска и при паднал бот", "if: always()" in _blok)
+        check("тя червенее, ако бутането не мине", "exit 1" in _blok)
+        # 🔴 Тази проверка отначало търсеше ВСЯКО споменаване — и падна върху
+        # НОВИЯ коментар, който цитира старото твърдение, за да обясни защо
+        # вече не важи. Цитат в история НЕ Е действащо твърдение. Затова се
+        # търси само редът, който ЗАПОЧВА с него, тоест стои сам за себе си.
+        check("старото твърдение «ботът не пише state» не стои като действащо",
+              re.search(r"(?m)^# Ботът НЕ пише state файлове", _yml) is None)
+    except Exception as _e:                                  # noqa: BLE001
+        check("matches.yml се чете за сверка", False)
+        print("   " + str(_e)[:70])
+
+    # ---- главното: изходният код НЕ се изхвърля
+    _opashka = _insp_src_na_izhoda()
+    check("изходният код на main се уважава", "sys.exit(main()" in _opashka)
+    check("няма голо викане на main", re.search(r"(?m)^\s+main\(\)\s*$", _opashka) is None)
+    check("main връща равносметка, не голо return",
+          _main_src.count("return ravnosmetka(") >= 3)
+    check("старото сливащо изречение го няма",
+          "или API мълчи" not in _main_src)
+
     fails = [n for n, ok in results if not ok]
     print(f"SELFTEST: {len(results) - len(fails)}/{len(results)} PASS")
     if fails:
@@ -1255,4 +1832,5 @@ def selftest():
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         sys.exit(selftest())
-    main()
+    # 🔴 Досега изходът на main() се изхвърляше и рънът беше зелен винаги.
+    sys.exit(main() or 0)

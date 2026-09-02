@@ -1798,19 +1798,198 @@ def write_titles(titles):
         print("WARN: не мога да запиша " + TITLES_FILE + ":", e)
 
 
+# ══════════════════════════════ 🚨 ПАЗАЧ НА ИЗТОЧНИЦИТЕ (добавен 01.09.2026) ══
+#
+# ДВАТА МЪЛЧАЛИВИ ПРОВАЛА, заради които го има:
+#
+#   A) МЪРТВИ ФИЙДОВЕ = ИЗХОД 0. collect_feeds броеше живите, main печаташе
+#      един ред — и толкова. Дори НУЛА живи източника стигаха до „Тих ден —
+#      нищо важно. Мълчим." и рънът излизаше УСПЕШЕН. Зелено в Actions върху
+#      бот, който не е прочел нито един ред новина.
+#
+#   B) HTTP 200 С БОКЛУК = „УСПЕХ". parse_rss гълта ET.ParseError и връща
+#      празен списък; fetch_feed връщаше (име, [], "") — с ПРАЗНА грешка.
+#      В collect_feeds това потъваше между двете условия: не влизаше в skip
+#      (защото err е празно), не влизаше и в живите (защото записите са нула).
+#      Мерено на живо на 01.09.2026 в тази папка:
+#          parse_rss на празно тяло          -> []
+#          parse_rss на HTML страница за 404 -> []
+#          parse_rss на JSON                 -> []
+#          fetch_feed при празно тяло        -> (име, [], "")   <- празна грешка
+#      Тоест източник можеше да мълчи седмици без нито един ред в дневника.
+#
+# ИЗМЕРЕНОТО (01.09.2026, две обхождания подред, само GET, честният UA на бота):
+#   47 адреса · 45 отговориха · 45 дадоха поне 1 запис · дял 0.957
+#   мъртви: ITTF (403) и EuroLeague (429) — точно двата, оставени нарочно горе
+#   записи след таван PER_FEED=20: 756 (от максимум 940)
+
+
+def prag_ot_sreda(ime, podrazbirane, dolu, gore):
+    """Праг от променлива на средата, стиснат между dolu и gore. Празно или
+    боклук -> подразбиращото се. НИКОГА не хвърля: праг, който убива бота, е
+    по-лош от липсващ праг."""
+    raw = (os.environ.get(ime, "") or "").strip().replace(",", ".")
+    if not raw:
+        return float(podrazbirane)
+    try:
+        v = float(raw)
+    except ValueError:
+        return float(podrazbirane)
+    if v != v:                      # NaN: всяко сравнение с него е False
+        return float(podrazbirane)
+    return max(float(dolu), min(float(gore), v))
+
+
+# ПРАГЪТ Е ПО КЛЮЧ, а стойността по подразбиране е ИЗМЕРЕНА, не усетена.
+# Дялът днес е 0.957 (45 от 47). Праг 0.70 значи: алармата пали, когато под 33
+# от 47 източника дадат запис — тоест дванадесет НОВИ смъртни случая наведнъж.
+# ЧЕСТНО: имам ЕДИН ден мерене (две обхождания, еднакви числа). Разстоянието
+# 0.957 -> 0.70 е ЗАПАС ПО ПРЕЦЕНКА, не измерена дисперсия. Ако се окаже тесен
+# или широк, ключът се движи, без да се пипа код.
+MIN_ZHIVI_DYAL = prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0)
+# Вторият брояч: ЖИВИТЕ ЗАПИСИ. Източник може да отговори с валиден, но празен
+# канал — тогава дялът е наред, а карти няма от какво да излязат.
+# Измерено днес: 756 записа. Прагът е около 20% от измереното.
+MIN_ZAPISI = int(prag_ot_sreda("NEWS_MIN_ZAPISI", 150.0, 0.0, 100000.0))
+# ПЪТЯТ НАЗАД (правило 3): NEWS_MIN_ZHIVI_DYAL=0 и NEWS_MIN_ZAPISI=0 гасят
+# праговете; NEWS_TREVOGA_IZHOD=0 оставя алармата да ГОВОРИ, но връща изхода на
+# нула — тоест старото поведение, без да се пипа ред код. Пълно връщане:
+# news_bot.py.bak_izvori до news_bot.py.
+# ЕДНО НЕ СЕ ГАСИ С КЛЮЧ: НУЛА живи източника пали винаги. Точно този случай е
+# причината за целия пазач.
+TREVOGA_IZHOD = (os.environ.get("NEWS_TREVOGA_IZHOD", "1") or "1") != "0"
+
+# Присъдите за ЕДИН източник. ЖИВО е единствената, която брои за успех.
+IZVOR_ZHIV = "живо"
+IZVOR_MREZHA = "мрежа"      # адресът не отговори: 403, 429, таймаут, DNS
+IZVOR_PRAZNO = "празно"     # HTTP 200, но тялото е нула байта
+IZVOR_BOKLUK = "боклук"     # HTTP 200 с тяло, но нула парснати записа
+NAZVANIE_PRICHINA = {
+    IZVOR_MREZHA: "НЕ ОТГОВАРЯТ",
+    IZVOR_PRAZNO: "ПРАЗНО ТЯЛО ПРИ 200",
+    IZVOR_BOKLUK: "200, НО НУЛА ЗАПИСА",
+}
+
+
+def sadi_izvor(raw, items, err=""):
+    """Присъда за ЕДИН източник -> (присъда, бележка).
+    Празното тяло и нулата парснати реда при HTTP 200 СА ПРОВАЛ. Точно те
+    минаваха за успех и точно затова никой не разбираше."""
+    if err:
+        return IZVOR_MREZHA, str(err)[:120]
+    n = len(raw or b"")
+    if n == 0:
+        return IZVOR_PRAZNO, "HTTP 200, но тялото е празно (0 байта)"
+    if not items:
+        return IZVOR_BOKLUK, ("HTTP 200 и " + str(n) +
+                              " байта, но 0 парснати записа (не е RSS/Atom?)")
+    return IZVOR_ZHIV, ""
+
+
+def pazach_izvori(diag, dyal_prag=None, zapisi_prag=None):
+    """Присъдата за ЦЯЛОТО обхождане. ЧИСТА функция: не пипа мрежа, не праща
+    нищо, не чете часовник — затова може да се провери докрай.
+    Връща dict с trevoga (bool), prichini (списък) и red (един ред за дневника)."""
+    dyal_prag = MIN_ZHIVI_DYAL if dyal_prag is None else float(dyal_prag)
+    zapisi_prag = MIN_ZAPISI if zapisi_prag is None else int(zapisi_prag)
+    d = diag or {}
+    opitani = int(d.get("opitani") or 0)
+    zhivi = int(d.get("zhivi") or 0)
+    zapisi = int(d.get("zapisi") or 0)
+    dyal = (zhivi / float(opitani)) if opitani > 0 else 0.0
+    prichini = []
+    if opitani <= 0:
+        prichini.append("нито един източник не беше опитан")
+    else:
+        if zhivi <= 0:
+            prichini.append("НУЛА живи източника от " + str(opitani))
+        elif dyal < dyal_prag:
+            prichini.append("живи " + str(zhivi) + " от " + str(opitani) + " (" +
+                            str(int(round(dyal * 100))) + "%), под прага " +
+                            str(int(round(dyal_prag * 100))) + "%")
+        if zapisi < zapisi_prag:
+            prichini.append("записи " + str(zapisi) + ", под прага " + str(zapisi_prag))
+    r = {"opitani": opitani, "zhivi": zhivi, "zapisi": zapisi, "dyal": dyal,
+         "dyal_prag": dyal_prag, "zapisi_prag": zapisi_prag,
+         "prichini": prichini, "trevoga": bool(prichini)}
+    osnova = ("Източници: " + str(zhivi) + " живи от " + str(opitani) + " (" +
+              str(int(round(dyal * 100))) + "%), записи: " + str(zapisi) +
+              ". Праг: " + str(int(round(dyal_prag * 100))) + "% и " +
+              str(zapisi_prag) + " записа.")
+    r["red"] = ("🚨 ИЗТОЧНИЦИТЕ СА ПАДНАЛИ. " + osnova) if r["trevoga"] else ("✅ " + osnova)
+    return r
+
+
+def tekst_trevoga_izvori(r, diag=None, sega=None):
+    """Съобщението до собственика: какво, колко и кои източника мълчат.
+    БЕЗ HTML тагове — текстът минава през esc() чак при пращането."""
+    sega = sega or datetime.now(timezone.utc)
+    bg = sega.astimezone(SOFIA) if sega.tzinfo else sega
+    out = ["🚨 НОВИНАРЯТ · ИЗТОЧНИЦИТЕ · " + bg.strftime("%d.%m %H:%M"), ""]
+    for p in (r.get("prichini") or []):
+        out.append("• " + p)
+    out.append("")
+    kofi = ((diag or {}).get("prichini") or {})
+    for klyuch in (IZVOR_MREZHA, IZVOR_PRAZNO, IZVOR_BOKLUK):
+        imena = kofi.get(klyuch) or []
+        if imena:
+            out.append(NAZVANIE_PRICHINA.get(klyuch, klyuch) + " (" + str(len(imena)) +
+                       "): " + ", ".join(sorted(imena)[:12]))
+    out.append("")
+    out.append("Actions -> news-bot -> последния рън: редовете skip казват кой и защо.")
+    return NL.join(out)
+
+
+def trevoga_paket(text):
+    """Полетата на заявката към Telegram — ОТДЕЛЕНИ, за да могат да се проверят
+    БЕЗ да се праща каквото и да било.
+    message_thread_id ГО НЯМА нарочно: тревогата отива в общия чат на работната
+    група (както прави pazach.py), а не при читателите в стая 26."""
+    text = text or ""
+    if len(text) > TG_HARD:
+        text = text[:TG_HARD - 2] + " …"
+    return {"chat_id": CHAT_ID, "text": esc(text), "parse_mode": "HTML",
+            "disable_web_page_preview": True}
+
+
+def izprati_trevoga(text):
+    """🔴 ГЛАСЪТ НАВЪН — същият механизъм като pazach.py: sendMessage в
+    РАБОТНАТА ГРУПА. Червено в Actions не излиза от Actions; това излиза.
+
+    ⚠️ ГОТОВА, НО НИКОЙ В ТОЗИ ФАЙЛ НЕ Я ВИКА. main() само ОБЯВЯВА в изхода си
+    и връща ненулев код. Пращането е съзнателно решение и се пуска отвън.
+    Връща True само ако Telegram е приел съобщението."""
+    if not BOT_TOKEN or not CHAT_ID:
+        print("   🔴 няма BOT_TOKEN или CHAT_ID — тревогата НЯМА КЪДЕ да излезе")
+        return False
+    return tg_call("sendMessage", trevoga_paket(text))
+
+
 # ------------------------------------------------------------- източници ---
 def fetch_feed(pair):
-    """Един източник -> (име, записи, грешка). Никога не хвърля нагоре."""
+    """Един източник -> (име, записи, присъда, бележка). Никога не хвърля нагоре.
+    🔴 ПРЕПИСАН 01.09.2026: досега връщаше ПРАЗНА грешка при HTTP 200 с празно
+    или неразбираемо тяло и провалът потъваше безследно."""
     source, url = pair
     try:
-        return source, parse_rss(source, fetch(url), url)[:PER_FEED], ""
+        raw = fetch(url)
     except Exception as e:
-        return source, [], str(e)[:120]
+        prisada, belezhka = sadi_izvor(b"", [], (type(e).__name__ + ": " + str(e))[:120])
+        return source, [], prisada, belezhka
+    try:
+        items = parse_rss(source, raw, url)[:PER_FEED]
+    except Exception as e:
+        return (source, [], IZVOR_BOKLUK, "HTTP 200, но парсерът гръмна: " +
+                (type(e).__name__ + ": " + str(e))[:80])
+    prisada, belezhka = sadi_izvor(raw, items)
+    return source, items, prisada, belezhka
 
 
 def collect_feeds():
     """Дърпа всички източници ЕДНОВРЕМЕННО (редът на резултатите е редът на FEEDS,
-    затова поведението е същото като едно по едно, само по-бързо)."""
+    затова поведението е същото като едно по едно, само по-бързо).
+    Връща (записи, живи, диагноза). Диагнозата брои И ОПИТАНИТЕ, И УСПЕЛИТЕ —
+    само успелите не могат да кажат дали 45 е добре, или е катастрофа."""
     try:
         with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as ex:
             results = list(ex.map(fetch_feed, FEEDS))
@@ -1818,15 +1997,17 @@ def collect_feeds():
         print("WARN: паралелното дърпане отказа (" + str(e)[:90] + ") — минавам едно по едно.")
         results = [fetch_feed(p) for p in FEEDS]
     collected = []
-    alive = 0
-    for source, got, err in results:
-        if err:
-            print("skip " + source + ": " + err)
+    diag = {"opitani": len(results), "zhivi": 0, "zapisi": 0,
+            "prichini": {IZVOR_MREZHA: [], IZVOR_PRAZNO: [], IZVOR_BOKLUK: []}}
+    for source, got, prisada, belezhka in results:
+        if prisada == IZVOR_ZHIV:
+            diag["zhivi"] += 1
+            collected += got
             continue
-        if got:
-            alive += 1
-        collected += got
-    return collected, alive
+        diag["prichini"].setdefault(prisada, []).append(source)
+        print("skip " + source + " [" + prisada + "]: " + (belezhka or "?"))
+    diag["zapisi"] = len(collected)
+    return collected, diag["zhivi"], diag
 
 
 # -------------------------------------------------------- избор и пращане ---
@@ -2051,8 +2232,16 @@ def main():
     sent_keys = set(old_keys)
     sent_sigs = [toks(t) for t in sent_titles]
 
-    collected, alive = collect_feeds()
-    print("Източници: " + str(alive) + " живи от " + str(len(FEEDS)) + ", записи: " + str(len(collected)) + ".")
+    collected, alive, diag = collect_feeds()
+    presada = pazach_izvori(diag)
+    print(presada["red"])
+    izhod = 0
+    if presada["trevoga"]:
+        # 🔴 ОБЯВЯВАНЕ, НЕ ПРАЩАНЕ. Гласът навън е готов и проверен, но се пуска
+        # съзнателно отвън — не сам от рутинен рън.
+        izhod = 2 if TREVOGA_IZHOD else 0
+        for red in tekst_trevoga_izvori(presada, diag).split(NL):
+            print(red)
 
     now = datetime.now(timezone.utc)
     sections, stats = build_stories(collected, sent_keys, sent_sigs, now)
@@ -2063,8 +2252,10 @@ def main():
 
     chosen = [c for key, items in sections for c in items]
     if not chosen:
+        # 🔴 „Тих ден" вече НЕ е автоматично успех: ако източниците са паднали,
+        # тишината идва от счупена тръба, не от спокоен спортен ден.
         print("Тих ден — нищо важно. Мълчим.")
-        return
+        return izhod
 
     got_og = fill_og_images(chosen)
     with_img = sum(1 for c in chosen if c.get("imgs"))
@@ -2104,13 +2295,14 @@ def main():
 
     if not posted:
         print("Нищо не тръгна (Telegram отказа всичко). Паметта не се пипа.")
-        return
+        return izhod
 
     if not dry:
         store(posted, old_keys, sent_titles)     # и накрая, за всеки случай
 
     print("Готово: " + str(len(posted)) + " новини (" + str(photos) + " със снимка, " +
           str(texts) + " текст), всичко в стая " + str(news_thread()) + " 📰.")
+    return izhod
 
 
 # ================================================================ SELFTEST ====
@@ -2578,6 +2770,225 @@ def run_selftest():
     check("екзотичната Unicode-цифра пада към 26", news_thread() == 26)
     globals()["NEWS_THREAD_ID"] = "26"
 
+    # --- 16. 🚨 ПАЗАЧЪТ НА ИЗТОЧНИЦИТЕ (двата мълчаливи провала) ---
+    # Опората е ЖИВО МЕРЕНЕ от 01.09.2026: 47 адреса, 45 отговориха, 45 дадоха
+    # поне един запис, 756 записа след тавана PER_FEED. Праговете стъпват на него.
+    check("източниците са точно колкото имената", len(FEEDS) == len(FEED_SOURCES))
+    check("измереният брой източници е поне 40", len(FEED_SOURCES) >= 40)
+
+    # 16а. ПРИСЪДАТА ЗА ЕДИН ИЗТОЧНИК
+    check("мрежовата грешка е провал", sadi_izvor(b"", [], "HTTP Error 403")[0] == IZVOR_MREZHA)
+    check("празното тяло при 200 е ПРОВАЛ", sadi_izvor(b"", [])[0] == IZVOR_PRAZNO)
+    check("200 с HTML вместо RSS е ПРОВАЛ",
+          sadi_izvor(b"<html><body>404 Not Found</body></html>", [])[0] == IZVOR_BOKLUK)
+    check("200 с JSON вместо RSS е ПРОВАЛ", sadi_izvor(b"{}", [])[0] == IZVOR_BOKLUK)
+    check("истински запис е ЖИВО",
+          sadi_izvor(b"<rss/>", [make_item("Новина")])[0] == IZVOR_ZHIV)
+    check("живото няма бележка", sadi_izvor(b"<rss/>", [make_item("Новина")])[1] == "")
+    check("боклукът казва колко байта са дошли", "байта" in sadi_izvor(b"1234567890", [])[1])
+    check("нито един провал не се води живо",
+          IZVOR_ZHIV not in (IZVOR_MREZHA, IZVOR_PRAZNO, IZVOR_BOKLUK))
+
+    # 16б. САМИЯТ ПАРСЕР: 200 с боклук наистина дава нула реда
+    check("parse_rss на празно тяло дава нула записа", parse_rss("Т", b"") == [])
+    check("parse_rss на HTML дава нула записа",
+          parse_rss("Т", b"<html><body><h1>404</h1></body></html>") == [])
+    check("parse_rss на JSON дава нула записа", parse_rss("Т", b"{}") == [])
+
+    # 16в. fetch_feed: боклукът вече НЕ минава за успех (мрежата е подменена)
+    _old_fetch = globals()["fetch"]
+    _old_feeds = globals()["FEEDS"]
+    try:
+        globals()["fetch"] = lambda u, timeout=12: b""
+        r_prazno = fetch_feed(("Празен", "https://a.bg/rss"))
+        check("fetch_feed маркира празното тяло", r_prazno[2] == IZVOR_PRAZNO)
+        check("fetch_feed не вади записи от празно тяло", r_prazno[1] == [])
+        check("fetch_feed обяснява празното тяло", "празно" in r_prazno[3])
+
+        globals()["fetch"] = lambda u, timeout=12: b"<html><body>Error</body></html>"
+        r_html = fetch_feed(("HTMLче", "https://a.bg/rss"))
+        check("fetch_feed маркира HTML вместо RSS", r_html[2] == IZVOR_BOKLUK)
+
+        globals()["fetch"] = lambda u, timeout=12: (
+            "<rss><channel><item><title>Истинска новина</title>" +
+            "<link>https://a.bg/1</link></item></channel></rss>").encode("utf-8")
+        r_zhiv = fetch_feed(("Жив", "https://a.bg/rss"))
+        check("fetch_feed познава живия източник",
+              r_zhiv[2] == IZVOR_ZHIV and len(r_zhiv[1]) == 1)
+
+        def _bum(u, timeout=12):
+            raise urllib.error.HTTPError(u, 403, "Forbidden", None, None)
+        globals()["fetch"] = _bum
+        r_403 = fetch_feed(("Забранен", "https://a.bg/rss"))
+        check("fetch_feed познава мрежовата грешка", r_403[2] == IZVOR_MREZHA)
+        check("бележката носи кода на грешката", "403" in r_403[3])
+
+        # 16г. БРОЯЧЪТ брои И ОПИТАНИТЕ, И УСПЕЛИТЕ, и слага всеки в своята кофа
+        globals()["FEEDS"] = [("A", "https://a.bg/rss"), ("B", "https://b.bg/rss"),
+                              ("C", "https://c.bg/rss"), ("D", "https://d.bg/rss")]
+        tela = {"https://a.bg/rss": ("<rss><channel><item><title>Едно</title>" +
+                                     "<link>https://a.bg/1</link></item></channel></rss>"
+                                     ).encode("utf-8"),
+                "https://b.bg/rss": b"",
+                "https://c.bg/rss": b"<html>oops</html>"}
+
+        def _po_adres(u, timeout=12):
+            if u not in tela:
+                raise OSError("timed out")
+            return tela[u]
+        globals()["fetch"] = _po_adres
+        col, zhivi, diag = collect_feeds()
+        check("броячът брои ОПИТАНИТЕ", diag["opitani"] == 4)
+        check("броячът брои УСПЕЛИТЕ", zhivi == 1 and diag["zhivi"] == 1)
+        check("броячът брои записите", diag["zapisi"] == 1 and len(col) == 1)
+        check("празното тяло влиза в кофата празно", diag["prichini"][IZVOR_PRAZNO] == ["B"])
+        check("HTML при 200 влиза в кофата боклук", diag["prichini"][IZVOR_BOKLUK] == ["C"])
+        check("мъртвият адрес влиза в кофата мрежа", diag["prichini"][IZVOR_MREZHA] == ["D"])
+        check("живият източник НЕ влиза в никоя кофа",
+              all("A" not in v for v in diag["prichini"].values()))
+        check("трите провала палят алармата", pazach_izvori(diag)["trevoga"] is True)
+    finally:
+        globals()["fetch"] = _old_fetch
+        globals()["FEEDS"] = _old_feeds
+
+    # 16д. ПРАГЪТ
+    d_dobre = {"opitani": 47, "zhivi": 45, "zapisi": 756}      # измереното днес
+    d_zle = {"opitani": 47, "zhivi": 10, "zapisi": 90}
+    check("измереното днес НЕ пали алармата", pazach_izvori(d_dobre)["trevoga"] is False)
+    check("паднали източници палят алармата", pazach_izvori(d_zle)["trevoga"] is True)
+    check("47 мъртви фийда палят алармата",
+          pazach_izvori({"opitani": 47, "zhivi": 0, "zapisi": 0})["trevoga"] is True)
+    check("нула опитани пали алармата",
+          pazach_izvori({"opitani": 0, "zhivi": 0, "zapisi": 0})["trevoga"] is True)
+    check("НУЛА живи пали дори при изгасени прагове",
+          pazach_izvori({"opitani": 47, "zhivi": 0, "zapisi": 0},
+                        dyal_prag=0.0, zapisi_prag=0)["trevoga"] is True)
+    check("прагът за записи хваща живи, но празни канали",
+          pazach_izvori({"opitani": 47, "zhivi": 45, "zapisi": 3})["trevoga"] is True)
+    check("прагът за дял се движи и в двете посоки",
+          pazach_izvori(d_dobre, dyal_prag=0.99)["trevoga"] is True and
+          pazach_izvori(d_dobre, dyal_prag=0.10)["trevoga"] is False)
+    # 🔴 БЛИЗНАКЪТ на горната проверка. Липсваше и мутация „подаденият праг за
+    # записи се игнорира" ОЦЕЛЯ — половин защита изглежда като цяла.
+    check("прагът за записи се движи и в двете посоки",
+          pazach_izvori(d_dobre, zapisi_prag=5000)["trevoga"] is True and
+          pazach_izvori({"opitani": 47, "zhivi": 45, "zapisi": 3},
+                        zapisi_prag=0)["trevoga"] is False)
+    check("прагът по подразбиране е под измереното",
+          MIN_ZHIVI_DYAL < 45 / 47.0 and MIN_ZAPISI < 756)
+    check("присъдата връща и опитаните, и живите",
+          pazach_izvori(d_dobre)["opitani"] == 47 and pazach_izvori(d_dobre)["zhivi"] == 45)
+    check("липсваща диагноза не убива присъдата", pazach_izvori(None)["trevoga"] is True)
+
+    # 16е. ПРАГЪТ Е ПО КЛЮЧ (и боклук в ключа не убива бота)
+    _old_key = os.environ.get("NEWS_MIN_ZHIVI_DYAL")
+    try:
+        os.environ["NEWS_MIN_ZHIVI_DYAL"] = "0.9"
+        check("прагът се чете от ключа на средата",
+              abs(prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0) - 0.9) < 1e-9)
+        os.environ["NEWS_MIN_ZHIVI_DYAL"] = "0,85"
+        check("запетаята за десетичен знак минава",
+              abs(prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0) - 0.85) < 1e-9)
+        os.environ["NEWS_MIN_ZHIVI_DYAL"] = "боклук"
+        check("боклук в ключа пада към измереното",
+              prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0) == 0.70)
+        os.environ["NEWS_MIN_ZHIVI_DYAL"] = "nan"
+        check("NaN в ключа пада към измереното",
+              prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0) == 0.70)
+        os.environ["NEWS_MIN_ZHIVI_DYAL"] = "5"
+        check("прагът е стиснат отгоре",
+              prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0) == 1.0)
+        os.environ["NEWS_MIN_ZHIVI_DYAL"] = "-2"
+        check("прагът е стиснат отдолу",
+              prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0) == 0.0)
+        os.environ["NEWS_MIN_ZHIVI_DYAL"] = ""
+        check("празният ключ пада към измереното",
+              prag_ot_sreda("NEWS_MIN_ZHIVI_DYAL", 0.70, 0.0, 1.0) == 0.70)
+    finally:
+        if _old_key is None:
+            os.environ.pop("NEWS_MIN_ZHIVI_DYAL", None)
+        else:
+            os.environ["NEWS_MIN_ZHIVI_DYAL"] = _old_key
+
+    # 16ж. ОБЯВЯВАНЕТО
+    r_zle = pazach_izvori(d_zle)
+    check("редът за дневника вика ПАДНАЛИ", "ПАДНАЛИ" in r_zle["red"])
+    check("редът носи и живите, и опитаните", "10" in r_zle["red"] and "47" in r_zle["red"])
+    check("здравият ред НЕ вика тревога", "ПАДНАЛИ" not in pazach_izvori(d_dobre)["red"])
+    check("здравият ред пак казва числата",
+          "45" in pazach_izvori(d_dobre)["red"] and "756" in pazach_izvori(d_dobre)["red"])
+    t = tekst_trevoga_izvori(r_zle, {"prichini": {IZVOR_MREZHA: ["ITTF", "EuroLeague"],
+                                                 IZVOR_PRAZNO: ["Gong"],
+                                                 IZVOR_BOKLUK: ["ESPN"]}})
+    check("тревогата назовава мълчащите", "ITTF" in t and "EuroLeague" in t)
+    check("тревогата отделя празното тяло", "ПРАЗНО ТЯЛО" in t and "Gong" in t)
+    check("тревогата отделя боклука при 200", "НУЛА ЗАПИСА" in t and "ESPN" in t)
+    check("тревогата носи причината", "под прага" in t)
+    check("тревогата е чист текст, не HTML", "<" not in t)
+
+    # 16з. ГЛАСЪТ НАВЪН — проверен БЕЗ да се праща нищо (тръбата е подменена)
+    paket = trevoga_paket("проба на тревогата")
+    check("пакетът НЕ отива в стая 26", "message_thread_id" not in paket)
+    check("пакетът носи текста", "проба на тревогата" in paket["text"])
+    check("пакетът е за работната група", paket["chat_id"] == CHAT_ID)
+    check("дългата тревога се реже под тавана",
+          len(trevoga_paket("я" * (TG_HARD + 500))["text"]) <= TG_HARD)
+    _old_call = globals()["tg_call"]
+    _old_tok = globals()["BOT_TOKEN"]
+    _old_chat = globals()["CHAT_ID"]
+    zapis = []
+    try:
+        globals()["tg_call"] = lambda method, payload, **kw: (zapis.append((method, payload)) or True)
+        globals()["BOT_TOKEN"] = "проба"
+        globals()["CHAT_ID"] = "-100999"
+        check("тревогата излиза навън", izprati_trevoga("тест") is True)
+        check("методът е sendMessage", bool(zapis) and zapis[0][0] == "sendMessage")
+        check("тревогата НЕ влиза в стая 26 и по тръбата",
+              bool(zapis) and "message_thread_id" not in zapis[0][1])
+        globals()["BOT_TOKEN"] = ""
+        check("без токен тревогата връща провал", izprati_trevoga("тест") is False)
+        check("без токен НЕ се прави заявка", len(zapis) == 1)
+    finally:
+        globals()["tg_call"] = _old_call
+        globals()["BOT_TOKEN"] = _old_tok
+        globals()["CHAT_ID"] = _old_chat
+
+    # 16и. ГЛАСЪТ Е ГОТОВ, НО НЕ СЕ ВИКА САМ; изходният код стига до обвивката
+    _predi_selftest = src.split("def run_selftest():")[0]
+    check("извън самопроверката тревогата се вика 0 пъти",
+          _predi_selftest.count("izprati_trevoga(") == 1)
+    _main_src = src.split("def main():")[1].split(NL + "def ")[0]
+    check("main НЕ праща тревогата сам", "izprati_trevoga" not in _main_src)
+    check("main обявява присъдата", "pazach_izvori(" in _main_src)
+    check("main връща ненулев код при тревога", "izhod = 2" in _main_src)
+    check("всички изходи на main носят кода", _main_src.count("return izhod") >= 3)
+    # 🔴 ИГЛАТА СЕ СГЛОБЯВА ОТ ПАРЧЕТА. Написана цяла, тя стоеше вътре в самата
+    # проверка — тоест src я съдържаше винаги и проверката беше УКРАСА.
+    # Доказано с мутация: махането на sys.exit долу мина ЗЕЛЕНО.
+    check("изходният код стига до обвивката", ("sys.exit(" + "main() or 0)") in src)
+
+    # --- 16к. ПОДРАЗБИРАЩИТЕ СЕ ПРАГОВЕ СА ИЗМЕРЕНИ, НЕ НУЛА ---
+    # Мутация „сложи 0.0 по подразбиране" оцеля: всички останали проверки подават
+    # праг ръчно. Затова тук се заковава САМИЯТ РЕД с числото. Иглите пак се
+    # сглобяват от парчета, за да не се самоизпълняват.
+    _igla_dyal = ("MIN_ZHIVI_DYAL = prag_ot_sreda(" + chr(34) + "NEWS_MIN_ZHIVI_DYAL" +
+                  chr(34) + ", 0.70,")
+    _igla_zapisi = ("MIN_ZAPISI = int(prag_ot_sreda(" + chr(34) + "NEWS_MIN_ZAPISI" +
+                    chr(34) + ", 150.0,")
+    _igla_izhod = ("NEWS_TREVOGA_IZHOD" + chr(34) + ", " + chr(34) + "1" + chr(34) + ")")
+    check("подразбиращият се праг за дял е измереният, не нула", _igla_dyal in src)
+    check("подразбиращият се праг за записи е измереният, не нула", _igla_zapisi in src)
+    check("ненулевият изход е включен по подразбиране", _igla_izhod in src)
+    # И по СТОЙНОСТ, не само по текст — но само когато ключът не е пипан отвън
+    # (иначе проверката щеше да съди чуждата настройка вместо кода).
+    if os.environ.get("NEWS_MIN_ZHIVI_DYAL") is None:
+        check("живият праг наистина е между половината и измереното",
+              0.5 <= MIN_ZHIVI_DYAL < 45 / 47.0)
+    if os.environ.get("NEWS_MIN_ZAPISI") is None:
+        check("прагът за записи наистина е между 50 и измереното", 50 <= MIN_ZAPISI < 756)
+    if os.environ.get("NEWS_TREVOGA_IZHOD") is None:
+        check("тревогата вдига изхода по подразбиране", TREVOGA_IZHOD is True)
+
     print("SELFTEST: " + str(ok) + " наред, " + str(len(bad)) + " проблема.")
     for b in bad:
         print("  ❌ " + b)
@@ -2587,4 +2998,6 @@ def run_selftest():
 if __name__ == "__main__":
     if os.environ.get("NEWS_MODE", "") == "selftest" or "--selftest" in sys.argv:
         sys.exit(run_selftest())
-    main()
+    # 🔴 ИЗХОДНИЯТ КОД СТИГА ДО ОБВИВКАТА. Дотук main() връщаше None и рънът
+    # излизаше УСПЕШЕН, каквото и да е станало с източниците.
+    sys.exit(main() or 0)

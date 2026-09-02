@@ -61,9 +61,14 @@ IMENA_NA_VHODA = ("selftest", "run_selftest")
 # Числото се ВДИГА, когато проверките растат. СВАЛЯ се само с причина, написана
 # тук. Свалено без причина, то е точно дупката, срещу която стои.
 #
-#   01.09.2026: измерено 4760 наред, 0 счупени, 31 модула. Границата е ~5%
-#   по-ниско, за да не гърми от една махната проверка, но да хване изчезнал модул.
-DOLNA_GRANITSA = int(os.environ.get("TESTOVE_DOLNA_GRANICA") or "4500")
+#   01.09.2026 (сутрин): измерено 4760 наред, 0 счупени, 31 модула.
+#   01.09.2026 (вечер): 5130 наред, 0 счупени, 32 модула. Ръстът е от
+#   деня: reset.py излезе от PROPUSKAY (+69), плюс новите пазачи в
+#   news_bot, matches_bot, router_bot, daily_bot, predictor, zdrave.
+#   Границата е ~5% по-ниско, за да не гърми от една махната проверка,
+#   но да хване изчезнал модул. Свалена без причина, тя е точно дупката,
+#   срещу която стои.
+DOLNA_GRANITSA = int(os.environ.get("TESTOVE_DOLNA_GRANICA") or "4870")
 
 # И ИМЕНАТА, не само броят. Модул може да изчезне от списъка мълчаливо —
 # преименуван вход, синтактична грешка, добавен ред в PROPUSKAY. Тогава броят
@@ -72,11 +77,19 @@ ZADALZHITELNI = (
     "predictor", "scorer", "pazar", "pinnacle", "sglasie", "pazach",
     "cyalost", "zabraneni", "budilnik", "router_bot", "support_bot",
     "news_bot", "daily_bot", "tt_ligi", "zalozhimo", "zdrave", "esport_rez",
+    "reset",
 )
 
 PROPUSKAY = {
     "vsichki_testove.py": "този файл",
-    "reset.py": "нулира групата — не се пуска в проверка",
+    # 🔴 reset.py ИЗЛЕЗЕ ОТСЮК (01.09.2026). Стоеше с причина «нулира
+    # групата — не се пуска в проверка». Причината важеше за `main()`, но
+    # НЕ за selftest: същия ден reset.py доби 69 самопроверки, които не
+    # правят нито едно мрежово обаждане и не искат токен. Измерено с
+    # ТОЧНИЯ шаблон на този пускач, без BOT_TOKEN в средата: изход 0,
+    # разчетено (69, 0). Докато стоеше тук, 69 проверки не се брояха.
+    # Заключено на две места: „reset" е в ZADALZHITELNI, и има изрична
+    # проверка, че името не се е върнало в този списък.
     "setup_topics.py": "еднократна настройка",
     "seed_rooms.py": "еднократно засяване",
     "seed_news.py": "еднократно засяване",
@@ -313,13 +326,30 @@ def selftest():
             f.write("x = 1\n")
         with io.open(os.path.join(d, "backtest_x.py"), "w", encoding="utf-8") as f:
             f.write("def selftest():\n    return 0, []\n")
-        with io.open(os.path.join(d, "reset.py"), "w", encoding="utf-8") as f:
+        # 🔴 01.09.2026. Подставеното лице тук беше `reset.py`. Същия ден
+        # reset.py излезе от PROPUSKAY — и тази проверка щеше да ПАДНЕ, без
+        # изобщо да е за reset.py: тя е за МЕХАНИЗМА на пропускането.
+        # Затова подставеното лице вече се ВЗИМА от самия списък. И понеже
+        # проверка, която пита списъка, става безсмислена при празен списък
+        # БЕЗ да гръмне, отдолу стои и долна граница на броя.
+        _propusnati = sorted(k for k in PROPUSKAY if k != "vsichki_testove.py")
+        check("има кого да пропуска (инак проверката отдолу е празна)",
+              len(_propusnati) >= 3)
+        # При празен списък НЕ се сривай: проверката горе вече е паднала,
+        # а срив крие останалите 37. Пада се на име, което го няма в
+        # списъка — тогава и проверката отдолу пада, вместо да гърми.
+        _podstaven = _propusnati[0] if _propusnati else "nyama_takav.py"
+        with io.open(os.path.join(d, _podstaven), "w", encoding="utf-8") as f:
             f.write("def selftest():\n    return 0, []\n")
         m = moduli(d)
         check("намира модул със selftest", "ima" in m)
         check("пропуска модул без selftest", "nyama" not in m)
         check("пропуска изследователските", "backtest_x" not in m)
-        check("пропуска изрично изключените", "reset" not in m)
+        check("пропуска изрично изключените (%s)" % _podstaven,
+              _podstaven[:-3] not in m)
+        # 🔴 И ОБРАТНАТА ПОСОКА. Без нея «пропускам ВСИЧКО» минава за успех.
+        check("НЕ пропуска това, което го няма в списъка",
+              "ima" in m and "ima.py" not in PROPUSKAY)
         check("списъкът е подреден", m == sorted(m))
         check("празна папка дава празен списък",
               moduli(os.path.join(d, "nyama_takava")) == [])
@@ -330,6 +360,11 @@ def selftest():
     check("всеки пропуснат има ПРИЧИНА",
           all(isinstance(v, str) and len(v) > 3 for v in PROPUSKAY.values()))
     check("самият файл е пропуснат", "vsichki_testove.py" in PROPUSKAY)
+    # 🔴 КЛЮЧАЛКА ЗА reset.py (01.09.2026). Върне ли се името в списъка, 69
+    # проверки пак изчезват мълчаливо — точно това стоеше месеци наред.
+    # Двете проверки са НАРОЧНО на различни места: списъкът и задължителните.
+    check("reset.py НЕ се е върнал в пропуснатите", "reset.py" not in PROPUSKAY)
+    check("reset е сред задължителните модули", "reset" in ZADALZHITELNI)
     # 🔴 Ако този списък почне да расте, покритието пада мълчаливо.
     check("пропуснатите са малко", len(PROPUSKAY) <= 14)
 

@@ -43,10 +43,22 @@ THE GREEN ROOM — ДНЕВНИЯТ РИТЪМ 🦖 (чист, автомати�
 
 Тон: числа, извадка, кратка причина. Без поучения, без съвети, без призиви.
 
-Данни: TheSportsDB eventsday. Часовете са Europe/Sofia.
+Данни: TheSportsDB eventsday.
+
+🔴 ЧАСОВЕТЕ БЯХА ВТОРАТА ЛЪЖА В ТАЗИ ГЛАВА (поправено 01.09.2026).
+   Тук пишеше „Часовете са Europe/Sofia“. Не бяха. Единственият часовник,
+   който този файл показва — часът на утрешния голям мач — идваше СУРОВ от
+   TheSportsDB, а неговото поле strTime е UTC. Измерено на живо срещу
+   източника на 01.09.2026 за 02.09 (strTime срещу strTimeLocal):
+       Дания 16:30/18:30 = −2 ч (CEST)   Русия 14:00/19:00 = −5 ч (UTC+5)
+       Канада 23:00/19:00 = +4 ч (EDT)   САЩ  20:00/15:00 = +5 ч (CDT)
+   Осем от девет сравними записа дават ТОЧНО пояса на държавата.
+   Тоест датският мач в 19:30 софийско се обявяваше „(16:30)“ — три часа
+   по-рано, точно колкото е лятната разлика. Зимата грешката е два часа.
+   Днес всеки показан час минава през chas_bg() и ZoneInfo, не през +3.
 """
 import json, os, sys, time, urllib.request, urllib.parse, html, re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import poster
 
@@ -100,20 +112,113 @@ def golyama_liga(lg):
 
 def esc(x): return html.escape(str(x or ""))
 
-def fetch_json(url, timeout=20):
+def fetch_json(url, timeout=20, greshki=None):
+    """Тегли JSON. При провал ЗАПИСВА СЛЕДА, а не само празно.
+
+    🔴 01.09.2026. Дотук провалът връщаше празен речник — буква по буква
+    същото, което връща и здрав източник без мачове. Тоест „питах и не ми
+    отговориха“ беше НЕРАЗЛИЧИМО от „питах и няма мачове“. Върху точно тази
+    неразличимост стоеше вторият дефект: run_overview маркираше деня „готов“
+    и когато източникът е мълчал изцяло, и денят не се наваксваше никога.
+
+    greshki: подаден списък събира по един ред за всяка пропаднала заявка.
+    Без него поведението е както преди — заради старите извиквания.
+    """
+    def _sleda(kakvo):
+        if greshki is not None:
+            greshki.append(str(kakvo)[:120])
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "GreenPicksBot/1.0"})
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return json.loads(r.read().decode("utf-8", "replace"))
+            d = json.loads(r.read().decode("utf-8", "replace"))
     except Exception as e:
-        print("fetch:", str(e)[:80]); return {}
+        print("fetch:", str(e)[:80]); _sleda(str(e)[:80]); return {}
+    # 200 с чуждо тяло (списък, низ, null) е ПРОВАЛ, не празен ден. Измерено
+    # в този проект: чужд сървър връща 200 с празно тяло, щом лимитът е ударен.
+    if not isinstance(d, dict):
+        print("fetch: отговорът не е речник:", type(d).__name__)
+        _sleda("не е речник: " + type(d).__name__)
+        return {}
+    return d
+
+# ═══════════════════════════════ ЧАСЪТ: ЕДИН-ЕДИНСТВЕН ИЗТОЧНИК ═══════════
+#
+# ЗАЩО НЕ ФИКСИРАНО +3: зимата София е UTC+2, лятото UTC+3. Фиксирано число е
+# дефект, който спи шест месеца и се събужда в последната неделя на октомври.
+# ЗАЩО НЕ ЧАСОВИЯТ ПОЯС ОТ СРЕДАТА: доказано в този проект — променливата на
+# средата връща UTC МЪЛЧАЛИВО на рънъра. Поясът се носи в кода, не в средата.
+UTC = timezone.utc
+
 
 def sofia_now():
+    """Единственото „сега“ в този файл. Всичко показвано тръгва оттук."""
     return datetime.now(SOFIA)
 
+
+def v_sofia(dt):
+    """Превежда КАКВОТО И ДА Е обозначено време към софийско.
+
+    Гол час без пояс връща None НАРОЧНО. Точно неозначеният час беше дефектът:
+    низът „16:30“ не носи в себе си коя земя го е измерила. По-добре без час,
+    отколкото с грешен — липсата се вижда, лъжата не.
+    """
+    if dt is None:
+        return None
+    if getattr(dt, "tzinfo", None) is None or dt.tzinfo.utcoffset(dt) is None:
+        print("час без пояс — не го показвам:", str(dt)[:40])
+        return None
+    return dt.astimezone(SOFIA)
+
+
+def chas_bg(dt):
+    """ЕДИНСТВЕНИЯТ начин, по който този файл изписва часовник.
+
+    Връща часа по софийско във вида ЧЧ:ММ, или празно — щом часът не се знае.
+    """
+    d = v_sofia(dt)
+    return d.strftime("%H:%M") if d is not None else ""
+
+
+def utc_v_sofia(data_niz, chas_niz):
+    """dateEvent + strTime от TheSportsDB (те са UTC) → момент по софийско.
+
+    Връща обозначен datetime в София, или None, ако низовете не се четат.
+    """
+    d = str(data_niz or "").strip()[:10]
+    t = str(chas_niz or "").strip()[:8]
+    if len(d) != 10 or len(t) < 4:
+        return None
+    if len(t) == 5:
+        t = t + ":00"
+    try:
+        golo = datetime.strptime(d + " " + t, "%Y-%m-%d %H:%M:%S")
+    except Exception:                                        # noqa: BLE001
+        return None
+    return golo.replace(tzinfo=UTC).astimezone(SOFIA)
+
+
+def sabitie_sofia(e):
+    """Кога започва мачът, по софийско. None, ако източникът мълчи за часа.
+
+    Нулевият час в TheSportsDB е ПЛЪНКА за неизвестен час, не полунощ — старият
+    код също го криеше. Превърнат наивно, той щеше да се показва като 03:00
+    през лятото, тоест изсмукан от пръстите час на мач без обявен час.
+    Затова се отсява ПРЕДИ превода, а не след него.
+    """
+    e = e or {}
+    syrov = str(e.get("strTime") or "").strip()
+    if syrov[:5] in ("", "00:00"):
+        return None
+    return utc_v_sofia(e.get("dateEvent"), syrov)
+
+
 def date_bg(now):
-    wd = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][now.weekday()]
-    return f"{wd}, {now.day}.{now.month:02d}"
+    """Ден от седмицата + дата, ПО СОФИЙСКО. Чужд пояс се превежда, гол — не."""
+    d = v_sofia(now)
+    if d is None:
+        return ""
+    wd = ["понеделник","вторник","сряда","четвъртък","петък","събота","неделя"][d.weekday()]
+    return f"{wd}, {d.day}.{d.month:02d}"
 
 # ---------- ПРАЩАНЕ (с пазачи) ----------
 def post_channel(text, preview=False):
@@ -155,17 +260,69 @@ def save_state(state):
     except Exception as e:
         print("state:", str(e)[:80])
 
+def _nov_den(state, day):
+    """Смяна на деня. ПРЕНАСЯ следата за пропуснатите дни през нулирането.
+
+    🔴 01.09.2026. Старото поведение беше голо нулиране — триеше всичко. Тоест
+    дори да бяхме записали провал, на следващия ден следата изчезваше и
+    наваксване беше невъзможно ПО УСТРОЙСТВО, а не по невнимание.
+
+    Пропуснат = денят е бил ОПИТВАН (има брояч) и нито един ключ не е готов.
+    Ден, който изобщо не е опитван, не се брои за пропуснат — иначе списъкът
+    би се пълнил с дни, в които машината просто не е тръгвала.
+    """
+    if state.get("date") == day:
+        return state
+    star = state.get("date")
+    propusnati = [d for d in (state.get("propusnati") or []) if isinstance(d, str)]
+    opitvan = any(str(k).endswith("_opiti") for k in state)
+    gotov = any(v is True for k, v in state.items() if k != "propusnati")
+    if star and opitvan and not gotov and star not in propusnati:
+        propusnati.append(star)
+    state.clear()
+    state["date"] = day
+    if propusnati:
+        state["propusnati"] = propusnati[-30:]
+    return state
+
+
 def done_today(state, day, key):
     if FORCE:
         return False
     return state.get("date") == day and state.get(key) is True
 
 def mark_done(state, day, key):
-    if state.get("date") != day:
-        state.clear()
-        state["date"] = day
+    """ГОТОВ — само при ДОКАЗАН успех: приет пост или мълчание на ЗДРАВ източник."""
+    _nov_den(state, day)
     state[key] = True
+    state.pop(key + "_prichina", None)
+    ostavashti = [d for d in (state.get("propusnati") or []) if d != day]
+    if ostavashti:
+        state["propusnati"] = ostavashti
+    else:
+        state.pop("propusnati", None)
     save_state(state)
+
+def mark_failed(state, day, key, prichina=""):
+    """ОПИТАН И ПРОПАДНАЛ. Не е готов — и това си личи, вместо да се крие.
+
+    🔴 ЗАЩО СЪЩЕСТВУВА (01.09.2026). Живото състояние в хранилището беше
+    date 2026-09-01 и overview_room9 true — ЕДИН флаг. По него няма как да се
+    различи „пратих поста“ от „източникът падна и се отказах“. А run_overview
+    пишеше същото true и в двата случая.
+
+    Пише ИЗРИЧНО False (не липсващ ключ), плюс брояч на опитите и причина.
+    done_today иска точно True, тоест False пуска нов опит — денят може да се
+    навакса, вместо да бъде обявен за минал.
+    """
+    _nov_den(state, day)
+    state[key] = False
+    n = state.get(key + "_opiti")
+    state[key + "_opiti"] = (n if isinstance(n, int) and n >= 0 else 0) + 1
+    if prichina:
+        state[key + "_prichina"] = str(prichina)[:200]
+    save_state(state)
+    return state[key + "_opiti"]
 
 # ---------- RESULTS (горещите първенства) ----------
 def collect_results(now):
@@ -231,13 +388,26 @@ def _old_run_results(now):
 
 # ---------- OVERVIEW (21:00, стая 9) ----------
 def collect_overview(now):
+    """Събира днешното броене и утрешния голям мач.
+
+    Връща и СМЕТКАТА на заявките: колко са зададени и колко са пропаднали.
+    Без нея извикващият не може да различи празен ден от мълчащ източник —
+    и точно тази слепота заключваше деня като готов.
+    """
     today = now.strftime("%Y-%m-%d")
     tmr = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+    greshki = []
+    broi = [0]
+
+    def vzemi(url):
+        broi[0] += 1
+        return fetch_json(url, greshki=greshki)
+
     sports = [("Soccer","⚽"),("Basketball","🏀"),("Tennis","🎾"),("Volleyball","🏐"),
               ("Ice Hockey","🏒"),("Table Tennis","🏓"),("Handball","🤾"),("Baseball","⚾")]
     total = 0; nsports = 0; hot = None
     for skey, emo in sports:
-        data = fetch_json(f"{API}/eventsday.php?d={today}&s={urllib.parse.quote(skey)}")
+        data = vzemi(f"{API}/eventsday.php?d={today}&s={urllib.parse.quote(skey)}")
         evs = data.get("events") or []
         if evs: nsports += 1
         total += len(evs)
@@ -247,17 +417,41 @@ def collect_overview(now):
             if hs not in (None, "") and golyama_liga(lg) and not hot:
                 hot = f"{emo} {esc(e.get('strHomeTeam'))} {hs}–{e.get('intAwayScore')} {esc(e.get('strAwayTeam'))}"
         time.sleep(2.1)
+
+    # 🔴 ДЕНЯТ НА ИЗТОЧНИКА НЕ Е НАШИЯТ ДЕН (01.09.2026). eventsday.php реди
+    # мачовете по UTC ден. Щом часът вече се превежда към софийско, мач в
+    # 23:30 UTC „утре“ пада в 02:30 бг ВДРУГИДЕН — а постът пише „УТРЕ“.
+    # Обратното също е вярно и е стара, невидяна загуба: 22:30 UTC ДНЕС е
+    # 01:30 бг УТРЕ, а старият код изобщо не поглеждаше в днешния кош.
+    # Затова се четат ДВАТА UTC дни, а минава само това, което по СОФИЙСКО
+    # пада утре. Иначе поправката на часа щеше да роди нова лъжа за деня.
+    utre_bg = (now + timedelta(days=1)).strftime("%Y-%m-%d")
     tomorrow_big = None
     for skey, emo in [("Soccer","⚽"),("Basketball","🏀")]:
-        data = fetch_json(f"{API}/eventsday.php?d={tmr}&s={urllib.parse.quote(skey)}")
-        for e in (data.get("events") or []):
-            if golyama_liga(e.get("strLeague")):
-                t = (e.get("strTime") or "")[:5]
-                tomorrow_big = f"{emo} {esc(e.get('strHomeTeam'))} — {esc(e.get('strAwayTeam'))}" + (f" ({t})" if t and t != "00:00" else "")
+        for den, strogo in ((tmr, False), (today, True)):
+            data = vzemi(f"{API}/eventsday.php?d={den}&s={urllib.parse.quote(skey)}")
+            for e in (data.get("events") or []):
+                if not golyama_liga(e.get("strLeague")):
+                    continue
+                kogato = sabitie_sofia(e)
+                if kogato is None:
+                    # Източникът не дава час. От ДНЕШНИЯ кош такъв мач не може
+                    # да се твърди за утрешен — пропуска се. От утрешния кош се
+                    # приема, както винаги е било, но БЕЗ часовник до него.
+                    if strogo:
+                        continue
+                elif kogato.strftime("%Y-%m-%d") != utre_bg:
+                    continue
+                t = chas_bg(kogato)
+                tomorrow_big = (f"{emo} {esc(e.get('strHomeTeam'))} — "
+                                f"{esc(e.get('strAwayTeam'))}"
+                                + (f" ({t})" if t else ""))
                 break
+            if tomorrow_big: break
+            time.sleep(2.1)
         if tomorrow_big: break
-        time.sleep(2.1)
-    return {"total": total, "nsports": nsports, "hot": hot, "tomorrow": tomorrow_big}
+    return {"total": total, "nsports": nsports, "hot": hot, "tomorrow": tomorrow_big,
+            "zayavki": broi[0], "greshki": len(greshki), "prichini": greshki[:3]}
 
 def build_overview_text(now, d):
     """Кратък поглед НАПРЕД за стая 9. Не е обзор — обзорът е на scorer.py.
@@ -293,21 +487,45 @@ def build_overview_text(now, d):
     ])
 
 def run_overview(now):
+    """🔴 „СВЪРШИХ“ И „ОПИТАХ И НЕ СТАНА“ СА РАЗЛИЧНИ НЕЩА (01.09.2026).
+
+    Дотук ВСЕКИ празен изход слагаше готов: паднеше ли източникът, денят се
+    заключваше и не се наваксваше никога. Отказаният пост пък не пишеше нищо —
+    тоест провалът се пазеше само в дневника на Actions, който не се чете
+    отвън. Днес има четири различни изхода и всеки оставя различна следа.
+    """
     day = now.strftime("%Y-%m-%d")
     state = load_state()
     if done_today(state, day, "overview_room9"):
         print("Обзорът за днес вече е в стая 9 — мълча."); return
     d = collect_overview(now)
     txt = build_overview_text(now, d)
-    if not txt:
-        mark_done(state, day, "overview_room9")
-        print("Няма какво да се каже за утре — мълча. Обзорът е на оценителя.")
+    greshki = int(d.get("greshki") or 0)
+    zayavki = int(d.get("zayavki") or 0)
+    otgovorili = zayavki - greshki
+
+    if txt:
+        if post_results_room(txt):
+            mark_done(state, day, "overview_room9")
+            print(f"Поглед напред → стая {RESULTS_THREAD}: пратен.")
+        else:
+            n = mark_failed(state, day, "overview_room9", "стая 9 не прие поста")
+            print(f"Стая 9 не прие поста. Записан е ПРОВАЛ, опит {n} — не готов.")
         return
-    if post_results_room(txt):
-        mark_done(state, day, "overview_room9")
-        print(f"Поглед напред → стая {RESULTS_THREAD}: пратен.")
-    else:
-        print("Стая 9 не прие поста — състоянието не се маркира.")
+
+    # Празно е ЛЕГИТИМНО само ако източникът наистина е отговорил.
+    if greshki or otgovorili <= 0:
+        prichina = f"източникът падна: {greshki} пропаднали от {zayavki} заявки"
+        n = mark_failed(state, day, "overview_room9", prichina)
+        print(f"{prichina}. Записан е ПРОВАЛ, опит {n} — не готов.")
+        print("Денят остава за наваксване, вместо да бъде обявен за минал.")
+        for p in (d.get("prichini") or []):
+            print("   причина:", p)
+        return
+
+    mark_done(state, day, "overview_room9")
+    print(f"Няма какво да се каже за утре ({zayavki} заявки, 0 провала) — мълча.")
+    print("Обзорът е на оценителя.")
 
 # ---------- ПЕНСИОНИРАН РЕЖИМ ----------
 def run_retired_topnews():
@@ -342,6 +560,260 @@ def _proveri_ligi(ck):
     ck("подниз-сравнението за лиги го няма и в другия вид",
        ('b.lower() in (e.get("str' + 'League")') not in src)
     ck("филтрите викат golyama_liga", src.count("golyama_liga(") >= 4)
+
+
+def _proveri_chasa(ck, src):
+    """Пазач за ЕДИНСТВЕНИЯ източник на софийско време.
+
+    Числата долу са МЕРЕНИ на живо срещу TheSportsDB на 01.09.2026 за 02.09:
+    датски мач strTime 16:30 при strTimeLocal 18:30 (CEST=UTC+2), руски
+    14:00/19:00 (UTC+5), канадски 23:00/19:00 (EDT=UTC−4), американски
+    20:00/15:00 (CDT=UTC−5). Осем от девет сравними записа дават точно пояса
+    на държавата — тоест strTime Е UTC, а постът го обявяваше за софийско.
+    """
+    zima = utc_v_sofia("2026-01-15", "12:00:00")
+    lyato = utc_v_sofia("2026-07-15", "12:00:00")
+    ck("януари: 12:00 UTC става 14:00 бг", chas_bg(zima) == "14:00")
+    ck("юли: 12:00 UTC става 15:00 бг", chas_bg(lyato) == "15:00")
+    ck("зимното изместване е точно 2 часа",
+       zima is not None and zima.utcoffset().total_seconds() == 2 * 3600)
+    ck("лятното изместване е точно 3 часа",
+       lyato is not None and lyato.utcoffset().total_seconds() == 3 * 3600)
+    ck("зима и лято НЕ са едно и също изместване",
+       zima.utcoffset() != lyato.utcoffset())
+    ck("датският мач 16:30 UTC е 19:30 бг",
+       chas_bg(utc_v_sofia("2026-09-02", "16:30:00")) == "19:30")
+    ck("руският мач 14:00 UTC е 17:00 бг",
+       chas_bg(utc_v_sofia("2026-09-02", "14:00:00")) == "17:00")
+    ck("късният 23:30 UTC е 02:30 бг",
+       chas_bg(utc_v_sofia("2026-09-02", "23:30:00")) == "02:30")
+    ck("и пада ВДРУГИДЕН, не на своята UTC дата",
+       utc_v_sofia("2026-09-02", "23:30:00").strftime("%Y-%m-%d") == "2026-09-03")
+    ck("гол час без пояс не се показва",
+       chas_bg(datetime(2026, 7, 1, 12, 0)) == "")
+    ck("липсващият час не се показва", chas_bg(None) == "")
+    ck("преводът не мести абсолютния момент",
+       v_sofia(datetime(2026, 7, 1, 12, 0, tzinfo=UTC)).timestamp()
+       == datetime(2026, 7, 1, 12, 0, tzinfo=UTC).timestamp())
+    ck("плънката за неизвестен час не ражда час",
+       sabitie_sofia({"dateEvent": "2026-07-15", "strTime": "00:00:00"}) is None)
+    ck("празният час не ражда час",
+       sabitie_sofia({"dateEvent": "2026-07-15", "strTime": ""}) is None)
+    ck("истинският час на мач се превежда",
+       chas_bg(sabitie_sofia({"dateEvent": "2026-07-15",
+                              "strTime": "18:00:00"})) == "21:00")
+    ck("счупена дата не чупи", utc_v_sofia("не-дата", "18:00:00") is None)
+    ck("date_bg превежда чужд пояс",
+       date_bg(datetime(2026, 7, 1, 23, 30, tzinfo=UTC)) == "четвъртък, 2.07")
+    ck("date_bg на гол час мълчи",
+       date_bg(datetime(2026, 7, 1, 23, 30)) == "")
+
+    # ─────── и че НЯМА ВТОРО място, което си мери или изписва часа само
+    _sega = "datetime.now" + "("
+    ck("единствен източник на сегашния момент", src.count(_sega) == 1)
+    _chas = "strftime(" + chr(34) + "%H:%M" + chr(34) + ")"
+    ck("единствено място изписва часовник", src.count(_chas) == 1)
+    _syrovo = ("(e.get(" + chr(34) + "strTime" + chr(34) + ") or "
+               + chr(34) + chr(34) + ")[:5]")
+    ck("суровият strTime вече не се показва", _syrovo not in src)
+    ck("няма фиксирано изместване в часове", ("timedelta(" + "hours=") not in src)
+    ck("няма utcnow", ("utc" + "now(") not in src)
+    ck("поясът е по име",
+       ("ZoneInfo(" + chr(34) + "Europe/Sofia" + chr(34) + ")") in src)
+    ck("поясът не се чака от средата",
+       ("environ[" + chr(34) + "TZ" + chr(34) + "]") not in src
+       and ("environ.get(" + chr(34) + "TZ" + chr(34)) not in src)
+
+
+def _proveri_sastoyanieto(ck):
+    """Пазач за разликата между „свърших“ и „опитах и не стана“.
+
+    🔴 Живото състояние в хранилището на 01.09.2026 беше буквално две полета:
+    date 2026-09-01 и overview_room9 true. ЕДИН флаг, по който няма как да се
+    различи пратен пост от отказ. Тези проверки държат разликата.
+    """
+    import shutil as _sh
+    import tempfile
+    papka = tempfile.mkdtemp()
+    tmp = os.path.join(papka, "sastoyanie.json")
+    star_file = globals()["STATE_FILE"]
+    star_force = globals()["FORCE"]
+    star_collect = globals()["collect_overview"]
+    star_fetch = globals()["fetch_json"]
+    real_send = poster.send_message
+    real_sleep = time.sleep
+    globals()["STATE_FILE"] = tmp
+    globals()["FORCE"] = False
+    try:
+        den = "2026-07-15"
+        s = {}
+        n1 = mark_failed(s, den, "overview_room9", "източникът падна")
+        ck("провалът НЕ пише готов", done_today(s, den, "overview_room9") is False)
+        ck("провалът пише изричен НЕ, не липсващ ключ",
+           s.get("overview_room9") is False)
+        ck("броячът на опитите тръгва от 1", n1 == 1)
+        n2 = mark_failed(s, den, "overview_room9", "пак падна")
+        n3 = mark_failed(s, den, "overview_room9", "и трети път")
+        ck("броячът расте", (n2, n3) == (2, 3))
+        ck("причината се пази", "трети" in str(s.get("overview_room9_prichina")))
+        ck("провалът стига до диска",
+           load_state().get("overview_room9_opiti") == 3)
+        mark_done(s, den, "overview_room9")
+        ck("успехът след провал пише готов",
+           done_today(s, den, "overview_room9") is True)
+        ck("успехът маха причината", "overview_room9_prichina" not in s)
+
+        s2 = {}
+        mark_failed(s2, "2026-07-15", "overview_room9", "падна")
+        mark_failed(s2, "2026-07-16", "overview_room9", "падна пак")
+        ck("пропуснатият ден оцелява смяната на деня",
+           "2026-07-15" in (s2.get("propusnati") or []))
+        ck("новият ден е записан", s2.get("date") == "2026-07-16")
+        s3 = {}
+        mark_done(s3, "2026-07-15", "overview_room9")
+        mark_failed(s3, "2026-07-16", "overview_room9", "падна")
+        ck("успелият ден НЕ влиза в пропуснатите",
+           "2026-07-15" not in (s3.get("propusnati") or []))
+        # Наваксване: ден, който вече стои в списъка на пропуснатите, трябва да
+        # излезе оттам, щом бъде свършен — и то САМО той, не целият списък.
+        s4 = {"date": "2026-07-16",
+              "propusnati": ["2026-07-14", "2026-07-15", "2026-07-16"]}
+        mark_done(s4, "2026-07-16", "overview_room9")
+        ck("навакcаният ден си тръгва от пропуснатите",
+           "2026-07-16" not in (s4.get("propusnati") or []))
+        ck("другите пропуснати дни остават",
+           (s4.get("propusnati") or []) == ["2026-07-14", "2026-07-15"])
+        s5 = {"date": "2026-07-16", "propusnati": ["2026-07-16"]}
+        mark_done(s5, "2026-07-16", "overview_room9")
+        ck("празният списък се маха, не остава празен",
+           "propusnati" not in s5)
+
+        # ───────────────────── run_overview: четирите изхода
+        sega = datetime(2026, 7, 15, 20, 0, tzinfo=SOFIA)
+        sent = []
+        poster.send_message = lambda *a, **k: (sent.append(1) or True)
+        time.sleep = lambda *a, **k: None
+
+        def _izchisti():
+            try:
+                os.remove(tmp)
+            except Exception:                                # noqa: BLE001
+                pass
+
+        _izchisti()
+        globals()["collect_overview"] = lambda now: {
+            "total": 0, "nsports": 0, "hot": None, "tomorrow": None,
+            "zayavki": 10, "greshki": 10, "prichini": ["нарочен провал"]}
+        run_overview(sega)
+        st = load_state()
+        ck("паднал източник НЕ пише готов", st.get("overview_room9") is False)
+        ck("паднал източник вдига брояча", st.get("overview_room9_opiti") == 1)
+        ck("паднал източник не праща нищо", len(sent) == 0)
+        ck("причината стига до състоянието",
+           "падна" in str(st.get("overview_room9_prichina")))
+
+        _izchisti()
+        globals()["collect_overview"] = lambda now: {
+            "total": 40, "nsports": 5, "hot": None, "tomorrow": None,
+            "zayavki": 10, "greshki": 0, "prichini": []}
+        run_overview(sega)
+        st = load_state()
+        ck("здравото мълчание пише готов", st.get("overview_room9") is True)
+        ck("здравото мълчание не праща нищо", len(sent) == 0)
+
+        _izchisti()
+        poster.send_message = lambda *a, **k: False
+        globals()["collect_overview"] = lambda now: {
+            "total": 40, "nsports": 5, "hot": None,
+            "tomorrow": "🏀 В — Г (21:00)",
+            "zayavki": 10, "greshki": 0, "prichini": []}
+        run_overview(sega)
+        st = load_state()
+        ck("отказан пост НЕ пише готов", st.get("overview_room9") is False)
+        ck("отказан пост вдига брояча", st.get("overview_room9_opiti") == 1)
+
+        _izchisti()
+        sent2 = []
+        poster.send_message = lambda *a, **k: (sent2.append(1) or True)
+        run_overview(sega)
+        st = load_state()
+        ck("приетият пост пише готов", st.get("overview_room9") is True)
+        ck("приетият пост е точно един", len(sent2) == 1)
+
+        # ───────────── collect_overview: денят на източника не е нашият ден
+        globals()["collect_overview"] = star_collect
+
+        def _zima(url, timeout=20, greshki=None):
+            if "d=2026-01-16" in url and "Soccer" in url:
+                return {"events": [
+                    {"strLeague": "Premier League", "strHomeTeam": "Късен",
+                     "strAwayTeam": "Мач", "dateEvent": "2026-01-16",
+                     "strTime": "23:30:00"},
+                    {"strLeague": "Premier League", "strHomeTeam": "Точният",
+                     "strAwayTeam": "Мач", "dateEvent": "2026-01-16",
+                     "strTime": "18:00:00"}]}
+            return {"events": []}
+
+        globals()["fetch_json"] = _zima
+        dz = collect_overview(datetime(2026, 1, 15, 20, 0, tzinfo=SOFIA))
+        ck("зимата: 18:00 UTC се показва като 20:00",
+           "(20:00)" in str(dz.get("tomorrow")))
+        ck("суровият UTC час не изтича навън",
+           "(18:00)" not in str(dz.get("tomorrow")))
+        ck("мачът след полунощ НЕ се обявява за утрешен",
+           "Късен" not in str(dz.get("tomorrow")))
+        ck("броят заявки се връща", int(dz.get("zayavki") or 0) > 0)
+        ck("здравият източник дава 0 провала", int(dz.get("greshki") or 0) == 0)
+
+        def _lyato(url, timeout=20, greshki=None):
+            if "d=2026-07-15" in url and "Soccer" in url:
+                return {"events": [
+                    {"strLeague": "Premier League", "strHomeTeam": "Полунощен",
+                     "strAwayTeam": "Мач", "dateEvent": "2026-07-15",
+                     "strTime": "22:30:00"}]}
+            return {"events": []}
+
+        globals()["fetch_json"] = _lyato
+        dl = collect_overview(datetime(2026, 7, 15, 20, 0, tzinfo=SOFIA))
+        ck("лятото: 22:30 UTC днес е 01:30 бг утре",
+           "(01:30)" in str(dl.get("tomorrow")))
+        ck("мачът от ДНЕШНИЯ кош на източника се хваща",
+           "Полунощен" in str(dl.get("tomorrow")))
+
+        def _padnal(url, timeout=20, greshki=None):
+            if greshki is not None:
+                greshki.append("нарочен провал")
+            return {}
+
+        globals()["fetch_json"] = _padnal
+        dp = collect_overview(datetime(2026, 7, 15, 20, 0, tzinfo=SOFIA))
+        ck("всяка пропаднала заявка се брои",
+           int(dp.get("greshki") or 0) == int(dp.get("zayavki") or 0) > 0)
+        ck("паднал източник не ражда мач за утре", dp.get("tomorrow") is None)
+
+        # ───────────── самият fetch_json, без мрежа
+        globals()["fetch_json"] = star_fetch
+        g1 = []
+        ck("счупен адрес връща празно",
+           fetch_json("tova-ne-e-adres", greshki=g1) == {})
+        ck("счупеният адрес оставя следа", len(g1) == 1)
+        g2 = []
+        ck("отговор с чужд тип НЕ е празен ден",
+           fetch_json("data:application/json,[1,2,3]", greshki=g2) == {})
+        ck("чуждият тип също оставя следа", len(g2) == 1)
+        g3 = []
+        ck("здравият отговор минава",
+           fetch_json("data:application/json," + chr(123) + chr(34) + "events"
+                      + chr(34) + ":[]" + chr(125), greshki=g3) == {"events": []})
+        ck("здравият отговор не оставя следа", len(g3) == 0)
+    finally:
+        globals()["STATE_FILE"] = star_file
+        globals()["FORCE"] = star_force
+        globals()["collect_overview"] = star_collect
+        globals()["fetch_json"] = star_fetch
+        poster.send_message = real_send
+        time.sleep = real_sleep
+        _sh.rmtree(papka, ignore_errors=True)
 
 
 def run_selftest():
@@ -430,6 +902,8 @@ def run_selftest():
     check("post_channel не вика poster", "poster.send_message" not in src.split("def post_room")[0].split("def post_channel")[1])
 
     _proveri_ligi(check)
+    _proveri_chasa(check, src)
+    _proveri_sastoyanieto(check)
     print(f"SELFTEST: {ok} наред, {len(bad)} проблема.")
     for b in bad: print("  ❌", b)
     return 0 if not bad else 1
