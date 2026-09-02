@@ -1642,7 +1642,15 @@ def selftest():
     # ---- равносметката: изходният код носи разликата
     _posleden = {}
 
-    def _run_rav(zapisi, publikuvani, preseti=0):
+    def _run_rav(zapisi, publikuvani, preseti=0, mek=False):
+        # 🔴 РЕЖИМЪТ СЕ ЗАДАВА ТУК, не се наследява от средата (02.09.2026).
+        # Пуснат със средата на работната стъпка (MATCHES_MEK=1), selftest-ът
+        # падаше на «нула взети е ПРОВАЛ» — защото мекият режим прави изхода
+        # 0. Проверката обаче съди ПРИСЪДАТА, а мекият режим е отделно
+        # поведение със собствена проверка. Самопроверка, чийто резултат
+        # зависи от работна ръчка, мери средата вместо кода.
+        _star_mek = MEK
+        globals()["MEK"] = bool(mek)
         IZVORI.clear()
         for ime, z in zapisi.items():
             vpishi_izvor(ime, **z)
@@ -1666,6 +1674,7 @@ def selftest():
                                           if x.endswith(".tmp"))
         finally:
             globals()["STATE_FILE"] = _star
+            globals()["MEK"] = _star_mek
             _sh.rmtree(_d, ignore_errors=True)
         return _kod, _buf.getvalue()
 
@@ -1694,7 +1703,7 @@ def selftest():
     _sm = MEK
     try:
         globals()["MEK"] = True
-        _kod, _txt = _run_rav({}, 0)
+        _kod, _txt = _run_rav({}, 0, mek=True)
         check("мекият режим обявява провала, но пуска зелено",
               _kod == 0 and "ПРОВАЛ" in _txt)
     finally:
@@ -1740,7 +1749,7 @@ def selftest():
     _sm = MEK
     try:
         globals()["MEK"] = True
-        _kod, _txt = _run_rav({}, 0)
+        _kod, _txt = _run_rav({}, 0, mek=True)
         _z = _posleden.get("zapis") or {}
         check("мекият режим е ЗАПИСАН като мек", _z.get("mek") is True)
         check("суровият изход остава ненулев при мек режим",
@@ -1812,6 +1821,20 @@ def selftest():
     except Exception as _e:                                  # noqa: BLE001
         check("matches.yml се чете за сверка", False)
         print("   " + str(_e)[:70])
+
+    # 🔴 И САМАТА НЕЗАВИСИМОСТ СЕ ПРОВЕРЯВА. Без този ред поправката горе е
+    # обещание: някой пак може да върне наследяването от средата и нищо няма
+    # да гръмне, докато не се пусне точната команда с работната среда.
+    _star_mek2 = MEK
+    try:
+        globals()["MEK"] = True                 # уж «меко» отвън
+        _k_tvard, _ = _run_rav({}, 0)           # без mek= -> ТВЪРДО
+        _k_meko, _ = _run_rav({}, 0, mek=True)  # с mek= -> меко
+        check("присъдата НЕ зависи от MATCHES_MEK в средата", _k_tvard != 0)
+        check("мекият режим си остава достъпен изрично", _k_meko == 0)
+    finally:
+        globals()["MEK"] = _star_mek2
+    IZVORI.clear()
 
     # ---- главното: изходният код НЕ се изхвърля
     _opashka = _insp_src_na_izhoda()

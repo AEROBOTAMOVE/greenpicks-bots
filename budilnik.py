@@ -69,11 +69,98 @@ def _cyalo(ime, po_podrazbirane, dolna, gorna):
 # същият. Разминаване по устройство не може да има.
 _QT = _cyalo("PREDICT_QUIET_TO", 8, 0, 11)
 _QF = _cyalo("PREDICT_QUIET_FROM", 23, 12, 23)
-# Предсказателят пуска в целия прозорец при пълен ден, инак без последния
-# час (той е гратис за закъснял крон). Тук се повтаря СЪЩОТО правило.
+
+
+def _granici(qt, qf):
+    """(първи, последен работен час) от прозореца на предсказателя.
+
+    🔴 ПРАВИЛОТО Е НА ЕДНО МЯСТО (02.09.2026). Дотук то стоеше вграденo в
+    двата реда по-долу, а самопроверката го ПРЕПИСВАШЕ, за да го сравни със
+    себе си — тоест сверяваше препис с препис. Сега тестът вика тази функция:
+    развали ли се тя, проверката пада.
+
+    Предсказателят пуска в целия прозорец при пълен ден, инак без последния
+    час (той е гратис за закъснял крон).
+    """
+    return qt, (qf if (qt == 0 and qf == 23) else qf - 1)
+
+
 _PALEN = (_QT == 0 and _QF == 23)
-OT_CHAS = _cyalo("BUDILNIK_OT", _QT, 0, 23)
-DO_CHAS = _cyalo("BUDILNIK_DO", _QF if _PALEN else _QF - 1, 0, 23)
+OT_CHAS = _cyalo("BUDILNIK_OT", _granici(_QT, _QF)[0], 0, 23)
+DO_CHAS = _cyalo("BUDILNIK_DO", _granici(_QT, _QF)[1], 0, 23)
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  🔌 РЪЧКА, КОЯТО НЕ СТИГА ДО ПРОЦЕСА, Е МЪРТВА (02.09.2026, измерено)
+#
+#  budilnik.py чете PREDICT_QUIET_TO и PREDICT_QUIET_FROM (двата реда горе).
+#  Измерено в тази сесия с grep по живите workflow-и:
+#     predict.yml:299-300  подава и двете на ПРЕДСКАЗАТЕЛЯ
+#     router.yml:158-162   стъпката «Проспа ли предсказателя или оценителя»
+#                          има env САМО BUDILNIK_OCENITEL — нито една от двете
+#  Тоест: вдигне ли собственикът денонощния режим, предсказателят тръгва в
+#  0-23, а будилникът остава на 8-22 и няма да го събуди нито веднъж между
+#  23:00 и 07:59. Точно същият дефект вече беше намерен в predict.yml.
+#
+#  Тук той се ОТКРИВА, не се поправя: поправката е два реда в router.yml, а
+#  този файл не пипа чужди файлове. Резултатът излиза като ⚠ НЕСВЕРЕНО, не
+#  като счупено — червената самопроверка спира ЦЕЛИЯ рутер (виж по-долу).
+#
+#  🔴 СПИСЪКЪТ НЕ СЕ ПИТА КАКВО ДА ТЪРСИ. Ядрото се изброява на ДРУГО място —
+#  в двата реда горе, които наистина четат ключовете, — и самопроверката ги
+#  сверява с този списък. Махне ли се ключ само от списъка, проверката пада.
+# ═══════════════════════════════════════════════════════════════════════════
+RYACHKI = ("PREDICT_QUIET_FROM", "PREDICT_QUIET_TO")
+
+
+def _stapki(tekst):
+    """Текстът на workflow, нарязан на блокове по «- name:». Списък от низове."""
+    redove = str(tekst or "").split(chr(10))
+    nachala = [i for i, r in enumerate(redove)
+               if r.strip().startswith("- name:")]
+    blokove = []
+    for k, i in enumerate(nachala):
+        kraj = nachala[k + 1] if k + 1 < len(nachala) else len(redove)
+        blokove.append(chr(10).join(redove[i:kraj]))
+    return blokove
+
+
+def _goliyat_budilnik(blok):
+    """Пуска ли този блок budilnik.py БЕЗ --selftest."""
+    for r in str(blok or "").split(chr(10)):
+        s = r.strip()
+        if s.startswith("#"):
+            continue
+        if s.startswith("run:"):
+            s = s[4:].strip()
+        if s == "python budilnik.py":
+            return True
+    return False
+
+
+def ryachkite_v_router(tekst, ryachki=None):
+    """Кои ръчки НЕ стигат до будилника през този текст на router.yml.
+
+    Връща сортиран списък с липсващите, [] когато всичко е подадено, и
+    None когато изобщо няма стъпка, която да пуска голия budilnik.py.
+
+    🔴 СЕНТИНЕЛ, НЕ ПРАЗЕН СПИСЪК: «не намирам стъпката» не е «всичко е наред».
+    🔴 РЕЖЕ БЛОКА И ГЛЕДА ВЪТРЕ, не търси низ в целия файл: ключът, споменат в
+       съседен коментар или в друга стъпка, НЕ се брои за подаден.
+    """
+    ryachki = RYACHKI if ryachki is None else ryachki
+    for blok in _stapki(tekst):
+        if not _goliyat_budilnik(blok):
+            continue
+        dadeni = set()
+        for r in blok.split(chr(10)):
+            s = r.strip()
+            if s.startswith("#") or ":" not in s:
+                continue
+            ime = s.split(":", 1)[0].strip()
+            if ime and ime.replace("_", "").isalnum() and ime.isupper():
+                dadeni.add(ime)
+        return sorted(k for k in ryachki if k not in dadeni)
+    return None
 
 # Таванът. Пусканията са на час, но закъсняват неравномерно: рън, закъснял с
 # 10 мин, следван от рън, закъснял със 70, дава 120 минути разстояние БЕЗ да е
@@ -600,7 +687,37 @@ def _s_pochivka(sega, minuti, tavan, opit, pochivka):
 
 
 def selftest():
-    ok, bad = 0, []
+    # ═══════════════════════════════════════════════════════════════════════
+    #  🔴 ТРИ СЪСТОЯНИЯ, НЕ ДВЕ (02.09.2026 — ИЗМЕРЕНО НА ЖИВО).
+    #
+    #  Стъпката «Самопроверка на будилника и предсказателя» (router.yml:75-78)
+    #  е БЛОКИРАЩА: падне ли, следващите стъпки се ПРЕСКАЧАТ. Измерено през
+    #  api.github.com в тази сесия, рутерът на 27.08 в 23:10 / 23:15 / 23:20 /
+    #  23:25:
+    #      Самопроверка на будилника и предсказателя  →  failure
+    #      Проспа ли предсказателя или оценителя      →  skipped
+    #      Събуди предсказателя                       →  skipped
+    #      Събуди оценителя                           →  skipped
+    #  Тоест едно червено тук спира ЧАСОВНИКА на целия бот. Следата в тефтера:
+    #  вечерните прозорци 27, 28 и 29.08 нямат НИТО ЕДИН опит (3 от 7 нощи), а
+    #  равносметките за тези дни са само по една — от закъснелия крон в 23:37,
+    #  00:12 и 00:52. За сравнение: в нощите с жив будилник марките са точно в
+    #  23:15 и 00:45, тоест двата му опита.
+    #
+    #  Затова разликата:
+    #    · счупено  = дефект В ТОЗИ ФАЙЛ или РАЗЧЕТЕНО разминаване с друг —
+    #                 изход 1, стъпката пада, и това е правилно;
+    #    · НЕСВЕРЕНО = чужд файл не се чете или котвата в него е сменена —
+    #                 ⚠ в дневника, изход 0. Чужд refactor не бива да спира
+    #                 часовника; същият сентинел вече пази pazachat_e_v_scorera
+    #                 («не мога да прочета» НЕ Е «няма пазач»).
+    #
+    #  Пазачът срещу украса: сверките се БРОЯТ. Изчезне ли цял блок, броят на
+    #  ОПИТАНИТЕ пада и проверката по-долу гърми — «0 несверени» вече не може
+    #  да значи «0 погледнати».
+    # ═══════════════════════════════════════════════════════════════════════
+    ok, bad, warn = 0, [], []
+    sverki = {"opitani": 0}
 
     def check(ime, uslovie):
         nonlocal ok
@@ -608,6 +725,12 @@ def selftest():
             ok += 1
         else:
             bad.append(ime)
+
+    def sverka_zapochva():
+        sverki["opitani"] += 1
+
+    def nesverimo(prichina):
+        warn.append(prichina)
 
     d = lambda h, m: datetime(2026, 8, 12, h, m, tzinfo=SOFIA)     # noqa: E731
 
@@ -713,22 +836,32 @@ def selftest():
 
     # --- часовете съвпадат с тези на предсказателя. Разминат ли се, будилникът
     #     или ще мълчи в работен час, или ще буди в забранен.
+    sverka_zapochva()
+    src = None
     try:
         with io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   "predictor.py"), encoding="utf-8-sig") as f:
             src = f.read()
+    except Exception as e:                                   # noqa: BLE001
+        nesverimo("часовете с predictor.py: " + str(e)[:50])
+    if src is not None:
         # 🔴 СВЕРЯВА СЕ ПО КЛЮЧОВЕТЕ, НЕ ПО ТЕКСТА (02.09.2026).
         # Старата проверка търсеше низ в predictor.py и гръмна в деня, в
         # който часовете станаха подвижни. Сега пита за ПРАВИЛОТО.
-        check("предсказателят строи часовете от прозореца",
-              "_PROZORETS" in src and "QUIET_TO <= h <= QUIET_FROM" in src)
+        # Котвата пак е текст, затова липсата ѝ е ⚠, а не червено.
+        if not ("_PROZORETS" in src and "QUIET_TO <= h <= QUIET_FROM" in src):
+            nesverimo("не намирам правилото за прозореца в predictor.py")
         check("будилникът почва когато и предсказателят", OT_CHAS == _QT)
         check("будилникът спира когато и предсказателят",
-              DO_CHAS == (_QF if _PALEN else _QF - 1))
+              DO_CHAS == _granici(_QT, _QF)[1])
         check("при денонощен режим будилникът също е денонощен",
               (OT_CHAS == 0 and DO_CHAS == 23) if _PALEN else True)
-    except Exception as e:                                   # noqa: BLE001
-        bad.append("не мога да сверя часовете с predictor.py: " + str(e)[:50])
+
+    # --- правилото за границите, проверено САМО, и то без препис
+    check("денонощен прозорец дава денонощен будилник", _granici(0, 23) == (0, 23))
+    check("стандартният прозорец спира час по-рано", _granici(8, 23) == (8, 22))
+    check("подвижното начало се пренася", _granici(3, 21) == (3, 20))
+    check("гратисът е САМО при непълен ден", _granici(0, 22) == (0, 21))
 
     # --- СПИРАЧКАТА. Без нея паднал предсказател се буди на всеки 10 минути
     # до безкрай. Тества се с изрично подаден „последен опит", за да не пипа
@@ -1095,39 +1228,278 @@ def selftest():
     # Разминат ли се, будилникът или ще буди в мъртвата зона (рън без нито едно
     # съобщение), или ще пали обедния прозорец, когато оценителят вече праща
     # ФИНИШ — тоест окончателна равносметка по средата на деня.
+    sverka_zapochva()
+    _ssrc = None
     try:
         with io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   "scorer.py"), encoding="utf-8-sig") as f:
             _ssrc = f.read()
-        _i = _ssrc.find("vecher = now.hour >= ")
-        check("намирам вечерния прозорец в scorer.py", _i >= 0)
-        if _i >= 0:
-            _red = _ssrc[_i:_ssrc.find(chr(10), _i)]
-            _a = int(_red.split(">= ")[1].split(" ")[0])
-            _b = int(_red.split("< ")[-1].strip())
+    except Exception as e:                                   # noqa: BLE001
+        nesverimo("прозорците със scorer.py: " + str(e)[:60])
+    if _ssrc is not None:
+        _a = _b = _c = _dd = None
+        try:
+            _i = _ssrc.find("vecher = now.hour >= ")
+            if _i >= 0:
+                _red = _ssrc[_i:_ssrc.find(chr(10), _i)]
+                _a = int(_red.split(">= ")[1].split(" ")[0])
+                _b = int(_red.split("< ")[-1].strip())
+                _j = _ssrc.find(chr(10) + "    obed = ", _i)
+                if _j >= 0:
+                    _red2 = _ssrc[_j + 1:_ssrc.find(chr(10), _j + 1)]
+                    _c = int(_red2.split("= ")[1].split(" ")[0])
+                    _dd = int(_red2.split("< ")[-1].strip())
+        except Exception as e:                               # noqa: BLE001
+            _a = _b = _c = _dd = None
+            nesverimo("прозорците в scorer.py не се разчитат: " + str(e)[:60])
+        # Котвата е ЧУЖД изходен текст. Смени ли се, това е ⚠ — не червено:
+        # червеното тук прескача цялото будене (виж главата горе).
+        if _a is None or _b is None:
+            nesverimo("не намирам вечерния прозорец в scorer.py")
+        else:
             check("вечерният будилник е ВЪТРЕ във вечерта на оценителя",
                   OC_VECHER_OT >= _a * 60 and OC_VECHER_DO < _b * 60)
-            _j = _ssrc.find(chr(10) + "    obed = ", _i)
-            check("намирам обедния прозорец в scorer.py", _j >= 0)
-            if _j >= 0:
-                _red2 = _ssrc[_j + 1:_ssrc.find(chr(10), _j + 1)]
-                _c = int(_red2.split("= ")[1].split(" ")[0])
-                _dd = int(_red2.split("< ")[-1].strip())
-                check("обедният будилник е ВЪТРЕ в обяда на оценителя",
-                      OC_OBED_OT >= _c * 60 and OC_OBED_DO < _dd * 60)
-    except Exception as e:                                   # noqa: BLE001
-        bad.append("не мога да сверя прозорците със scorer.py: " + str(e)[:60])
+        if _c is None or _dd is None:
+            nesverimo("не намирам обедния прозорец в scorer.py")
+        else:
+            check("обедният будилник е ВЪТРЕ в обяда на оценителя",
+                  OC_OBED_OT >= _c * 60 and OC_OBED_DO < _dd * 60)
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  🔌 РЪЧКИТЕ: СТИГАТ ЛИ ДО ПРОЦЕСА (02.09.2026)
+    #
+    #  Първо СПИСЪКЪТ се сверява с кода, после ФУНКЦИЯТА се проверява върху
+    #  нарочно скроени текстове, и чак накрая се гледа живият router.yml.
+    #  Обратният ред би бил проверка, която пита самата себе си.
+    # ═══════════════════════════════════════════════════════════════════
+    _ok_predi_ryachkite = ok
+    try:
+        with io.open(os.path.abspath(__file__), encoding="utf-8-sig") as f:
+            _moyat = f.read()
+        _chetat = sorted(set(re.findall(r'_cyalo\("(PREDICT_[A-Z_]+)"', _moyat)))
+        check("списъкът с ръчки е същият като ключовете, които наистина чета",
+              _chetat == sorted(RYACHKI) and len(_chetat) >= 2)
+    except Exception as _e:                                  # noqa: BLE001
+        bad.append("не мога да прочета собствения си файл: " + str(_e)[:50])
+
+    _polen = (chr(10).join([
+        "      - name: Проспа ли предсказателя или оценителя",
+        "        id: budilnik",
+        "        env:",
+        "          BUDILNIK_OCENITEL: '1'",
+        "          PREDICT_QUIET_TO: x",
+        "          PREDICT_QUIET_FROM: y",
+        "        run: python budilnik.py",
+        "      - name: Друга стъпка",
+        "        run: echo 1"]))
+    _bez = _polen.replace("          PREDICT_QUIET_TO: x" + chr(10), "")
+    _prazen = _polen.replace("          PREDICT_QUIET_TO: x" + chr(10), "").replace(
+        "          PREDICT_QUIET_FROM: y" + chr(10), "")
+    check("пълната стъпка не крие ръчки", ryachkite_v_router(_polen) == [])
+    check("липсващата ръчка се вижда",
+          ryachkite_v_router(_bez) == ["PREDICT_QUIET_TO"])
+    check("липсват ли и двете, се виждат и двете",
+          ryachkite_v_router(_prazen) == sorted(RYACHKI))
+    check("без стъпка за голия будилник връща СЕНТИНЕЛ, не празен списък",
+          ryachkite_v_router("") is None
+          and ryachkite_v_router(_polen.replace(
+              "        run: python budilnik.py", "        run: echo нищо"))
+          is None)
+    # 🔴 ключът в КОМЕНТАР до кода не е подаден ключ. Точно това вече е
+    # минавало незабелязано: проверка, търсеща низ, докато низът стои в
+    # обяснението до него.
+    check("ключ в коментар НЕ се брои за подаден",
+          ryachkite_v_router(_prazen.replace(
+              "        env:",
+              "        env:" + chr(10)
+              + "          # PREDICT_QUIET_TO и PREDICT_QUIET_FROM идват тук"))
+          == sorted(RYACHKI))
+    # 🔴 ключът в ДРУГА стъпка също не е подаден на будилника.
+    check("ключ в чужда стъпка НЕ се брои за подаден",
+          ryachkite_v_router(_prazen.replace(
+              "        run: echo 1",
+              "        env:" + chr(10) + "          PREDICT_QUIET_TO: x"
+              + chr(10) + "        run: echo 1")) == sorted(RYACHKI))
+    # 🔴 стъпката със --selftest НЕ е стъпката, която буди.
+    _samo_test = chr(10).join([
+        "      - name: Самопроверка",
+        "        env:",
+        "          PREDICT_QUIET_TO: x",
+        "          PREDICT_QUIET_FROM: y",
+        "        run: |",
+        "          python budilnik.py --selftest"])
+    check("стъпката със --selftest не се брои за будеща",
+          ryachkite_v_router(_samo_test) is None)
+    check("а същата стъпка + гол будилник се мери по ГОЛИЯ",
+          ryachkite_v_router(_samo_test + chr(10) + _prazen)
+          == sorted(RYACHKI))
+    # 🔴 МУТАЦИЯ 5 — ТЪРСЕНЕ В ЦЕЛИЯ ТЕКСТ вместо в блока. Точно това е
+    # проверката, която съдържа собствения си отговор: коментарът я лъже.
+    def _sliapo(tekst):
+        return sorted(k for k in RYACHKI if (k + ":") not in tekst)
+    _lazhliv = _prazen.replace(
+        "        env:",
+        "        env:" + chr(10)
+        + "          # PREDICT_QUIET_TO: и PREDICT_QUIET_FROM: са коментар")
+    check("МУТАЦИЯ: търсене в целия текст обявява коментара за подаден ключ",
+          _sliapo(_lazhliv) == [] and ryachkite_v_router(_lazhliv)
+          == sorted(RYACHKI))
+
+    # --- и чак сега ЖИВИЯТ router.yml
+    sverka_zapochva()
+    _rsrc = None
+    try:
+        with io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  ".github", "workflows", "router.yml"),
+                     encoding="utf-8-sig") as f:
+            _rsrc = f.read()
+    except Exception as _e:                                  # noqa: BLE001
+        nesverimo("ръчките в router.yml: " + str(_e)[:60])
+    if _rsrc is not None:
+        _lipsvat = ryachkite_v_router(_rsrc)
+        if _lipsvat is None:
+            nesverimo("в router.yml няма стъпка, която пуска голия budilnik.py")
+        elif _lipsvat:
+            nesverimo("МЪРТВА РЪЧКА: router.yml НЕ подава на будилника "
+                      + ", ".join(_lipsvat)
+                      + " — predict.yml ги подава на предсказателя, тоест "
+                      + "денонощният режим ще важи за него, но не и за "
+                      + "будилника (той ще спре на " + str(DO_CHAS) + ":59)")
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  📤 ИЗХОДЪТ КЪМ WORKFLOW-А. Двата реда budim= и ocenitel= са ЕДИНСТВЕНАТА
+    #  връзка между това решение и стъпките, които го изпълняват. Изчезне ли
+    #  редът за оценителя, рънът е ЗЕЛЕН и не буди никого — мълчание, което
+    #  отвън не се вижда. Дотук нито една проверка не пипаше main().
+    # ═══════════════════════════════════════════════════════════════════
+    _dir = os.environ.get("TEMP") or "."
+    _po = os.path.join(_dir, "_budilnik_izhod.txt")
+    _ps = os.path.join(_dir, "_budilnik_glavno_ps.json")
+    _pb = os.path.join(_dir, "_budilnik_glavno_bs.json")
+    _st_state, _st_bud, _st_vkl = STATE_FILE, BUD_STATE, OC_VKL
+    _imashe_izhod = "GITHUB_OUTPUT" in os.environ
+    _star_izhod = os.environ.get("GITHUB_OUTPUT")
+    _st_argv = list(sys.argv)
+    try:
+        with io.open(_ps, "w", encoding="utf-8") as f:
+            json.dump({"diag": {"koga": "2000-01-01 00:00"}}, f)
+        globals()["STATE_FILE"] = _ps
+        globals()["BUD_STATE"] = _pb
+        globals()["OC_VKL"] = False
+        os.environ["GITHUB_OUTPUT"] = _po
+        sys.argv = ["budilnik.py"]
+
+        # 🔴 МУТАЦИЯ 6 — MAIN БЕЗ РЕДА ЗА ОЦЕНИТЕЛЯ. Същото твърдение, счупен
+        # производител: липсва ли редът, проверката ТРЯБВА да падне.
+        def _osakaten_izhod(put):
+            with io.open(put, "a", encoding="utf-8") as g:
+                g.write("budim=0" + chr(10))
+        with io.open(_po, "w", encoding="utf-8") as f:
+            f.write("")
+        _osakaten_izhod(_po)
+        with io.open(_po, encoding="utf-8") as f:
+            _txt = f.read()
+        check("МУТАЦИЯ: изход без ocenitel= не минава проверката",
+              "budim=" in _txt and "ocenitel=" not in _txt)
+
+        with io.open(_po, "w", encoding="utf-8") as f:
+            f.write("predi=1" + chr(10))
+        # 🔴 ТИХО. main() печата решението си; пуснат ВЪТРЕ в самопроверката,
+        # той би сложил в дневника на рутера втори ред «спя», който изглежда
+        # като истинското решение за този рън. Дневникът и без това се чете
+        # трудно — два реда за едно и също са капан за следващия.
+        _shum = io.StringIO()
+        _star_out = sys.stdout
+        try:
+            sys.stdout = _shum
+            _izh = main()
+        finally:
+            sys.stdout = _star_out
+        with io.open(_po, encoding="utf-8") as f:
+            _txt = f.read()
+        check("истинският main пише budim= в GITHUB_OUTPUT", "budim=" in _txt)
+        check("истинският main пише и ocenitel=", "ocenitel=" in _txt)
+        check("изходът се ДОПИСВА, не се презаписва", "predi=1" in _txt)
+        check("main връща 0", _izh == 0)
+        check("при изключен будилник за оценителя изходът е точно 0",
+              "ocenitel=0" in _txt)
+        check("изходът е точно два реда, не повече",
+              sum(1 for _r in _txt.split(chr(10))
+                  if _r.startswith(("budim=", "ocenitel="))) == 2)
+        check("стойностите са само 0 или 1",
+              all(_r.split("=")[1] in ("0", "1")
+                  for _r in _txt.split(chr(10))
+                  if _r.startswith(("budim=", "ocenitel="))))
+        # без GITHUB_OUTPUT main() не бива да гърми — така се пуска локално
+        del os.environ["GITHUB_OUTPUT"]
+        _star_out = sys.stdout
+        try:
+            sys.stdout = io.StringIO()
+            _bez_izhod = main()
+        finally:
+            sys.stdout = _star_out
+        check("без GITHUB_OUTPUT main() пак минава", _bez_izhod == 0)
+        check("и пак печата решение", "спя" in _shum.getvalue()
+              or "БУДЯ" in _shum.getvalue())
+    except Exception as _e:                                  # noqa: BLE001
+        bad.append("main() гърми в самопроверката: " + str(_e)[:70])
+    finally:
+        globals()["STATE_FILE"] = _st_state
+        globals()["BUD_STATE"] = _st_bud
+        globals()["OC_VKL"] = _st_vkl
+        sys.argv = _st_argv
+        if _imashe_izhod:
+            os.environ["GITHUB_OUTPUT"] = _star_izhod
+        else:
+            os.environ.pop("GITHUB_OUTPUT", None)
+        for _p in (_po, _ps, _pb, _pb + ".tmp"):
+            try:
+                os.remove(_p)
+            except OSError:
+                pass
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  📏 ПРОЗОРЕЦЪТ ТРЯБВА ДА ПОБИРА СОБСТВЕНИЯ СИ ТАВАН (02.09.2026)
+    #  Измерено в живия тефтер: и в 11 от 11 прозореца таванът 2 се изчерпва —
+    #  обедът в 15:50, вечерта в 00:45, тоест точно първи опит + почивка 45
+    #  мин + свежо 90 мин. Вдигне ли някой почивката или свежото, вторият опит
+    #  става недостижим и таванът мълчаливо пада на 1.
+    # ═══════════════════════════════════════════════════════════════════
+    _obed_dyl = OC_OBED_DO - OC_OBED_OT
+    _vech_dyl = (1440 - OC_VECHER_OT) + OC_VECHER_DO
+    check("обедният прозорец побира тавана при тази почивка",
+          _obed_dyl >= (OC_TAVAN - 1) * OC_POCHIVKA)
+    check("вечерният прозорец побира тавана при тази почивка",
+          _vech_dyl >= (OC_TAVAN - 1) * OC_POCHIVKA)
+    check("свежото не изяжда целия обеден прозорец", OC_SVEZHO < _obed_dyl)
+    check("свежото не изяжда целия вечерен прозорец", OC_SVEZHO < _vech_dyl)
+    # И на живо: първи опит в началото, втори след свежото — както е измерено.
+    _s7 = {}
+    oc_zapishi_opit(_s7, d(14, 15))
+    _s7 = ravn_otbelezhi(_s7, ravn_klyuch("2026-08-12", "mezhdinna", "staya",
+                                          "текст"), d(14, 16))
+    check("вторият опит идва СЛЕД свежото, не след почивката",
+          reshi_ocenitel(d(15, 30), _s7)[0] is False
+          and reshi_ocenitel(d(15, 50), _s7)[0] is True)
 
     # 🔴 ДОЛНА ГРАНИЦА НА БРОЯ, НЕ НА ЗЕЛЕНОТО. Пропадне ли блокът по-горе
     # заради ранен return или сгрешен отстъп, тази проверка го издава — иначе
     # „0 счупени“ щеше да значи „0 прегледани“.
     check("пазачът добави поне 60 свои проверки", ok - _ok_predi_pazacha >= 60)
+    check("ръчките и изходът добавиха поне 20 свои проверки",
+          ok - _ok_predi_ryachkite >= 20)
+    # 🔴 СВЕРКИТЕ СЕ БРОЯТ. Иначе «0 несверени» щеше да значи «0 погледнати»:
+    # изчезне ли цял блок, тук пада броят на ОПИТАНИТЕ, не на успелите.
+    check("и трите сверки с чужди файлове са ОПИТАНИ", sverki["opitani"] == 3)
 
     check("броят проверки е поне 130", ok >= 130)
 
-    print("САМОПРОВЕРКА НА БУДИЛНИКА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
+    print("САМОПРОВЕРКА НА БУДИЛНИКА: " + str(ok) + " наред, " + str(len(bad))
+          + " счупени, " + str(len(warn)) + " несверени")
     for b in bad:
         print("   счупено: " + b)
+    for w in warn:
+        print("   ⚠ НЕСВЕРЕНО (не спира рутера): " + w)
     return 0 if not bad else 1
 
 
