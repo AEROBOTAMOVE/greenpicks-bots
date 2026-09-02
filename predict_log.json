@@ -33317,7 +33317,11 @@
   "p": 0.5067,
   "stars": 3,
   "sample": "гледани по 62 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 2.05,
+  "pazar_clv": -0.0498
  },
  {
   "key": "2026-09-02|tabletennis|1100|kyryldarin|michalvedmoch",
@@ -33833,7 +33837,11 @@
   "p": 0.4547,
   "stars": 3,
   "sample": "гледани по 62 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 2.0,
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-02|tabletennis|1130|jirigrohsgott|miroslavvaclavik",
@@ -33867,7 +33875,9 @@
   "p": 0.6016,
   "stars": 1,
   "sample": "гледани 12 мача на единия и 9 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-09-02|tabletennis|1200|miroslavvaclavik|davidmutl",
@@ -33901,7 +33911,9 @@
   "p": 0.6016,
   "stars": 1,
   "sample": "гледани 9 мача на единия и 12 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-09-02|football|austriavienna|wsgswarovskitirol",
@@ -33969,7 +33981,9 @@
   "p": 0.5361,
   "stars": 3,
   "sample": "гледани по 62 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1"
  },
  {
   "key": "2026-09-02|esports|hotu|nucleartigeres",
@@ -34245,7 +34259,9 @@
   "p": 0.5995,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-02|esports|mibr|eternalfire",
@@ -34279,7 +34295,9 @@
   "p": 0.5944,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-09-02|tabletennis|shokhrukhiskandarov|denisivonin",
@@ -35067,7 +35085,9 @@
   "p": 0.5678,
   "stars": 1,
   "sample": "гледани 11 мача на единия и 20 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-02|tabletennis|1240|piotrbrozek|wiktorptak",
