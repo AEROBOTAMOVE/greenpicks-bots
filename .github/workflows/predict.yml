@@ -281,6 +281,37 @@ jobs:
           #                         стаята на спорта) · bez (само в канала)
           PREDICT_IZKL: ${{ vars.PREDICT_IZKL || 'hockey,amfootball' }}
           PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '0' }}
+
+          # 🔴 МЪРТВИТЕ РЪЧКИ (01.09.2026). predictor.py чете 93 ключа от
+          # средата, а тук се подаваха 43. Между липсващите бяха и трите неща,
+          # направени същия ден: денонощните часове, прагът за пресмелите карти
+          # и местният тенис на маса. Кодът ги четеше, самопроверката беше
+          # зелена, а собственикът нямаше как да ги завърти — променливата
+          # никога не стигаше до процеса.
+          # Празна стойност е БЕЗОПАСНА: env_int/env_float правят int("") ->
+          # ValueError -> подразбиране. Тоест ненаписана променлива не мени
+          # нищо, а написана вече ДЕЙСТВА.
+          # Пази се от проверката «predict.yml подава всяка ръчка на
+          # собственика» в selftest, срещу списъка KLYUCHOVE_ZA_YML.
+          #
+          #   QUIET_TO=0  -> денонощен режим (върви С PREDICT_MAX_DAY=90)
+          #   QUIET_TO=8  -> старото поведение 08:00-22:00
+          PREDICT_QUIET_TO: ${{ vars.PREDICT_QUIET_TO }}
+          PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM }}
+          #   колко над пазара е «пресмела» карта (0.15 = 15 точки)
+          PREDICT_SMELOST_MAX: ${{ vars.PREDICT_SMELOST_MAX }}
+          #   вторият източник за тенис на маса (местните лиги)
+          PREDICT_TTLOKAL: ${{ vars.PREDICT_TTLOKAL }}
+          PREDICT_TTLOKAL_MAX: ${{ vars.PREDICT_TTLOKAL_MAX }}
+          PREDICT_TTLOKAL_SCALE: ${{ vars.PREDICT_TTLOKAL_SCALE }}
+          PREDICT_ITF_MAX: ${{ vars.PREDICT_ITF_MAX }}
+          #   колко часа напред се гледа за трите спорта с дълъг хоризонт
+          PREDICT_HORIZON_AMF: ${{ vars.PREDICT_HORIZON_AMF }}
+          PREDICT_HORIZON_HOK: ${{ vars.PREDICT_HORIZON_HOK }}
+          PREDICT_HORIZON_MMA: ${{ vars.PREDICT_HORIZON_MMA }}
+          #   спешните карти (мач преди следващото пускане)
+          PREDICT_MAX_URGENT: ${{ vars.PREDICT_MAX_URGENT }}
+          PREDICT_URGENT_LEAD_H: ${{ vars.PREDICT_URGENT_LEAD_H }}
           PREDICT_BOKS_MAX: ${{ vars.PREDICT_BOKS_MAX || '0' }}
           # 🎮 ЕСПОРТЪТ СЕ БУДИ — САМО CS2 (01.09.2026).
           #

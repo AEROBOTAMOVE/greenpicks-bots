@@ -3,10 +3,18 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'channel / group / all'
-        default: 'all'
+        description: 'ОБХВАТ. nishto = не се пипа нищо (по подразбиране)'
+        default: 'nishto'
         type: choice
-        options: [all, channel, group]
+        options: [nishto, channel, group, all]
+      potvarzhdavam:
+        description: 'ЗА ИСТИНСКО ТРИЕНЕ напиши ТОЧНО: IZTRII VSICHKO   (празно = сух режим: само брои, не трие)'
+        required: false
+        default: ''
+      tavan:
+        description: 'ТАВАН: най-много изтрити за ЕДНО пускане (каналът и групата делят този брой)'
+        required: false
+        default: '500'
 
 permissions:
   contents: read
@@ -31,4 +39,17 @@ jobs:
           # низ бие канала и ботът пише в никъде.
           CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
           RESET_MODE: ${{ github.event.inputs.mode }}
+          # 🔴 КЛЮЧАЛКАТА (01.09.2026). Дотук ДВЕ кликвания изтриваха канала
+          # И групата: падащото меню стоеше на 'all', а reset.py нямаше нито
+          # една самопроверка. Изтрито съобщение в Telegram НЕ СЕ ВРЪЩА.
+          # Сега: 'nishto' по подразбиране, а без ТОЧНАТА фраза скриптът
+          # само брои и печата какво БИ изтрил.
+          RESET_POTVARZHDAVAM: ${{ github.event.inputs.potvarzhdavam }}
+          RESET_TAVAN: ${{ github.event.inputs.tavan }}
         run: python reset.py
+
+      # Ключалка без проверка е украса. Този ред пуска 60-те самопроверки
+      # СЛЕД всяко нулиране - и при провал рънът почервенява.
+      - name: Samoproverka na klyuchalkata
+        if: always()
+        run: python reset.py --selftest

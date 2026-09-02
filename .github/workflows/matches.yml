@@ -20,11 +20,19 @@ on:
         type: string
         default: '8'
 
-# Ботът НЕ пише state файлове (проверено в matches_bot.py: само ЧЕТЕ
-# last_news_titles.json), затова contents: read стига и няма стъпка за commit-back.
+# 🔴 ОБНОВЕНО 01.09.2026. Дотук тук пишеше: «Ботът НЕ пише state файлове …
+# затова стига само право за четене и няма стъпка за commit-back». Това
+# ВЕЧЕ НЕ Е ВЯРНО: matches_bot.py пише matches_state.json — черната кутия с
+# трите числа (взети от източника / минали филтрите / публикувани) и
+# присъдата ПРОВАЛ·ПРАЗНО·НАРЕД за всеки спорт.
+# Защо се наложи: дотогава тези числа живееха САМО в дневника на Actions.
+# Той иска админски права и изчезва, тоест отвън се виждаше единствено
+# зелено или червено на рънa — а четирийсет и седем зелени рънa не
+# доказваха нито една публикация. Останалите ботове отдавна имат такъв
+# файл: predict_state.json, budilnik_state.json, pazach_state.json.
 # actions: read е за стъпката „Изчакай news-bot“ — тя пита дали news.yml още върви.
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -100,4 +108,43 @@ jobs:
           # Ключът може да живее и в Secrets, и във Vars — взимаме който го има.
           SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+          # Пътят на черната кутия. Празно = matches_state.json в корена.
+          MATCHES_STATE_FILE: ${{ vars.MATCHES_STATE_FILE }}
         run: python matches_bot.py
+
+      # 🔴 БЕЗ ТАЗИ СТЪПКА ЗАПИСЪТ Е БЕЗПОЛЕЗЕН. Файлът се пише на рънъра и
+      # умира заедно с него; в хранилището трябва да се ВЪРНЕ, за да го чете
+      # човек отвън. Похватът е същият като в news.yml и predict.yml.
+      # `if: always()` е нарочно: точно когато ботът е паднал, диагнозата
+      # трябва да оцелее — инак кутията пази само хубавите дни.
+      - name: Запази тефтера на мачовете
+        if: always()
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          # 🔴 ЕДИН ПО ЕДИН (12.08.2026). `git add a b nyama.json` НЕ добавя
+          # НИЩО — git отхвърля целия pathspec, щом един файл липсва, а
+          # `|| true` крие изход 128: стъпката излиза ЗЕЛЕНА, без да е
+          # запазила каквото и да било.
+          for f in matches_state.json; do
+            [ -f "$f" ] && git add "$f"
+          done
+          if git diff --cached --quiet; then
+            echo "Тефтерът е без промяна — няма какво да се връща."
+            exit 0
+          fi
+          git commit -m "matches state"
+          pushed=0
+          for i in 1 2 3 4 5; do
+            if git push; then
+              pushed=1
+              break
+            fi
+            echo "Push-ът не мина (опит $i) — дърпам и опитвам пак."
+            git pull --rebase --autostash || git rebase --abort || true
+            sleep $((RANDOM % 6 + 3))
+          done
+          if [ "$pushed" != "1" ]; then
+            echo "ЧЕРВЕНО: тефтерът НЕ се върна в хранилището."
+            exit 1
+          fi
