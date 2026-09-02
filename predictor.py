@@ -358,6 +358,10 @@ KLYUCHOVE_ZA_YML = (
     "PREDICT_TTLOKAL", "PREDICT_TTLOKAL_MAX", "PREDICT_TTLOKAL_SCALE",
     "PREDICT_ITF_MAX", "PREDICT_HORIZON_AMF", "PREDICT_HORIZON_HOK",
     "PREDICT_HORIZON_MMA", "PREDICT_MAX_URGENT", "PREDICT_URGENT_LEAD_H",
+    # 📈 тефтерът на цените — вписан 02.09.2026. Без него ключът работи,
+    # но не е ПАЗЕН: махне ли се редът от predict.yml, ръчката умира
+    # мълчаливо и никоя проверка не гърми.
+    "PREDICT_DVIZHENIE",
 )
 
 
@@ -11234,7 +11238,7 @@ def selftest():
     _nyama = [_k for _k in _yadro if _k not in KLYUCHOVE_ZA_YML]
     check("списъкът с ръчки пази ядрото си (%s)" % (", ".join(_nyama) or "-"),
           not _nyama)
-    check("списъкът с ръчки не е орязан", len(KLYUCHOVE_ZA_YML) >= 18)
+    check("списъкът с ръчки не е орязан", len(KLYUCHOVE_ZA_YML) >= 19)
     # НИКАКВИ ТАЙНИ. Списъкът е затворен; това е пазачът, че ще си остане.
     check("в кутията НЯМА токени и чатове",
           not [_k for _k in _kl if ("TOKEN" in _k or "CHAT" in _k
