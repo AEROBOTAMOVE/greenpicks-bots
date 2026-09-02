@@ -30398,7 +30398,9 @@
   "p": 0.5471,
   "stars": 2,
   "sample": "ранглиста и 5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-09-01|tennis|janlennardstruff|camilougocarabelli",
@@ -34185,7 +34187,9 @@
   "p": 0.7732,
   "stars": 2,
   "sample": "ранглиста и 5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-09-02|tabletennis|albinazhaxylykova|olgavorobeva",
@@ -35947,7 +35951,9 @@
   "p": 0.5847,
   "stars": 1,
   "sample": "гледани 7 мача на единия и 11 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-03|baseball|pittsburghpirates|sanfranciscogiants",
@@ -36023,7 +36029,9 @@
   "p": 0.5992,
   "stars": 1,
   "sample": "гледани 11 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-03|tennis|jurijrodionov|jakubmensik",
@@ -36859,7 +36867,9 @@
   "p": 0.5303,
   "stars": 1,
   "sample": "гледани 6 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-03|tennis|arthurgea|zacharysvajda",
