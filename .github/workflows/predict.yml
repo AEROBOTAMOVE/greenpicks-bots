@@ -222,7 +222,7 @@ jobs:
           SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
           # Настройки на модела — празна стойност = вътрешната подразбираща се.
           MAX_PICKS: ${{ vars.MAX_PICKS }}
-          PREDICT_POOL: ${{ vars.PREDICT_POOL }}
+          PREDICT_POOL: ${{ vars.PREDICT_POOL || '60' }}
           PREDICT_PER_SPORT: ${{ vars.PREDICT_PER_SPORT }}
           PREDICT_MIN_STRENGTH: ${{ vars.PREDICT_MIN_STRENGTH }}
           # 🔴 ОТКОВАНО 11.08.2026. Тук стоеше твърдо '18'. Списъкът в кода
@@ -256,7 +256,7 @@ jobs:
           #   MAX_DAY    таван прогнози за ЦЕЛИЯ ден, за да не залее стаята
           #   HORIZON_H  докъде напред гледаме — далечният мач чака своя час
           #   LEAD_MIN   колко минути преди начало спираме да пускаме карта
-          PREDICT_MAX_DAY: ${{ vars.PREDICT_MAX_DAY }}
+          PREDICT_MAX_DAY: ${{ vars.PREDICT_MAX_DAY || '80' }}
           # 🔴 КЛЮЧАЛКИТЕ НА СПЯЩИТЕ СПОРТОВЕ (01.09.2026).
           #
           # Дотук тези пет променливи НЕ СЕ ПОДАВАХА изобщо — тоест
@@ -279,8 +279,8 @@ jobs:
           #   PREDICT_ESPORT_MAX    същото за електронните спортове.
           #   PREDICT_STAYA_REZHIM  pak (както днес) · kratko (един ред в
           #                         стаята на спорта) · bez (само в канала)
-          PREDICT_IZKL: ${{ vars.PREDICT_IZKL || 'hockey,amfootball' }}
-          PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '0' }}
+          PREDICT_IZKL: ${{ vars.PREDICT_IZKL || 'hockey' }}
+          PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '6' }}
 
           # 🔴 МЪРТВИТЕ РЪЧКИ (01.09.2026). predictor.py чете 93 ключа от
           # средата, а тук се подаваха 43. Между липсващите бяха и трите неща,
@@ -296,8 +296,20 @@ jobs:
           #
           #   QUIET_TO=0  -> денонощен режим (върви С PREDICT_MAX_DAY=90)
           #   QUIET_TO=8  -> старото поведение 08:00-22:00
-          PREDICT_QUIET_TO: ${{ vars.PREDICT_QUIET_TO }}
-          PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM }}
+          PREDICT_QUIET_TO: ${{ vars.PREDICT_QUIET_TO || '0' }}
+          # 🔴 ВКЛЮЧЕНО ДОКРАЙ 02.09.2026, В САМИЯ ФАЙЛ, не през променливи.
+          # Черната кутия (рън 12:14) показа, че сложените в GitHub променливи
+          # НЕ стигат до процеса: MAX_DAY 60, POOL 44, HTTP_BUDGET 320,
+          # QUIET_TO 8 — всичките «по подразбиране». Затова стойностите стоят
+          # ТУК. `vars.X ||` остава отпред: сложи ли се променлива, тя пак бие.
+          # Пътят назад е един ред: върни '0' на '8' и денонощието се гаси.
+          # 🔴 ЧИСЛАТА СА ТАВАНИТЕ НА САМИЯ КОД, не желани стойности.
+          # env_int реже: MAX_DAY на 80, POOL на 60. Написах първо 90 и 80,
+          # измерих и видях, че излизат 80 и 60 — тоест файлът щеше да
+          # обещава едно, а ботът да прави друго. Пише се истината.
+          # Искаш ли по-високо, таванът в predictor.py трябва да се вдигне
+          # ПЪРВО, с измерване — не се заобикаля оттук.
+          PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM || '23' }}
           #   колко над пазара е «пресмела» карта (0.15 = 15 точки)
           PREDICT_SMELOST_MAX: ${{ vars.PREDICT_SMELOST_MAX }}
           #   вторият източник за тенис на маса (местните лиги)
@@ -428,7 +440,7 @@ jobs:
           # лупа 17 срещи → 168 заявки, лупа 34 → 205. Пълен басейн иска
           # ~227, тоест старите 220 щяха да се скъсат, а скъсването сваля
           # целия рън.
-          PREDICT_HTTP_BUDGET: ${{ vars.PREDICT_HTTP_BUDGET }}
+          PREDICT_HTTP_BUDGET: ${{ vars.PREDICT_HTTP_BUDGET || '520' }}
           # Празно при разписание, 'true' само когато човек натисне бутона.
           PREDICT_DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: python predictor.py
