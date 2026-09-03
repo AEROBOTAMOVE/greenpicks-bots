@@ -880,9 +880,29 @@ def selftest():
           link_kam_macha(dict(_fb, pazar_sport="tennis", pazar_liga="atp")) == "")
 
     # ИЗКЛЮЧЕНИТЕ КЛЮЧОВЕ НЕ МЕНЯТ НИЩО — това е пътят назад.
-    if not PAZAR_LINK_VKL and not PAZAR_IZT_VKL:
+    #
+    # 🔴 ТАЗИ ПРОВЕРКА СЕ САМОИЗКЛЮЧВАШЕ (хванато 02.09.2026). Стоеше зад
+    # `if not PAZAR_LINK_VKL and not PAZAR_IZT_VKL`, а производството подава
+    # PAZAR_LINK=1 → тъкмо в живата среда пътят назад НЕ се изпитваше, а
+    # броят проверки падаше на 174 под пода 175. Тоест единственото, което
+    # хващаше липсата, беше преброяването — и то съдеше, без да казва защо.
+    # Сега ключовете се сгъват НАРОЧНО за времето на проверката и се връщат
+    # в `finally`, така че тя върви ВИНАГИ и броят е един и същ в двата
+    # клона. Заедно с това се изпитва и обратното: че с ВКЛЮЧЕНИ ключове
+    # редът НЕ е старият, инак проверката щеше да минава и с мъртви ключове.
+    _st_lnk, _st_izt = PAZAR_LINK_VKL, PAZAR_IZT_VKL
+    try:
+        globals()["PAZAR_LINK_VKL"] = False
+        globals()["PAZAR_IZT_VKL"] = False
         check("с изключени ключове редът е дословно старият",
               red_za_karta_puln(0.62, 2.00, _fb) == red_za_karta(0.62, 2.00))
+        globals()["PAZAR_IZT_VKL"] = True
+        check("с ВКЛЮЧЕН източник редът вече НЕ е старият",
+              red_za_karta_puln(0.62, 2.00, _fb) != red_za_karta(0.62, 2.00))
+    finally:
+        globals()["PAZAR_LINK_VKL"], globals()["PAZAR_IZT_VKL"] = _st_lnk, _st_izt
+    check("ключовете са върнати както бяха",
+          (PAZAR_LINK_VKL, PAZAR_IZT_VKL) == (_st_lnk, _st_izt))
     check("без цена няма ред и в пълния вид",
           red_za_karta_puln(0.62, None, _fb) == "")
 
@@ -1170,7 +1190,7 @@ def selftest():
     finally:
         globals()["index_za_den"] = _kd_star
 
-    check("броят проверки е поне 175", ok >= 175)
+    check("броят проверки е поне 177 (еднакъв в ДВАТА клона)", ok >= 177)
     print("САМОПРОВЕРКА НА ПАЗАРА: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:
         print("   счупено: " + b)

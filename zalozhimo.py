@@ -56,6 +56,83 @@ YUNOSHESKI_DUMI = ("boys", "girls", "youth", "junior", "juniors",
 VAZRAST_BUKVA = "u"
 VAZRAST_MIN, VAZRAST_MAX = 10, 23
 
+# ────────────────────────────────────────────── ЧЕРВЕНИЯТ СПИСЪК (02.09.2026)
+# Раздел V „RED / MANUAL ONLY OR BLOCKED" от каталога на собственика. Всяка
+# редица се търси като ЦЯЛА ДУМА през същия `_dumi`, който ловеше юношите.
+#
+# Измерено на живия дневник (1225 карти): тези четири режат НУЛА днес.
+# Но кошницата на Pinnacle за хокея, питана на живо на 02.09, съдържа
+# „World - Club Friendlies" — тоест правилото ще потрябва още щом отворим
+# спорт, който взима мачовете си от Pinnacle.
+PRIYATELSKI_DUMI = ("friendly", "friendlies", "exhibition", "exhibitions",
+                    "приятелски", "приятелска", "приятелско", "контроли")
+
+# 🔴 „ii" и „b" НЕ влизат тук. „Liga II" на Румъния е ИСТИНСКА втора
+# дивизия и е в каталога (RECURRING | Romania). Самотните белези се търсят
+# само в ИМЕ НА ОТБОР, от `rezerven_otbor` по-долу.
+REZERVNI_DUMI = ("reserves", "reserve", "reserv", "резерви", "резервен",
+                 "reservas", "reserva")
+
+VIRTUALNI_DUMI = ("virtual", "virtuals", "виртуален", "виртуални",
+                  "виртуална", "sim", "simulated", "simulation")
+
+# 🔴 „fifa" НЕ влиза — „FIFA Club World Cup" е истински турнир.
+# 🔴 „cyber" НЕ влиза — „Moscow Cyber Games" е истински турнир по CS2 и е в
+#    живия ни дневник с 2 карти. Ловят се само буквените „e"-простaвки.
+SIMULACII_DUMI = ("esoccer", "ebasketball", "etennis", "ehockey",
+                  "efootball", "ecricket", "ebasket", "evolleyball")
+
+# Белезите за резервен отбор — САМО в име на ОТБОР, никога в лига.
+#
+# 🔴 ТУК ИМАШЕ „b", „ii", „2", „c" И ГИ МАХНАХ (02.09.2026), защото ги
+# измерих срещу ВСИЧКИТЕ 2052 различни имена в живия дневник:
+#
+#     «Bonzi B.» «Baker B.» «Sanchez Martinez B.»  тенисисти с ИНИЦИАЛ
+#     «Broom C.» «Spyrou C.»                       същото
+#     «Manta F.C.»                                 „F.C." се цепи на „f"+„c"
+#     «Willem II» «Juan Pablo II»                  ИСТИНСКИ клубове
+#
+#   8 невинни имена, 11 убити карти — срещу НУЛА истински резервни състава
+#   в 1225 карти. Тоест правилото струваше повече, отколкото хващаше.
+#
+# „ii" е особено коварно: то Е стандартният белег за резерви в немските и
+# нидерландските извори („Bayern Munich II"), но е и част от истински имена
+# („Willem II"). По само името двете НЕ СЕ РАЗЛИЧАВАТ. Затова остават само
+# явните думи; ако някой ден изворът почне да връща „Bayern Munich II",
+# ще се хване тогава, с доказателство, а не предварително.
+REZERVEN_OTBOR_BELEG = ("reserves", "reserve", "reserv", "резерви",
+                        "резервен", "reservas", "reserva")
+
+# Дребният тенис на маса. ИЗКЛЮЧЕН по подразбиране и това е нарочно:
+# каталогът го слага в червено („Continuous minor table-tennis events"), но
+# собственикът има стоящо нареждане „нищо да не мълчи", а точно тези две
+# лиги са ЕДИНСТВЕНИЯТ тенис на маса с измерим коефициент (Smarkets/Kambi).
+# Цената, измерена на живия дневник: 26 карти (Czech Liga Pro 16, TT Elite 10).
+DREBEN_TT_PARCHETA = ("liga pro", "tt cup", "tt star", "tt elite",
+                      "setka cup", "setka", "challenger series tt")
+# 🔴 ПУСНАТ ПО ПОДРАЗБИРАНЕ. Първата ми версия беше на "0" и режеше 26 живи
+# карти по мое решение — а стоящото нареждане на собственика е „нищо да не
+# мълчи". Каталогът дава тези лиги в червено, но това е ПРЕПОРЪКА на
+# каталога, не мое право да я приложа мълчаливо. Затова правилото стои
+# готово и се включва с PREDICT_DREBEN_TT_REJI=1, когато собственикът каже.
+DREBEN_TT_KLYUCH = "PREDICT_DREBEN_TT_REJI"
+
+
+def ot_sredata(klyuch, po_podrazbirane="0"):
+    """Чете ключ от средата и го превръща в да/не. Едно място, за да може
+    самопроверката да мине по СЪЩИЯ път, вместо да търси името във файла.
+
+    🔴 Първата ми проверка тук четеше собствения си файл и питаше „има ли
+    в него низа «PREDICT_DREBEN_TT_REJI»“ — а самата проверка Е този низ.
+    Тоест тя намираше себе си и минаваше винаги. Мутационният тест не можа
+    дори да я мутира: низът се срещаше два пъти. Затова четенето е тук.
+    """
+    return (os.environ.get(klyuch) or po_podrazbirane).strip() in (
+        "1", "true", "yes", "да")
+
+
+DREBEN_TT_REJI = ot_sredata(DREBEN_TT_KLYUCH, "0")
+
 # Спортове, за които изобщо се пита. Празно значи „всички".
 # Празно е нарочно: правилото на собственика е „НЕЗАВИСИМО ОТ СПОРТА".
 SAMO_ZA = tuple(x for x in
@@ -117,7 +194,45 @@ def yunosheski(liga):
     return (False, "")
 
 
-def zalozhimo(liga, bucket=None):
+def rezerven_otbor(ime):
+    """(резервен_ли, кой белег). САМО за ИМЕ НА ОТБОР, никога за лига.
+
+    🔴 Защо е отделно от лигата: „Liga II" на Румъния е истинска дивизия и е
+    в каталога, а „Real Madrid B" е резервен състав. Един и същи белег значи
+    две различни неща на двете места, затова се питат на две различни места.
+
+    Белегът трябва да е ПОСЛЕДНАТА дума и името да има поне още една дума —
+    инак отбор на име „B" (какъвто няма) или „Ювентус" биха паднали.
+    """
+    d = _dumi(ime)
+    if len(d) < 2:
+        return (False, "")
+    if d[-1] in REZERVEN_OTBOR_BELEG:
+        return (True, d[-1])
+    return (False, "")
+
+
+def cherven(liga):
+    """(в_червено_ли, причина). Раздел V от каталога на собственика."""
+    d = set(_dumi(liga))
+    for dumi_nabor, prichina in (
+            (PRIYATELSKI_DUMI, "приятелски/показен мач"),
+            (REZERVNI_DUMI, "резервен състав"),
+            (VIRTUALNI_DUMI, "виртуален спорт (не е истински мач)"),
+            (SIMULACII_DUMI, "симулация, не истински спорт")):
+        obshto = d & set(dumi_nabor)
+        if obshto:
+            return (True, prichina + " (" + sorted(obshto)[0] + ")")
+    if DREBEN_TT_REJI:
+        nisko = " ".join(_dumi(liga))
+        for parche in DREBEN_TT_PARCHETA:
+            if parche in nisko:
+                return (True, "дребен непрекъснат тенис на маса ("
+                        + parche + ") — PREDICT_DREBEN_TT_REJI=0 го връща")
+    return (False, "")
+
+
+def zalozhimo(liga, bucket=None, otbori=()):
     """(заложимо_ли, причина). Причината е празна, когато е заложимо.
 
     Пита се ПРЕДИ да се търси цена — това е въпрос за СЪЩЕСТВУВАНЕТО на
@@ -131,6 +246,14 @@ def zalozhimo(liga, bucket=None):
     yu, duma = yunosheski(liga)
     if yu:
         return (False, "юношески турнир (" + duma + ") — няма такъв пазар")
+    ch, prichina = cherven(liga)
+    if ch:
+        return (False, prichina)
+    for ot in (otbori or ()):
+        rez, beleg = rezerven_otbor(ot)
+        if rez:
+            return (False, "резервен отбор (" + str(ot) + " → «" + beleg
+                    + "») — каталогът го дава в червено")
     return (True, "")
 
 
@@ -234,6 +357,140 @@ def selftest():
     for _b in ("volleyball", "tabletennis", "tennis", "football", None):
         check("важи и за " + str(_b),
               not zalozhimo("Something U17 Boys' Cup", _b)[0])
+
+    # ══════════════════════════ ЧЕРВЕНИЯТ СПИСЪК (раздел V от каталога)
+    #
+    # 🔴 ИМЕНАТА СА ИЗПИСАНИ ТУК ДОСЛОВНО, а не взети от списъците. Ако бяха
+    # взети оттам, махането на дума от списъка щеше да мине незабелязано —
+    # проверката щеше да пита самата себе си. Днес точно такава проверка
+    # пропусна мутация в друг модул, затова тук е написана наопаки.
+    for _lg, _kakvo in (
+            ("Club Friendlies", "приятелски"),
+            ("World - Club Friendlies", "приятелски с представка"),
+            ("International Friendlies", "международни приятелски"),
+            ("Приятелски мачове", "приятелски на кирилица"),
+            ("Exhibition Match", "показен мач"),
+            ("Bundesliga II Reserves", "резерви в името на лигата"),
+            ("Virtual Football League", "виртуален"),
+            ("eSoccer Battle - 8 mins play", "симулиран футбол"),
+            ("FIFA 26 Esoccer Live Arena", "симулация с истинска марка"),
+            ("eBasketball H2H GG League", "симулиран баскетбол")):
+        check("червено: " + _kakvo + " (" + _lg + ")", not zalozhimo(_lg)[0])
+
+    # И ОБРАТНАТА ПОСОКА — истинските имена, които съдържат опасна сричка.
+    # Всяко е ВИДЯНО: „Liga II" е в каталога, „Moscow Cyber Games" е в живия
+    # ни дневник с 2 карти, „Virtus" е клуб, „FIFA Club World Cup" е турнир.
+    for _lg, _zashto in (
+            ("Liga II", "истинска румънска втора дивизия"),
+            ("Romania - Liga II", "същата, с представка"),
+            ("FIFA Club World Cup", "истински турнир с марката FIFA"),
+            ("CS2 · Moscow Cyber Games Qualifier", "истински турнир по CS2"),
+            ("Virtus Bologna - Olimpia Milano", "клуб, не «virtual»"),
+            ("Germany - Bundesliga", "истинска лига"),
+            ("France - Division 1", "истинска лига"),
+            ("Russia - Kontinental Hockey League", "истинска лига"),
+            ("CEV EuroVolley 2026 | Women", "истинско първенство"),
+            ("M15 Coral Gables", "ITF — «coral» не е забранена тук")):
+        check("НЕ реже невинното: " + _zashto + " (" + _lg + ")",
+              zalozhimo(_lg)[0])
+
+    # ── резервните отбори: белегът важи в ОТБОР, никога в ЛИГА
+    check("резервен отбор пада", not zalozhimo(
+        "La Liga", None, ("Real Madrid Reserves", "Getafe"))[0])
+    check("резервен отбор пада и като втори", not zalozhimo(
+        "La Liga", None, ("Getafe", "Barcelona Reserve"))[0])
+    check("истинските отбори минават",
+          zalozhimo("La Liga", None, ("Real Madrid", "Getafe"))[0])
+    check("без списък отбори нищо не се променя", zalozhimo("La Liga")[0])
+    check("едносрична дума не е белег за резерва",
+          rezerven_otbor("B") == (False, ""))
+    check("белегът трябва да е ПОСЛЕДЕН",
+          rezerven_otbor("Reserve Team Sofia") == (False, ""))
+
+    # 🔴 ОСЕМТЕ НЕВИННИ. Всяко от тези имена е ВИДЯНО в живия дневник и
+    # всяко падаше, докато белезите бяха самотни букви и римски цифри.
+    # Стоят тук поименно, за да не се върнат никога тихо.
+    for _im in ("Bonzi B.", "Baker B.", "Broom C.", "Spyrou C.",
+                "Sanchez Martinez B.", "Manta F.C.", "Willem II",
+                "Juan Pablo II", "Milan II", "Bayern Munich II"):
+        check("невинно име не е резерва: " + _im,
+              rezerven_otbor(_im) == (False, ""))
+    check("самотните белези НЕ са в списъка",
+          not ({"b", "c", "ii", "2"} & set(REZERVEN_OTBOR_BELEG)))
+
+    # ── дребният тенис на маса: ПУСНАТ по подразбиране, ключът го реже
+    #
+    # 🔴 Тази двойка е тук, защото първата ми версия имаше обратното
+    # подразбиране и режеше 26 живи карти по МОЕ решение. Каталогът е
+    # препоръка; кой да мълчи решава собственикът.
+    check("дребният тенис на маса МИНАВА по подразбиране",
+          zalozhimo("Czech Liga Pro")[0] and zalozhimo("TT Elite Series")[0])
+    check("правилото за дребния ТТ е ИЗКЛЮЧЕНО по подразбиране",
+          DREBEN_TT_REJI is False)
+    _st_tt = DREBEN_TT_REJI
+    try:
+        globals()["DREBEN_TT_REJI"] = True
+        check("с включен ключ дребният ТТ пада",
+              not zalozhimo("Czech Liga Pro")[0]
+              and not zalozhimo("Setka Cup")[0])
+        check("и тогава WTT пак минава",
+              zalozhimo("WTT Champions Yokohama 2026 · Men's Singles")[0])
+    finally:
+        globals()["DREBEN_TT_REJI"] = _st_tt
+    check("ключът е върнат както беше", DREBEN_TT_REJI is _st_tt)
+
+    # ── ПЪТЯТ ПРЕЗ СРЕДАТА. Всичко горе подхвърля глобалната; ако кодът
+    # четеше друго име на ключ, нито една проверка нямаше да усети. Затова
+    # тук се чете САМИЯТ файл и се проверява, че имената съвпадат.
+    _stara = os.environ.get(DREBEN_TT_KLYUCH)
+    try:
+        os.environ[DREBEN_TT_KLYUCH] = "1"
+        check("средата наистина се чете (ключът вдига правилото)",
+              ot_sredata(DREBEN_TT_KLYUCH, "0") is True)
+        os.environ[DREBEN_TT_KLYUCH] = "0"
+        check("и наистина се сваля", ot_sredata(DREBEN_TT_KLYUCH, "0") is False)
+        os.environ.pop(DREBEN_TT_KLYUCH, None)
+        check("без ключ важи подразбирането",
+              ot_sredata(DREBEN_TT_KLYUCH, "0") is False)
+        check("а подразбиране «1» дава обратното",
+              ot_sredata(DREBEN_TT_KLYUCH, "1") is True)
+        check("непознат ключ не гърми и дава подразбирането",
+              ot_sredata("NYAMA_TAKAV_KLYUCH_12345", "0") is False)
+    finally:
+        if _stara is None:
+            os.environ.pop(DREBEN_TT_KLYUCH, None)
+        else:
+            os.environ[DREBEN_TT_KLYUCH] = _stara
+    check("средата е върната както беше",
+          os.environ.get(DREBEN_TT_KLYUCH) == _stara)
+
+    # 🔴 КРЪСТОСАНАТА ПРОВЕРКА. Всичко горе вика ПРОМЕНЛИВАТА, значи ключът
+    # можеше да се преименува, yml да спре да го подава и тестът да е зелен.
+    # Мутация M8 точно това направи и ОЦЕЛЯ. Тук се пита работният файл: той
+    # съдържа ли ТОЧНО това име. Преименува ли се едното, гърми.
+    _yml = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        ".github", "workflows", "predict.yml")
+    try:
+        _txt = open(_yml, encoding="utf-8-sig").read()
+    except (OSError, UnicodeDecodeError):
+        _txt = ""
+    if _txt:
+        check("работният файл подава ключа (" + DREBEN_TT_KLYUCH + ")",
+              (DREBEN_TT_KLYUCH + ":") in _txt)
+        check("и подразбирането в него е «не режи»",
+              ("vars." + DREBEN_TT_KLYUCH + " || '0'") in _txt)
+
+    # ── и списъците да не се изпразнят тихо
+    check("има думи за приятелски", len(PRIYATELSKI_DUMI) >= 6)
+    check("има думи за резерви", len(REZERVNI_DUMI) >= 4)
+    check("има думи за виртуални", len(VIRTUALNI_DUMI) >= 4)
+    check("има думи за симулации", len(SIMULACII_DUMI) >= 5)
+    check("«fifa» НЕ е в думите за симулация — истински турнир",
+          "fifa" not in SIMULACII_DUMI)
+    check("«cyber» НЕ е в думите за симулация — истински турнир",
+          "cyber" not in SIMULACII_DUMI)
+    check("«ii» НЕ е в думите за резерви — Liga II е истинска",
+          "ii" not in REZERVNI_DUMI)
 
     print("САМОПРОВЕРКА НА ЗАЛОЖИМОТО: %d наред, %d счупени" % (ok, len(bad)))
     for b in bad:

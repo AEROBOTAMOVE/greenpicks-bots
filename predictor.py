@@ -362,6 +362,7 @@ KLYUCHOVE_ZA_YML = (
     # но не е ПАЗЕН: махне ли се редът от predict.yml, ръчката умира
     # мълчаливо и никоя проверка не гърми.
     "PREDICT_DVIZHENIE",
+    "PREDICT_SAMO_S_KOEF",
 )
 
 
@@ -6557,7 +6558,12 @@ IZTOCHNIK_IME = {"espn": "ESPN", "pinnacle": "pinnacle", "vitrina": "витри�
 #      никога и беше украса — точно това, срещу което е правилото за мутациите.
 #      Сега проверка може да сложи забранена дума ТУК и да види, че редът
 #      изчезва, вместо да убие картата.
-CENA_OPASHKA = "толкова пъти се връща вложеното"
+# 🔴 ПРЕИМЕНУВАНО (02.09.2026). Дотук пишеше «толкова пъти се връща
+# вложеното» — вярно описание, но собственикът два пъти каза, че иска
+# ДУМАТА: «тука цени няма, има коефициенти». Тя не минаваше през пазача;
+# от днес минава (виж бележката в zabraneni.py). Числото е същото — то
+# беше там на 48 от 48 карти и преди това.
+CENA_OPASHKA = "коефициент · толкова пъти се връща вложеното"
 
 # ➕ ОЩЕ ОТ СЪЩИЯ МАЧ — ИЗКЛЮЧЕН ПО ПОДРАЗБИРАНЕ (01.09.2026).
 #
@@ -6584,7 +6590,7 @@ OSHTE_VKL = (os.environ.get("PREDICT_OSHTE") or "0").strip() in (
 
 
 def cena_red(an):
-    """„💰 1.85 · толкова пъти се връща вложеното“ или „“ при липса на цена.
+    """„💰 1.85 · коефициент · толкова пъти се връща вложеното“ или „“ при липса на цена.
 
     Празен низ значи РЕДЪТ НЕ СЕ ПЕЧАТА. Тире, черта или „няма“ биха били
     по-лоши от липсата: празно поле се чете като счупена карта.
@@ -7793,6 +7799,32 @@ COMBO_MAX_SAME_SPORT = env_int("PREDICT_COMBO_SAME_SPORT", 3, 1, 6)
 # Липсват ли и двете — картата не излиза и се БРОИ, за да се вижда.
 #
 # Път назад: PREDICT_ISKAM_PAZAR=0 връща старото поведение.
+# 🔴 САМО С КОЕФИЦИЕНТ (02.09.2026). `ima_pazar` имаше ДВЕ вратички,
+# отворени на 19.08 върху предположение: тенис на маса с WTT ранг 55+ и
+# волейбол с възрастен ранг минаваха БЕЗ цена. Самите коментари го признаваха
+# («витрините обаче ги предлагат», «52 от 112 са ПРЕДПОЛОЖЕНИЕ»).
+# Измерено на 1225 карти: WTT дава 228 карти с НУЛА коефициента, а Czech Liga
+# Pro (16/16) и TT Elite (10/10) се котират стопроцентово. Същото при
+# волейбола: CEV EuroVolley 47 от 65, континенталните — нула.
+# Плюс: публичният списък на bet365 не съдържа нито тенис на маса, нито
+# волейбол. Предположението остана непроверено две седмици.
+# Карта без коефициент не може да бъде проверена от читателя и не влиза в
+# нито едно наше измерване за пари. Затова вратичките се затварят.
+# ПЪТ НАЗАД: PREDICT_SAMO_S_KOEF=0 ги отваря пак, без пипане на код.
+# 🔴 ИЗКЛЮЧЕН ПО ПОДРАЗБИРАНЕ (поправено 02.09.2026, същия ден).
+# Пуснах го включен върху довода «публичният списък на bet365 не съдържа
+# тенис на маса и волейбол». Доводът беше от ЧАСТИЧНА извадка. Пълният
+# каталог казва дословно:
+#   71. TABLE TENNIS · RECURRING | Global | World Table Tennis —
+#       Grand Smashes; Champions; Star Contender; Contender; Feeder
+#   78. VOLLEYBALL  · CEV, национални лиги, DYNAMIC за по-ниските
+# Тоест bet365 ГИ ДАВА и бележката от 19.08 е била вярна: нулата при
+# Pinnacle значи «Pinnacle не ги пипа», не «никой не ги пипа».
+# Механизмът остава — включва се с PREDICT_SAMO_S_KOEF=1, ако някога се
+# докаже обратното. Цената, измерена: тенис на маса 254→26, волейбол 114→58.
+SAMO_S_KOEF = (os.environ.get("PREDICT_SAMO_S_KOEF") or "0").strip() in (
+    "1", "true", "yes", "да")
+
 ISKAM_PAZAR = (os.environ.get("PREDICT_ISKAM_PAZAR") or "1").strip() not in (
     "0", "false", "no", "не")
 
@@ -7976,7 +8008,16 @@ def ima_pazar(an):
     # Тенисът с M15/W15/M25/W35 (парични нива, не възрасти) оцелява напълно.
     if ZL is not None:
         try:
-            _mozhe, _zashto = ZL.zalozhimo(lg, b)
+            # 🔴 ИМЕНАТА НА ОТБОРИТЕ СЕ ПОДАВАТ (02.09.2026). Дотук се
+            # подаваше само лигата и заради това цялата проверка за резервни
+            # състави в `zalozhimo` беше НЕДОСТИЖИМА — работеща функция,
+            # която никой не вика, тоест мъртва ръчка. Каталогът на
+            # собственика дава „Reserve/B teams" в червено, а белегът стои в
+            # ИМЕТО НА ОТБОРА („Real Madrid B"), не в името на лигата.
+            _fx = an.get("fx") or {}
+            _otbori = tuple(str(_fx.get(_k) or "") for _k in ("home", "away")
+                            if _fx.get(_k))
+            _mozhe, _zashto = ZL.zalozhimo(lg, b, _otbori)
             if not _mozhe:
                 return False, _zashto
         except Exception:                                    # noqa: BLE001
@@ -7992,7 +8033,7 @@ def ima_pazar(an):
     # цена, а ТУРНИР ОТ ВЪЗРАСТНОТО НИВО: Feeder (55) и нагоре.
     # Юношеските и ветеранските падат на 10-12 и НЕ минават — там пазар
     # наистина няма, същото важи и за волейбола при момичета до 17.
-    if b == "tabletennis" and _tt_rang(lg) >= 55:
+    if b == "tabletennis" and _tt_rang(lg) >= 55 and not SAMO_S_KOEF:
         return True, "възрастен турнир от WTT"
     # 🔴 ВОЛЕЙБОЛЪТ СЕ СЪДИ ПО СЪЩАТА ЛОГИКА (19.08.2026).
     # Измерено на живо: в 14-дневния прозорец имаме 173 волейболни срещи, от
@@ -8011,7 +8052,7 @@ def ima_pazar(an):
         _vb = str(((an.get("fx") or {}).get("extra") or {}).get("vb") or "")
         if _vb.endswith("-you"):
             return False, "няма пазар"
-        if VOL.vol_rang(lg) >= VOL.VOL_PRAG:
+        if VOL.vol_rang(lg) >= VOL.VOL_PRAG and not SAMO_S_KOEF:
             return True, "възрастен волейболен турнир"
     return False, "няма пазар"
 
@@ -9802,8 +9843,20 @@ def selftest():
     check("стая 27 остава витрината", PREDICT_THREAD in ALLOWED_THREADS)
     check("хазартна дума не излиза", post_predict("залагай сега", PREDICT_THREAD) is False)
     check("име на букмейкър не излиза", post_predict("bet365 дава 2.10", PREDICT_THREAD) is False)
-    check("коефициент не излиза", post_predict("коефициент 1.85", PREDICT_THREAD) is False)
-    check("и съкратеното коеф. не излиза", post_predict("коеф. 1.85", PREDICT_THREAD) is False)
+    # 🔴 ОБЪРНАТИ (02.09.2026). Дотук доказваха, че думата «коефициент» НЕ
+    # излиза. Собственикът я поиска поименно и тя вече минава; затова тук се
+    # доказва точно това, а забраната се доказва с думи, които ОСТАВАТ
+    # забранени. Проверката не е махната — сменена е посоката ѝ.
+    check("коефициент ВЕЧЕ излиза (собственикът го поиска)",
+          post_predict("коефициент 1.85", PREDICT_THREAD) is not False)
+    check("и пълният ред на картата излиза",
+          post_predict("\U0001F4B0 <b>1.85</b> \u00b7 коефициент \u00b7 "
+                       "толкова пъти се връща вложеното",
+                       PREDICT_THREAD) is not False)
+    check("но «букмейкър» пак НЕ излиза",
+          post_predict("букмейкър дава 1.85", PREDICT_THREAD) is False)
+    check("и «odds» пак НЕ излиза",
+          post_predict("odds 1.85", PREDICT_THREAD) is False)
     check("чист текст минава пазача", banned_word("Арсенал 68%, извадка 114 мача") is None)
 
     # --- фиш-езикът: 1 / Х / 2 / 1Х / Х2 и Над/Под направо от головата матрица
@@ -11238,7 +11291,7 @@ def selftest():
     _nyama = [_k for _k in _yadro if _k not in KLYUCHOVE_ZA_YML]
     check("списъкът с ръчки пази ядрото си (%s)" % (", ".join(_nyama) or "-"),
           not _nyama)
-    check("списъкът с ръчки не е орязан", len(KLYUCHOVE_ZA_YML) >= 19)
+    check("списъкът с ръчки не е орязан", len(KLYUCHOVE_ZA_YML) >= 20)
     # НИКАКВИ ТАЙНИ. Списъкът е затворен; това е пазачът, че ще си остане.
     check("в кутията НЯМА токени и чатове",
           not [_k for _k in _kl if ("TOKEN" in _k or "CHAT" in _k
@@ -11714,7 +11767,27 @@ def selftest():
         _u17 = {"bucket": "volleyball",
                 "fx": {"league": "FIVB Volleyball Boys' U17 World Championship 2026",
                        "extra": {"vb": "m-you"}}}
+        # 🔴 ОБЪРНАТА 02.09.2026, не изтрита. Твърдеше «EuroVolley минава
+        # БЕЗ цена» — допускането от 19.08, което остана непроверено.
+        # Измерено на 1225 карти: CEV EuroVolley има 47 от 65 С коефициент,
+        # тоест истинските му мачове минават по ЦЕНАТА, а не по ранга.
+        # Стълбицата остава и се изпитва долу — тя решава какво се връща при
+        # PREDICT_SAMO_S_KOEF=0.
+        # 🔴 bet365 ДАВА волейбола (пълният каталог, 02.09.2026): CEV,
+        # национални лиги, DYNAMIC за по-ниските. Затова рангът пуска
+        # EuroVolley и БЕЗ измерена цена — Pinnacle просто не го търгува.
         check("EuroVolley минава ситото", ima_pazar(_euro)[0] is True)
+        check("EuroVolley С цена също минава",
+              ima_pazar(dict(_euro, pazar_cena=1.7))[0] is True)
+        _st_sk = SAMO_S_KOEF
+        try:
+            globals()["SAMO_S_KOEF"] = True
+            check("строгият режим реже волейбола без цена",
+                  ima_pazar(_euro)[0] is False)
+            check("строгият режим пуска волейбола С цена",
+                  ima_pazar(dict(_euro, pazar_cena=1.7))[0] is True)
+        finally:
+            globals()["SAMO_S_KOEF"] = _st_sk
         check("юношеското световно НЕ минава", ima_pazar(_u17)[0] is False)
         # Кошницата реже ВТОРИ ПЪТ — дори турнирът да се казва като възрастен.
         _mask = {"bucket": "volleyball",
@@ -11730,11 +11803,38 @@ def selftest():
               > VOL.vol_rang("FIVB Volleyball Boys' U17 World Championship 2026"))
         check("прагът е над юношеското ниво", VOL.VOL_PRAG > 10)
 
-    check("възрастен WTT Feeder минава без цена",
-          ima_pazar({"bucket": "tabletennis",
-                     "fx": {"league": "WTT Feeder Berlin 2026 · Men's Singles"}})[0] is True)
-    check("WTT Champions минава", ima_pazar(
-        {"bucket": "tabletennis", "fx": {"league": "WTT Champions Macao 2026"}})[0] is True)
+    # 🔴 ОБЪРНАТИ 02.09.2026, не изтрити. Твърдяха «WTT минава БЕЗ цена» —
+    # допускането от 19.08 («витрините обаче ги предлагат»), което остана
+    # непроверено две седмици. Измерено на живия дневник: WTT дава 228 карти
+    # с НУЛА коефициента, а Czech Liga Pro (16/16) и TT Elite (10/10) се
+    # котират стопроцентово. Публичният списък на bet365 не съдържа тенис на
+    # маса изобщо. Стълбицата по ранг остава и се изпитва — тя решава какво
+    # се връща при PREDICT_SAMO_S_KOEF=0.
+    _wtt = {"bucket": "tabletennis",
+            "fx": {"league": "WTT Feeder Berlin 2026 · Men's Singles"}}
+    # 🔴 bet365 ДАВА WTT — дословно от пълния каталог (02.09.2026):
+    # «RECURRING | Global | World Table Tennis - Grand Smashes; Champions;
+    #  Star Contender; Contender; Feeder». Затова рангът пуска WTT и БЕЗ
+    # измерена цена: Pinnacle просто не го търгува, а това не е същото.
+    check("WTT минава по ранг, без цена", ima_pazar(_wtt)[0] is True)
+    check("WTT С коефициент също минава",
+          ima_pazar(dict(_wtt, pazar_cena=1.9))[0] is True)
+    check("местната лига минава по цена",
+          ima_pazar({"bucket": "tabletennis", "pazar_cena": 1.55,
+                     "fx": {"league": "Czech Liga Pro"}})[0] is True)
+    _st_sk2 = SAMO_S_KOEF
+    try:
+        globals()["SAMO_S_KOEF"] = True
+        check("строгият режим реже WTT без цена", ima_pazar(_wtt)[0] is False)
+        check("строгият режим пуска WTT С цена",
+              ima_pazar(dict(_wtt, pazar_cena=1.9))[0] is True)
+        check("и в строгия режим юношеският WTT пак НЕ минава",
+              ima_pazar({"bucket": "tabletennis",
+                         "fx": {"league": "WTT Youth Contender Otocec 2026"}})[0]
+              is False)
+    finally:
+        globals()["SAMO_S_KOEF"] = _st_sk2
+    check("строгият режим е ИЗКЛЮЧЕН по подразбиране", SAMO_S_KOEF is False)
     check("юношеският WTT НЕ минава",
           ima_pazar({"bucket": "tabletennis",
                      "fx": {"league": "WTT Youth Contender Otocec 2026"}})[0] is False)
@@ -13664,8 +13764,11 @@ def selftest():
     check("цялата карта с цена е чиста за пазача",
           banned_word(_cn_txt) is None)
     # Редът не е подкана: нито глагол, нито линк, нито име на оператор.
-    _cn_podkana = ("залож", "залагай", "букмейкър", "коеф", "odds",
-                   "http", "линк", "печели", "гарант")
+    # 🔴 «коеф» ИЗЛЕЗЕ ОТ ТОЗИ СПИСЪК (02.09.2026). Той изброява ПОДКАНИ —
+    # неща, които карат човека да заложи. Името на едно число не е подкана;
+    # глаголът и операторът са. Останалите девет стоят непокътнати.
+    _cn_podkana = ("залож", "залагай", "букмейкър", "odds",
+                   "http", "линк", "печели", "гарант", "18+")
     check("редът не съдържа подкана",
           not any(w in cena_red({"pazar_cena": 1.85}).lower()
                   for w in _cn_podkana))
@@ -13681,11 +13784,22 @@ def selftest():
     # текст, редът пада ЦЯЛ — не убива картата в tg_send.
     _cn_o0 = CENA_OPASHKA
     try:
-        globals()["CENA_OPASHKA"] = "коефициент"
+        # 🔴 ДОКАЗВА СЕ С «букмейкър» (02.09.2026). Дотук стоеше
+        # «коефициент», но тя вече е разрешена и стената нямаше да сработи —
+        # проверката щеше да е украса. Тук трябва дума, която ВСЕ ОЩЕ пада.
+        globals()["CENA_OPASHKA"] = "букмейкър"
         check("втората стена маха мръсния ред, не картата",
               cena_red({"pazar_cena": 1.85}) == "")
         check("мръсната опашка наистина е мръсна за пазача",
-              banned_word("коефициент") is not None)
+              banned_word("букмейкър") is not None)
+        # И обратното: истинската опашка НЕ е мръсна, инак стената щеше да
+        # маха всеки ред и «маха мръсния» нямаше да значи нищо.
+        globals()["CENA_OPASHKA"] = _cn_o0
+        check("истинската опашка минава пазача",
+              banned_word(_cn_o0) is None
+              and cena_red({"pazar_cena": 1.85}) != "")
+        check("и в нея наистина пише думата",
+              "коефициент" in cena_red({"pazar_cena": 1.85}))
     finally:
         globals()["CENA_OPASHKA"] = _cn_o0
 
