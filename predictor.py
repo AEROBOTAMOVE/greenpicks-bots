@@ -363,6 +363,13 @@ KLYUCHOVE_ZA_YML = (
     # мълчаливо и никоя проверка не гърми.
     "PREDICT_DVIZHENIE",
     "PREDICT_SAMO_S_KOEF",
+    # ── ПЪТИЩАТА НАЗАД (02.09.2026). Одит намери 127 мъртви ръчки; тези пет
+    # са думите, с които собственикът спира нещо. Три от тях бяха мъртви по
+    # МОЯ вина: обявих ги за път назад в доклада, без yml да ги подава.
+    # Четат се от zabraneni.py, zalozhimo.py и volley_evro.py, но се подават
+    # на СЪЩАТА стъпка, значи мястото им е тук.
+    "GREENPICKS_ZABRANI_KOEF", "GREENPICKS_PAZACH",
+    "PREDICT_ZALOZHIMO", "PREDICT_ZALOZHIMO_SPORTOVE", "VOL_PRAG",
 )
 
 
@@ -2551,7 +2558,43 @@ FOOT_SLUGS = [
     ("chn.1", 5, "Супер лига, Китай"),              # 8 от 9
     ("usa.usl.1", 3, "USL Чемпиъншип"),             # 11 от 15
     ("usa.usl.l1", 3, "USL Лига 1"),                # 3 от 3
-    ("usa.nwsl", 4, "НУСЛ, жени"),                  # 2 от 2
+    ("usa.nwsl", 4, "НУСЛ, жени"),
+    # ───── ДВАЙСЕТ И ШЕСТ НОВИ ЛИГИ (02.09.2026) ─────
+    #
+    # ESPN дава 218 футболни лиги; питахме за 64. От непитаните 157
+    # проверих кои имат мачове за 05-19.09: 40 лиги, 775 мача. Тук
+    # влизат САМО тези, за които каталогът на собственика има ред —
+    # доказателството стои до всяка. Другите 14 не влизат и защо е
+    # написано в бележката към кръпката (аматьорски квалификации,
+    # студентски футбол, приятелски, юноши, ненаименувани купи).
+    #
+    # Цена: +26 заявки. Измерено днес: 140 от 520 се харчат.
+    ("caf.champions", 6, "Шампионска лига на Африка"),        # RECURRING | CAF | CAF Champions League
+    ("caf.confed", 5, "Купа на конфедерациите, Африка"),      # RECURRING | CAF | CAF Confederation Cup
+    ("afc.champions", 6, "Шампионска лига на Азия"),          # RECURRING | AFC | AFC Champions League Elite
+    ("afc.cup", 5, "Шампионска лига на Азия 2"),              # RECURRING | AFC | AFC Champions League Two
+    ("concacaf.leagues.cup", 5, "Лигс Къп"),                  # RECURRING | CONCACAF/Leagues | Leagues Cup
+    ("concacaf.central.american.cup", 3, "Централноамериканска купа"), # RECURRING | CONCACAF | Champions Cup (семейството)
+    ("ita.coppa_italia", 7, "Копа Италия"),                   # RECURRING | Italy | Serie C; Serie D; Coppa Italia; Superc
+    ("por.taca.portugal", 5, "Купа на Португалия"),           # RECURRING | Portugal | ... Taca de Portugal ...
+    ("sco.cis", 5, "Купа на лигата, Шотландия"),              # RECURRING | Scotland | Scottish Cup; League Cup; Challenge
+    ("sco.challenge", 3, "Чалъндж Къп, Шотландия"),           # RECURRING | Scotland | ... Challenge Cup ...
+    ("eng.trophy", 3, "ЕФЛ Трофи"),                           # RECURRING | England | ... EFL Trophy ...
+    ("usa.open", 4, "Купа на САЩ"),                           # RECURRING | USA | ... US Open Cup ...
+    ("arg.3", 3, "Примера Б, Аржентина"),                     # RECURRING | Argentina | ... Primera B Metropolitana ...
+    ("arg.copa", 5, "Купа на Аржентина"),                     # RECURRING | Argentina | ... Copa Argentina ...
+    ("col.copa", 4, "Купа на Колумбия"),                      # RECURRING | Colombia | ... Copa Colombia ...
+    ("bol.1", 3, "Дивисион Професионал, Боливия"),            # RECURRING | Bolivia | Division Profesional; Copa Bolivia
+    ("bol.copa", 3, "Купа на Боливия"),                       # RECURRING | Bolivia | ... Copa Bolivia
+    ("slv.1", 3, "Примера дивисион, Салвадор"),               # RECURRING | El Salvador | Primera Division; Segunda Divisi
+    ("gua.1", 3, "Лига Насионал, Гватемала"),                 # RECURRING | Guatemala | Liga Nacional; Primera Division
+    ("hon.1", 3, "Лига Насионал, Хондурас"),                  # RECURRING | Honduras | Liga Nacional; Liga de Ascenso
+    ("crc.1", 3, "Примера дивисион, Коста Рика"),             # RECURRING | Costa Rica | Primera Division; Liga de Ascenso
+    ("rsa.1", 4, "Премиършип, Южна Африка"),                  # RECURRING | South Africa | Premiership; First Division; Ne
+    ("eng.w.1", 4, "Висша лига, жени"),                       # RECURRING | England | ... Women's Super League ...
+    ("esp.w.1", 4, "Лига Ф, жени"),                           # RECURRING | Spain | ... Liga F Women
+    ("fra.w.1", 4, "Премиер лига, жени, Франция"),            # RECURRING | France | ... Premiere Ligue Women
+    ("ned.w.1", 3, "Ередивизи, жени"),                        # RECURRING | Netherlands | ... Women's Eredivisie                  # 2 от 2
 ]
 # По подразбиране НЕ реже — целият списък. Една заявка на лига на ден е евтино;
 # мълчащ спорт не е. Таванът се смята от самия списък, за да не остане пак
@@ -6563,7 +6606,7 @@ IZTOCHNIK_IME = {"espn": "ESPN", "pinnacle": "pinnacle", "vitrina": "витри�
 # ДУМАТА: «тука цени няма, има коефициенти». Тя не минаваше през пазача;
 # от днес минава (виж бележката в zabraneni.py). Числото е същото — то
 # беше там на 48 от 48 карти и преди това.
-CENA_OPASHKA = "коефициент · толкова пъти се връща вложеното"
+CENA_OPASHKA = "коеф."
 
 # ➕ ОЩЕ ОТ СЪЩИЯ МАЧ — ИЗКЛЮЧЕН ПО ПОДРАЗБИРАНЕ (01.09.2026).
 #
@@ -6590,7 +6633,7 @@ OSHTE_VKL = (os.environ.get("PREDICT_OSHTE") or "0").strip() in (
 
 
 def cena_red(an):
-    """„💰 1.85 · коефициент · толкова пъти се връща вложеното“ или „“ при липса на цена.
+    """„💰 1.85 · коеф.“ или „“ при липса на цена.
 
     Празен низ значи РЕДЪТ НЕ СЕ ПЕЧАТА. Тире, черта или „няма“ биха били
     по-лоши от липсата: празно поле се чете като счупена карта.
@@ -6668,7 +6711,21 @@ def cena_red(an):
             if banned_word(kandidat) is None:
                 red = kandidat
     # Последната дума е на пазача, не моя. Мръсен ред → нищо, вместо мъртва карта.
-    return red if banned_word(red) is None else ""
+    # 🔴 ЧИСЛОТО ОЦЕЛЯВА, ДУМАТА — НЕ (02.09.2026).
+    #
+    # Дотук редът падаше ЦЯЛ, ако опашката съдържа забранена дума. Открито
+    # живо същия ден: с `GREENPICKS_ZABRANI_KOEF=1` — собствения ни път
+    # назад — думата «коеф» се връща в забранените, редът гърми на пазача и
+    # КОЕФИЦИЕНТЪТ ИЗЧЕЗВА ОТ ВСЯКА КАРТА. Тоест пътят назад не връщаше
+    # стария вид, а трошеше картата. Път назад, който чупи, не е път назад.
+    #
+    # Сега при мръсна опашка се пробва ГОЛОТО ЧИСЛО. То е ценното; думата е
+    # етикет. «💰 <b>1.85</b>» не съдържа нищо забранено и точно това се
+    # изпитва долу, в двете посоки.
+    if banned_word(red) is None:
+        return red
+    _golo = "💰 <b>" + ("%.2f" % c) + "</b>"
+    return _golo if banned_word(_golo) is None else ""
 
 
 def card(an, now):
@@ -8935,11 +8992,31 @@ def run():
     if _hvarleni:
         _sr = sum(float(a.get("p") or 0.0) for a in _hvarleni) / len(_hvarleni)
         _sp = sum(float(a.get("p") or 0.0) for a in picks) / max(1, len(picks))
+        # 🔴 РЕДЪТ ПОДВЕЖДАШЕ (02.09.2026). Пишеше САМО процентите: «изхвърли
+        # 9 кандидата, средна увереност 73% срещу 65% на пуснатите». Всеки,
+        # който го прочете, заключава, че таванът реже ПО-ДОБРИТЕ карти.
+        #
+        # Но `choose` не реди по процент, а по ЗВЕЗДИ И СИЛА
+        # (stars * 1000 + strength * 100), а звездите са 55% РАЗМЕР НА
+        # ИЗВАДКАТА и 45% категоричност (виж `grade`). Тоест карта с 80% от
+        # три мача пада под карта с 64% от петдесет — и това е правилно.
+        #
+        # Изпитано с контролиран опит същия ден: при таван 3 и шест
+        # кандидата излизат трите с ⭐2.7 и 64%, а падат трите с ⭐1.0 и 78%.
+        # Затова редът вече казва И ДВЕТЕ числа, и кое от тях решава.
+        _zr = sum(float(a.get("stars") or 0) for a in _hvarleni) / len(_hvarleni)
+        _zp = sum(float(a.get("stars") or 0) for a in picks) / max(1, len(picks))
         print("   📉 таванът изхвърли " + str(len(_hvarleni))
-              + " кандидата НАД прага (средна увереност " + pct(_sr)
-              + " срещу " + pct(_sp) + " на пуснатите). Таван на пускане: "
+              + " кандидата над летвата. Те са по-уверени на пръв поглед ("
+              + pct(_sr) + " срещу " + pct(_sp) + "), но с по-тънка извадка: "
+              + ("%.1f" % _zr) + " звезди срещу " + ("%.1f" % _zp)
+              + ". Редът е по ЗВЕЗДИ, не по процент. Таван на пускане: "
               + str(min(MAX_PICKS, room)) + " + " + str(min(MAX_URGENT, room))
               + " спешни.")
+        DIAG["tavan_zvezdi"] = {"hvarleni": round(_zr, 2),
+                                "pusnati": round(_zp, 2),
+                                "p_hvarleni": round(_sr, 3),
+                                "p_pusnati": round(_sp, 3)}
     # 📈 ДВИЖЕНИЕТО — САМО ГЛАС, БЕЗ ПОРТИЕР (02.09.2026). Виж тефтера на
     # цените. Нито една карта не отпада заради това число: на НАШИТЕ данни
     # то още не е мерено, а историческото е по отваряща цена на ЧУЖД пазар.
@@ -9850,8 +9927,7 @@ def selftest():
     check("коефициент ВЕЧЕ излиза (собственикът го поиска)",
           post_predict("коефициент 1.85", PREDICT_THREAD) is not False)
     check("и пълният ред на картата излиза",
-          post_predict("\U0001F4B0 <b>1.85</b> \u00b7 коефициент \u00b7 "
-                       "толкова пъти се връща вложеното",
+          post_predict("💰 <b>1.85</b> · коеф.",
                        PREDICT_THREAD) is not False)
     check("но «букмейкър» пак НЕ излиза",
           post_predict("букмейкър дава 1.85", PREDICT_THREAD) is False)
@@ -10114,6 +10190,62 @@ def selftest():
     for _q in ("uefa.champions_qual", "uefa.europa_qual", "uefa.europa.conf_qual"):
         check("адресът " + _q + " се пита", _q in _slugs)
     check("нито една лига не пада под отреза", FOOT_SLUG_MAX == len(FOOT_SLUGS))
+
+    # ═══════ РЕДЪТ ПО КОЙТО СЕ ИЗБИРА (заковано 02.09.2026)
+    #
+    # Изходът пишеше само процентите и всеки, който го чете, заключаваше че
+    # таванът реже по-добрите карти. Истината: реди се по ЗВЕЗДИ И СИЛА, а
+    # звездите са 55% размер на извадката. Тук се доказва с контролиран
+    # опит, същия като ръчния: тънките падат, дебелите минават.
+    _ch_k = lambda p, z, s, b: {"p": p, "stars": z, "strength": s,
+                                "bucket": b, "fx": {"league": "X"}}
+    _ch_c = [_ch_k(0.78, 1, 0.10, "football"), _ch_k(0.75, 1, 0.12, "tennis"),
+             _ch_k(0.66, 3, 0.35, "football"), _ch_k(0.64, 3, 0.38, "baseball"),
+             _ch_k(0.62, 2, 0.25, "basketball"), _ch_k(0.80, 1, 0.09, "mma")]
+    _ch_p = choose(list(_ch_c), 3, None, 0, None)
+    _ch_h = [a for a in _ch_c if a not in _ch_p]
+    check("изборът взима точно колкото е таванът", len(_ch_p) == 3)
+    check("дебелата извадка бие високия процент",
+          all(a["stars"] >= 2 for a in _ch_p))
+    check("тънките падат, макар да са по-уверени",
+          all(a["stars"] == 1 for a in _ch_h)
+          and min(a["p"] for a in _ch_h) > max(a["p"] for a in _ch_p))
+    check("и това НЕ е случайно — редът е по звезди*1000 + сила*100",
+          [a["stars"] for a in _ch_p] == sorted(
+              [a["stars"] for a in _ch_p], reverse=True))
+
+    # ═══════ ДВАЙСЕТ И ШЕСТТЕ НОВИ ЛИГИ (02.09.2026)
+    #
+    # 🔴 ИМЕНАТА СА ИЗПИСАНИ ТУК ДОСЛОВНО, а не взети от FOOT_SLUGS. Ако бяха
+    # взети оттам, махането на лига щеше да мине незабелязано — проверката
+    # щеше да пита самата себе си. Днес точно такава проверка пропусна
+    # мутация в друг модул, затова тази е написана наопаки.
+    #
+    # Всяка от тях е намерена така: ESPN дава 218 футболни лиги, ние питахме
+    # за 64; от непитаните 157 тези имат мачове ДНЕС и каталогът на
+    # собственика има ред за тях. Другите 14 нарочно не влязоха.
+    for _nl in ("caf.champions", "caf.confed", "afc.champions", "afc.cup",
+                "concacaf.leagues.cup", "ita.coppa_italia",
+                "por.taca.portugal", "sco.cis", "eng.trophy", "usa.open",
+                "arg.copa", "col.copa", "bol.1", "slv.1", "gua.1", "hon.1",
+                "crc.1", "rsa.1", "eng.w.1", "esp.w.1", "fra.w.1", "ned.w.1"):
+        check("новата лига " + _nl + " се пита", _nl in _slugs)
+
+    check("футболните лиги не са орязани (>=90)", len(FOOT_SLUGS) >= 90)
+
+    # 🔴 И ТРИТЕ, КОИТО НАРОЧНО НЕ ВЛЯЗОХА. Ако някога влязат по невнимание,
+    # това гърми: аматьорските квалификации на ФА Къп (100 мача, каталогът ги
+    # дава в ЧЕРВЕНО), студентският футбол (каталогът няма ред за него) и
+    # клубните приятелски (ЧЕРВЕНО; пазачът така или иначе ги реже).
+    for _ne in ("eng.fa_qual", "usa.ncaa.m.1", "usa.ncaa.w.1",
+                "club.friendly", "sco.tennents_qual"):
+        check("НЕ питаме за " + _ne + " (червено/без ред в каталога)",
+              _ne not in _slugs)
+
+    # И че пазачът наистина би отрязал приятелските, ако някога влязат.
+    if ZL is not None:
+        check("а и пазачът реже клубните приятелски",
+              not ZL.zalozhimo("Club Friendly", "football")[0])
     check("квалификациите са в летния блок (преди отреза)",
           all(_slugs.index(_q) < 6
               for _q in ("uefa.champions_qual", "uefa.europa_qual",
@@ -11284,14 +11416,17 @@ def selftest():
     # — ръчката тихо умира, а зеленото остава. Затова ядрото се изброява ТУК,
     # на друго място, и има долна граница на броя. Същият шаблон като при
     # тестовете, които се самоизключваха: сравнявай ИМЕНАТА, не броя зелени.
-    _yadro = ("PREDICT_QUIET_TO", "PREDICT_QUIET_FROM", "PREDICT_IZKL",
+    # 🔴 ЯДРОТО Е ИЗПИСАНО ТУК ДОСЛОВНО, а не взето от KLYUCHOVE_ZA_YML —
+    # инак махането на ключ от списъка щеше да мине незабелязано.
+    _yadro = ("GREENPICKS_ZABRANI_KOEF", "PREDICT_ZALOZHIMO", "VOL_PRAG",
+              "PREDICT_QUIET_TO", "PREDICT_QUIET_FROM", "PREDICT_IZKL",
               "PREDICT_AMFUTBOL_MAX", "PREDICT_MAX_DAY", "PREDICT_POOL",
               "PREDICT_HTTP_BUDGET", "PREDICT_SMELOST_MAX",
               "PREDICT_TTLOKAL_MAX", "MAX_PICKS")
     _nyama = [_k for _k in _yadro if _k not in KLYUCHOVE_ZA_YML]
     check("списъкът с ръчки пази ядрото си (%s)" % (", ".join(_nyama) or "-"),
           not _nyama)
-    check("списъкът с ръчки не е орязан", len(KLYUCHOVE_ZA_YML) >= 20)
+    check("списъкът с ръчки не е орязан", len(KLYUCHOVE_ZA_YML) >= 25)
     # НИКАКВИ ТАЙНИ. Списъкът е затворен; това е пазачът, че ще си остане.
     check("в кутията НЯМА токени и чатове",
           not [_k for _k in _kl if ("TOKEN" in _k or "CHAT" in _k
@@ -13788,8 +13923,15 @@ def selftest():
         # «коефициент», но тя вече е разрешена и стената нямаше да сработи —
         # проверката щеше да е украса. Тук трябва дума, която ВСЕ ОЩЕ пада.
         globals()["CENA_OPASHKA"] = "букмейкър"
-        check("втората стена маха мръсния ред, не картата",
-              cena_red({"pazar_cena": 1.85}) == "")
+        # 🔴 ПРЕНАСОЧЕНА (02.09.2026). Дотук доказваше, че редът пада ЦЯЛ.
+        # Това беше вярно и вредно: пътят назад изтриваше коефициента от
+        # всяка карта. Стената пак работи — мръсната дума НЕ стига до
+        # читателя — но числото оцелява. Проверката доказва и двете.
+        _cn_mr = cena_red({"pazar_cena": 1.85})
+        check("втората стена маха мръсната ДУМА, не числото",
+              "букмейкър" not in _cn_mr and _cn_mr != "")
+        check("и картата не умира от това",
+              "💰" in card(_cn_an(pazar_cena=1.85), _cn_sega))
         check("мръсната опашка наистина е мръсна за пазача",
               banned_word("букмейкър") is not None)
         # И обратното: истинската опашка НЕ е мръсна, инак стената щеше да
@@ -13799,9 +13941,36 @@ def selftest():
               banned_word(_cn_o0) is None
               and cena_red({"pazar_cena": 1.85}) != "")
         check("и в нея наистина пише думата",
-              "коефициент" in cena_red({"pazar_cena": 1.85}))
+              "коеф" in cena_red({"pazar_cena": 1.85}))
+        # 🔴 КРАТКО (02.09.2026). Собственикът, дословно: «пише
+        # числото и коеф. КРАЙ». Дотук редът мъкнеше и обяснение
+        # («толкова пъти се връща вложеното») — точно това, което
+        # той нарече ужасно. Заковано, за да не се върне.
+        check("редът е КРАТЪК — число и коеф., без обяснение",
+              cena_red({"pazar_cena": 1.85})
+              == "💰 <b>1.85</b> · коеф.")
+        check("няма обяснителна опашка",
+              "връща вложеното" not in cena_red({"pazar_cena": 1.85}))
     finally:
         globals()["CENA_OPASHKA"] = _cn_o0
+
+    # 🔴 ЧИСЛОТО ОЦЕЛЯВА МРЪСНА ОПАШКА (02.09.2026). Пътят назад
+    # `GREENPICKS_ZABRANI_KOEF=1` връщаше «коеф» в забранените и с това
+    # изтриваше коефициента от ВСЯКА карта. Тук се изпитват двете посоки.
+    _cn_o1 = CENA_OPASHKA
+    try:
+        globals()["CENA_OPASHKA"] = "букмейкър"
+        _cr = cena_red({"pazar_cena": 1.85})
+        check("при мръсна опашка числото ОЦЕЛЯВА", _cr != "")
+        check("и мръсното не влиза в него", "букмейкър" not in _cr)
+        check("и остава точно голото число", _cr == "💰 <b>1.85</b>")
+    finally:
+        globals()["CENA_OPASHKA"] = _cn_o1
+    check("опашката е върната както беше", CENA_OPASHKA == _cn_o1)
+    check("голото число минава пазача",
+          banned_word("💰 <b>1.85</b>") is None)
+    check("а с чиста опашка редът е пълният",
+          cena_red({"pazar_cena": 1.85}) == "💰 <b>1.85</b> · коеф.")
 
     _cn_c0, _cn_i0 = CENA_VKL, IZTOCHNIK_VKL
     try:
