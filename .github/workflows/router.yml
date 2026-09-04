@@ -349,6 +349,20 @@ jobs:
           PREDICT_TT_SCALE_NISKA: ${{ vars.PREDICT_TT_SCALE_NISKA }}
           PREDICT_HORIZON_H: ${{ vars.PREDICT_HORIZON_H }}
           PREDICT_LEAD_MIN: ${{ vars.PREDICT_LEAD_MIN }}
+          # ── ПЪТИЩА НАЗАД (02.09.2026). Ръчка, която yml не
+          # подава, НЕ РАБОТИ: слагаш променлива в GitHub и нищо
+          # не се променя. Одит намери 127 такива; тези са
+          # думите, с които се спира нещо, ако съм сбъркал.
+          # =1 връща думата «коеф» в забранените (zabraneni.py, 02.09.2026)
+          GREENPICKS_ZABRANI_KOEF: ${{ vars.GREENPICKS_ZABRANI_KOEF || '0' }}
+          # =0 спира нормализацията на пазача и се съди по гол подниз
+          GREENPICKS_PAZACH: ${{ vars.GREENPICKS_PAZACH || '1' }}
+          # =0 спира ЦЯЛОТО сито: юноши, приятелски, резерви, виртуални
+          PREDICT_ZALOZHIMO: ${{ vars.PREDICT_ZALOZHIMO || '1' }}
+          # празно = за всички спортове; списък със запетаи го стеснява
+          PREDICT_ZALOZHIMO_SPORTOVE: ${{ vars.PREDICT_ZALOZHIMO_SPORTOVE }}
+          # прагът на волейболната стълбица; под него минава само с цена
+          VOL_PRAG: ${{ vars.VOL_PRAG || '50' }}
         run: python predictor.py
 
       # ══════════════════════════════════════════════════════════════
@@ -408,6 +422,34 @@ jobs:
           # записа вместо целия ден. Точно през тази врата минаваха карти без
           # slug — виж дългото обяснение в score.yml.
           SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
+          # ── ПЪТИЩА НАЗАД (02.09.2026). Ръчка, която yml не
+          # подава, НЕ РАБОТИ: слагаш променлива в GitHub и нищо
+          # не се променя. Одит намери 127 такива; тези са
+          # думите, с които се спира нещо, ако съм сбъркал.
+          # =1 връща думата «коеф» в забранените (zabraneni.py, 02.09.2026)
+          GREENPICKS_ZABRANI_KOEF: ${{ vars.GREENPICKS_ZABRANI_KOEF || '0' }}
+          # =0 спира нормализацията на пазача и се съди по гол подниз
+          GREENPICKS_PAZACH: ${{ vars.GREENPICKS_PAZACH || '1' }}
+          # =0 спира ЦЯЛОТО сито: юноши, приятелски, резерви, виртуални
+          PREDICT_ZALOZHIMO: ${{ vars.PREDICT_ZALOZHIMO || '1' }}
+          # празно = за всички спортове; списък със запетаи го стеснява
+          PREDICT_ZALOZHIMO_SPORTOVE: ${{ vars.PREDICT_ZALOZHIMO_SPORTOVE }}
+          # прагът на волейболната стълбица; под него минава само с цена
+          VOL_PRAG: ${{ vars.VOL_PRAG || '50' }}
+          # ── ПЪТИЩА НАЗАД (02.09.2026). Ръчка, която yml не
+          # подава, НЕ РАБОТИ: слагаш променлива в GitHub и нищо
+          # не се променя. Одит намери 127 такива; тези са
+          # думите, с които се спира нещо, ако съм сбъркал.
+          # =1 връща думата «коеф» в забранените (zabraneni.py, 02.09.2026)
+          GREENPICKS_ZABRANI_KOEF: ${{ vars.GREENPICKS_ZABRANI_KOEF || '0' }}
+          # =0 спира нормализацията на пазача и се съди по гол подниз
+          GREENPICKS_PAZACH: ${{ vars.GREENPICKS_PAZACH || '1' }}
+          # =0 спира ЦЯЛОТО сито: юноши, приятелски, резерви, виртуални
+          PREDICT_ZALOZHIMO: ${{ vars.PREDICT_ZALOZHIMO || '1' }}
+          # празно = за всички спортове; списък със запетаи го стеснява
+          PREDICT_ZALOZHIMO_SPORTOVE: ${{ vars.PREDICT_ZALOZHIMO_SPORTOVE }}
+          # прагът на волейболната стълбица; под него минава само с цена
+          VOL_PRAG: ${{ vars.VOL_PRAG || '50' }}
         run: |
           python cyalost.py
           python scorer.py --selftest

@@ -67,6 +67,18 @@ jobs:
           # 403. Пазачът тогава честно каза „не мога да проверя" — но честна
           # слепота пак е слепота.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ── РЪЧКИТЕ НА PAZACH (02.09.2026). Одит намери 127
+          # мъртви ръчки в проекта. Тези бяха мои: обявих ги за
+          # лостове в доклад, а нито един работен файл не ги
+          # подаваше — значи не работеха.
+          # гратис в минути за кроновите workflow-и
+          PAZACH_GRATIS_KRON: ${{ vars.PAZACH_GRATIS_KRON || '700' }}
+          # гратис в минути за външно будените
+          PAZACH_GRATIS: ${{ vars.PAZACH_GRATIS || '100' }}
+          # колко часа тишина се търпят, преди да се вика
+          PAZACH_TISHINA: ${{ vars.PAZACH_TISHINA }}
+          # колко поредни провала пали тревога
+          PAZACH_POREDNI: ${{ vars.PAZACH_POREDNI }}
         run: |
           python pazach.py || true
 
