@@ -339,7 +339,35 @@ def ot_github(path):
     try:
         rq = urllib.request.Request(url, headers=_glavi())
         with urllib.request.urlopen(rq, timeout=30) as r:
-            return json.loads(base64.b64decode(json.loads(r.read())["content"]))
+            meta = json.loads(r.read())
+        suro = meta.get("content")
+        if suro:
+            return json.loads(base64.b64decode(suro))
+        # 🔴 ПРАЗНО СЪДЪРЖАНИЕ ПРИ 200 OK = ФАЙЛЪТ Е НАД 1 МБ (05.09.2026).
+        #
+        # contents API реже на 1 048 576 байта и над това връща
+        # `"encoding": "none"` с празно content. Отговорът изглежда наред и
+        # няма данни. predict_log.json стана 1 113 544 байта и този преглед
+        # ослепя за главния дневник — видяно в дневника на Actions:
+        #   (НЕ МОЖАХ да питам за predict_log.json: Expecting value: line 1)
+        #
+        # НЕ минавам през raw (виж надслова: raw кешира). `git/blobs/<sha>`
+        # е същият api, без кеш, с таван 100 МБ.
+        sha = str(meta.get("sha") or "").strip()
+        if sha:
+            bq = urllib.request.Request(
+                "https://api.github.com/repos/" + REPO + "/git/blobs/" + sha,
+                headers=_glavi())
+            with urllib.request.urlopen(bq, timeout=60) as br:
+                blob = json.loads(br.read())
+            if str(blob.get("encoding") or "") == "base64" and blob.get("content"):
+                print("   (" + path + " е " + str(meta.get("size"))
+                      + " байта — над тавана на contents, четох го през blobs)")
+                return json.loads(base64.b64decode(blob["content"])
+                                  .decode("utf-8-sig"))
+        print("   (НЕ МОЖАХ да питам за " + path + ": " + str(meta.get("size"))
+              + " байта, а blobs не отговори)")
+        return NEPITAN
     except Exception as e:                                   # noqa: BLE001
         kod = getattr(e, "code", None)
         if kod == 404:
@@ -1557,6 +1585,61 @@ def selftest():
     _selftest_ligi(check)
     _selftest_parite(check)
     check("отказът на GitHub дава nepitan, не naredno", d["sast"] == "nepitan")
+
+    # ── 🔴 ФАЙЛ НАД 1 МБ (05.09.2026) ────────────────────────────────────
+    # contents API реже на 1 048 576 байта и над това връща 200 OK с празно
+    # content. predict_log.json стана 1 113 544 байта и този преглед ослепя
+    # за главния дневник — видяно в дневника на Actions.
+    import base64 as _b64
+    _telo = _b64.b64encode('[{"a": 1}]'.encode("utf-8")).decode()
+
+    class _Otg(object):
+        def __init__(self, telo):
+            self._t = telo.encode("utf-8")
+        def read(self):
+            return self._t
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            return False
+
+    _st_open = urllib.request.urlopen
+    _adresi = []
+    try:
+        def _fake(rq, timeout=30):
+            u = rq.full_url if hasattr(rq, "full_url") else str(rq)
+            _adresi.append(u)
+            if "/contents/" in u:
+                return _Otg('{"size": 1113544, "encoding": "none",'
+                            ' "content": "", "sha": "abc123"}')
+            if "/git/blobs/abc123" in u:
+                return _Otg('{"size": 1113544, "encoding": "base64",'
+                            ' "content": "' + _telo + '"}')
+            raise IOError("непознат адрес")
+        urllib.request.urlopen = _fake
+        _r = ot_github("predict_log.json")
+        check("голям файл СЕ ЧЕТЕ през blobs", _r == [{"a": 1}])
+        check("и blobs наистина е питан",
+              any("/git/blobs/" in a for a in _adresi))
+        check("празното съдържание НЕ мина за отговор", _r is not NEPITAN)
+        _adresi[:] = []
+        def _malak(rq, timeout=30):
+            u = rq.full_url if hasattr(rq, "full_url") else str(rq)
+            _adresi.append(u)
+            return _Otg('{"size": 40, "encoding": "base64", "content": "'
+                        + _telo + '", "sha": "abc123"}')
+        urllib.request.urlopen = _malak
+        check("малък файл се чете направо", ot_github("x.json") == [{"a": 1}])
+        check("и blobs НЕ се пита излишно",
+              not [a for a in _adresi if "/git/blobs/" in a])
+        def _bez_sha(rq, timeout=30):
+            return _Otg('{"size": 1113544, "encoding": "none",'
+                        ' "content": "", "sha": ""}')
+        urllib.request.urlopen = _bez_sha
+        check("празно без sha дава NEPITAN, не празен списък",
+              ot_github("x.json") is NEPITAN)
+    finally:
+        urllib.request.urlopen = _st_open
     check("отказът се КАЗВА с думи", "НЕ МОЖАХ" in d["tekst"])
     d = sadi_workflow("score.yml", "оценителят", [], 900, sega)
     check("празен отговор НЕ е «наред»", d["sast"] == "nepitan")
