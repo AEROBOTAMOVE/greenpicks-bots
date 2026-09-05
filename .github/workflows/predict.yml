@@ -550,6 +550,19 @@ jobs:
           SUPPORT_ADMIN_IDS: ${{ vars.SUPPORT_ADMIN_IDS }}
           SUPPORT: ${{ vars.SUPPORT }}
           SUPPORT_FAQ_URL: ${{ vars.SUPPORT_FAQ_URL }}
+          # 🔴 СЕДЕМТЕ НОМЕРА НА СТАИ (05.09.2026). Дотук тази стъпка пускаше
+          # router_bot.py БЕЗ НИТО ЕДИН от тях, а ботът ги чете и падаше на
+          # заковани резерви 5/6/7/8/4/9/10. Смени ли се стая през vars,
+          # router.yml щеше да я уважи, а рутерът от ТУК щеше да пише в
+          # старата — без нито един ред грешка, постовете просто на две
+          # места. Буквално близнакът на COMBAT_THREAD_ID по-горе.
+          FOOTBALL_THREAD_ID: ${{ vars.FOOTBALL_THREAD_ID || '5' }}
+          BASKET_THREAD_ID: ${{ vars.BASKET_THREAD_ID || '6' }}
+          TT_THREAD_ID: ${{ vars.TT_THREAD_ID || '7' }}
+          VOLLEY_THREAD_ID: ${{ vars.VOLLEY_THREAD_ID || '8' }}
+          PICKS_THREAD_ID: ${{ vars.PICKS_THREAD_ID || '4' }}
+          RESULTS_THREAD_ID: ${{ vars.RESULTS_THREAD_ID || '9' }}
+          WINS_THREAD_ID: ${{ vars.WINS_THREAD_ID || '10' }}
         run: python router_bot.py
 
       # Тефтерът се връща в repo-то. always() е нарочно: predictor.py записва
