@@ -282,6 +282,53 @@ def selftest_stypki(papka=None, kod=None):
     return []
 
 
+def selftest_s_token(papka=None):
+    """Стъпки, които пускат САМО самопроверка и въпреки това получават токен.
+
+    🔴 ПО-СИЛНО ОТ СУХИЯ РЕЖИМ. Сух режим има само част от ботовете; липсата
+    на токен затваря вратата навън за ВСИЧКИ — `post_predict` връща отказ,
+    пращачите не тръгват. Стъпка, която само проверява, няма работа с токен.
+    """
+    import re as _re
+    bazi = [papka] if papka else [".github/workflows", "../.github/workflows"]
+    for baza in bazi:
+        if not baza or not os.path.isdir(baza):
+            continue
+        vidyani, losho = 0, []
+        for ime in sorted(os.listdir(baza)):
+            if not ime.endswith(".yml"):
+                continue
+            try:
+                with io.open(os.path.join(baza, ime), encoding="utf-8") as f:
+                    r = f.read().split("\n")
+            except (OSError, UnicodeDecodeError):
+                continue
+            zap = [i for i, l in enumerate(r)
+                   if l.strip().startswith("- ")
+                   and (len(l) - len(l.lstrip())) == 6] + [len(r)]
+            for a, b in zip(zap, zap[1:]):
+                blok = r[a:b]
+                txt = "\n".join(blok)
+                for m in _re.finditer(
+                        r"python\s+([a-z_0-9]+\.py)\s+(?:--)?selftest", txt):
+                    bot = m.group(1)
+                    vidyani += 1
+                    zhiv = bool(_re.search(
+                        r"python\s+" + _re.escape(bot)
+                        + r"\s*($|[^\w\-])(?!.*selftest)", txt, _re.M))
+                    if zhiv:
+                        continue           # стъпката пуска и самия бот
+                    if _re.search(r"^\s+(BOT_TOKEN|SUPPORT_BOT_TOKEN)\s*:",
+                                  txt, _re.M):
+                        st = blok[0].strip()
+                        if st.startswith("- name:"):
+                            st = st[7:].strip()
+                        losho.append(ime + "/" + st[:40])
+        if vidyani:
+            return vidyani, losho
+    return 0, []
+
+
 def cronovi_yml(papka=None):
     """Всеки workflow с часовник, прочетен от диска. Празно значи не намерих.
 
@@ -922,6 +969,12 @@ def selftest():
                    if not samo and ima]
     check("производствена стъпка НЕ е суха: "
           + ("; ".join(_suhi_zhivi)[:60] or "-"), not _suhi_zhivi)
+    # 🔴 И ПО-СИЛНОТО ПРАВИЛО: само-тестова стъпка БЕЗ ТОКЕН. Сух режим има
+    # само част от ботовете; липсата на токен затваря вратата за всички.
+    _vid, _s_tok = selftest_s_token()
+    check("стъпките със самопроверка се виждат (за токена)", _vid >= 10)
+    check("нито една само-тестова стъпка няма токен: "
+          + ("; ".join(_s_tok)[:70] or "-"), not _s_tok)
     check("ключът за сух режим се чете от КОДА",
           suh_klyuch("predictor.py") == "PREDICT_DRY_RUN"
           and suh_klyuch("scorer.py") == "SCORE_DRY_RUN"
