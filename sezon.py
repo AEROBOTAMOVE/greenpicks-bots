@@ -147,6 +147,19 @@ OTVARYA = {
         "izvor": "ESPN scoreboard womens-college-hockey 25.08-20.11 (25.08.2026):"
                  " 316 мача regular-season, най-ранен 18.09 — тоест жените"
                  " отварят 11 дни ПРЕДИ НХЛ и 14 дни преди мъжкия колеж."},
+    # ── ПЕТТЕ НОВИ (02.09.2026). Всяка дата е снета ЖИВО от ESPN в деня
+    # на добавянето, с честен подпис; числото до нея е броят събития, който
+    # отговорът върна. Догадки няма. „nba" вече го имаше и не се пипа.
+    "ncaab": {
+        "data": "2026-11-02", "kosh": "basketball", "sigurno": True,
+        "izvor": "ESPN scoreboard basketball/mens-college-basketball, питан"
+                 " ДЕН ПО ДЕН от 01.11 (02.09.2026): първият ден с мачове е"
+                 " 02.11 с 56 мача. 🔴 Този адрес ОТКАЗВА период (404) и"
+                 " приема само една дата — виж бележката във vzemi_espn."},
+    "gleague": {
+        "data": "2026-11-07", "kosh": "basketball", "sigurno": True,
+        "izvor": "ESPN scoreboard basketball/nba-development (02.09.2026):"
+                 " 10 събития, всичките на 07.11."},
     "nba": {
         "data": "2026-10-20", "kosh": "basketball", "sigurno": True,
         "izvor": "ESPN core basketball/nba/seasons/2027/types (25.08.2026):"
@@ -300,6 +313,39 @@ KALENDAR = [
     {"kod": "ncaahw", "ime": "🏒 NCAA хокей, жени", "kosh": "hockey",
      "izvor": ("espn", "hockey", "womens-college-hockey"), "vazhen": False,
      "beleshka": "🔴 predictor НЯМА такъв източник; и моделът иска таблица, каквато няма"},
+    # ── БАСКЕТБОЛ И ТЕНИС (02.09.2026)
+    #
+    # 🔴 ДОТУК КАЛЕНДАРЪТ ЗНАЕШЕ САМО ДВА СПОРТА. Пет реда, всичките за
+    # американски футбол и хокей. Тоест НБА можеше да тръгне, ботът да мълчи,
+    # и никой да не предупреди — точно дефектът, срещу който този файл е
+    # написан. `predictor.BASK_LEAGUES` държи седем лиги и предсказателят ги
+    # пита; будилникът не следеше нито една.
+    {"kod": "nba", "ime": "🏀 НБА", "kosh": "basketball",
+     "izvor": ("espn", "basketball", "nba"), "vazhen": True,
+     "beleshka": "стая на баскетбола · predictor го знае (BASK_LEAGUES)"},
+    # 🔴 WNBA, ATP и WTA НАРОЧНО ГИ НЯМА ТУК (обмислено 02.09.2026).
+    # Този календар отговаря на въпроса „кога ОТВАРЯ спорт, който сега е
+    # затворен". WNBA, ATP и WTA ТЕКАТ — да им сложа дата значи да напиша в
+    # полето „отваря на" датата на следващия им мач, което е друго нещо.
+    # Ако млъкнат, това е СЧУПЕН ИЗВОР и е работа на здравния преглед
+    # (zdrave.py), не на сезонния будилник. Поле, което значи две неща, е
+    # поле, което не значи нищо.
+    {"kod": "ncaab", "ime": "🏀 NCAA баскетбол, мъже", "kosh": "basketball",
+     "izvor": ("espn", "basketball", "mens-college-basketball"), "vazhen": True,
+     "beleshka": "тръгва началото на ноември · predictor го знае (BASK_LEAGUES)"},
+    {"kod": "gleague", "ime": "🏀 G-лига", "kosh": "basketball",
+     "izvor": ("espn", "basketball", "nba-development"), "vazhen": False,
+     "beleshka": "в BASK_LEAGUES е, но е тънък пазар — не вдига важна тревога"},
+    #
+    # 🔴 КОИ НАРОЧНО ГИ НЯМА (за да не се добавят по невнимание утре):
+    #   · клубен волейбол (PlusLiga, SuperLega, Efeler…) — НЯМАМЕ извор.
+    #     Проверено живо 02.09.2026: FIVB дава 41 турнира напред и НИТО ЕДНА
+    #     клубна лига, защото е федерация на националните отбори.
+    #   · европейски хокей (КХЛ, CHL, SM Liiga) — Pinnacle дава мачове и
+    #     коефициенти, но никой безплатен извор не дава РЕЗУЛТАТИ, значи
+    #     картата не може да се оцени.
+    #   Ред за тях би бил ВЕЧНА фалшива тревога. Фалшивата тревога уморява
+    #   ухото и после истинската не се чува — това вече се е случвало тук.
 ]
 
 _zayavki = [0]
@@ -522,6 +568,29 @@ def vzemi_espn(sport, slug, ot, do, dnes=None):
     u = (ESPN + "/" + sport + "/" + slug + "/scoreboard?dates="
          + ot.strftime("%Y%m%d") + "-" + do.strftime("%Y%m%d") + "&limit=1000")
     j = _json(u)
+    # 🔴 ДВА АДРЕСА ОТКАЗВАТ ПЕРИОД (намерено живо 02.09.2026).
+    #
+    #   mens-college-basketball  ?dates=20261115           →  10 мача
+    #   mens-college-basketball  ?dates=20261115-20261130  →  404
+    #   womens-college-basketball — същото
+    #
+    # За nfl, nhl, nba, wnba, nbl и футбола периодът работи и носи по 455
+    # мача с ЕДНА заявка, затова той остава пръв. Но без този отстъп новият
+    # ред „NCAA баскетбол" в календара би давал ВЕЧЕН провал — а провал,
+    # който вали всеки ден, спира да се чете, и точно така се губи
+    # истинската тревога.
+    #
+    # Един ден стига за целта: будилникът пита „играе ли ДНЕС затворен
+    # спорт", не „колко мача има за два месеца". Цената е нула допълнителни
+    # заявки в нормалния случай — вторият опит се прави САМО след празен
+    # отговор от периода.
+    if not j:
+        _den = (dnes or ot)
+        j = _json(ESPN + "/" + sport + "/" + slug + "/scoreboard?dates="
+                  + _den.strftime("%Y%m%d") + "&limit=1000")
+        if j:
+            print("   ℹ %s/%s не приема период — питах за един ден (%s)."
+                  % (sport, slug, _den.isoformat()))
     return parse_espn(j), imena_na_den(j, (dnes or ot).isoformat())
 
 
@@ -1298,12 +1367,39 @@ def selftest():
     check("Pinnacle също е с подпис (не е ESPN)",
           "User-Agent" in glavi_za("https://guest.api.arcadia.pinnacle.com/0.1/sports"))
 
-    check("календарът има петте реда", len(KALENDAR) == 5)
+    # 🔴 КАЛЕНДАРЪТ ПОРАСНА 5 → 11 (02.09.2026). Дотук знаеше САМО два
+    # спорта — американски футбол и хокей. Тоест НБА можеше да тръгне, ботът
+    # да мълчи, и никой да не предупреди; точно дефектът, срещу който този
+    # файл съществува. Проверките са ПРЕНАСОЧЕНИ, не изтрити: старите три
+    # важни трябва да ги има и досега, плюс новите.
+    check("календарът има поне осем реда", len(KALENDAR) >= 8)
     check("всеки ред знае коша си",
-          all(s["kosh"] in ("hockey", "amfootball") for s in KALENDAR))
+          all(s["kosh"] in ("hockey", "amfootball", "basketball")
+              for s in KALENDAR))
     check("всеки ред носи бележка", all(s.get("beleshka") for s in KALENDAR))
-    check("трите важни са НФЛ, NCAA футбол и НХЛ",
-          [s["kod"] for s in KALENDAR if s["vazhen"]] == ["nfl", "ncaaf", "nhl"])
+    check("кодовете са различни",
+          len({s["kod"] for s in KALENDAR}) == len(KALENDAR))
+    # 🔴 ИМЕНАТА СА ИЗПИСАНИ ДОСЛОВНО, а не взети от KALENDAR — инак махането
+    # на ред щеше да мине незабелязано, защото проверката щеше да пита
+    # самата себе си. Днес такава проверка вече пропусна мутация в друг файл.
+    _vazhni = [s["kod"] for s in KALENDAR if s["vazhen"]]
+    for _k in ("nfl", "ncaaf", "nhl"):
+        check("старият важен ред " + _k + " е още там", _k in _vazhni)
+    for _k in ("nba", "ncaab"):
+        check("новият важен ред " + _k + " е добавен", _k in _vazhni)
+    for _k in ("wnba", "atp", "wta"):
+        check("текущата лига " + _k + " НЕ е в сезонния календар",
+              _k not in {s["kod"] for s in KALENDAR})
+    check("баскетболът вече се следи",
+          any(s["kosh"] == "basketball" for s in KALENDAR))
+    check("тенисът НЕ е в сезонния календар (тече, не отваря)",
+          not any(s["kosh"] == "tennis" for s in KALENDAR))
+    # И че НЕ сме добавили спорт без извор — това би било вечна тревога.
+    check("няма ред за клубен волейбол (нямаме извор)",
+          not any(s["kosh"] == "volleyball" for s in KALENDAR))
+    check("няма ред за европейски хокей (нямаме резултати)",
+          not any("кхл" in str(s["ime"]).lower() or "khl" in str(s["kod"]).lower()
+                  for s in KALENDAR))
     check("седмицата е 7 дни", SEDMICA == 7)
     check("нула мрежа в цялата самопроверка", broi_zayavki() == 0)
     check("нула провалени заявки, щом няма заявки", broi_provali() == 0)
@@ -1311,7 +1407,7 @@ def selftest():
     # рано `if`, изяден блок), се вижда само тук. Числото е измереното на
     # 25.08.2026 след добавянето на алармата — 50 стари + 39 нови.
     _proveri_izkl(check)
-    check("броят проверки е поне 107", ok >= 107)
+    check("броят проверки е поне 118", ok >= 118)
 
     print("САМОПРОВЕРКА НА SEZON: " + str(ok) + " наред, " + str(len(bad)) + " счупени")
     for b in bad:

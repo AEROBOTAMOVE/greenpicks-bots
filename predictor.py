@@ -152,6 +152,17 @@ try:
 except Exception as _hok_err:                                # noqa: BLE001
     HOK = None
     print("хокеят не се зареди (" + str(_hok_err)[:70] + ").")
+# 🏒 ЕВРОПЕЙСКИЯТ ХОКЕЙ (02.09.2026). `hokey.py` чете САМО НХЛ, а НХЛ отваря
+# на 29.09. Pinnacle обаче дава 37 европейски мача с коефициенти всеки ден.
+# `evrohokey.py` носи СМ Лига (Финландия) и Шампионската лига — двете, за
+# които има И РЕЗУЛТАТИ, значи и модел. КХЛ, ВХЛ и Metal Ligaen НЕ влизат:
+# цена има, резултати няма откъде, а карта без начин да бъде оценена не бива
+# да излиза.
+try:
+    import evrohokey as EVH
+except Exception as _evh_err:                                # noqa: BLE001
+    EVH = None
+    print("европейският хокей не се зареди (" + str(_evh_err)[:70] + ").")
 try:
     import tt_lokal as TLK
 except Exception as _tl_err:                                 # noqa: BLE001
@@ -3315,7 +3326,21 @@ def _rate(num, den, fallback):
 
 
 def model_hockey(fx):
-    tab = nhl_table()
+    # 🏒 ТАБЛИЦАТА СЕ ИЗБИРА ПО ЛИГАТА (02.09.2026). Сметките отдолу НЕ се
+    # пипат: `evrohokey.tablica()` връща ТОЧНО формата на `nhl_table()`
+    # ({отбор: {gp,gf,ga,hgp,hgf,hga,rgp,rgf,rga}}), затова Поасонът работи
+    # дословно същият. Смяна на източник не иска калибриране; смяна на
+    # сметките би искала.
+    _evr = str(((fx.get("extra") or {}).get("evro")) or "")
+    if _evr and EVH is not None:
+        try:
+            tab = EVH.tablica(_evr)
+        except Exception:                                    # noqa: BLE001
+            return None
+        if not tab:
+            return None
+    else:
+        tab = nhl_table()
     h = tab.get(str(fx.get("home_id") or ""))
     a = tab.get(str(fx.get("away_id") or ""))
     if not h or not a:
@@ -7193,14 +7218,46 @@ def collect_all(now):
                 # ПЪТ НАЗАД: махни тези редове — hockey_fixtures е непокътнат.
                 # Или PREDICT_HORIZON_HOK=30 свива прозореца до днешния.
                 _hr = HOK.kosnica(now.timestamp(), ime=bg_name) if HOK else None
+                _nhl_mylchi = False
                 if _hr is None:
                     rows = hockey_fixtures(now, ymd_dash)
                 elif _hr is HOK.NEPITAN:
-                    print("   \u26a0 хокей: НЕ МОЖАХ ДА ПИТАМ (изворът мълчи)"
-                          " — това НЕ е «няма мачове».")
+                    _nhl_mylchi = True
                     rows = []
                 else:
                     rows = _hr
+
+                # 🏒 И ЕВРОПА (02.09.2026). Слива се, НЕ заменя: НХЛ и
+                # европейските лиги са различни мачове, не различни изгледи
+                # към едни и същи. Измерено живо в деня на вплитането: 36
+                # срещи за 168 ч (24 Шампионска лига + 12 СМ Лига), от които
+                # 28 имат и двата отбора в таблицата.
+                _evr = None
+                if EVH is not None:
+                    try:
+                        _evr = EVH.srechti(now, ime=bg_name)
+                    except Exception as _e_evh:              # noqa: BLE001
+                        print("   ⚠ европейски хокей: " + str(_e_evh)[:70])
+                        _evr = None
+                if _evr is not None and _evr is not EVH.NEPITAN:
+                    if _evr:
+                        print("   🏒 Европа: %d срещи (%s)"
+                              % (len(_evr), ", ".join(sorted(
+                                  {r["league"] for r in _evr}))[:60]))
+                    rows = list(rows) + list(_evr)
+                elif _evr is not None:
+                    print("   ⚠ европейски хокей: НЕ МОЖАХ ДА ПИТАМ.")
+
+                # 🔴 МЪЛЧАНИЕТО СЕ ОБЯВЯВА САМО КОГАТО Е ПЪЛНО. Дотук
+                # редът за НХЛ се печаташе винаги при NEPITAN; сега, ако
+                # Европа е донесла мачове, „не можах да питам" е подвеждащо —
+                # питали сме и сме получили, просто не от НХЛ.
+                if _nhl_mylchi and not rows:
+                    print("   \u26a0 хокей: НЕ МОЖАХ ДА ПИТАМ (изворът мълчи)"
+                          " — това НЕ е «няма мачове».")
+                elif _nhl_mylchi:
+                    print("   \u26a0 НХЛ мълчи, но Европа отговори — "
+                          "картите долу са европейски.")
             elif b == "amfootball":
                 rows = amfootball_fixtures(now, ymd_za(now, b))
                 # 🔴 ТАВАНЪТ ДЕЙСТВА И ТУК, не само през ACTIVE_SPORTS. Една
@@ -10314,6 +10371,77 @@ def selftest():
         check("новата лига " + _nl + " се пита", _nl in _slugs)
 
     check("футболните лиги не са орязани (>=90)", len(FOOT_SLUGS) >= 90)
+
+    # ═══════ ЕВРОПЕЙСКИЯТ ХОКЕЙ (02.09.2026)
+    check("модулът за европейски хокей се внесе", EVH is not None)
+    if EVH is not None:
+        check("носи точно две лиги", len(EVH.LIGI) == 2)
+        check("СМ Лига е вътре", "liiga" in EVH.LIGI)
+        check("Шампионската лига е вътре", "chl" in EVH.LIGI)
+        # 🔴 КОИТО НАРОЧНО ГИ НЯМА. Pinnacle им дава цени (22 мача общо), но
+        # резултати няма откъде да се вземат — карта без начин да бъде
+        # оценена не бива да излиза. Изписани дословно, за да гърми, ако
+        # някой ги добави, без да намери извор за резултатите им.
+        for _nl in ("khl", "vhl", "mhl", "metal"):
+            check("нямаме " + _nl + " (няма извор за резултати)",
+                  _nl not in EVH.LIGI)
+        check("кошницата му е хокей", EVH.NASH_KLYUCH == "hockey")
+
+        # 🔴 МОДЕЛЪТ ИЗБИРА ТАБЛИЦАТА ПО ЛИГАТА. Без този тест `model_hockey`
+        # можеше да чете НХЛ таблицата за финландски мач и да мълчи ВИНАГИ —
+        # тиха нула, най-скъпият вид грешка в този проект.
+        _eh_tab = {"Аа": {"gp": 20.0, "gf": 60.0, "ga": 40.0,
+                          "hgp": 10.0, "hgf": 35.0, "hga": 18.0,
+                          "rgp": 10.0, "rgf": 25.0, "rga": 22.0},
+                   "Бб": {"gp": 20.0, "gf": 40.0, "ga": 60.0,
+                          "hgp": 10.0, "hgf": 22.0, "hga": 25.0,
+                          "rgp": 10.0, "rgf": 18.0, "rga": 35.0}}
+        _eh_star = EVH.tablica
+        try:
+            EVH.tablica = lambda liga, *a, **k: dict(_eh_tab)
+            _fx = {"home_id": "Аа", "away_id": "Бб", "extra": {"evro": "liiga"}}
+            _m = model_hockey(_fx)
+            check("европейският мач получава число", _m is not None)
+            check("и то е вероятност", bool(_m) and 0.0 < _m["p_home"] < 1.0)
+            check("по-силният домакин е фаворит", bool(_m) and _m["p_home"] > 0.5)
+            # И ОБРАТНАТА ПОСОКА: без белега «evro» европейската таблица НЕ
+            # се пипа. Инак проверката горе щеше да минава и ако кодът
+            # ползва европейската таблица за ВСИЧКО, включително за НХЛ.
+            check("без белег «evro» европейската таблица НЕ се ползва",
+                  model_hockey({"home_id": "Аа", "away_id": "Бб",
+                                "extra": {}}) is None)
+            EVH.tablica = lambda liga, *a, **k: {}
+            check("празна европейска таблица дава мълчание, не гърми",
+                  model_hockey(_fx) is None)
+        finally:
+            EVH.tablica = _eh_star
+        check("таблицата е върната както беше", EVH.tablica is _eh_star)
+
+    # 🔴 ЕДИН КЛЮЧ, ЕДНА СТОЙНОСТ ВЪВ ВСИЧКИТЕ РАБОТНИ ФАЙЛОВЕ.
+    #
+    # Намерено живо на 02.09.2026: predict.yml казваше 'hockey', daily.yml
+    # 'hockey', а router.yml 'hockey,amfootball' — а И ТРИТЕ пускат
+    # predictor.py. Тоест ботът се държеше различно според това КОЙ го е
+    # събудил, и амер. футбол, отворен същия ден, падаше при рутера.
+    # Един ключ с три стойности е три различни бота.
+    _izkl_st = {}
+    for _f in ("predict", "daily", "router"):
+        try:
+            _p = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              ".github", "workflows", _f + ".yml")
+            with open(_p, encoding="utf-8-sig") as _fh:
+                _txt = _fh.read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for _r in _txt.splitlines():
+            if _r.strip().startswith("PREDICT_IZKL:"):
+                _izkl_st[_f] = _r.split("||")[-1].strip().rstrip("}").strip()
+                break
+    check("и трите работни файла подават PREDICT_IZKL", len(_izkl_st) == 3)
+    if len(_izkl_st) >= 2:
+        check("PREDICT_IZKL е ЕДНО И СЪЩО навсякъде (%s)"
+              % " · ".join("%s=%s" % (k, v) for k, v in sorted(_izkl_st.items())),
+              len(set(_izkl_st.values())) == 1)
 
     # 🔴 И ТРИТЕ, КОИТО НАРОЧНО НЕ ВЛЯЗОХА. Ако някога влязат по невнимание,
     # това гърми: аматьорските квалификации на ФА Къп (100 мача, каталогът ги
