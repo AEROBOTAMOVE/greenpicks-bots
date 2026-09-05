@@ -8260,7 +8260,11 @@ DOSLED_VKL = env_int("PREDICT_DOSLED", 1, 0, 1) == 1
 DOSLED_TAVAN = env_int("PREDICT_DOSLED_TAVAN", 120, 0, 600)
 
 
-def dosledi_cenite(buckets, now):
+# 🔴 ДОСЛЕДЯВАНЕ И НА СРЕЩИТЕ БЕЗ ЦЕНА (05.09.2026) — виж `dosledi_cenite`.
+DOSLED_BEZ = env_int("PREDICT_DOSLED_BEZ", 1, 0, 1) == 1
+
+
+def dosledi_cenite(buckets, now, state=None):
     """Още една точка в редицата на ВЕЧЕ ПУБЛИКУВАНИТЕ, неизиграни срещи.
 
     🔴 ЗАЩО СЪЩЕСТВУВА. Единственият измерен ръб в целия проект е
@@ -8298,9 +8302,22 @@ def dosledi_cenite(buckets, now):
                 k = match_key(fx, now)
             except Exception:                                # noqa: BLE001
                 continue
-            # само вече започнала редица — инак гоним мачове без карта
-            if not k or k not in CENI:
+            if not k:
                 continue
+            # 🔴 ГОНИ СЕ И СРЕЩА БЕЗ ЦЕНА, АКО КАРТАТА Ѝ Е ИЗЛЯЗЛА.
+            #
+            # Дотук условието беше само `k in CENI`, тоест «вече е имала
+            # цена». Но ботът публикува РАНО, а част от книгите качват
+            # пазара КЪСНО — измерено: WTT Contender Almaty, 46 карти след
+            # 02.09 с НУЛА коефициента, докато Kambi има турнира в дървото
+            # си. Цената идва след картата и никой не се връща за нея.
+            #
+            # Границата остава ПУСНАТОТО: без нея тефтерът щеше да поеме
+            # всяка от 215-те събрани срещи на рън.
+            if k not in CENI:
+                if not (DOSLED_BEZ and state is not None
+                        and already_posted(state, k)):
+                    continue
             # и само НЕЗАПОЧНАЛ мач: след началото цената е друго нещо
             w = fx_start(fx, now)
             if w is not None and w <= now:
@@ -9805,7 +9822,7 @@ def run():
     # редица от поне две цени.
     # 🔴 ЛИПСВАЩАТА ЦЕНА СЕ КАЗВА НА ГЛАС, не се открива след 33 дни.
     kazhi_bez_cena(picks)
-    _dosl = dosledi_cenite(buckets, now)
+    _dosl = dosledi_cenite(buckets, now, state)
     if _dosl:
         print("   \U0001f4c8 доследени цени: " + str(_dosl)
               + mn(_dosl, " среща", " срещи") + " (нула нови заявки)")
@@ -10977,6 +10994,11 @@ def selftest():
     check("и то ПРЕДИ да запише тефтера", 0 < _i_dos < _i_per)
     check("низът не пази сам себе си (веднъж в `run`)",
           _src_run.count("dosledi_cenite(") == 1)
+    # 🔴 И ЧЕ МУ СЕ ПОДАВА ТЕФТЕРЪТ. Без него `already_posted` няма как да
+    # се пита и закъснялата цена пак се губи — а точно тя е 46-те карти на
+    # WTT Contender Almaty с нула коефициента.
+    check("`run` подава тефтера на доследяването",
+          "dosledi_cenite(buckets, now, state)" in _src_run)
 
     # ═══ ДОСЛЕДЯВАНЕТО НА ЦЕНИТЕ (05.09.2026) ═════════════════════════
     #
@@ -11030,6 +11052,51 @@ def selftest():
         check("🔴 среща БЕЗ редица не се гони (тя няма и карта)",
               len(_pipnati) == 1)
         check("броят добавени точки е верен", _n == 1)
+
+        # 🔴 И ЗАКЪСНЯЛАТА ЦЕНА СЕ ХВАЩА (05.09.2026).
+        #
+        # Ботът публикува РАНО; част от книгите качват пазара КЪСНО.
+        # Измерено: WTT Contender Almaty — 46 карти след 02.09 с НУЛА
+        # коефициента, докато Kambi има турнира в дървото си. Цената идва
+        # СЛЕД картата и дотук никой не се връщаше за нея.
+        _pipnati[:] = []
+        CENI.clear()
+        _st_ap = globals().get("already_posted")
+        try:
+            globals()["already_posted"] = lambda st, k: k == _k_bez
+            _k_bez = match_key(_fx_bez, _ds_now)
+            _n2 = dosledi_cenite({"football": [_fx_bez]}, _ds_now,
+                                 {"проба": 1})
+            check("🔴 ПУСНАТА среща БЕЗ цена вече се гони",
+                  _k_bez in _pipnati)
+            # ── а НЕпусната среща без цена си остава непипната
+            _pipnati[:] = []
+            globals()["already_posted"] = lambda st, k: False
+            dosledi_cenite({"football": [_fx_bez]}, _ds_now, {"проба": 1})
+            check("НЕпусната среща без цена не се гони", not _pipnati)
+            # ── и без тефтер (state=None) старото поведение остава
+            _pipnati[:] = []
+            globals()["already_posted"] = lambda st, k: True
+            dosledi_cenite({"football": [_fx_bez]}, _ds_now, None)
+            check("без подаден тефтер нищо не се гони", not _pipnati)
+            # ── ръчката го гаси
+            _pipnati[:] = []
+            _st_db = DOSLED_BEZ
+            try:
+                globals()["DOSLED_BEZ"] = False
+                dosledi_cenite({"football": [_fx_bez]}, _ds_now, {"п": 1})
+                check("PREDICT_DOSLED_BEZ=0 го спира", not _pipnati)
+            finally:
+                globals()["DOSLED_BEZ"] = _st_db
+        finally:
+            if _st_ap is not None:
+                globals()["already_posted"] = _st_ap
+        check("подставката е върната",
+              globals()["already_posted"] is _st_ap)
+        CENI.clear()
+        CENI[_k_v] = {"t0": "x", "p0": {"1": 0.5}, "c0": {"1": 2.0}, "n": 1}
+        CENI[_k_zap] = {"t0": "x", "p0": {"1": 0.5}, "c0": {"1": 2.0}, "n": 1}
+        _pipnati[:] = []
 
         # ── чуждата среща НЕ се пипа: ключът е наш, не неин
         check("срещата не носи наш ключ след доследяването",
