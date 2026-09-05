@@ -165,6 +165,51 @@ LIGI = {
     },
 }
 
+# 🔴 ГОЛЕМИТЕ ТУРНИРИ, КОИТО НЕ СА В `LIGI` (02.09.2026).
+#
+# `LIGI` е закован речник с двете местни лиги. Kambi беше поправен по-рано
+# днес; Smarkets има същия дефект: питаме само двата закована parent_id.
+# Измерено живо: дървото му държи 50 възела, между които «WTT Feeder
+# Dusseldorf» с четири подкатегории. Днес този турнир е приключил, но
+# Champions Macao и Contender Панагюрище тръгват на 08.09.
+#
+# Питат се САМО имената, които издават голям турнир — 50 заявки на рън е
+# твърде скъпо при бюджет 520 и текущ разход 2-4 за целия спорт.
+GOLEMI_PARCHETA = ("wtt", "smash", "contender", "champions", "star contender")
+GOLEMI_TAVAN = int((os.environ.get("TT_GOLEMI_TAVAN") or "6").strip() or 6)
+# Коренът на тениса на маса при Smarkets. Питан пряко, той връща НУЛА
+# събития (проверено) — служи само за изброяване на турнирите под него.
+SM_KOREN_TT = "41616225"
+
+
+def golemi_turniri(chetec=None):
+    """[(id, име)] на големите турнири извън `LIGI`. Една заявка.
+
+    Празен списък значи «няма такива днес» — това е нормално и чест
+    случай: WTT играе на серии, не всеки ден.
+    """
+    vz = chetec if callable(chetec) else (lambda u: _json(u, kesh_sek=600))
+    d = vz(SM + "/events/?type_domain=table_tennis&limit=100")
+    if not isinstance(d, dict):
+        return []
+    out = []
+    poznati = {LIGI[k]["cid"] for k in LIGI}
+    for x in (d.get("events") or []):
+        if not isinstance(x, dict):
+            continue
+        cid = str(x.get("id") or "")
+        ime = str(x.get("name") or "")
+        # само ВЪЗЛИ-ТУРНИРИ: техният родител е коренът, не друг турнир
+        if str(x.get("parent_id") or "") != SM_KOREN_TT:
+            continue
+        if cid in poznati or not cid or not ime:
+            continue
+        nisko = ime.lower()
+        if any(p in nisko for p in GOLEMI_PARCHETA):
+            out.append((cid, ime))
+    return out[:GOLEMI_TAVAN]
+
+
 def klyuch_liga_svobodna(ime):
     """Ключ за лига, която НЕ Е в закования `LIGI`. Малки букви, без шум.
 
@@ -485,10 +530,57 @@ def liga_klyuch(ime):
     return None
 
 
+_VPISANI = [False]
+
+
+def vpishi_golemi(chetec=None):
+    """Вписва откритите големи турнири в `LIGI`. Връща колко са новите.
+
+    🔴 ЛЕНИВО И ВЕДНЪЖ. Дървото се пита само при първата нужда и повече не —
+    инак всяко викане на `ceni_smarkets` щеше да струва още една заявка.
+
+    Вписват се в `LIGI`, а не в отделен списък, защото `_den_sabitiya`,
+    `ceni_smarkets` и `ceni_kambi` четат `LIGI[lk]["cid"]` и `["ime"]`.
+    Отделен списък щеше да иска пипане на трите — три места, където може да
+    се забрави.
+    """
+    if _VPISANI[0]:
+        return 0
+    _VPISANI[0] = True
+    n = 0
+    try:
+        namereni = golemi_turniri(chetec)
+    except Exception:                                        # noqa: BLE001
+        return 0
+    for cid, ime in namereni:
+        k = klyuch_liga_svobodna(ime)
+        if k in LIGI:
+            continue
+        LIGI[k] = {"cid": str(cid), "ime": ime, "slug": k.replace(" ", "-"),
+                   "kambi": ime}
+        n += 1
+    return n
+
+
 def vklyucheni():
-    """Кои лиги са включени според ръчката. Празна ръчка = нито една."""
+    """Кои лиги са включени: закованите от ръчката + откритите големи турнири.
+
+    🔴 ОТКРИТИТЕ ВЛИЗАТ БЕЗ ДА СА В РЪЧКАТА, и това е нарочно. Ръчката
+    изброява ЗАКОВАНИТЕ две местни лиги; голям турнир като WTT се появява и
+    изчезва по календар и никой не може да го впише предварително. Точно
+    защото не беше вписан, Дюселдорф мина покрай нас.
+
+    ПЪТ НАЗАД: TT_GOLEMI_TAVAN=0 спира откриването и остават само закованите.
+    """
     imena = [x.strip().lower() for x in str(_RACHKA or "").split(",") if x.strip()]
-    return [k for k in LIGI if k in imena]
+    zakovani = [k for k in LIGI if k in imena]
+    if GOLEMI_TAVAN <= 0:
+        return zakovani
+    vpishi_golemi()
+    otkriti = [k for k, v in LIGI.items()
+               if k not in imena
+               and any(p in k for p in GOLEMI_PARCHETA)]
+    return zakovani + otkriti
 
 
 # ─────────────────────────────────────────────────── ЖИВ ЛИ Е ИЗВОРЪТ
@@ -1508,6 +1600,55 @@ def selftest():
         # отвори и чуждия вид пазар — това са две различни сита.
         check("три изхода пак НЕ влизат",
               dvoika("Trima Igracha", "Chetvarti Igrach", strogo=False) not in ik)
+
+        # ═══ 9в. ГОЛЕМИТЕ ТУРНИРИ ПРИ SMARKETS (02.09.2026)
+        #
+        # Kambi беше поправен по-рано днес; Smarkets имаше СЪЩИЯ дефект от
+        # другата страна — `ceni_smarkets` питаше само двата закована
+        # parent_id. Измерено живо: дървото му държи 50 възела, между които
+        # «WTT Feeder Dusseldorf» с четири подкатегории. Champions Macao и
+        # Contender Панагюрище тръгват на 08.09 и щяха да минат покрай нас
+        # точно както Дюселдорф.
+        _gt_darvo = {"events": [
+            {"id": "41616225", "name": "Table Tennis", "parent_id": None},
+            {"id": "42932772", "name": "Czech Liga Pro",
+             "parent_id": "41616225"},
+            {"id": "44792813", "name": "TT Elite Series",
+             "parent_id": "41616225"},
+            {"id": "44931843", "name": "WTT Feeder Dusseldorf, MS",
+             "parent_id": "41616225"},
+            {"id": "99001", "name": "WTT Champions Macao",
+             "parent_id": "41616225"},
+            {"id": "99002", "name": "Europe Smash Sweden",
+             "parent_id": "41616225"},
+            {"id": "99003", "name": "Setka Cup", "parent_id": "41616225"},
+            {"id": "99004", "name": "Ukraine Win Cup",
+             "parent_id": "41616225"},
+            # 🔴 ВЪЗЕЛ-МАЧ, не турнир: родителят му е ЛИГА, не коренът.
+            # Без проверката за родител тук щеше да влезе като „турнир".
+            {"id": "99005", "name": "WTT Champions: Иван vs Петър",
+             "parent_id": "99001"},
+        ]}
+        _gt = golemi_turniri(lambda u: _gt_darvo)
+        _gt_id = {c for c, _n in _gt}
+        check("големите турнири се откриват", len(_gt) >= 3)
+        check("WTT Champions влиза", "99001" in _gt_id)
+        check("Europe Smash влиза", "99002" in _gt_id)
+        check("WTT Feeder влиза", "44931843" in _gt_id)
+        # 🔴 И ОБРАТНАТА ПОСОКА — какво НЕ бива да влиза:
+        check("закованата Czech Liga Pro НЕ се дублира",
+              "42932772" not in _gt_id)
+        check("закованата TT Elite НЕ се дублира",
+              "44792813" not in _gt_id)
+        check("дребните лиги НЕ влизат (Setka)", "99003" not in _gt_id)
+        check("дребните лиги НЕ влизат (Ukraine Win Cup)",
+              "99004" not in _gt_id)
+        check("ВЪЗЕЛ-МАЧ не се брои за турнир (родителят му е лига)",
+              "99005" not in _gt_id)
+        check("таванът се спазва", len(_gt) <= GOLEMI_TAVAN)
+        check("празно дърво не гърми", golemi_turniri(lambda u: None) == [])
+        check("боклук вместо дърво не гърми",
+              golemi_turniri(lambda u: {"events": [1, 2, "х"]}) == [])
 
         # ═══ 9б. НЕПОЗНАТАТА ЛИГА — самото пресяване
         check("свободният ключ е малки букви без шум",
