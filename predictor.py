@@ -2738,42 +2738,78 @@ FOOT_SLUGS = [
     ("chn.1", 5, "Супер лига, Китай"),              # 8 от 9
     ("usa.usl.1", 3, "USL Чемпиъншип"),             # 11 от 15
     ("usa.usl.l1", 3, "USL Лига 1"),                # 3 от 3
-    ("usa.nwsl", 4, "НУСЛ, жени"),
-    # ───── ДВАЙСЕТ И ШЕСТ НОВИ ЛИГИ (02.09.2026) ─────
-    #
-    # ESPN дава 218 футболни лиги; питахме за 64. От непитаните 157
-    # проверих кои имат мачове за 05-19.09: 40 лиги, 775 мача. Тук
-    # влизат САМО тези, за които каталогът на собственика има ред —
-    # доказателството стои до всяка. Другите 14 не влизат и защо е
-    # написано в бележката към кръпката (аматьорски квалификации,
-    # студентски футбол, приятелски, юноши, ненаименувани купи).
-    #
-    # Цена: +26 заявки. Измерено днес: 140 от 520 се харчат.
-    ("caf.champions", 6, "Шампионска лига на Африка"),        # RECURRING | CAF | CAF Champions League
-    ("caf.confed", 5, "Купа на конфедерациите, Африка"),      # RECURRING | CAF | CAF Confederation Cup
-    ("afc.champions", 6, "Шампионска лига на Азия"),          # RECURRING | AFC | AFC Champions League Elite
-    ("afc.cup", 5, "Шампионска лига на Азия 2"),              # RECURRING | AFC | AFC Champions League Two
-    ("concacaf.leagues.cup", 5, "Лигс Къп"),                  # RECURRING | CONCACAF/Leagues | Leagues Cup
-    ("concacaf.central.american.cup", 3, "Централноамериканска купа"), # RECURRING | CONCACAF | Champions Cup (семейството)
-    ("ita.coppa_italia", 7, "Копа Италия"),                   # RECURRING | Italy | Serie C; Serie D; Coppa Italia; Superc
-    ("por.taca.portugal", 5, "Купа на Португалия"),           # RECURRING | Portugal | ... Taca de Portugal ...
-    ("sco.cis", 5, "Купа на лигата, Шотландия"),              # RECURRING | Scotland | Scottish Cup; League Cup; Challenge
-    ("sco.challenge", 3, "Чалъндж Къп, Шотландия"),           # RECURRING | Scotland | ... Challenge Cup ...
-    ("eng.trophy", 3, "ЕФЛ Трофи"),                           # RECURRING | England | ... EFL Trophy ...
-    ("usa.open", 4, "Купа на САЩ"),                           # RECURRING | USA | ... US Open Cup ...
-    ("arg.3", 3, "Примера Б, Аржентина"),                     # RECURRING | Argentina | ... Primera B Metropolitana ...
-    ("arg.copa", 5, "Купа на Аржентина"),                     # RECURRING | Argentina | ... Copa Argentina ...
-    ("col.copa", 4, "Купа на Колумбия"),                      # RECURRING | Colombia | ... Copa Colombia ...
-    ("bol.1", 3, "Дивисион Професионал, Боливия"),            # RECURRING | Bolivia | Division Profesional; Copa Bolivia
-    ("bol.copa", 3, "Купа на Боливия"),                       # RECURRING | Bolivia | ... Copa Bolivia
-    ("slv.1", 3, "Примера дивисион, Салвадор"),               # RECURRING | El Salvador | Primera Division; Segunda Divisi
-    ("gua.1", 3, "Лига Насионал, Гватемала"),                 # RECURRING | Guatemala | Liga Nacional; Primera Division
-    ("hon.1", 3, "Лига Насионал, Хондурас"),                  # RECURRING | Honduras | Liga Nacional; Liga de Ascenso
-    ("crc.1", 3, "Примера дивисион, Коста Рика"),             # RECURRING | Costa Rica | Primera Division; Liga de Ascenso
-    ("rsa.1", 4, "Премиършип, Южна Африка"),                  # RECURRING | South Africa | Premiership; First Division; Ne
-    ("eng.w.1", 4, "Висша лига, жени"),                       # RECURRING | England | ... Women's Super League ...
-    ("esp.w.1", 4, "Лига Ф, жени"),                           # RECURRING | Spain | ... Liga F Women
-    ("fra.w.1", 4, "Премиер лига, жени, Франция"),            # RECURRING | France | ... Premiere Ligue Women
+    ("usa.nwsl", 4, "НУСЛ, жени"),
+
+    # ───── ДВАЙСЕТ И ШЕСТ НОВИ ЛИГИ (02.09.2026) ─────
+
+    #
+
+    # ESPN дава 218 футболни лиги; питахме за 64. От непитаните 157
+
+    # проверих кои имат мачове за 05-19.09: 40 лиги, 775 мача. Тук
+
+    # влизат САМО тези, за които каталогът на собственика има ред —
+
+    # доказателството стои до всяка. Другите 14 не влизат и защо е
+
+    # написано в бележката към кръпката (аматьорски квалификации,
+
+    # студентски футбол, приятелски, юноши, ненаименувани купи).
+
+    #
+
+    # Цена: +26 заявки. Измерено днес: 140 от 520 се харчат.
+
+    ("caf.champions", 6, "Шампионска лига на Африка"),        # RECURRING | CAF | CAF Champions League
+
+    ("caf.confed", 5, "Купа на конфедерациите, Африка"),      # RECURRING | CAF | CAF Confederation Cup
+
+    ("afc.champions", 6, "Шампионска лига на Азия"),          # RECURRING | AFC | AFC Champions League Elite
+
+    ("afc.cup", 5, "Шампионска лига на Азия 2"),              # RECURRING | AFC | AFC Champions League Two
+
+    ("concacaf.leagues.cup", 5, "Лигс Къп"),                  # RECURRING | CONCACAF/Leagues | Leagues Cup
+
+    ("concacaf.central.american.cup", 3, "Централноамериканска купа"), # RECURRING | CONCACAF | Champions Cup (семейството)
+
+    ("ita.coppa_italia", 7, "Копа Италия"),                   # RECURRING | Italy | Serie C; Serie D; Coppa Italia; Superc
+
+    ("por.taca.portugal", 5, "Купа на Португалия"),           # RECURRING | Portugal | ... Taca de Portugal ...
+
+    ("sco.cis", 5, "Купа на лигата, Шотландия"),              # RECURRING | Scotland | Scottish Cup; League Cup; Challenge
+
+    ("sco.challenge", 3, "Чалъндж Къп, Шотландия"),           # RECURRING | Scotland | ... Challenge Cup ...
+
+    ("eng.trophy", 3, "ЕФЛ Трофи"),                           # RECURRING | England | ... EFL Trophy ...
+
+    ("usa.open", 4, "Купа на САЩ"),                           # RECURRING | USA | ... US Open Cup ...
+
+    ("arg.3", 3, "Примера Б, Аржентина"),                     # RECURRING | Argentina | ... Primera B Metropolitana ...
+
+    ("arg.copa", 5, "Купа на Аржентина"),                     # RECURRING | Argentina | ... Copa Argentina ...
+
+    ("col.copa", 4, "Купа на Колумбия"),                      # RECURRING | Colombia | ... Copa Colombia ...
+
+    ("bol.1", 3, "Дивисион Професионал, Боливия"),            # RECURRING | Bolivia | Division Profesional; Copa Bolivia
+
+    ("bol.copa", 3, "Купа на Боливия"),                       # RECURRING | Bolivia | ... Copa Bolivia
+
+    ("slv.1", 3, "Примера дивисион, Салвадор"),               # RECURRING | El Salvador | Primera Division; Segunda Divisi
+
+    ("gua.1", 3, "Лига Насионал, Гватемала"),                 # RECURRING | Guatemala | Liga Nacional; Primera Division
+
+    ("hon.1", 3, "Лига Насионал, Хондурас"),                  # RECURRING | Honduras | Liga Nacional; Liga de Ascenso
+
+    ("crc.1", 3, "Примера дивисион, Коста Рика"),             # RECURRING | Costa Rica | Primera Division; Liga de Ascenso
+
+    ("rsa.1", 4, "Премиършип, Южна Африка"),                  # RECURRING | South Africa | Premiership; First Division; Ne
+
+    ("eng.w.1", 4, "Висша лига, жени"),                       # RECURRING | England | ... Women's Super League ...
+
+    ("esp.w.1", 4, "Лига Ф, жени"),                           # RECURRING | Spain | ... Liga F Women
+
+    ("fra.w.1", 4, "Премиер лига, жени, Франция"),            # RECURRING | France | ... Premiere Ligue Women
+
     ("ned.w.1", 3, "Ередивизи, жени"),                        # RECURRING | Netherlands | ... Women's Eredivisie                  # 2 от 2
 ]
 # По подразбиране НЕ реже — целият списък. Една заявка на лига на ден е евтино;
@@ -4229,9 +4265,21 @@ MMA_LEAGUES_VSI = [("ufc", 10, "UFC"), ("pfl", 6, "PFL"),
                    ("bellator", 5, "Bellator"), ("rizin", 4, "RIZIN"),
                    ("ksw", 3, "KSW"), ("lfa", 3, "LFA"),
                    ("cage-warriors", 2, "Cage Warriors")]
-_mma_want = [s.strip().lower()
-             for s in (os.environ.get("PREDICT_MMA_LIGI") or "").split(",") if s.strip()]
-MMA_LEAGUES = [x for x in MMA_LEAGUES_VSI if not _mma_want or x[0] in _mma_want]
+def mma_ligi(vsi, izbor):
+    """Лигите след рязането отвън. `izbor` е суровата PREDICT_MMA_LIGI.
+
+    Изнесено от вграден израз на 05.09.2026, за да може да се ПУСНЕ.
+    Дотук самопроверката броеше срещания на името на променливата в
+    собствения си файл — низ, който стоеше на нейния ред.
+
+    Празно или само запетаи значи «всичките»: липсваща ръчка не бива да
+    изключва спорт.
+    """
+    want = [s.strip().lower() for s in str(izbor or "").split(",") if s.strip()]
+    return [x for x in vsi if not want or x[0] in want]
+
+
+MMA_LEAGUES = mma_ligi(MMA_LEAGUES_VSI, os.environ.get("PREDICT_MMA_LIGI"))
 MMA_YEARS = 3
 MMA_ELO_K = 24.0
 MMA_P_MAX = 0.78        # мачмейкърите правят равностойни двойки; 90% = счупен модел
@@ -7510,6 +7558,27 @@ def nothing_card(now, seen, thin, weak):
 #
 # 🔴 ОТКРИВА СЕ, НЕ СЕ ИЗБРОЯВА. Списък с имена е ръчката, която някой
 # забравя при следващия модул.
+def zhiv_izvor():
+    """Изворът на ЖИВИЯ код: файлът МИНУС извора на самопроверката.
+
+    🔴 ЗАЩО СЪЩЕСТВУВА (05.09.2026). Проверка, която търси низ в
+    `open(__file__).read()`, държи иглата в собственото си копче сено —
+    литералът стои на НЕЙНИЯ ред и се намира сам. Такава проверка е зелена
+    дори ако живият код се изтрие изцяло; тя пази текста си, не кода.
+
+    Тук копчето сено се свива ПРЕДИ търсенето. Едно място, защото досега
+    това се пишеше на ръка при всяка проверка — и следващият, който
+    забрави, връщаше дефекта.
+    """
+    import inspect as _i
+    cyal = open(__file__, encoding="utf-8").read()
+    try:
+        test = _i.getsource(selftest)
+    except Exception:                                        # noqa: BLE001
+        return cyal
+    return cyal.replace(test, "") if test else cyal
+
+
 _SENTINELI = ("NEPITAN", "ZAPUSHENO", "OTLOZHEN")
 
 
@@ -10239,7 +10308,17 @@ def selftest():
     check("всяка лига има име за картата", all(x[2] for x in MMA_LEAGUES_VSI))
     check("няма повторена лига",
           len({x[0] for x in MMA_LEAGUES_VSI}) == len(MMA_LEAGUES_VSI))
-    check("списъкът се реже отвън", "PREDICT_MMA_LIGI" in open(__file__, encoding="utf-8").read())
+    # 🔴 ПУСКА СЕ, НЕ СЕ ЧЕТЕ (05.09.2026). Тук стоеше
+    # `"PREDICT_MMA_LIGI" in open(__file__).read()` — низ, който стои на
+    # реда на самата проверка, тоест тя не можеше да падне.
+    check("списъкът се реже отвън",
+          {x[0] for x in mma_ligi(MMA_LEAGUES_VSI, "ufc, pfl")} == {"ufc", "pfl"})
+    check("празната ръчка пуска ВСИЧКИТЕ",
+          len(mma_ligi(MMA_LEAGUES_VSI, "")) == len(MMA_LEAGUES_VSI)
+          and len(mma_ligi(MMA_LEAGUES_VSI, " , ")) == len(MMA_LEAGUES_VSI)
+          and len(mma_ligi(MMA_LEAGUES_VSI, None)) == len(MMA_LEAGUES_VSI))
+    check("непозната лига не вади нищо",
+          mma_ligi(MMA_LEAGUES_VSI, "няма-такава") == [])
     check("без променлива важат всичките", os.environ.get("PREDICT_MMA_LIGI")
           or len(MMA_LEAGUES) == len(MMA_LEAGUES_VSI))
     check("ONE и BKFC ги няма (ESPN връща 400)",
@@ -14171,11 +14250,46 @@ def selftest():
     check("причината се връща",
           ima_pazar({"pazar_cena": 2.0})[1] == "цена")
     check("правилото е ВКЛЮЧЕНО по подразбиране", ISKAM_PAZAR is True)
-    check("има път назад", "PREDICT_ISKAM_PAZAR" in open(__file__, encoding="utf-8").read())
-    # Портиерът трябва да е ВЪРЗАН в потока, не само написан.
-    _src = open(__file__, encoding="utf-8").read()
-    check("портиерът се вика в run()",
-          _src.count("ima_pazar(") >= 3 and "if ISKAM_PAZAR:" in _src)
+    # 🔴 КОПЧЕТО СЕНО Е ЖИВИЯТ КОД, НЕ ЦЕЛИЯТ ФАЙЛ (05.09.2026).
+    #
+    # Тук стоеше `_src.count("ima_pazar(") >= 3` върху ЦЕЛИЯ файл. Измерено:
+    # 40 срещания общо, от които 36 в самата самопроверка и само 4 в живия
+    # код. Тоест можеше да се изтрие ВСЯКО едно от четирите живи викания и
+    # проверката пак щеше да е зелена — тя пазеше собствения си текст.
+    #
+    # Същото важеше и за двата низови довода: `"if ISKAM_PAZAR:"` и
+    # `"PREDICT_ISKAM_PAZAR"` стоят БУКВАЛНО на редовете на проверките, а
+    # копчето сено беше целият файл — иглата се намираше сама.
+    import inspect as _insp3
+    _src_cyal = open(__file__, encoding="utf-8").read()
+    try:
+        _src_test = _insp3.getsource(selftest)
+    except Exception:                                        # noqa: BLE001
+        _src_test = ""
+    # живият код = файлът МИНУС извора на самопроверката
+    _src_zhiv = _src_cyal.replace(_src_test, "") if _src_test else _src_cyal
+    check("изворът на самопроверката се отдели", len(_src_test) > 5000)
+    check("има път назад (в ЖИВИЯ код)",
+          "PREDICT_ISKAM_PAZAR" in _src_zhiv)
+    # 🔴 БРОЯТ СЕ ИСТИНСКИ ВИКАНИЯ, НЕ СРЕЩАНИЯ НА НИЗА (05.09.2026).
+    # Измерено: от 4-те срещания в ЖИВИЯ код две са коментари и едно е
+    # самото `def`. Истинското викане е ЕДНО — праг 2 щеше да е зелен и
+    # след изтриването му.
+    _viknat = [_l for _l in _src_zhiv.split(chr(10))
+               if "ima_pazar(" in _l
+               and not _l.lstrip().startswith("#")
+               and not _l.lstrip().startswith("def ")]
+    check("портиерът се вика в живия поток, не само в теста", len(_viknat) >= 1)
+    check("и ключът му се чете живо", "if ISKAM_PAZAR:" in _src_zhiv)
+    # 🔴 И ПОВЕДЕНЧЕСКИ ОТГОРЕ: броенето на низове е последна инстанция.
+    check("портиерът НАИСТИНА реже без цена",
+          ima_pazar({"bucket": "football"})[0] is False)
+    check("и пуска с цена",
+          ima_pazar({"bucket": "football", "pazar_cena": 1.85})[0] is True)
+    # 🔴 `_src` ОСТАВА, НО ВЕЧЕ Е ЖИВИЯТ КОД. Проверката по-долу сравнява
+    # РЕДА на две неща в потока; върху целия файл тя щеше да мери и
+    # самопроверката, тоест пак себе си.
+    _src = _src_zhiv
     # 🔴 ПОВРЕДА ≠ ЛИПСА НА ПАЗАР. Портиерът трябва да се ОТВАРЯ при повреда,
     # иначе един капнал доставчик спира целия бот мълчаливо.
     _st_pin = globals().get("PIN")
@@ -14220,13 +14334,19 @@ def selftest():
     # 19.08.2026). „pazarat_otgovarya()" се съдържа и в реда `def
     # pazarat_otgovarya():` — тоест проверката минаваше дори когато махнах
     # ЕДИНСТВЕНОТО повикване в run(). Сега иглата е самият клон.
-    _s2 = open(__file__, encoding="utf-8").read()
+    # 🔴 КОПЧЕТО СЕНО Е ЖИВИЯТ КОД (05.09.2026). Дотук беше целият файл —
+    # а трите игли стоят БУКВАЛНО на редовете отдолу, тоест се намираха
+    # сами и проверките бяха зелени дори при изтрит поток.
+    _s2 = zhiv_izvor()
     check("отварянето при повреда е ВЪРЗАНО в потока",
           "elif not pazarat_otgovarya():" in _s2)
-    check("повикването е ВЪТРЕ в портиера",
-          _s2.find("if ISKAM_PAZAR:")
-          < _s2.find("elif not pazarat_otgovarya():")
-          < _s2.find("picks = choose("))
+    # 🔴 −1 ПРИ ЛИПСА Е КАПАН: `−1 < 5` е истина, тоест липсващо ПЪРВО
+    # място щеше да мине проверката за подредба. Затова първо: има ли ги.
+    _m1 = _s2.find("if ISKAM_PAZAR:")
+    _m2 = _s2.find("elif not pazarat_otgovarya():")
+    _m3 = _s2.find("picks = choose(")
+    check("трите места ги има в живия код", min(_m1, _m2, _m3) >= 0)
+    check("повикването е ВЪТРЕ в портиера", _m1 < _m2 < _m3)
 
     check("портиерът е ПРЕДИ подбора",
           _src.find("if ISKAM_PAZAR:") < _src.find("picks = choose("))
