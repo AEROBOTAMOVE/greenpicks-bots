@@ -196,7 +196,15 @@ def _tablo(liga, ot, do, vzemi=None):
     if k in _kesh:
         return _kesh[k]
     d = vz(ESPN + "/" + str(liga) + "/scoreboard?dates=" + ot + "-" + do)
-    _kesh[k] = d
+    # 🔴 КЕШЪТ НЕ ПОМНИ ПРОВАЛ. Дотук `_kesh[k] = d` пишеше и None —
+    # измерено: подложка, която мълчи ЕДИН път и после носи 100 събития,
+    # даваше None на втория, третия и петия опит, БЕЗ повторна заявка.
+    # Цената на живата дъска: един кратък провал на ESPN убива 6 от 7 карти
+    # на Топ 14, при това с ГРЕШНАТА причина — «няма история» вместо
+    # «изворът падна». Цената на поправката: най-много по една излишна
+    # заявка на страна в лошия ден.
+    if d is not None:
+        _kesh[k] = d
     return d
 
 
@@ -248,6 +256,59 @@ def _kogato(s):
     return d.replace(tzinfo=_dt.timezone.utc) if d.tzinfo is None else d
 
 
+# Лигата, в която името на отбора Е държава. Само там може да се съди за
+# неутрален терен по адреса на залата.
+TEST_LIGA = "289234"
+
+# 🔴 ЕДНА И СЪЩА ДЪРЖАВА ПОД ДВЕ ИМЕНА. Извадени от самите данни (304
+# тестови мача, 5 години): без този списък 15 ДОМАКИНСКИ мача щяха да
+# минат за неутрални, защото ESPN пише отбора и залата с различни имена.
+# Реюнион е отвъдморски департамент на Франция — терен на домакина.
+DARZHAVI_EDNO = (
+    {"czechia", "czech republic"},
+    {"bosnia herzegovina", "bosnia and herzegovina"},
+    {"turkey", "turkiye", "türkiye"},
+    {"serbia", "serbia and montenegro"},
+    {"korea republic", "korea", "south korea"},
+    {"saint lucia", "st lucia"},
+    {"france", "reunion"},
+    {"united states of america", "usa", "united states"},
+)
+
+
+def _ravni(a, b):
+    """Едно и също място ли са двете имена."""
+    def n(s):
+        s = str(s or "").lower().replace("&", " and ").replace("-", " ")
+        return " ".join(s.replace(".", "").split())
+    a, b = n(a), n(b)
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    return any(a in g and b in g for g in DARZHAVI_EDNO)
+
+
+def neutralen(ev, dom, liga):
+    """(неутрален_ли, знае_ли_се) за една среща.
+
+    🔴 `neutralSite` НЕ СЕ ЧЕТЕ: измерено, ESPN го дава False за всичките
+    304 тестови мача — включително за ЮАР — Нова Зеландия в Балтимор.
+    Мъртво поле, чието име обещава точно това, което не прави.
+
+    Съди се по държавата на залата (`venue.address.state`, където ESPN
+    пише държавата за международните зали). Липсва ли адресът — НЕ СЕ
+    ЗНАЕ, и това се казва, вместо да се приеме за домакинство.
+    """
+    if str(liga) != TEST_LIGA:
+        return False, True          # клубна лига: домакинът си е домакин
+    for c in ((ev or {}).get("competitions") or []):
+        st = ((c.get("venue") or {}).get("address") or {}).get("state")
+        if st:
+            return (not _ravni(dom, st)), True
+    return False, False             # адрес няма — не се знае
+
+
 def srechti(sega=None, chasove=None, ime=None, vzemi=None):
     """Насрочените ръгби срещи. NEPITAN = не можах да питам."""
     if not VKLYUCHENO:
@@ -278,6 +339,16 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
             w = _kogato(ev.get("date"))
             if w is None or not (sega <= w <= do):
                 continue
+            _neu, _znae = neutralen(ev, dom, lid)
+            if not _znae:
+                # 🔴 КАЗВА СЕ НА ГЛАС. 46 от 304 тестови мача нямат адрес на
+                # залата и НЕ МОГАТ да бъдат отсъдени от ESPN (пробвани са
+                # summary, core/events, core/competitions и картата
+                # зала→държава от собствените ни заявки: 0 от 51). Такъв мач
+                # получава домакинско предимство по подразбиране, а редът тук
+                # е единственият начин човек да разбере, че е предположение.
+                print("    \U0001f3c9 не знам чий е теренът: " + str(dom)
+                      + " — " + str(gost) + " (залата е без адрес)")
             out.append({
                 "bucket": NASH_KLYUCH, "emoji": EMOJI, "src": "ragbi",
                 "home": prevod(dom), "away": prevod(gost),
@@ -299,6 +370,9 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
                 "extra": {"home_en": dom, "away_en": gost, "slug": lid,
                           "liga_id": lid, "sigma": SIGMA,
                           "hca": home_tochki(lid),
+                          # На неутрален терен моделът маха предимството
+                          # изцяло — виж `predictor.model_amfootball`.
+                          "neutral": _neu,
                           "id": str(ev.get("id") or "")},
             })
     if not pitani:
@@ -368,6 +442,91 @@ def selftest():
 
     # ── константите: измерени, не отгатнати
     check("предимството на домакина е измереното", abs(HOME_TOCHKI - 7.5) < 0.01)
+
+    # ═══ КЕШЪТ НЕ ПОМНИ ПРОВАЛ (05.09.2026) ════════════════════════════
+    #
+    # 🔴 Измерено: подложка, която мълчи ЕДИН път и после носи истинските
+    # данни, връщаше None на втория, третия и петия опит — и мрежата НЕ се
+    # питаше пак. Един кратък провал на ESPN убиваше 6 от 7 карти на Топ 14
+    # за целия рън, и то с ГРЕШНАТА причина: «няма история» вместо «изворът
+    # падна».
+    _br = [0]
+
+    def _kapriz(otgovori):
+        """Мълчи първите `otgovori` пъти, после носи данни. Брои виканията."""
+        def vz(u, surovo=False):
+            _br[0] += 1
+            if _br[0] <= otgovori:
+                return None
+            return {"events": [{"id": "1", "date": "2026-09-06T12:00Z",
+                                "status": {"type": {"state": "pre"}},
+                                "competitions": [{"venue": {
+                                    "fullName": "З", "address": {"state": "France"}}}],
+                                "competitors": [
+                                    {"homeAway": "home", "score": None,
+                                     "team": {"displayName": "А", "id": "11"}},
+                                    {"homeAway": "away", "score": None,
+                                     "team": {"displayName": "Б", "id": "22"}}]}]}
+        return vz
+
+    nuliray()
+    _kesh.clear()
+    _br[0] = 0
+    _vz_k = _kapriz(1)
+    _p1 = _tablo("270559", "20260905", "20260912", _vz_k)
+    _p2 = _tablo("270559", "20260905", "20260912", _vz_k)
+    check("първият опит пада", _p1 is None)
+    check("ВТОРИЯТ опит пита пак (кешът не помни провала)", _br[0] == 2)
+    check("и вторият опит вече носи данни", isinstance(_p2, dict))
+    _p3 = _tablo("270559", "20260905", "20260912", _vz_k)
+    check("а успехът СЕ кешира (третият не пита)", _br[0] == 2 and _p3 is _p2)
+    _kesh.clear()
+    nuliray()
+
+    # ═══ НЕУТРАЛНИЯТ ТЕРЕН (05.09.2026) ════════════════════════════════
+    #
+    # 🔴 `neutralSite` НЕ СЕ ЧЕТЕ — измерено, ESPN го дава False за
+    # всичките 304 тестови мача, включително ЮАР — Нова Зеландия в
+    # Балтимор. Поле, чието име обещава точно това, което не прави.
+    def _ev(state, neutral_pole=False):
+        c = {"competitors": [], "neutralSite": neutral_pole}
+        if state is not None:
+            c["venue"] = {"fullName": "З", "address": {"state": state}}
+        else:
+            c["venue"] = {"fullName": "З"}
+        return {"competitions": [c]}
+
+    check("зала в чужда държава → неутрален",
+          neutralen(_ev("England"), "South Africa", TEST_LIGA) == (True, True))
+    check("зала в своята държава → домакински",
+          neutralen(_ev("South Africa"), "South Africa", TEST_LIGA) == (False, True))
+    check("без адрес → НЕ СЕ ЗНАЕ (и се казва)",
+          neutralen(_ev(None), "South Africa", TEST_LIGA) == (False, False))
+    # 🔴 И ЧЕ МЪРТВОТО ПОЛЕ НАИСТИНА НЕ СЕ ЧЕТЕ:
+    check("neutralSite=True не прави мача неутрален сам по себе си",
+          neutralen(_ev("South Africa", True), "South Africa",
+                    TEST_LIGA) == (False, True))
+    # ── клубните лиги НЕ минават през правилото: там името е клуб, не държава
+    check("клубна лига не се съди по адрес",
+          neutralen(_ev("France"), "Toulon", "270559") == (False, True))
+    check("клубна лига без адрес също не се обажда",
+          neutralen(_ev(None), "Toulon", "270559") == (False, True))
+
+    # ── псевдонимите: без тях 15 домакински мача стават «неутрални»
+    for _a, _b in (("Czechia", "Czech Republic"),
+                   ("Bosnia-Herzegovina", "Bosnia and Herzegovina"),
+                   ("Turkey", "Türkiye"), ("Korea Republic", "Korea"),
+                   ("Saint Lucia", "St Lucia"), ("France", "Reunion"),
+                   ("Serbia", "Serbia and Montenegro")):
+        check("едно място под две имена: %s = %s" % (_a, _b),
+              neutralen(_ev(_b), _a, TEST_LIGA) == (False, True))
+    # ── и обратната посока: истински различните ОСТАВАТ различни
+    for _a, _b in (("Kenya", "Uganda"), ("Croatia", "Serbia and Montenegro"),
+                   ("Portugal", "Arabian Gulf"), ("Ireland", "France")):
+        check("наистина различни остават различни: %s ≠ %s" % (_a, _b),
+              neutralen(_ev(_b), _a, TEST_LIGA) == (True, True))
+    check("празно име не обявява неутралност",
+          neutralen(_ev(""), "South Africa", TEST_LIGA) == (False, False))
     # 🔴 И ЧЕ СТИГА ДО СРЕЩИТЕ. Горният ред пази само СТОЙНОСТТА — той беше
     # верен цяла седмица, докато числото беше мъртва ръчка и ръгбито смяташе
     # с 2.0 (числото на американския футбол). Цената, мерена живо: в 3 от 13
@@ -476,6 +635,13 @@ def selftest():
     check("срещите носят hca", all("hca" in (x.get("extra") or {}) for x in r))
     check("hca е число, не низ",
           all(isinstance((x["extra"]).get("hca"), float) for x in r))
+    # 🔴 И `neutral` — иначе `neutralen()` е права функция, която никой
+    # не вика. Мутация «ключът се преименува» оцеля, докато тази проверка я
+    # нямаше: изпитвах ФУНКЦИЯТА, не пътя ѝ до среща.
+    check("срещите носят neutral",
+          all("neutral" in (x.get("extra") or {}) for x in r))
+    check("neutral е булево, не низ",
+          all(isinstance((x["extra"]).get("neutral"), bool) for x in r))
     # 🔴 И В `extra` — ОТТАМ ГО ЧЕТЕ `log_pick` (05.09.2026).
     # Само горното ниво не стигаше до дневника: измерено живо, всяка
     # ръгби карта влизаше със slug=None. Цената НЕ беше «картата виси» —
