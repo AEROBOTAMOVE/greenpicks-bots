@@ -248,7 +248,14 @@ jobs:
           #   PREDICT_ESPORT_MAX    същото за електронните спортове.
           #   PREDICT_STAYA_REZHIM  pak (както днес) · kratko (един ред в
           #                         стаята на спорта) · bez (само в канала)
-          PREDICT_IZKL: ${{ vars.PREDICT_IZKL || 'hockey,amfootball' }}
+          # 🔴 ЕДНА ИСТИНА ЗА ТРИТЕ ФАЙЛА (02.09.2026). Дотук predict.yml казваше
+          # 'hockey', daily.yml 'hockey', а router.yml 'hockey,amfootball' — тоест
+          # ботът се държеше различно според това КОЙ го е събудил, и амер.
+          # футбол, отворен същия ден, падаше при рутера. Един ключ с три
+          # стойности е три различни бота.
+          # Празно = нищо не се изключва. Хокеят вече има извор (evrohokey.py),
+          # амер. футбол също. ПЪТ НАЗАД: PREDICT_IZKL=hockey,amfootball.
+          PREDICT_IZKL: ${{ vars.PREDICT_IZKL || '' }}
           PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '0' }}
           PREDICT_BOKS_MAX: ${{ vars.PREDICT_BOKS_MAX || '0' }}
           # 🎮 ЕСПОРТЪТ СЕ БУДИ — САМО CS2 (01.09.2026).
