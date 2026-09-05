@@ -341,12 +341,21 @@ def tablica(liga, sega=None, vzemi=None):
     liga = str(liga or "").lower()
     if liga in _kesh_tab:
         return _kesh_tab[liga]
+    # 🔴 БРОИ СЕ ОТГОВОРЪТ, НЕ ПРОВАЛЪТ. Първата ми версия сравняваше
+    # `broi_provali()` преди и след — но онзи брояч се вдига САМО от
+    # `_vzemi`. Подаден отвън четец (тест или бъдещ извор) не минава през
+    # него и пазачът оставаше сляп. Мярката трябва да е МЕСТНА: отговорил
+    # ли е поне един източник ПРИ ТОЗИ ИЗГРАД. Същият шаблон като `pitani`
+    # при срещите.
+    otgovori = 0
     tab = {}
     if liga == "liiga":
         tek = _liiga_sezon(sega)
         # ДВА сезона: миналият пълен носи тежестта, тазгодишният — свежестта.
         for sez in (tek - 1, tek):
             d = liiga_surovo(sez, vzemi)
+            if d is not None:
+                otgovori += 1
             for x in (d or []):
                 if not x.get("ended"):
                     continue
@@ -365,6 +374,8 @@ def tablica(liga, sega=None, vzemi=None):
         vz = vzemi if callable(vzemi) else _vzemi
         for hsh in hh:
             d = vz(CHL_URL % hsh)
+            if d is not None:
+                otgovori += 1
             m = d if isinstance(d, list) else []
             if not m and isinstance(d, dict):
                 for k in d:
@@ -379,7 +390,17 @@ def tablica(liga, sega=None, vzemi=None):
                     dobavi_mach(tab, *p)
     # Тънките отбори падат — виж MIN_MACHOVE и защо е точно 5.
     tab = {k: v for k, v in tab.items() if v["gp"] >= MIN_MACHOVE}
-    _kesh_tab[liga] = tab
+    # 🔴 ПРАЗНОТА, РОДЕНА ОТ ПРОВАЛ, НЕ СЕ КЕШИРА. Дотук редът беше гол и
+    # помнеше и `{}` — измерено: подложка, която мълчи веднъж и после
+    # отговаря, връщаше празно и на втория, и на третия опит, БЕЗ нова
+    # заявка. `model_hockey` при празна таблица връща None, тоест всичките
+    # карти на спорта падаха за целия рън с причина «няма история», докато
+    # истината беше «изворът падна».
+    #
+    # Празна таблица в НАЧАЛОТО НА СЕЗОН е честна нула и СЕ кешира — затова
+    # се гледа дали ПОНЕ ЕДИН източник е отговорил, а не самата празнота.
+    if tab or otgovori:
+        _kesh_tab[liga] = tab
     return tab
 
 
@@ -1176,6 +1197,57 @@ def selftest():
           _r_o3 is NEPITAN or len(_r_o3) == 0)
     check("белият списък е точно едно състояние",
           CHL_PREDSTOYASHTI == {"not-started"})
+    nuliray()
+
+    # ═══ ТАБЛИЦАТА НЕ КЕШИРА ПРОВАЛ (05.09.2026) ═══════════════════
+    #
+    # 🔴 Измерено: подложка, която мълчи ВЕДНЪЖ и после отговаря, връщаше
+    # празна таблица и на втория, и на третия опит, БЕЗ нова заявка.
+    # `predictor.model_hockey` при празна таблица връща None — тоест
+    # всичките карти на спорта падаха за целия рън с причина «няма
+    # история», докато истината беше «изворът падна».
+    # 🔴 МЪЛЧИ ПО КЛЮЧ, НЕ ПО БРОЙ. Първата ми версия мълчеше първите N
+    # заявки — но `tablica` прави ШЕСТ (три турнира по два сезона) и
+    # подложката проговаряше по средата на СЪЩИЯ опит. Тестът мереше
+    # собственото си броене, не поведението на кеша.
+    _tb_br = [0]
+    _tb_nem = [True]
+
+    def _tb_kapriz(_unused=0):
+        def vz(u, surovo=False):
+            _tb_br[0] += 1
+            if _tb_nem[0]:
+                return None
+            if surovo:
+                return "x" + CHL_PREFIX + "b" * 24 + ".json"
+            return [{"ended": True, "id": 100 + k,
+                     "start": "2026-01-%02dT12:00:00Z" % (k + 1),
+                     "homeTeamName": "Аа" if k % 2 else "Бб",
+                     "awayTeamName": "Бб" if k % 2 else "Аа",
+                     "homeTeamGoals": 3, "awayTeamGoals": 2} for k in range(12)]
+        return vz
+
+    nuliray()
+    _kesh_tab.clear()
+    _tb_br[0] = 0
+    _tb_nem[0] = True
+    _t1 = tablica("liiga", _sega, _tb_kapriz())
+    check("първата таблица е празна (изворът мълчи)", _t1 == {})
+    check("и НЕ Е кеширана", "liiga" not in _kesh_tab)
+    _tb_nem[0] = False
+    _t2 = tablica("liiga", _sega, _tb_kapriz())
+    check("вторият опит пита пак и намира отбори", len(_t2) >= 2)
+    check("а успехът СЕ кешира", _kesh_tab.get("liiga") == _t2)
+    _kesh_tab.clear()
+    nuliray()
+
+    # 🔴 И ЧЕСТНАТА ПРАЗНОТА СЕ КЕШИРА. Празна таблица в началото на сезон
+    # НЕ е повреда — тя не бива да струва нови заявки всеки път. Затова се
+    # сравнява броячът на провалите, а не самата празнота.
+    _t3 = tablica("liiga", _sega, lambda u, surovo=False: [])
+    check("отговор с празен списък дава празна таблица", _t3 == {})
+    check("но ТЯ Е кеширана (честна нула, не повреда)", "liiga" in _kesh_tab)
+    _kesh_tab.clear()
     nuliray()
 
     # ── нула мрежа в цялата самопроверка
