@@ -1222,6 +1222,54 @@ def glavi_za(url, headers=None):
     return hd
 
 
+# 🔴 МОДУЛИТЕ СЪС СВОЙ ЧЕТЕЦ (05.09.2026). Техните заявки не минават през
+# `http_bytes`, значи не вдигаха `_http_used` — нито в отчета, нито в
+# пазача на бюджета. Измерено в пълен рън: обявени 172, истински 201.
+#
+# Списъкът се събира по НАЛИЧИЕ на `broi_zayavki`, а не поименно: изброен
+# списък е точно ръчката, която някой забравя да допълни.
+_vunshni_predi = [0]
+
+
+def _vunshni_moduli():
+    """Заредените модули, които сами броят заявките си.
+
+    🔴 ОТКРИВАТ СЕ, НЕ СЕ ИЗБРОЯВАТ. Първата ми версия държеше списък
+    с имена — точно ръчката, която някой забравя да допълни при следващия
+    модул. Тук се обхождат заредените модули и се взимат онези, които имат
+    `broi_zayavki`. Нов извор със свой четец влиза сам.
+    """
+    import types as _t
+    out, vid = [], set()
+    for v in list(globals().values()):
+        if not isinstance(v, _t.ModuleType) or id(v) in vid:
+            continue
+        if callable(getattr(v, "broi_zayavki", None)):
+            vid.add(id(v))
+            out.append(v)
+    return out
+
+
+def sveri_vunshnite():
+    """Прибавя новите чужди заявки към общия брояч. Връща колко са добавени.
+
+    Вика се след всеки спорт и преди отчета. Разликата се пази, за да не
+    се брои два пъти.
+    """
+    sega = 0
+    for m in _vunshni_moduli():
+        try:
+            sega += int(m.broi_zayavki() or 0)
+        except Exception:                                    # noqa: BLE001
+            pass
+    delta = sega - _vunshni_predi[0]
+    if delta > 0:
+        _http_used[0] += delta
+        _vunshni_predi[0] = sega
+        return delta
+    return 0
+
+
 def http_bytes(url, headers=None, timeout=30):
     """Една заявка навън, с таван, пауза и разсгъстяване. Хвърля при провал."""
     if _http_used[0] >= HTTP_BUDGET:
@@ -3386,6 +3434,21 @@ def _rate(num, den, fallback):
     return (num / den) if den and den > 0 else fallback
 
 
+def _s_ograda(steg, stoynost):
+    """Числото, а при опряло в оградата — със знак за граница.
+
+    ≥ значи «толкова или повече», ≤ значи «толкова или по-малко». Пише се
+    само когато сметката НАИСТИНА е опряла, за да не свикне окото със знак,
+    който винаги стои.
+    """
+    s = one(stoynost)
+    if steg == 1:
+        return "≥" + s
+    if steg == -1:
+        return "≤" + s
+    return s
+
+
 def model_hockey(fx):
     # 🏒 ТАБЛИЦАТА СЕ ИЗБИРА ПО ЛИГАТА (02.09.2026). Сметките отдолу НЕ се
     # пипат: `evrohokey.tablica()` връща ТОЧНО формата на `nhl_table()`
@@ -3423,8 +3486,17 @@ def model_hockey(fx):
     def_a = _rate(a["rga"], a["rgp"], _rate(a["ga"], a["gp"], lvl)) / lvl
     att_a = _rate(a["rgf"], a["rgp"], _rate(a["gf"], a["gp"], lvl)) / lvl
     def_h = _rate(h["hga"], h["hgp"], _rate(h["ga"], h["gp"], lvl)) / lvl
-    lam_h = clampf(lvl * att_h * def_a, 1.4, 5.5)
-    lam_a = clampf(lvl * att_a * def_h, 1.4, 5.5)
+    _syr_h = lvl * att_h * def_a
+    _syr_a = lvl * att_a * def_h
+    lam_h = clampf(_syr_h, 1.4, 5.5)
+    lam_a = clampf(_syr_a, 1.4, 5.5)
+    # 🔴 ОГРАДАТА СЕ ЗАПОМНЯ, ЗА ДА НЕ СЕ ПЕЧАТА КАТО ИЗМЕРВАНЕ. Суровият
+    # максимум в Шампионската лига е 10.07 гола — счупена оценка от тънка
+    # таблица, която ТРЯБВА да се реже. Но картата казваше «Очаквани голове
+    # 5.5 : 1.4» с вид на сметка, а това са два тавана. Измерено живо: 4 от
+    # 60 ламбди на предстоящите срещи опират в оградата (6.7%).
+    _steg_h = -1 if _syr_h < 1.4 else (1 if _syr_h > 5.5 else 0)
+    _steg_a = -1 if _syr_a < 1.4 else (1 if _syr_a > 5.5 else 0)
     mk = matrix_markets(score_matrix(lam_h, lam_a, rho=0.0))
     # В хокея НЯМА равен. Продълженията и наказателните удари са близо до монета,
     # затова делим масата на равенството наполовина и го казваме на глас.
@@ -3439,6 +3511,12 @@ def model_hockey(fx):
     return {"p_home": ph, "p_away": 1.0 - ph, "lam_h": lam_h, "lam_a": lam_a,
             "total": tot, "p_over55": p_over, "gp_h": h["gp"], "gp_a": a["gp"],
             "p_draw_reg": mk["p_draw"],
+            # 🔴 ФЛАГЪТ ВЛИЗА ТУК, В ВЪРНАТИЯ речник. Първо го сложих на
+            # `mk` — междинния — и той се губеше безшумно: картата пак
+            # печаташе тавана като измерване, а проверката ми показа «0
+            # опрели», докато три живи мача опираха. Единайсети път в този
+            # проект: построено и невързано.
+            "stegnat_h": _steg_h, "stegnat_a": _steg_a,
             "hgf": _rate(h["hgf"], h["hgp"], lvl), "hga": _rate(h["hga"], h["hgp"], lvl),
             "agf": _rate(a["rgf"], a["rgp"], lvl), "aga": _rate(a["rga"], a["rgp"], lvl)}
 
@@ -6448,7 +6526,12 @@ def analyse(fx, ctx):
         strength = strength_binary(m["p_home"])
         # Опашката „· над 5.5" беше махната оттук: тя дублираше новия трети ред
         # в 588 от 992 карти. Едно и също число два пъти на една карта.
-        second = "Очаквани голове " + one(m["lam_h"]) + " : " + one(m["lam_a"])
+        # 🔴 ТАВАНЪТ СЕ ПИШЕ КАТО ТАВАН. Опре ли ламбдата в оградата
+        # (1.4–5.5), числото НЕ е измерване, а граница — а картата го
+        # обявяваше еднакво и в двата случая. Измерено: 4 от 60 ламбди на
+        # живите срещи опират. Знакът е фактът; обяснение няма.
+        second = ("Очаквани голове " + _s_ograda(m.get("stegnat_h"), m["lam_h"])
+                  + " : " + _s_ograda(m.get("stegnat_a"), m["lam_a"]))
         third = hockey_goals_line(m.get("lam_h"), m.get("lam_a"))
         why = [home + " у дома: " + one(m["hgf"], 2) + " вкарани и " + one(m["hga"], 2)
                + " допуснати гола за мач",
@@ -6483,8 +6566,19 @@ def analyse(fx, ctx):
                + " точки за мач (" + str(m["sh"]["n"]) + " мача)",
                away + ": " + one(m["sa"]["gf"]) + " : " + one(m["sa"]["ga"])
                + " точки за мач (" + str(m["sa"]["n"]) + " мача)"]
-        n_eff = min(m["sh"]["w"], m["sa"]["w"])
-        sample = "точки за и против"
+        # 🔴 СЪЩАТА СМЕТКА КАТО АМЕР. ФУТБОЛ (05.09.2026). Двата клона
+        # викат ЕДИН И СЪЩ `model_amfootball`; разликата тук беше `min`
+        # срещу сбор — без нито ред обяснение, докато волейболът, който
+        # също ползва `min`, си го обяснява («тънка кошница»).
+        #
+        # Цената: при еднакви входове ръгбито влизаше в подредбата с около
+        # 1000 точки по-малко от идентична карта на амер. футбол, при таван
+        # 9 карти на рън — тоест в спорен ден ръгбито не влизаше ИЗОБЩО.
+        #
+        # И надписът за извадката беше закован низ без числа, докато всички
+        # останали спортове казват КОЛКО мача стоят зад картата.
+        n_eff = m["sh"]["w"] + m["sa"]["w"]
+        sample = samp(m["sh"]["n"], m["sa"]["n"])
         tot = {"line": None, "over": None, "total": m.get("total")}
 
     elif b == "amfootball":
@@ -7444,6 +7538,10 @@ def collect_all(now):
         # един спорт мълчи. Три спорта не дадоха карта НИТО ВЕДНЪЖ и никой не
         # разбра, защото числото живееше само в един изчезващ дневник.
         # Затова цифрите се записват във файл, който се връща в хранилището.
+        # 🔴 ЧУЖДИТЕ ЗАЯВКИ СЕ ПРИБАВЯТ ТУК, преди да се сметне разходът на
+        # спорта — инак еврохокеят и ръгбито излизаха с «0 заявки», а
+        # бюджетът се харчеше невидимо.
+        sveri_vunshnite()
         DIAG[b] = {"suredi": len(rows), "surovi": n_all,
                    "zapochnali": gone, "daleche": far,
                    "zaqvki": _http_used[0] - _zp,
@@ -9419,11 +9517,20 @@ def run():
     if maybe_footer(state, now, seen, thin, weak):
         sent += 1
     persist(state, now)
-    # 🔴 ЗАЯВКИТЕ НА МАЛКИЯ ТУР СА НЕВИДИМИ ЗА БРОЯЧА НА БОТА (19.08.2026).
-    # itf.py звъни със СВОЙ urllib, не през http_json — значи _http_used не го
-    # брои и числото „177 заявки" по-долу е по-малко от истината. Бюджетът на
-    # тениса е „да не яде над 40"; число, което никой не вижда, не може да бъде
-    # оспорено. Затова се печата отделно, а не се слива с чуждия сбор.
+    # 🔴 ЧУЖДИТЕ ЗАЯВКИ СЕ ПРИБАВЯТ ПРЕДИ ОТЧЕТА (05.09.2026). Цените
+    # се теглят СЛЕД събирането на срещите, значи сверката в `collect_all`
+    # не ги хваща. Без този ред числото по-долу пак щеше да е по-малко от
+    # истината — измерено в пълен рън: обявени 172, истински 201.
+    sveri_vunshnite()
+
+    # 🟢 ПОПРАВЕНО 05.09.2026. Дотук тук пишеше, че заявките на малкия
+    # тур са НЕВИДИМИ за брояча — вярно беше от 19.08 до днес. Вече не е:
+    # `sveri_vunshnite()` прибавя всичките шест модула със свой четец
+    # (pinnacle, ragbi, evrohokey, volley_evro, itf, azia) към `_http_used`,
+    # тоест и към пазача на бюджета, не само към отчета.
+    #
+    # Редът долу ОСТАВА, защото казва друго: тенисът има СВОЙ таван от 40
+    # заявки, а общият брояч не го разграничава.
     if ITF is not None:
         try:
             print("   🎾 малкият тур изяде " + str(ITF.broi_zayavki())
@@ -10280,6 +10387,145 @@ def selftest():
             pass
     check("стая 4 е разрешена за фишовете", PICKS_THREAD in ALLOWED_THREADS)
 
+    # ═══ ОГРАДАТА СТИГА ДО САМАТА КАРТА (05.09.2026) ══════════════════
+    #
+    # 🔴 ИЗПИТВА СЕ ПЪТЯТ, НЕ ФУНКЦИЯТА. По-горе проверявам `_s_ograda` и
+    # флага на модела — и двете работеха, докато мутация «оградата пак се
+    # пише като измерване» ОЦЕЛЯ: нищо не пазеше реда на картата. Днес
+    # този шаблон ме хвана три пъти.
+    def _hok_kraen(gf, ga):
+        return {"Х": {"gp": 40, "gf": gf * 40, "ga": 80, "hgp": 20,
+                      "hgf": gf * 20, "hga": 40, "rgp": 20, "rgf": gf * 20,
+                      "rga": 40},
+                "Г": {"gp": 40, "gf": 80, "ga": ga * 40, "hgp": 20,
+                      "hgf": 40, "hga": ga * 20, "rgp": 20, "rgf": 40,
+                      "rga": ga * 20}}
+
+    _og_fx = {"bucket": "hockey", "emoji": "🏒", "home": "Х", "away": "Г",
+              "home_id": "Х", "away_id": "Г", "league": "Проба", "weight": 5,
+              "when": datetime.now(SOFIA) + timedelta(hours=6), "extra": {}}
+    _st_nhl4 = globals().get("nhl_table")
+    try:
+        globals()["nhl_table"] = lambda: _hok_kraen(9, 9)   # опира ГОРЕ
+        _og_a = analyse(_og_fx, {"now": datetime.now(SOFIA), "lvl": 1.35})[0]
+        globals()["nhl_table"] = lambda: _hok_kraen(3, 3)   # НЕ опира
+        _og_b = analyse(_og_fx, {"now": datetime.now(SOFIA), "lvl": 1.35})[0]
+    finally:
+        globals()["nhl_table"] = _st_nhl4
+    check("подставката е върната", globals()["nhl_table"] is _st_nhl4)
+    check("картата се строи и в двата случая", bool(_og_a) and bool(_og_b))
+    check("🔴 опрялата карта НОСИ знака за граница",
+          "≥" in str(_og_a.get("second") or "")
+          or "≤" in str(_og_a.get("second") or ""))
+    check("а неопрялата НЕ носи знак",
+          "≥" not in str(_og_b.get("second") or "")
+          and "≤" not in str(_og_b.get("second") or ""))
+    check("и двете си остават «Очаквани голове»",
+          str(_og_a.get("second") or "").startswith("Очаквани голове")
+          and str(_og_b.get("second") or "").startswith("Очаквани голове"))
+
+    # ═══ ОГРАДАТА СЕ ПИШЕ КАТО ОГРАДА (05.09.2026) ════════════════════
+    #
+    # 🔴 `lam` минава през clampf(1.4, 5.5), а картата печаташе резултата
+    # еднакво — «Очаквани голове 5.5 : 1.4» с вид на сметка, докато това са
+    # два тавана. Измерено живо: 3 от 30 сметими европейски хокейни срещи
+    # опират в оградата.
+    #
+    # 🔴 И ЕДИН МОЙ ПРОПУСК, ЗАПИСАН ТУК: първо сложих флага на междинния
+    # речник `mk`, който НЕ СЕ ВРЪЩА — и той изчезваше безшумно. Затова
+    # проверката долу вика model_hockey и чете ВЪРНАТОТО, а не вътрешности.
+    def _hok_dva(gf_h, ga_a):
+        """Таблица с два отбора, нагласена да опре (или не) в оградата."""
+        return {"Х": {"gp": 40, "gf": gf_h * 40, "ga": 40 * 2, "hgp": 20,
+                      "hgf": gf_h * 20, "hga": 40, "rgp": 20,
+                      "rgf": gf_h * 20, "rga": 40},
+                "Г": {"gp": 40, "gf": 40 * 2, "ga": ga_a * 40, "hgp": 20,
+                      "hgf": 40, "hga": ga_a * 20, "rgp": 20, "rgf": 40,
+                      "rga": ga_a * 20}}
+
+    _st_nhl3 = globals().get("nhl_table")
+    try:
+        globals()["nhl_table"] = lambda: _hok_dva(9, 9)     # нарочно високо
+        _m_gore = model_hockey({"home_id": "Х", "away_id": "Г", "extra": {}})
+        globals()["nhl_table"] = lambda: _hok_dva(1, 1)     # нарочно ниско
+        _m_dolu = model_hockey({"home_id": "Х", "away_id": "Г", "extra": {}})
+        globals()["nhl_table"] = lambda: _hok_dva(3, 3)     # по средата
+        _m_sred = model_hockey({"home_id": "Х", "away_id": "Г", "extra": {}})
+    finally:
+        globals()["nhl_table"] = _st_nhl3
+    check("подставката е върната", globals()["nhl_table"] is _st_nhl3)
+    check("моделът ВРЪЩА флага за оградата",
+          _m_sred is not None and "stegnat_h" in _m_sred)
+    check("опряло ГОРЕ се отбелязва", _m_gore["stegnat_h"] == 1)
+    check("опряло ДОЛУ се отбелязва", _m_dolu["stegnat_h"] == -1)
+    check("неопрялото НЕ се отбелязва", _m_sred["stegnat_h"] == 0)
+    check("и ламбдата наистина е на оградата",
+          abs(_m_gore["lam_h"] - 5.5) < 1e-9 and abs(_m_dolu["lam_h"] - 1.4) < 1e-9)
+    check("а средната не е", 1.4 < _m_sred["lam_h"] < 5.5)
+    # ── и самият надпис
+    check("горната ограда се пише със знак", _s_ograda(1, 5.5).startswith("≥"))
+    check("долната ограда се пише със знак", _s_ograda(-1, 1.4).startswith("≤"))
+    check("нормалното число е БЕЗ знак",
+          not _s_ograda(0, 3.2).startswith(("≥", "≤")))
+    check("липсващият флаг не слага знак",
+          not _s_ograda(None, 3.2).startswith(("≥", "≤")))
+
+    # ═══ ЧУЖДИТЕ ЗАЯВКИ ВЛИЗАТ В БРОЯЧА (05.09.2026) ══════════════════
+    #
+    # 🔴 ИЗМЕРЕНО В ПЪЛЕН ЖИВ РЪН: ботът обяви 172 заявки, а шестте модула
+    # със свой четец бяха направили още 52 (pinnacle 17, evrohokey 22,
+    # ragbi 7, azia 3, itf 2, volley_evro 1). Истината е 224 при бюджет 320.
+    #
+    # Това НЕ Е само разкрасяване на отчета: `http_bytes` спира при
+    # `_http_used >= HTTP_BUDGET`. Сляп за 16% от бюджета, пазачът пуска
+    # бота към 429 от чужд сървър, докато собственият му уред показва запас.
+    _mod_star = sys.modules.get("_proba_broyach")
+    try:
+        import types as _types
+        _pm = _types.ModuleType("_proba_broyach")
+        _pm.broi = [0]
+        _pm.broi_zayavki = lambda: _pm.broi[0]
+        globals()["_PROBA_BROYACH"] = _pm
+        _otkriti = _vunshni_moduli()
+        check("модул със свой брояч се ОТКРИВА (не се изброява)",
+              _pm in _otkriti)
+        check("и истинските шест също са там", len(_otkriti) >= 2)
+        # 🔴 ПОВЕДЕНЧЕСКИ: вдига се чуждият брояч и се гледа общият.
+        _u0 = _http_used[0]
+        _vunshni_predi[0] = 0
+        for _m in _otkriti:
+            try:
+                _vunshni_predi[0] += int(_m.broi_zayavki() or 0)
+            except Exception:                                # noqa: BLE001
+                pass
+        _pm.broi[0] = 5
+        _dob = sveri_vunshnite()
+        check("чуждите 5 заявки СЕ прибавят", _dob == 5)
+        check("и общият брояч ги носи", _http_used[0] == _u0 + 5)
+        # ── и НЕ се броят два пъти
+        _u1 = _http_used[0]
+        check("повторната сверка не добавя нищо", sveri_vunshnite() == 0)
+        check("броячът стои", _http_used[0] == _u1)
+        # ── а нови заявки се добавят
+        _pm.broi[0] = 9
+        check("нови чужди заявки се добавят", sveri_vunshnite() == 4)
+        check("и общият пак ги носи", _http_used[0] == _u1 + 4)
+        # ── модул, който гърми, не сваля рън
+        _pm.broi_zayavki = lambda: 1 / 0
+        check("гърмящ брояч не спира сверката",
+              isinstance(sveri_vunshnite(), int))
+        # ── модул БЕЗ брояч не влиза
+        _pm2 = _types.ModuleType("_proba_bez")
+        globals()["_PROBA_BEZ"] = _pm2
+        check("модул без брояч не се брои", _pm2 not in _vunshni_moduli())
+    finally:
+        globals().pop("_PROBA_BROYACH", None)
+        globals().pop("_PROBA_BEZ", None)
+        if _mod_star is not None:
+            sys.modules["_proba_broyach"] = _mod_star
+    check("подставките са махнати",
+          "_PROBA_BROYACH" not in globals() and "_PROBA_BEZ" not in globals())
+
     # ═══ НИВОТО СЕ ПРЕТЕГЛЯ ПО МАЧОВЕ (05.09.2026) ════════════════════
     #
     # 🔴 Дотук всеки отбор тежеше 1, независимо дали има 6 мача или 111.
@@ -10773,8 +11019,16 @@ def selftest():
                 check("носи избор", bool(_rg_r.get("pick")))
                 check("носи вероятност", 0.0 < float(_rg_r.get("p") or 0) < 1.0)
                 check("носи звезди", 1 <= int(_rg_r.get("stars") or 0) <= 3)
-                check("описанието на извадката е за точки",
-                      "точки" in str(_rg_r.get("sample") or ""))
+                # 🔴 ПО-СТРОГА ОТ ПРЕДИШНАТА (05.09.2026). Тук стоеше
+                # «"точки" in sample» — тя пазеше ЗАКОВАНИЯ низ «точки за и
+                # против», който не носеше НИТО ЕДНО ЧИСЛО. Всички останали
+                # спортове казват колко мача стоят зад картата; ръгбито не
+                # казваше. Сега се иска точно това: числа.
+                _rg_izv = str(_rg_r.get("sample") or "")
+                check("извадката казва КОЛКО мача, не само какви",
+                      any(c.isdigit() for c in _rg_izv))
+                check("и е същият надпис като при другите спортове",
+                      _rg_izv.startswith("гледани"))
                 # и че портиерът НАИСТИНА го пуска с цена
                 _rg_an = dict(_rg_r, pazar_cena=1.85)
                 check("портиерът пуска ръгби с цена",
@@ -13073,6 +13327,42 @@ def selftest():
         # обема на другата лига — и то мълчаливо.
         check("тежката лига оцелява под тавана",
               [r["weight"] for r in _amr[:3]] == [10, 10, 10])
+
+        # 🔴 И ЧУЖДИТЕ ЗАЯВКИ ВЛИЗАТ В РАЗБИВКАТА ПО СПОРТ.
+        # `sveri_vunshnite()` се вика на ДВЕ места — тук и преди отчета.
+        # Махне ли се второто, сборът пак излиза верен от първото, тоест
+        # мутацията оцелява — а се губи КОЙ спорт колко е изхарчил. Точно
+        # заради това числото съществува: черната кутия казва защо един
+        # спорт мълчи. Измерено: еврохокеят и ръгбито излизаха с «0 заявки»,
+        # докато харчеха 29 от бюджета.
+        import types as _t2
+        _fm = _t2.ModuleType("_proba_kolektor")
+        _fm.n = [0]
+        _fm.broi_zayavki = lambda: _fm.n[0]
+
+        def _amff_zvani(now_, ymd_):
+            _fm.n[0] += 7               # модулът «звъни» седем пъти
+            return _amff_sabota(now_, ymd_)
+
+        _st_vp = _vunshni_predi[0]
+        try:
+            globals()["_PROBA_KOLEKTOR"] = _fm
+            globals()["amfootball_fixtures"] = _amff_zvani
+            _sega_sum = 0
+            for _mm in _vunshni_moduli():
+                try:
+                    _sega_sum += int(_mm.broi_zayavki() or 0)
+                except Exception:                            # noqa: BLE001
+                    pass
+            _vunshni_predi[0] = _sega_sum
+            DIAG.pop("amfootball", None)
+            collect_all(now)
+            check("🔴 чуждите заявки влизат в разбивката ПО СПОРТ",
+                  int((DIAG.get("amfootball") or {}).get("zaqvki") or 0) == 7)
+        finally:
+            globals().pop("_PROBA_KOLEKTOR", None)
+            _vunshni_predi[0] = _st_vp
+        check("подставката е махната", "_PROBA_KOLEKTOR" not in globals())
     finally:
         globals()["amfootball_fixtures"] = _st_amff
         globals()["ACTIVE_SPORTS"] = _st_act
