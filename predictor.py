@@ -176,6 +176,18 @@ except Exception as _evh_err:                                # noqa: BLE001
 # 🏓 ЦЕНАТА ЗА WTT (02.09.2026). `tt_ligi` държи индекс от Kambi и Smarkets;
 # дотук предсказателят го ползваше само косвено, през `tt_lokal`, и САМО за
 # двете местни лиги. WTT мачовете оставаха без цена, макар Kambi да ги дава.
+# 🎯 KAMBI ПО ТУРНИР (05.09.2026) — резервата за коефициента.
+#
+# 643 от 1472 карти излизаха без число, а мачовете им СА заложими: каталогът
+# на собственика от bet365 изрежда WTT поименно. `tt_ligi` пита списъка
+# «предстоящи скоро» (32 събития, всичките Czech Liga Pro); `kambi_ceni`
+# пита ДЪРВОТО и всеки турнир поотделно — 85 събития, вкл. WTT.
+try:
+    import kambi_ceni as KAM
+except Exception as _kam_err:                                # noqa: BLE001
+    KAM = None
+    print("Kambi не се зареди (" + str(_kam_err)[:60]
+          + ") — картите остават с досегашните източници.")
 try:
     import tt_ligi as TTL
 except Exception as _ttl_err:                                # noqa: BLE001
@@ -8470,6 +8482,85 @@ def dosmesi(an):
     return an
 
 
+_BG2EN = None
+
+
+def _en_ime(fx, ex, klyuch):
+    """Латинското име на страната. Празно, ако нямаме такова.
+
+    🔴 KAMBI ПИШЕ НА ЛАТИНИЦА. «Иран» никога не среща «Iran» — същата
+    заключалка, която веднъж вече спря волейбола при Pinnacle. Затова:
+    първо `extra.<...>_en`, после обратната карта BG_NAME, и чак тогава
+    суровото име.
+    """
+    global _BG2EN
+    if _BG2EN is None:
+        _BG2EN = {}
+        for _en, _bg in (BG_NAME or {}).items():
+            _BG2EN.setdefault(str(_bg), str(_en))
+    en = str((ex or {}).get(klyuch + "_en") or "").strip()
+    if en:
+        return en
+    suro = str((fx or {}).get(klyuch) or "").strip()
+    return _BG2EN.get(suro, suro)
+
+
+def _kambi_rezerva(an):
+    """Коефициент от Kambi, ако след всичко останало още няма цена.
+
+    🔴 НЕ ПИПА ВЕЧЕ НАМЕРЕНА ЦЕНА. Pinnacle и ESPN носят номер на мача и с
+    него затваряща цена; Kambi не носи. Пренаписването им би струвало CLV.
+
+    🔴 СЕНТИНЕЛЪТ СЕ УВАЖАВА. Отказ на извора не е «няма цена» и не бива да
+    остави картата тихо непроменена под чуждо име.
+    """
+    if not isinstance(an, dict) or an.get("pazar_cena"):
+        return an
+    if KAM is None or not getattr(KAM, "VKLYUCHENO", False):
+        return an
+    b = str(an.get("bucket") or "")
+    if b not in getattr(KAM, "SPORT", {}):
+        return an
+    fx = an.get("fx") or {}
+    ex = fx.get("extra") or {}
+    dom, gost = _en_ime(fx, ex, "home"), _en_ime(fx, ex, "away")
+    if not (dom and gost):
+        return an
+    try:
+        r = KAM.ceni_za(b, dom, gost)
+    except Exception:                                        # noqa: BLE001
+        return an
+    if r is None or r is getattr(KAM, "NEPITAN", object()):
+        return an
+    try:
+        c_dom, c_gost = float(r[0]), float(r[1])
+    except (TypeError, ValueError, IndexError):
+        return an
+    if not (1.0 < c_dom < 1000.0 and 1.0 < c_gost < 1000.0):
+        return an
+    pick = str(an.get("pick") or "")
+    if pick.startswith("1"):
+        cena, drug = c_dom, c_gost
+    elif pick.startswith("2"):
+        cena, drug = c_gost, c_dom
+    else:
+        return an                  # равен: Kambi двойката не го носи
+    an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "Х": None}
+    an["pazar_cena"] = cena
+    an["pazar_cena_drug"] = drug
+    an["pazar_izt"] = "kambi"
+    # Вероятността без марж — през същата сметка, която ползват другите
+    # източници, за да не се сравняват после ябълки с круши.
+    try:
+        _pd, _pg, _r = PZ.bez_marzh(b, c_dom, c_gost, None)
+        if _pd and _pg:
+            an["pazar_p"] = _pd if pick.startswith("1") else _pg
+            an["pazar_v"] = 1.0 / cena
+    except Exception:                                        # noqa: BLE001
+        pass
+    return an
+
+
 def dobavi_pazar(an):
     """Цената + една точка в редицата ѝ. Нула нови заявки.
 
@@ -8480,6 +8571,10 @@ def dobavi_pazar(an):
     проект е ударил осем пъти. Обвивката няма как да бъде заобиколена.
     """
     an = _pazar_surovo(an)
+    # 🎯 KAMBI Е РЕЗЕРВА, НЕ ЗАМЕСТНИК (05.09.2026). Пита се само ако след
+    # всичките пътища на `_pazar_surovo` цена НЯМА. Pinnacle и ESPN остават
+    # първи — те носят и номер за затварящата цена, а Kambi не.
+    an = _kambi_rezerva(an)
     # 🔴 СМЕСВАНЕТО Е В ОБВИВКАТА, НЕ ВЪТРЕ. Двата ранни изхода на
     # `_pazar_surovo` слагат цената и се връщат преди блока за смесване —
     # мълчаливо, точно както преди това правеха и с тефтера на цените.
@@ -14303,6 +14398,118 @@ def selftest():
     # живият код = файлът МИНУС извора на самопроверката
     _src_zhiv = _src_cyal.replace(_src_test, "") if _src_test else _src_cyal
     check("изворът на самопроверката се отдели", len(_src_test) > 5000)
+    # --- 🎯 РЕЗЕРВАТА ОТ KAMBI (05.09.2026) ---
+    #
+    # 643 от 1472 карти излизаха без коефициент, а мачовете им СА заложими:
+    # каталогът на собственика от bet365 изрежда WTT поименно. Модулът
+    # `kambi_ceni` пита ДЪРВОТО на Kambi, не списъка «предстоящи скоро».
+    if KAM is not None:
+        _k_st = dict(getattr(KAM, "_kesh", {}))
+        try:
+            KAM._kesh[("sab", "tabletennis")] = [
+                ("Shunsuke Togami", "Simon Gauzy", "", 1.4, 2.72)]
+            KAM._kesh[("sab", "volleyball")] = [
+                ("Poland", "Serbia", "", 2.65, 1.42)]
+            _kf = {"home": "Shunsuke TOGAMI", "away": "Simon GAUZY",
+                   "extra": {}}
+            _k1 = _kambi_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                  "fx": dict(_kf)})
+            check("Kambi дава коефициент на НАШАТА страна",
+                  abs(float(_k1.get("pazar_cena") or 0) - 1.4) < 1e-9)
+            check("и другата страна се пази",
+                  abs(float(_k1.get("pazar_cena_drug") or 0) - 2.72) < 1e-9)
+            check("източникът се назовава", _k1.get("pazar_izt") == "kambi")
+            check("вероятността е БЕЗ марж и е между 0 и 1",
+                  0.0 < float(_k1.get("pazar_p") or 0) < 1.0)
+            _k2 = _kambi_rezerva({"pick": "2 · Г", "bucket": "tabletennis",
+                                  "fx": dict(_kf)})
+            check("изборът «2» взима цената на ГОСТА",
+                  abs(float(_k2.get("pazar_cena") or 0) - 2.72) < 1e-9)
+            # 🔴 НЕ ПИПА ВЕЧЕ НАМЕРЕНА ЦЕНА — инак губим номера за CLV.
+            _k3 = _kambi_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                  "pazar_cena": 1.99, "pazar_izt": "pinnacle",
+                                  "fx": dict(_kf)})
+            check("вече намерена цена НЕ се пренаписва",
+                  _k3.get("pazar_izt") == "pinnacle"
+                  and abs(float(_k3.get("pazar_cena")) - 1.99) < 1e-9)
+            # 🔴 КИРИЛИЦАТА СЕ ПРЕВЕЖДА, НЕ СЕ ПОДАВА СУРОВА.
+            # 🔴 ИМЕ, КОЕТО ГО НЯМА В BG_NAME. Първата ми проверка подаваше
+            # «Полша», а обратната карта и без това я знае — тоест вторият
+            # път вършеше работата на първия и мутацията «махни четенето на
+            # extra» оставаше зелена.
+            _kv = _kambi_rezerva({"pick": "1 · П", "bucket": "volleyball",
+                                  "fx": {"home": "ЗАГАДКА-1",
+                                         "away": "ЗАГАДКА-2",
+                                         "extra": {"home_en": "Poland",
+                                                   "away_en": "Serbia"}}})
+            check("латинското име от extra стига до Kambi",
+                  abs(float(_kv.get("pazar_cena") or 0) - 2.65) < 1e-9)
+            check("без extra и без превод НЯМА цена",
+                  _kambi_rezerva({"pick": "1 · П", "bucket": "volleyball",
+                                  "fx": {"home": "ЗАГАДКА-1",
+                                         "away": "ЗАГАДКА-2",
+                                         "extra": {}}}).get("pazar_cena")
+                  is None)
+            _kn = _kambi_rezerva({"pick": "1 · Н", "bucket": "volleyball",
+                                  "fx": {"home": "Никой", "away": "Другият",
+                                         "extra": {}}})
+            check("непознат мач НЕ получава цена",
+                  _kn.get("pazar_cena") is None)
+            # 🔴 СЕНТИНЕЛЪТ СЕ УВАЖАВА: отказ на извора не е «няма цена».
+            # 🔴 СЕНТИНЕЛЪТ СЕ ПОЗНАВА ПО ИДЕНТИЧНОСТ, НЕ ПО ФОРМА. Тук
+            # той се подменя с нещо, което ИЗГЛЕЖДА като цена: без
+            # разпознаването картата би получила 1.5 от отказ.
+            _st_nep = KAM.NEPITAN
+            _st_cz0 = KAM.ceni_za
+            try:
+                KAM.NEPITAN = (1.5, 2.5)
+                KAM.ceni_za = lambda *a, **k: KAM.NEPITAN
+                _kn2 = _kambi_rezerva({"pick": "1 · Т",
+                                       "bucket": "tabletennis",
+                                       "fx": dict(_kf)})
+                check("сентинел С ФОРМА НА ЦЕНА пак не минава",
+                      _kn2.get("pazar_cena") is None)
+            finally:
+                KAM.NEPITAN = _st_nep
+                KAM.ceni_za = _st_cz0
+            _st_cz = KAM.ceni_za
+            try:
+                KAM.ceni_za = lambda *a, **k: KAM.NEPITAN
+                _ks = _kambi_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                      "fx": dict(_kf)})
+                check("отказът на Kambi НЕ слага цена",
+                      _ks.get("pazar_cena") is None
+                      and _ks.get("pazar_izt") is None)
+                KAM.ceni_za = lambda *a, **k: (_ for _ in ()).throw(
+                    RuntimeError("гръмна"))
+                _kg = _kambi_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                      "fx": dict(_kf)})
+                check("гръмнал Kambi не чупи картата",
+                      _kg.get("pazar_cena") is None)
+            finally:
+                KAM.ceni_za = _st_cz
+            # ръчката
+            _st_vk = KAM.VKLYUCHENO
+            try:
+                KAM.VKLYUCHENO = False
+                check("ръчката KAMBI_CENI=0 спира резервата",
+                      _kambi_rezerva({"pick": "1 · Т",
+                                      "bucket": "tabletennis",
+                                      "fx": dict(_kf)}).get("pazar_cena")
+                      is None)
+            finally:
+                KAM.VKLYUCHENO = _st_vk
+            check("непознат за Kambi спорт не се пита",
+                  _kambi_rezerva({"pick": "1 · Т", "bucket": "кегли",
+                                  "fx": dict(_kf)}).get("pazar_cena") is None)
+            check("равният не се взима от двойка",
+                  _kambi_rezerva({"pick": "Х · равен",
+                                  "bucket": "tabletennis",
+                                  "fx": dict(_kf)}).get("pazar_cena") is None)
+        finally:
+            KAM._kesh.clear()
+            KAM._kesh.update(_k_st)
+
     check("има път назад (в ЖИВИЯ код)",
           "PREDICT_ISKAM_PAZAR" in _src_zhiv)
     # 🔴 БРОЯТ СЕ ИСТИНСКИ ВИКАНИЯ, НЕ СРЕЩАНИЯ НА НИЗА (05.09.2026).
