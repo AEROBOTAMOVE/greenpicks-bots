@@ -1846,6 +1846,51 @@ def mach_redove(redove, maks=None):
     return out
 
 
+# 🔴 ДУМАТА, КОЯТО БЕШЕ ОБЕЩАНА (05.09.2026).
+#
+# Коментарът в `obshto_dosega_text` казва, че таблицата по спорт «се връща с
+# една дума». Проверено: такава дума нямаше — всичките шестнайсет ръчки
+# SCORE_* бяха изброени и нито една не я връщаше. Обещан път назад, който не
+# съществува, е по-лош от липсващ: човек разчита на него.
+#
+# Подразбирането е 0, защото краткостта е дословна поръчка на собственика от
+# 25.08.2026. Строи се ДУМАТА, не решението.
+PO_SPORT_VKL = (os.environ.get("SCORE_PO_SPORT", "0") or "0").strip() == "1"
+# Спорт под този брой отсъдени не получава процент — виж `obshto_po_sport`.
+PO_SPORT_MIN = max(1, min(100, int(
+    (os.environ.get("SCORE_PO_SPORT_MIN") or "5").strip() or 5)))
+# Таван на редовете: обзорът вече е бил на 50 знака от това да не излезе.
+PO_SPORT_MAKS = max(1, min(30, int(
+    (os.environ.get("SCORE_PO_SPORT_MAKS") or "8").strip() or 8)))
+
+
+def po_sport_redove(vsichki, vkl=None):
+    """Редовете за таблицата по спорт. Празно, ако ръчката е угасена.
+
+    🔴 ЧИСЛАТА СЕ ПИШАТ ВИНАГИ, ПРОЦЕНТЪТ — НЕ. Спорт с 1 от 1 получава
+    «1 от 1», без «100%»: знаменателят е честен, процентът при такава
+    извадка е реклама.
+    """
+    if not (PO_SPORT_VKL if vkl is None else vkl):
+        return []
+    broy = obshto_po_sport(vsichki)
+    if not broy:
+        return []
+    naredeni = sorted(broy.items(), key=lambda kv: (-kv[1][1], kv[0]))
+    redove = ["", "\U0001f4ca <b>ПО СПОРТ, за целия живот</b>"]
+    for b, (poz, n) in naredeni[:PO_SPORT_MAKS]:
+        red = ("· " + sport_ime(b) + ": <b>" + str(poz) + "</b> от <b>"
+               + str(n) + "</b>")
+        if n >= PO_SPORT_MIN:
+            red += " · <b>" + ("%.0f" % (100.0 * poz / n)) + "%</b>"
+        redove.append(red)
+    ostatak = len(naredeni) - PO_SPORT_MAKS
+    if ostatak > 0:
+        redove.append("· и още " + str(ostatak) + mn(ostatak, " спорт",
+                                                     " спорта"))
+    return redove
+
+
 def obshto_po_sport(vsichki):
     """Успеваемостта ДОСЕГА, по спорт. Само отсъдените, с изписан знаменател.
 
@@ -2023,6 +2068,85 @@ def results_text(now, rows, total_all, hit_all, bez=None, vsichki=None):
 # тя работи при двайсет залога, докато „процент познати" иска стотици.
 #
 # ЕДНА заявка на запис, само за записи, които изобщо имат цена (три спорта).
+# 🔴 ПОСЛЕДНАТА ВИДЯНА ЦЕНА ПРЕДИ СТАРТА (05.09.2026).
+#
+# Pinnacle не дава затваряща цена след старта — гост-интерфейсът показва
+# само предстоящи срещи, а оценителят работи в 10:30 и 19:30. Проверено
+# живо на три изиграни мача: (None, None, None) и трите пъти.
+#
+# Затова цената се взима от редицата, която predictor.py вече трупа:
+# CENI[ключ] пази c0 (първата видяна) и c1 (последната) с часове t0/t1.
+#
+# ПЪТ НАЗАД: SCORE_CLOSE_REDICA=0.
+CLOSE_REDICA = (os.environ.get("SCORE_CLOSE_REDICA", "1") or "1").strip() != "0"
+CLOSE_REDICA_FILE = (os.environ.get("PREDICT_STATE_FILE")
+                     or "predict_state.json").strip()
+_redica_kesh = {}
+
+
+def ceni_redica(path=None):
+    """Редицата от цени, както predictor.py я е записал. {} при липса.
+
+    🔴 КЕШИРА СЕ САМО УСПЕХ. Празен резултат от нечетим файл не бива да се
+    запомня — в този проект кеш, помнещ провал, е струвал цели спортове.
+    """
+    p = path or CLOSE_REDICA_FILE
+    if p in _redica_kesh:
+        return _redica_kesh[p]
+    try:
+        with open(p, encoding="utf-8-sig") as f:
+            d = json.load(f)
+    except Exception:                                        # noqa: BLE001
+        return {}
+    c = (d or {}).get("ceni")
+    if not isinstance(c, dict):
+        return {}
+    _redica_kesh[p] = c
+    return c
+
+
+def izhod_ot_pick(pick):
+    """«1 · победа Х» -> «1». None, ако изборът не е 1/2/Х."""
+    s = str(pick or "").strip()
+    if s.startswith("1"):
+        return "1"
+    if s.startswith("2"):
+        return "2"
+    if s[:1] in ("\u0425", "X"):
+        return "\u0425"
+    return None
+
+
+def zatvaryashta_ot_redica(r, ceni=None):
+    """Последната видяна цена преди старта. None, ако не е измерима.
+
+    🔴 ОТКАЗВА ПРИ ЕДНА ТОЧКА. Тогава последната цена Е първата и CLV би
+    излязло точно 1.0000 — нула, облечена като данни. Такива редове биха
+    разредили единственото число, с което може да се разбере има ли ръб
+    преди 500 залога.
+    """
+    if not CLOSE_REDICA or not isinstance(r, dict):
+        return None
+    k = str(r.get("key") or "").strip()
+    if not k:
+        return None
+    z = (ceni_redica() if ceni is None else ceni).get(k)
+    if not isinstance(z, dict):
+        return None
+    if int(z.get("n") or 0) < 2:
+        return None                    # една точка не е редица
+    if not z.get("t1") or z.get("t1") == z.get("t0"):
+        return None                    # същият час — същата снимка
+    izhod = izhod_ot_pick(r.get("pick"))
+    if not izhod:
+        return None
+    try:
+        c = float((z.get("c1") or {}).get(izhod))
+    except (TypeError, ValueError):
+        return None
+    return c if 1.0 < c < 1000.0 else None
+
+
 def hvani_zatvaryashta(r):
     """Записва pazar_close и pazar_clv. True, ако е добавено нещо ново."""
     if not r.get("pazar_cena") or r.get("pazar_close") is not None:
@@ -2040,6 +2164,22 @@ def hvani_zatvaryashta(r):
     # А `pazar.cena_zatvarayashta_pin` съществува и се викаше само от
     # собствената си самопроверка. Дванайсети път «построено, но не
     # свързано» в този проект.
+    # 🔴 РЕДИЦАТА СЕ ОПИТВА ПЪРВА ЗА PINNACLE (05.09.2026), защото книгата
+    # НЕ МОЖЕ да отговори след старта — виж обяснението при `ceni_redica`.
+    # За ESPN остава книгата: истинското затваряне бие последната снимка.
+    if izt == "pinnacle" or not (ev and sp):
+        _cr = zatvaryashta_ot_redica(r)
+        if _cr:
+            r["pazar_close"] = _cr
+            r["pazar_close_izt"] = "redica"
+            try:
+                import pazar as _PZr
+                _dvr = _PZr.dvizhenie(r.get("pazar_cena"), _cr)
+            except Exception:                                # noqa: BLE001
+                _dvr = None
+            if _dvr is not None:
+                r["pazar_clv"] = _dvr
+            return True
     if not (ev and sp):
         return False
     if izt != "pinnacle" and not lg:
@@ -2068,6 +2208,7 @@ def hvani_zatvaryashta(r):
     if not cena:
         return False
     r["pazar_close"] = cena
+    r["pazar_close_izt"] = "kniga"
     # Движението се мери във ВЕРОЯТНОСТИ. Пет стотинки при 1.20 и пет при
     # 5.00 са различни неща и събирането им би било безсмислица.
     dv = PZ.dvizhenie(r.get("pazar_cena"), cena)
@@ -2200,6 +2341,14 @@ def obshto_dosega_text(now, rows):
                            + ("%.0f" % (100 * _sb)) + "%</b> на " + str(_n)
                            + mn(_n, " карта", " карти"))
 
+    # 🔴 ОБЕЩАНАТА ДУМА (05.09.2026): SCORE_PO_SPORT=1 връща таблицата,
+    # която този коментар нарича «истинска загуба». Подразбиране 0 —
+    # краткостта е поръчка на собственика и не се пипа без негова дума.
+    try:
+        _ps = po_sport_redove(rows)
+    except Exception:                                        # noqa: BLE001
+        _ps = []
+
     return NL.join([
         "\U0001f9fe <b>ДОСЕГА ОБЩО</b>" + ot,
         "",
@@ -2208,7 +2357,7 @@ def obshto_dosega_text(now, rows):
         "✅ <b>" + str(poz) + "</b> " + mn(poz, "позната", "познати")
         + " · ❌ <b>" + str(zag) + "</b> " + mn(zag, "загубена", "загубени")
         + " · <b>" + ("%.0f" % (100.0 * poz / len(ots))) + "%</b>",
-    ] + _redove + [
+    ] + _ps + _redove + [
         "",
         "\U0001f7e2 THE GREEN ROOM"])
 
@@ -2707,6 +2856,134 @@ def selftest():
                 "away": "New York Liberty", "pick": "1"}, 106, 92, True),
               ({"bucket": "basketball", "home": "A", "away": "B",
                 "pick": "1"}, 1, 0, False)]
+    # --- 📊 ОБЕЩАНАТА ДУМА: таблицата по спорт (05.09.2026) ---
+    _ps_dn = ([{"scored": True, "hit": i % 3 != 0, "bucket": "football"}
+               for i in range(40)]
+              + [{"scored": True, "hit": True, "bucket": "volleyball"}
+                 for _ in range(7)]
+              + [{"scored": True, "hit": True, "bucket": "mma"}
+                 for _ in range(3)]
+              + [{"scored": False, "hit": None, "bucket": "tennis"}])
+    check("угасена ръчка не дава нищо", po_sport_redove(_ps_dn, False) == [])
+    _ps = po_sport_redove(_ps_dn, True)
+    check("включена ръчка дава редове", len(_ps) >= 4)
+    _pt = NL.join(_ps)
+    check("неотсъденият спорт не влиза", "ТЕНИС" not in _pt.upper()
+          or "МАСА" in _pt.upper())
+    check("знаменателят се пише винаги",
+          _pt.count("от <b>") == len([1 for l in _ps if l.startswith("· ")]))
+    # 🔴 ЦЯЛАТА ПРИЧИНА ЗА ПРАГА: «2 от 3 = 67%» заблуждава.
+    _mma = [l for l in _ps if "от <b>3</b>" in l]
+    check("спорт под прага НЯМА процент", _mma and "%" not in _mma[0])
+    _fut = [l for l in _ps if "40</b>" in l]
+    check("спорт над прага ИМА процент", _fut and "%" in _fut[0])
+    check("подредено по брой отсъдени",
+          _ps[2].find("40</b>") > 0)
+    check("празен дневник не дава редове", po_sport_redove([], True) == [])
+    check("боклук не гърми", po_sport_redove(None, True) == []
+          and po_sport_redove([{"scored": True}], True) is not None)
+    # таванът: 12 спорта при таван 8 дават 8 реда + един «и още»
+    _mn_sp = [{"scored": True, "hit": True, "bucket": "с%d" % i}
+              for i in range(12) for _ in range(6)]
+    _mp = po_sport_redove(_mn_sp, True)
+    check("таванът реже и брои остатъка на глас",
+          len([l for l in _mp if l.startswith("· ")]) == PO_SPORT_MAKS + 1
+          and "и още" in _mp[-1])
+    # 🔴 РЪЧКА, КОЯТО yml НЕ ПОДАВА, НЕ РАБОТИ. Търси се РЕДЪТ, не думата —
+    # думата стои и в коментара, който я обяснява.
+    try:
+        _ysc = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 ".github", "workflows", "score.yml"),
+                    encoding="utf-8-sig").read()
+    except Exception:                                        # noqa: BLE001
+        _ysc = ""
+    check("score.yml се чете", len(_ysc) > 500)
+    check("обещаната дума се подава отвън", "SCORE_PO_SPORT: " in _ysc)
+    check("подразбирането отвън е УГАСЕНО",
+          "SCORE_PO_SPORT || '0'" in _ysc.replace("vars.", ""))
+
+    # --- 📉 ЗАТВАРЯЩАТА ОТ РЕДИЦАТА (05.09.2026) ---
+    #
+    # Pinnacle не може да отговори след старта (проверено живо: три изиграни
+    # мача, три пъти None). Затова последната видяна цена преди старта се
+    # приема за затваряща — но САМО ако редицата има поне две точки.
+    _cen = {
+        "k2": {"t0": "2026-09-04 10:00", "c0": {"1": 2.00, "2": 1.80},
+               "t1": "2026-09-04 18:00", "c1": {"1": 1.70, "2": 2.10}, "n": 2},
+        "k1": {"t0": "2026-09-04 10:00", "c0": {"1": 2.00},
+               "t1": "2026-09-04 10:00", "c1": {"1": 2.00}, "n": 1},
+        "kx": {"t0": "a", "c0": {"Х": 3.4}, "t1": "b", "c1": {"Х": 3.1},
+               "n": 3},
+        "kbez": {"t0": "a", "c0": {"1": 2.0}, "t1": "b", "c1": {}, "n": 4},
+    }
+    check("изходът се чете от избора",
+          izhod_ot_pick("1 · победа Х") == "1"
+          and izhod_ot_pick("2 · победа У") == "2"
+          and izhod_ot_pick("Х · равен") == "Х"
+          and izhod_ot_pick("тотал над 2.5") is None
+          and izhod_ot_pick(None) is None)
+    check("две точки дават затваряща",
+          zatvaryashta_ot_redica({"key": "k2", "pick": "1 · Х"}, _cen) == 1.70)
+    check("взима се страната на ИЗБОРА, не домакинът",
+          zatvaryashta_ot_redica({"key": "k2", "pick": "2 · У"}, _cen) == 2.10)
+    # 🔴 ЦЯЛАТА ПРИЧИНА ЗА ПРАГА.
+    check("ЕДНА точка НЕ дава затваряща",
+          zatvaryashta_ot_redica({"key": "k1", "pick": "1 · Х"}, _cen) is None)
+    # ДВАТА ПАЗАЧА СЕ ПРИКРИВАХА ВЗАИМНО (хванато с мутация): ключът "k1"
+    # има И една точка, И еднакъв час, тоест махането на който и да е от
+    # двата оставаше проверката зелена. Тук всеки се изолира.
+    check("една точка спира ДОРИ при различни часове",
+          zatvaryashta_ot_redica(
+              {"key": "iz1", "pick": "1 · Х"},
+              {"iz1": {"t0": "a", "t1": "b", "n": 1,
+                       "c0": {"1": 2.0}, "c1": {"1": 1.7}}}) is None)
+    check("еднаквият час спира ДОРИ при три точки",
+          zatvaryashta_ot_redica(
+              {"key": "iz2", "pick": "1 · Х"},
+              {"iz2": {"t0": "a", "t1": "a", "n": 3,
+                       "c0": {"1": 2.0}, "c1": {"1": 1.7}}}) is None)
+    check("равният също минава",
+          zatvaryashta_ot_redica({"key": "kx", "pick": "Х · равен"}, _cen) == 3.1)
+    check("липсващ изход в редицата не гърми",
+          zatvaryashta_ot_redica({"key": "kbez", "pick": "1 · Х"}, _cen) is None)
+    check("непознат ключ дава нищо",
+          zatvaryashta_ot_redica({"key": "няма", "pick": "1 · Х"}, _cen) is None)
+    check("без ключ дава нищо",
+          zatvaryashta_ot_redica({"pick": "1 · Х"}, _cen) is None
+          and zatvaryashta_ot_redica(None, _cen) is None)
+    check("боклучава цена се отхвърля",
+          zatvaryashta_ot_redica(
+              {"key": "z", "pick": "1 · Х"},
+              {"z": {"t0": "a", "t1": "b", "n": 2, "c1": {"1": 0.5}}}) is None)
+    # 🔴 ЕТИКЕТЪТ Е ВЪРНАТА СТОЙНОСТ, не ред в документацията.
+    _rr = {"key": "k2", "pick": "1 · Х", "pazar_cena": 2.00,
+           "pazar_izt": "pinnacle", "pazar_ev": "9", "pazar_sport": "tennis"}
+    _stara_cr = globals()["ceni_redica"]
+    try:
+        globals()["ceni_redica"] = lambda path=None: _cen
+        check("Pinnacle минава през редицата", hvani_zatvaryashta(_rr) is True)
+        check("и се етикетира като редица",
+              _rr.get("pazar_close") == 1.70
+              and _rr.get("pazar_close_izt") == "redica")
+        check("CLV се смята и от редицата", _rr.get("pazar_clv") is not None)
+        _r1 = {"key": "k1", "pick": "1 · Х", "pazar_cena": 2.00,
+               "pazar_izt": "pinnacle", "pazar_ev": "9",
+               "pazar_sport": "tennis"}
+        check("една точка не влиза и през оценителя",
+              hvani_zatvaryashta(_r1) is False
+              and _r1.get("pazar_close") is None)
+        # ръчката
+        _st_vkl = globals()["CLOSE_REDICA"]
+        try:
+            globals()["CLOSE_REDICA"] = False
+            check("ръчката SCORE_CLOSE_REDICA=0 спира пътя",
+                  zatvaryashta_ot_redica({"key": "k2", "pick": "1 · Х"},
+                                         _cen) is None)
+        finally:
+            globals()["CLOSE_REDICA"] = _st_vkl
+    finally:
+        globals()["ceni_redica"] = _stara_cr
+
     _td = results_text(_now, _dvoen, 3, 2)
     # Само редовете НА МАЧОВЕ. Блокът „ОБЩО ДОСЕГА" също почва с ✅/❌ —
     # първата версия на този тест ги броеше и даваше 4 вместо 2.
