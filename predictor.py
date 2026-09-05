@@ -1807,7 +1807,14 @@ def log_pick(an, now, combo=0):
         "home": fx.get("home"), "away": fx.get("away"),
         "home_id": fx.get("home_id"), "away_id": fx.get("away_id"),
         "league": fx.get("league"),
-        "slug": (fx.get("extra") or {}).get("slug"),
+        # 🔴 И ГОРНОТО НИВО. Три модула (evrohokey, ragbi, а утре и
+        # следващият) слагат `slug` на върха на срещата, не в `extra` —
+        # и дотук той се губеше по пътя към дневника. Цената НЕ беше
+        # «картата виси»: без slug картата пада в sdb_result, който
+        # сверява по ИМЕ и лепва съседния ден. Измерено: HPK — Kärpät
+        # на 07.03 получаваше (3, 2) — мачът от 06.03. Истината е (6, 3).
+        # Добавката е строга: пълни само където досега е било None.
+        "slug": ((fx.get("extra") or {}).get("slug") or fx.get("slug")),
         # 🔴 БЕЗ ТЕЗИ ДВА РЕДА ITF КАРТАТА ВИСИ ВЕЧНО (19.08.2026).
         # Оценителят праща всичко от кошницата „tennis" към tennis_result(),
         # който чете САМО ESPN atp/wta таблата. ITF мач го няма там — значи
@@ -3496,7 +3503,14 @@ def model_amfootball(hr, ar, fx, now):
         return None
     ex = fx.get("extra") or {}
     sigma = float(ex.get("sigma") or 13.5)
-    hca = 0.0 if ex.get("neutral") else AMF_HOME
+    # 🔴 ДОМАКИНСКОТО ПРЕДИМСТВО Е ПАРАМЕТЪР, точно както σ (05.09.2026).
+    # Дотук тук стоеше голото AMF_HOME = 2.0 — числото на американския
+    # футбол — и ръгбито, което вика същия модел, го получаваше наготово.
+    # Измереното за ръгби е 7.5 точки на 639 мача, а `ragbi.HOME_TOCHKI`
+    # беше мъртва ръчка: четеше се само от собствената си самопроверка.
+    # Цената, мерена върху 13 живи мача: в 3 от тях знакът се ОБРЪЩА.
+    # Кофа, която не подаде `hca`, получава старото число непокътнато.
+    hca = 0.0 if ex.get("neutral") else float(ex.get("hca") or AMF_HOME)
     lvl = (sh["gf"] + sh["ga"] + sa["gf"] + sa["ga"]) / 4.0
     sf_h = shrink(sh["gf"], lvl, sh["w"], AMF_SHRINK)
     sa_h = shrink(sh["ga"], lvl, sh["w"], AMF_SHRINK)
@@ -10200,6 +10214,51 @@ def selftest():
               bool(_lp_rows) and _lp_rows[-1].get("src") == "itf")
         check("дневникът пази номера, по който оценителят ще пита",
               bool(_lp_rows) and _lp_rows[-1].get("itf_id") == "aaa11111")
+
+        # 🔴 `slug` ОТ ГОРНОТО НИВО ТРЯБВА ДА СТИГНЕ ДО ДНЕВНИКА (05.09.2026).
+        #
+        # Три модула (evrohokey, ragbi, а утре и следващият) слагат `slug` на
+        # ВЪРХА на срещата. Дотук `log_pick` четеше само `extra["slug"]` и
+        # белегът се губеше по пътя.
+        #
+        # 🔴 ЦЕНАТА НЕ БЕШЕ «картата виси». Без slug картата пада в
+        # `sdb_result`, който сверява по ИМЕ и лепва съседния ден. Измерено
+        # живо: HPK — Kärpät за 07.03.2026 получаваше (3, 2) — мачът от
+        # 06.03. Истината е (6, 3). Тоест мълчаливо ФАЛШИВА присъда, която
+        # трови всяко число след себе си.
+        _lp_an2 = {"fx": {"_key": "k2", "home": "В", "away": "Г", "src": "ragbi",
+                          "league": "Проба", "when": datetime.now(SOFIA),
+                          "slug": "270559",          # САМО отгоре, като живото
+                          "extra": {"home_en": "В", "away_en": "Г"}},
+                   "bucket": "rugby", "pick": "1 · В", "p": 0.61, "stars": 2}
+        check("дневникът приема карта със slug само отгоре",
+              log_pick(_lp_an2, datetime.now(SOFIA)) is True)
+        with open(_lp_put, encoding="utf-8") as _f:
+            _lp_rows2 = json.load(_f)
+        check("slug от ГОРНОТО ниво стига до дневника",
+              bool(_lp_rows2) and _lp_rows2[-1].get("slug") == "270559")
+
+        # 🔴 И ОБРАТНАТА ПОСОКА: добавката НЕ БИВА да мени работещото.
+        # `extra` остава по-силният; горното ниво пълни само празното.
+        _lp_an3 = {"fx": {"_key": "k3", "home": "Д", "away": "Е", "src": "x",
+                          "league": "Проба", "when": datetime.now(SOFIA),
+                          "slug": "горе", "extra": {"slug": "вътре"}},
+                   "bucket": "football", "pick": "1 · Д", "p": 0.61, "stars": 2}
+        log_pick(_lp_an3, datetime.now(SOFIA))
+        with open(_lp_put, encoding="utf-8") as _f:
+            _lp_rows3 = json.load(_f)
+        check("при два slug-а печели този в extra (нищо работещо не се мени)",
+              _lp_rows3[-1].get("slug") == "вътре")
+
+        # ── и когато го няма никъде — остава празно, не се измисля
+        _lp_an4 = {"fx": {"_key": "k4", "home": "Ж", "away": "З", "src": "x",
+                          "league": "Проба", "when": datetime.now(SOFIA),
+                          "extra": {}},
+                   "bucket": "football", "pick": "1 · Ж", "p": 0.61, "stars": 2}
+        log_pick(_lp_an4, datetime.now(SOFIA))
+        with open(_lp_put, encoding="utf-8") as _f:
+            _lp_rows4 = json.load(_f)
+        check("липсващият slug си остава празен", not _lp_rows4[-1].get("slug"))
     finally:
         globals()["PICKLOG_FILE"] = _lp_star_file
         globals()["DRY_RUN"] = _lp_star_dry
@@ -10208,6 +10267,52 @@ def selftest():
         except OSError:
             pass
     check("стая 4 е разрешена за фишовете", PICKS_THREAD in ALLOWED_THREADS)
+
+    # ═══ КОНСТАНТИТЕ НА КОФАТА СТИГАТ ДО МОДЕЛА (05.09.2026) ═══════════
+    #
+    # 🔴 ПОВЕДЕНЧЕСКИ, НЕ ПО СТОЙНОСТ. `ragbi.HOME_TOCHKI = 7.5` стоеше
+    # цяла седмица като мъртва ръчка: проверката в ragbi.py пазеше, че
+    # константата Е 7.5, но не че се ПОЛЗВА. Моделът четеше глобалното
+    # AMF_HOME = 2.0 и ръгби картата сочеше ДРУГИЯ отбор в 3 от 13 мача.
+    # Тук моделът се вика два пъти с различни константи и се гледа дали
+    # изходът се мени. Не се ли мени — ръчката е мъртва.
+    # Историите са СПИСЪЦИ ОТ МАЧОВЕ — `wstats` ги претегля сам. (Първата
+    # ми версия подаваше готова статистика и гръмна: моделът не приема
+    # сметнатото наготово, а суровото.)
+    _dn = datetime.now(SOFIA)
+    _hst = [{"date": _dn - timedelta(days=7 * k), "gf": 24.0, "ga": 20.0,
+             "home": k % 2 == 0} for k in range(12)]
+    _ast = [{"date": _dn - timedelta(days=7 * k), "gf": 21.0, "ga": 22.0,
+             "home": k % 2 == 0} for k in range(12)]
+
+    def _mk(ex):
+        return model_amfootball(_hst, _ast, {"extra": dict(ex)},
+                                datetime.now(SOFIA))
+
+    _m_bez = _mk({})
+    _m_75 = _mk({"hca": 7.5})
+    _m_20 = _mk({"hca": 2.0})
+    _m_neu = _mk({"hca": 7.5, "neutral": True})
+    check("моделът се строи и без константи", bool(_m_bez))
+    check("hca СТИГА до модела (7.5 ≠ 2.0)",
+          abs(_m_75["p_home"] - _m_20["p_home"]) > 0.02)
+    check("по-голямо hca вдига домакина",
+          _m_75["p_home"] > _m_20["p_home"])
+    check("без hca се ползва старото AMF_HOME (нищо работещо не се мени)",
+          abs(_m_bez["p_home"] - _m_20["p_home"]) < 1e-9 and AMF_HOME == 2.0)
+    check("неутралният терен маха предимството изцяло",
+          _m_neu["p_home"] < _m_75["p_home"])
+
+    # 🔴 И σ — тя РАБОТИ днес, но нищо не я пазеше. Всяка бъдеща промяна
+    # (закована стойност, преименуван ключ, изгубено `extra` при рефактор)
+    # щеше да мине с всичките проверки зелени.
+    _s_21 = _mk({"sigma": 21.85})
+    _s_13 = _mk({"sigma": 13.5})
+    check("σ СТИГА до модела (21.85 ≠ 13.5)",
+          abs(_s_21["p_home"] - _s_13["p_home"]) > 0.02)
+    check("по-голяма σ приближава изхода до монета",
+          abs(_s_21["p_home"] - 0.5) < abs(_s_13["p_home"] - 0.5))
+    check("σ излиза и в самия модел", abs(_s_21["sigma"] - 21.85) < 0.01)
     check("стая 27 остава витрината", PREDICT_THREAD in ALLOWED_THREADS)
     check("хазартна дума не излиза", post_predict("залагай сега", PREDICT_THREAD) is False)
     check("име на букмейкър не излиза", post_predict("bet365 дава 2.10", PREDICT_THREAD) is False)
