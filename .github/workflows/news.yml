@@ -76,6 +76,13 @@ jobs:
           # един лош ден стига за червено. Обявяването остава, изходът — не.
           # Обратно: NEWS_TREVOGA_IZHOD=1.
           NEWS_TREVOGA_IZHOD: ${{ vars.NEWS_TREVOGA_IZHOD || '0' }}
+          # 🔴 ГЛАСЪТ НАВЪН (05.09.2026). Дотук паднал източник се обявяваше
+          # само в ТОЗИ дневник — а той е зад токен и никой не го отваря.
+          # Сега тревогата излиза в работната група, но с почивка ПО ПРОБЛЕМ,
+          # за да не се вика едно и също три пъти на ден.
+          # ПЪТ НАЗАД: vars.NEWS_TREVOGA_PRATI = 0.
+          NEWS_TREVOGA_PRATI: ${{ vars.NEWS_TREVOGA_PRATI || '1' }}
+          NEWS_TREVOGA_POCHIVKA: ${{ vars.NEWS_TREVOGA_POCHIVKA || '12' }}
           # Само при ръчно пускане с попълнено поле — кроновете идват празни.
           NEWS_BACKFILL_DAYS: ${{ github.event.inputs.backfill_days }}
         run: python news_bot.py
@@ -91,7 +98,10 @@ jobs:
           # НИЩО — git отхвърля целия pathspec, щом един файл липсва, а
           # `|| true` крие изход 128. Проверено в истинско repo: stage-нато
           # остава ПРАЗНО и стъпката излиза ЗЕЛЕНА, без да е запазила нищо.
-          for f in sent_news.json last_news_titles.json; do
+          # 🔴 news_trevoga_state.json ПАЗИ ПОЧИВКАТА. Рънърът е нов всеки
+          # път — без запазване почивката не съществува и тревогата вика на
+          # всеки рън.
+          for f in sent_news.json last_news_titles.json news_trevoga_state.json; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then
