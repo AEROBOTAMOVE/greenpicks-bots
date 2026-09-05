@@ -404,11 +404,19 @@ def _npb_mesec(godina, mesec):
     kl = ("npb", godina, mesec)
     if kl in _kesh:
         return _kesh[kl]
+    # 🔴 КЕШИРА СЕ САМО УСПЕХ (05.09.2026). Дотук `except` даваше празен
+    # списък и той влизаше в кеша — тоест едно кихване на мрежата изтриваше
+    # месеца за ЦЕЛИЯ рън. Измерено живо: 138 мача → 0, и мрежата не се пита
+    # повторно (заявки остават 1 на три викания).
+    #
+    # 🔴 ПРАЗНО ОТ УСПЕХ СЕ КЕШИРА: месец без мачове (междусезоние) е
+    # честна нула и не бива да струва заявка всеки път. Разликата е дали е
+    # хвърлено изключение, не колко дълъг е списъкът.
     try:
         html = _vzemi(NPB_URL % (godina, mesec)).decode("utf-8", "replace")
         igri = parse_npb(html, godina, mesec)
-    except Exception:
-        igri = []
+    except Exception:                                        # noqa: BLE001
+        return []
     _kesh[kl] = igri
     return igri
 
@@ -431,13 +439,14 @@ def _kbo_mesec(godina, mesec):
         "X-Requested-With": "XMLHttpRequest",   # 🔴 без този ред: 406
         "Referer": KBO_REF,
     }
+    # 🔴 КЕШИРА СЕ САМО УСПЕХ — виж обяснението при `_npb_mesec`.
     try:
         suro = _vzemi(KBO_URL, data=telo, headers=glavi).decode("utf-8", "replace").lstrip("﻿").strip()
         if not suro.startswith("{"):
             raise ValueError("KBO върна не-JSON (%d байта) — липсва X-Requested-With?" % len(suro))
         igri = parse_kbo(json.loads(suro), godina)
-    except Exception:
-        igri = []
+    except Exception:                                        # noqa: BLE001
+        return []
     _kesh[kl] = igri
     return igri
 
@@ -923,6 +932,59 @@ def selftest():
       and ZIMNI_LIGI[131] == "Доминиканска лига")
     p("Всичките 12 японски отбора са преведени", len(NPB_IMENA) == 12)
     p("Всичките 10 корейски отбора са преведени", len(KBO_IMENA) == 10)
+    # 🔴 КЕШЪТ НЕ ПОМНИ ПРОВАЛ (05.09.2026).
+    #
+    # Дотук `except` даваше празен списък и той влизаше в кеша — тоест едно
+    # кихване на мрежата изтриваше месеца за ЦЕЛИЯ рън и го обявяваше като
+    # «няма мачове». Измерено живо: 138 мача → 0, и мрежата НЕ се питаше
+    # повторно (заявки остават 1 на три викания).
+    #
+    # Това беше ТРИНАЙСЕТИЯТ случай от този клас в проекта за един ден.
+    _kk_star = dict(_kesh)
+    _kk_vz = globals().get("_vzemi")
+    _kk_broi = [0]
+    try:
+        _kesh.clear()
+
+        def _kk_kapriz(url, **kw):
+            """Пада ПЪРВИЯ път, после връща истинската проба. Брои виканията."""
+            _kk_broi[0] += 1
+            if _kk_broi[0] == 1:
+                raise RuntimeError("проба: мрежата падна веднъж")
+            return PROBA_NPB.encode("utf-8")
+
+        globals()["_vzemi"] = _kk_kapriz
+        _a = _npb_mesec(2026, 8)
+        _b = _npb_mesec(2026, 8)
+        _c = _npb_mesec(2026, 8)
+        p("кешът НЕ помни провала: вторият опит пита пак",
+          len(_a) == 0 and len(_b) > 0)
+        p("и наистина е нова заявка", _kk_broi[0] == 2)
+        p("а успехът СЕ кешира (третият не пита)",
+          len(_c) == len(_b) and _kk_broi[0] == 2)
+        # 🔴 ПРАЗНО ОТ УСПЕХ СЕ КЕШИРА. Месец без мачове е ЧЕСТНА нула
+        # и не бива да струва заявка всеки път. Разликата е дали е хвърлено
+        # изключение, не колко дълъг е списъкът.
+        _kesh.clear()
+        _kk_broi[0] = 0
+        def _kk_prazna(url, **kw):
+            """Празна, но УСПЕШНА страница. Брои — инак тестът мери себе си.
+            (Първата ми версия беше lambda без брояч и проверката падна:
+             асертирах «една заявка», а броячът стоеше на нула.)"""
+            _kk_broi[0] += 1
+            return b"<html></html>"
+
+        globals()["_vzemi"] = _kk_prazna
+        _d = _npb_mesec(2026, 8)
+        _e = _npb_mesec(2026, 8)
+        p("честната нула се кешира", _d == [] and _e == [] and _kk_broi[0] == 1)
+    finally:
+        if _kk_vz is not None:
+            globals()["_vzemi"] = _kk_vz
+        _kesh.clear()
+        _kesh.update(_kk_star)
+    p("подставката е върната", globals().get("_vzemi") is _kk_vz)
+
     p("Селфтестът НЕ е пипал мрежата", broi_zayavki() == 0)
 
     for ime, dobre in ok:
@@ -930,7 +992,7 @@ def selftest():
     lo = sum(1 for _, d in ok if not d)
     # Долна граница на БРОЯ: тест, който тихо е спрял да се пуска, е по-лош
     # от падащ тест.
-    if len(ok) < 42:
+    if len(ok) < 47:
         print("❌ Проверките са само %d — някоя е изчезнала." % len(ok))
         return 1
     print("%s %d проверки, %d червени" % ("✅" if not lo else "❌", len(ok), lo))
