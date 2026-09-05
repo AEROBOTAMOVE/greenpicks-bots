@@ -200,7 +200,50 @@ VAZHNI = (
     ("daily.yml", "дневният бот и здравният преглед"),
     ("news.yml", "новините"),
     ("matches.yml", "мачовете за деня"),
+    # 🔴 ДОБАВЕНИ 05.09.2026 — имаха часовник, но никой не ги гледаше.
+    #
+    # support.yml не е странична стая: в него вървят budilnik.py (проспал ли
+    # е предсказателят), СЪБУЖДАНЕТО на самия predictor.py и пощата на
+    # потребителите — на всеки 15 минути. Умре ли, умира и будилникът, а
+    # пазачът дотук докладваше «всичките важни се виждат и работят».
+    ("support.yml", "съпортът, будилникът и събуждането на предсказателя"),
+    ("hub.yml", "подреждането на канала и стаите"),
 )
+
+# Workflow-и с часовник, които СЪЗНАТЕЛНО не се гледат — с причината до тях.
+# Извинение без причина е забравяне, написано на чисто.
+NE_SE_GLEDAT = {
+    "pazach.yml": ("това е самият пазач: рънът, който пита, по устройство е "
+                   "пресен, тоест проверката щеше да е вечно зелена"),
+}
+
+
+def cronovi_yml(papka=None):
+    """Всеки workflow с часовник, прочетен от диска. Празно значи не намерих.
+
+    🔴 ОТКРИВА, НЕ ИЗБРОЯВА. Списък в кода е ръчка, която следващият
+    workflow с cron ще подмине — точно това се случи със support.yml.
+    """
+    import re as _re
+    for baza in ([papka] if papka else
+                 [".github/workflows", "../.github/workflows"]):
+        if not baza or not os.path.isdir(baza):
+            continue
+        nam = {}
+        for ime in sorted(os.listdir(baza)):
+            if not ime.endswith(".yml"):
+                continue
+            try:
+                with io.open(os.path.join(baza, ime), encoding="utf-8") as f:
+                    t = f.read()
+            except Exception:                                # noqa: BLE001
+                continue
+            cr = _re.findall(r"cron:\s*[\'\"]([^\'\"]+)", t)
+            if cr:
+                nam[ime] = cr
+        if nam:
+            return nam
+    return {}
 
 
 def _sega():
@@ -743,6 +786,25 @@ def selftest():
             bad.append(ime)
 
     T0 = datetime(2026, 8, 25, 12, 0, tzinfo=timezone.utc)
+
+    # ---------------------------------------------- 🔴 НИКОЙ С ЧАСОВНИК ДА
+    # НЕ ОСТАНЕ НЕГЛЕДАН (05.09.2026). Дотук VAZHNI беше шест имена, а
+    # часовник имаха девет: support.yml (на 15 мин, с будилника и
+    # събуждането на предсказателя), hub.yml и pazach.yml.
+    _cr = cronovi_yml()
+    check("workflow-ите с часовник се намират", len(_cr) >= 6)
+    _gledani = {i for i, _o in VAZHNI}
+    _zabraveni = sorted(set(_cr) - _gledani - set(NE_SE_GLEDAT))
+    check("никой с часовник не е забравен: " + (", ".join(_zabraveni) or "-"),
+          not _zabraveni)
+    check("всяко извинение носи причина",
+          all(len(str(v)) > 20 for v in NE_SE_GLEDAT.values()))
+    check("не се извинява нещо, което ГЛЕДАМЕ",
+          not (set(NE_SE_GLEDAT) & _gledani))
+    check("съпортът е сред важните", "support.yml" in _gledani)
+    check("всеки важен има написано какво прави",
+          all(len(str(o)) > 5 for _i, o in VAZHNI))
+    check("няма повторено име", len(_gledani) == len(VAZHNI))
 
     def run(kogato, zakl):
         return {"created_at": kogato, "conclusion": zakl}
