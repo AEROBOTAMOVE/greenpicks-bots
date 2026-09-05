@@ -158,6 +158,16 @@ except Exception as _hok_err:                                # noqa: BLE001
 # които има И РЕЗУЛТАТИ, значи и модел. КХЛ, ВХЛ и Metal Ligaen НЕ влизат:
 # цена има, резултати няма откъде, а карта без начин да бъде оценена не бива
 # да излиза.
+# 🏉 РЪГБИ ЮНИЪН (02.09.2026). Цял непитан спорт: `grep -ril "rugby"` над
+# целия склад връщаше НУЛА файла. ESPN дава 25 негови лиги, каталогът на
+# собственика го слага в ЗЕЛЕНИЯ списък, а Pinnacle (id=27) му дава цени —
+# 13 мача днес, 6 от 6 с цена. Константите на модела са измерени върху 639
+# изиграни мача: домакинът +7.48 точки, σ = 21.85.
+try:
+    import ragbi as RAG
+except Exception as _rag_err:                                # noqa: BLE001
+    RAG = None
+    print("ръгбито не се зареди (" + str(_rag_err)[:70] + ").")
 try:
     import evrohokey as EVH
 except Exception as _evh_err:                                # noqa: BLE001
@@ -530,8 +540,12 @@ MIN_SHOW_P = env_float("PREDICT_MIN_SHOW_P", 0.45, 0.0, 0.75)
 # летвата им е MIN_SHOW_P_DVA (53%), не футболната MIN_SHOW_P (45%).
 # 🔴 ТАЗИ КОНСТАНТА Е ЕДНА. Втора, написана по-долу, презаписва тази
 # МЪЛЧАЛИВО — случи се веднъж на 25.08 (виж бележката при ogledalo).
+# 🏉 Ръгбито НЯМА равен. Измерено при Pinnacle същия ден: 0 от 12 негови
+# мънилайна носят цена за равен. Влизането му тук е това измерване, не
+# предположение за правилата на играта.
 DVA_IZHODA = {"tennis", "tabletennis", "mma", "boxing", "esports",
-              "volleyball", "basketball", "baseball", "hockey", "amfootball"}
+              "volleyball", "basketball", "baseball", "hockey", "amfootball",
+              "rugby"}
 # ═══ СПОРТОВЕТЕ, ЧИЕТО ЧИСЛО ВЕЧЕ Е ПАЗАРНОТО (25.08.2026) ═══
 #
 # При бокса и еспорта нямаме модел: няма безплатен измерен източник за
@@ -720,6 +734,11 @@ SPORTS = {
     # честен надпис; „Elo" или „форма" щеше да е лъжа с научно име.
     "boxing":      {"emoji": "🥊", "title": "Бокс", "prio": 93,
                     "model": "цената на пазара"},
+    # 🏉 Ръгбито ИМА модел — точки за и против, като американския футбол.
+    # Разликата е σ: 21.85 срещу 13.5, измерено на 639 мача. Затова тук не
+    # пише „цената на пазара" както при бокса.
+    "rugby":       {"emoji": "🏉", "title": "Ръгби", "prio": 55,
+                    "model": "точки за и против"},
     "esports":     {"emoji": "🎮", "title": "Електронни спортове", "prio": 65,
                     # Същата дума, същата причина: BANNED_TOKENS. Днес
                     # това поле не се печата никъде, но напише ли го
@@ -731,7 +750,7 @@ SPORTS = {
 # `SPORTS[b]["prio"]` — КВАДРАТНА скоба, не .get. Спорт тук без запис там
 # дава KeyError и убива ЦЕЛИЯ рън. Самопроверката го пази.
 SPORT_ORDER = ["mma", "boxing", "tabletennis", "volleyball", "basketball",
-               "tennis", "esports", "hockey", "football", "amfootball",
+               "tennis", "esports", "hockey", "rugby", "football", "amfootball",
                "baseball"]
 
 _want = [s.strip().lower() for s in (os.environ.get("PREDICT_SPORTS") or "").split(",") if s.strip()]
@@ -750,9 +769,19 @@ _want = [s.strip().lower() for s in (os.environ.get("PREDICT_SPORTS") or "").spl
 #
 # ПЪТЯТ НАЗАД (правило 3): PREDICT_IZKL="" ги връща моментално, без нито ред
 # промяна по кода. През септември това е една променлива в GitHub, не ремонт.
+# 🔴 ПОДРАЗБИРАНЕТО В КОДА И В РАБОТНИТЕ ФАЙЛОВЕ ВЕЧЕ СЪВПАДАТ (02.09.2026).
+#
+# Дотук кодът казваше „hockey,amfootball", а трите работни файла казваха
+# три РАЗНИ неща — това го изравних същия ден. Оставаше последното
+# разминаване: КОДЪТ. Тоест самопроверката се пускаше с два затворени
+# спорта, а производството — с нула, и двете виждаха различен бот.
+#
+# И двата спорта вече имат извор: hokey.py + evrohokey.py (СМ Лига и
+# Шампионската лига, 36 срещи измерено) и amfutbol.py (отворен на 01.09).
+# ПЪТ НАЗАД: PREDICT_IZKL=hockey,amfootball връща точно старото.
 _izkl_raw = os.environ.get("PREDICT_IZKL")
 if _izkl_raw is None:
-    _izkl_raw = "hockey,amfootball"
+    _izkl_raw = ""
 IZKLYUCHENI = {s.strip().lower() for s in _izkl_raw.split(",") if s.strip()}
 # ═════════ ДВАТА НОВИ СПОРТА ИМАТ КЛЮЧ, И ТОЙ Е ЗАВЪРТЯН НА НУЛА ═════════
 #                                                          (25.08.2026)
@@ -806,7 +835,11 @@ ACTIVE_SPORTS = [s for s in SPORT_ORDER
 # число са лъжа с рейтинг.
 STAR_CAP = {"mma": 2, "boxing": 1, "esports": 1, "tabletennis": 2,
             "baseball": 2, "tennis": 3, "volleyball": 3, "football": 3,
-            "basketball": 3, "hockey": 3, "amfootball": 3}
+            "basketball": 3, "hockey": 3, "amfootball": 3,
+            # 🏉 Ръгбито има истинска история (639 изиграни мача в извадката),
+            # затова таванът е пълният. Ако беше пазарна цена като бокса,
+            # тук щеше да пише 1.
+            "rugby": 3}
 # Минимална извадка на страна. 0 = спортът има собствена проверка за достатъчност.
 # 0 = спортът НЕ минава през общата проверка, защото носи собствена. Волейболът
 # и тенисът на маса броят извадката вътре в модела си (рейтинг, не списък мачове);
@@ -819,11 +852,23 @@ MIN_PER_SIDE = {"football": 5, "basketball": 5, "volleyball": 0, "tabletennis": 
                 "hockey": 0, "baseball": 10,
                 # Американският футбол играе 17 мача за сезон — праг 5 би
                 # изтрил целия септември. Три стигат, звездите пазят честността.
-                "amfootball": 3}
+                "amfootball": 3,
+                # 🏉 Ръгбито играе рядко — Топ 14 е 26 мача за сезон.
+                # Числото е СЪЩОТО като `ragbi.MIN_MACHOVE`; ако се разминат,
+                # едната проверка ще пуска мач, който другата отхвърля.
+                "rugby": 3}
 # Спортовете, които наистина връщат списък с изиграни мачове през history_for().
 # Всеки ДРУГ спорт ЗАДЪЛЖИТЕЛНО стои с 0 по-горе. Самопроверката го пази —
 # сгрешено число тук не чупи нищо шумно, просто убива мълчаливо цял спорт.
-HISTORY_SPORTS = {"football", "basketball", "baseball", "amfootball"}
+# 🔴 СПОРТОВЕТЕ, ЧИЯТО КАРТА ИСКА ИСТОРИЯ ПРЕДИ ДА СЕ СМЯТА. Спорт тук
+# ЗАДЪЛЖИТЕЛНО има праг над 0 в MIN_PER_SIDE; спорт извън него —
+# задължително 0. Двете проверки долу пазят това и вече са хванали два
+# истински бъга (волейболът и хокеят падаха мълчаливо).
+# 🏉 Ръгбито влиза тук на 02.09.2026: `ragbi.istoriya` чете диапазонно
+# табло и връща истински изиграни мачове — 14 на отбор в Топ 14,
+# измерено живо. Значи прагът му Е над нула и мястото му Е тук.
+HISTORY_SPORTS = {"football", "basketball", "baseball", "amfootball",
+                  "rugby"}
 
 WEEKDAYS = ["понеделник", "вторник", "сряда", "четвъртък", "петък", "събота", "неделя"]
 
@@ -5145,6 +5190,15 @@ def history_for(fx, side):
         return baseball_history(fx, side)
     if b == "amfootball":
         return amfootball_history(fx, side)
+    # 🏉 Ръгбито има СВОЯ история и тя НЕ е по отбори: обичайният път
+    # /teams/{id}/schedule за ръгби връща HTTP 500 (12 от 12 проверени).
+    # `ragbi.istoriya` чете диапазонно табло — една заявка на лига носи и
+    # двата отбора.
+    if b == "rugby" and RAG is not None:
+        try:
+            return RAG.istoriya(fx, side)
+        except Exception:                                    # noqa: BLE001
+            return []
     return []
 
 
@@ -6377,6 +6431,36 @@ def analyse(fx, ctx):
         n_eff = m["gp_h"] + m["gp_a"]
         sample = samp(m["gp_h"], m["gp_a"])
 
+    elif b == "rugby":
+        # 🏉 СЪЩИЯТ МОДЕЛ като американския футбол — точки за и против, два
+        # изхода — но с РЪГБИ константи. σ идва през `extra.sigma` (21.85,
+        # измерено на 639 мача), което `model_amfootball` вече чете.
+        #
+        # 🔴 ТОЗИ КЛОН НЕ ВРЪЩА СВОЙ РЕЧНИК, И ТОВА Е ВАЖНО. Първата ми
+        # версия връщаше — и изгуби `"fx"` и `"bucket"`, които общият изход
+        # долу слага. `ima_pazar` чете кофата, видя празно и отряза
+        # ВСИЧКИТЕ осем ръгби кандидата с „без пазар при букмейкър: 8 (? 8)",
+        # докато цените им бяха налични (2.01, 1.40, 1.45, 1.20). Знакът „?"
+        # в отчета БЕШЕ доказателството. Клонът пълни променливи и пада
+        # надолу, точно като останалите десет спорта.
+        m = model_amfootball(hr, ar, fx, now)
+        if not m:
+            return None, "няма история"
+        fav_home = m["p_home"] >= 0.5
+        pick = pick_win(fav_home, fx["home"], fx["away"])   # равен няма
+        p = m["p_home"] if fav_home else m["p_away"]
+        strength = strength_binary(m["p_home"])
+        second = ("Очакван резултат: ~" + str(int(round(m["exp_h"])))
+                  + ":" + str(int(round(m["exp_a"]))))
+        third = points_total_line(m.get("total"), m.get("sigma"), "точки")
+        why = [home + ": " + one(m["sh"]["gf"]) + " : " + one(m["sh"]["ga"])
+               + " точки за мач (" + str(m["sh"]["n"]) + " мача)",
+               away + ": " + one(m["sa"]["gf"]) + " : " + one(m["sa"]["ga"])
+               + " точки за мач (" + str(m["sa"]["n"]) + " мача)"]
+        n_eff = min(m["sh"]["w"], m["sa"]["w"])
+        sample = "точки за и против"
+        tot = {"line": None, "over": None, "total": m.get("total")}
+
     elif b == "amfootball":
         m = model_amfootball(hr, ar, fx, now)
         if not m:
@@ -7267,6 +7351,18 @@ def collect_all(now):
                 elif _nhl_mylchi:
                     print("   \u26a0 НХЛ мълчи, но Европа отговори — "
                           "картите долу са европейски.")
+            elif b == "rugby":
+                # 🏉 Измерено живо в деня на вплитането: 45 предстоящи мача в
+                # трите играещи лиги (Топ 14 22, НПС 19, тестови 4).
+                _rr = RAG.srechti(now, ime=bg_name) if RAG else None
+                if _rr is None:
+                    rows = []
+                elif _rr is RAG.NEPITAN:
+                    print("   ⚠ ръгби: НЕ МОЖАХ ДА ПИТАМ (изворът мълчи) — "
+                          "това НЕ е «няма мачове».")
+                    rows = []
+                else:
+                    rows = _rr
             elif b == "amfootball":
                 rows = amfootball_fixtures(now, ymd_za(now, b))
                 # 🔴 ТАВАНЪТ ДЕЙСТВА И ТУК, не само през ACTIVE_SPORTS. Една
@@ -10431,6 +10527,88 @@ def selftest():
     # ═══════ ЕВРОПЕЙСКИЯТ ХОКЕЙ (02.09.2026)
     check("модулът за европейски хокей се внесе", EVH is not None)
 
+    # ═══════ РЪГБИ ЮНИЪН (02.09.2026)
+    check("модулът за ръгби се внесе", RAG is not None)
+    check("ръгбито е в SPORTS", "rugby" in SPORTS)
+    check("и в подредбата", "rugby" in SPORT_ORDER)
+    # 🔴 БЕЗ ЗАПИС В SPORTS ред ~5912 (`SPORTS[b]["prio"]`, КВАДРАТНА скоба)
+    # хвърля KeyError и убива ЦЕЛИЯ рън. Затова двете се проверяват заедно.
+    for _s in SPORT_ORDER:
+        check("подреденият спорт " + _s + " има запис в SPORTS", _s in SPORTS)
+    check("ръгбито е с два изхода (равен не се котира)",
+          "rugby" in DVA_IZHODA)
+    check("ръгбито НЕ е сред «числото е пазарното» — то има модел",
+          "rugby" not in BEZ_SMESVANE)
+    check("таванът на звездите му е пълният", STAR_CAP.get("rugby") == 3)
+    if RAG is not None:
+        # 🔴 ЕДНО ЧИСЛО, ДВЕ МЕСТА. Прагът за извадка стои и в predictor, и в
+        # ragbi. Разминат ли се, едното пуска мач, който другото отхвърля —
+        # и никой не разбира защо картата ту излиза, ту не.
+        check("прагът за извадка е ЕДИН и същ в двата файла",
+              MIN_PER_SIDE.get("rugby") == RAG.MIN_MACHOVE)
+        check("пет лиги", len(RAG.LIGI) == 5)
+        check("аматьорската URBA НЕ е сред тях",
+              "289279" not in {x[0] for x in RAG.LIGI})
+        check("и е записано защо", "289279" in RAG.NE_VLIZAT)
+        check("разсейването е измереното (21.85, не 13.5 като амер. футбол)",
+              abs(RAG.SIGMA - 21.85) < 0.01)
+        check("кошницата му е ръгби", RAG.NASH_KLYUCH == "rugby")
+
+    # 🔴 ТАЗИ ПРОВЕРКА ЛОВИ ТОЧНО МОЯТА ГРЕШКА ОТ ДНЕС.
+    #
+    # Написах клона за ръгби да ВРЪЩА свой речник вместо да пълни променливи
+    # и да падне към общия изход. Изгубиха се `"fx"` и `"bucket"`, които
+    # общият изход слага — и `ima_pazar`, който чете кофата, отряза
+    # ВСИЧКИТЕ осем кандидата с „без пазар при букмейкър: 8 (? 8)", докато
+    # цените им бяха налични (2.01, 1.40, 1.45, 1.20). Знакът „?" беше
+    # доказателството: кофата липсваше.
+    #
+    # Проверката минава през ИСТИНСКИЯ `analyse`, с подхвърлена история, и
+    # пита за двете полета поименно.
+    if RAG is not None:
+        _rg_ist = [{"gf": 30.0, "ga": 20.0, "home": True, "date": "2026-08-20"},
+                   {"gf": 28.0, "ga": 25.0, "home": False, "date": "2026-08-13"},
+                   {"gf": 35.0, "ga": 18.0, "home": True, "date": "2026-08-06"},
+                   {"gf": 22.0, "ga": 24.0, "home": False, "date": "2026-07-30"}]
+        _rg_fx = {"bucket": "rugby", "home": "Аа", "away": "Бб",
+                  "home_id": "Аа", "away_id": "Бб", "src": "ragbi",
+                  "league": "Топ 14, Франция", "weight": 8,
+                  "when": _sega,
+                  "extra": {"home_en": "Аа", "away_en": "Бб",
+                            "liga_id": "270559", "sigma": RAG.SIGMA}}
+        _rg_st = globals().get("history_for")
+        try:
+            globals()["history_for"] = lambda fx, side: list(_rg_ist)
+            # 🔴 `analyse` иска КОНТЕКСТ, не час. Първата ми версия подаде
+            # `_sega` и гръмна с «datetime is not subscriptable» — тоест
+            # проверката щеше да е червена, вместо да пази нещо. Формата е
+            # същата като в работния път (ред ~9091).
+            _rg_ctx = {"now": _sega, "lvl": 1.35}
+            _rg_r, _rg_z = analyse(_rg_fx, _rg_ctx)
+            check("ръгби мачът получава карта", _rg_r is not None)
+            if _rg_r:
+                check("🔴 картата носи КОФАТА (инак портиерът я реже)",
+                      _rg_r.get("bucket") == "rugby")
+                check("🔴 и носи срещата", _rg_r.get("fx") is _rg_fx)
+                check("носи избор", bool(_rg_r.get("pick")))
+                check("носи вероятност", 0.0 < float(_rg_r.get("p") or 0) < 1.0)
+                check("носи звезди", 1 <= int(_rg_r.get("stars") or 0) <= 3)
+                check("описанието на извадката е за точки",
+                      "точки" in str(_rg_r.get("sample") or ""))
+                # и че портиерът НАИСТИНА го пуска с цена
+                _rg_an = dict(_rg_r, pazar_cena=1.85)
+                check("портиерът пуска ръгби с цена",
+                      ima_pazar(_rg_an)[0] is True)
+            # ОБРАТНАТА ПОСОКА: без история — мълчание, не измислено число
+            globals()["history_for"] = lambda fx, side: []
+            _rg_p, _rg_z2 = analyse(_rg_fx, _rg_ctx)
+            check("без история ръгбито мълчи", _rg_p is None)
+        finally:
+            if _rg_st is not None:
+                globals()["history_for"] = _rg_st
+        check("history_for е върната както беше",
+              globals().get("history_for") is _rg_st)
+
     # ═══════ ПИТАНЕТО ЗА ЦЕНА НА WTT (02.09.2026)
     #
     # Дупката имаше ДВЕ половини и всяка сама по себе си не сменяше нищо:
@@ -12597,9 +12775,22 @@ def selftest():
           not (IZKLYUCHENI & set(ACTIVE_SPORTS)))
     check("затворените спортове пак имат код (не са изтрити)",
           all(b in SPORTS and b in SPORT_ORDER for b in IZKLYUCHENI))
-    check("хокеят и амер. футбол са затворени по подразбиране",
+    # 🔴 ОБЪРНАТА (02.09.2026). Заковаваше, че хокеят и амер. футболът СА
+    # затворени — а това вече е невярно и по двете причини:
+    #   · амер. футбол се отвори на 01.09 (amfutbol.py, първа карта:
+    #     Wake Forest – Akron, 92%)
+    #   · хокеят се отвори днес (evrohokey.py: СМ Лига и Шампионската лига,
+    #     36 насрочени срещи, 28 годни за модел)
+    # И трите работни файла казваха три РАЗНИ стойности за този ключ, а
+    # кодът — четвърта. Сега и четирите са празно.
+    check("нищо не е затворено по подразбиране",
           bool(os.environ.get("PREDICT_IZKL") is not None)
-          or IZKLYUCHENI == {"hockey", "amfootball"})
+          or IZKLYUCHENI == set())
+    # И поименно, за да не се върнат тихо:
+    for _zs in ("hockey", "amfootball"):
+        check("спортът " + _zs + " НЕ е затворен",
+              bool(os.environ.get("PREDICT_IZKL") is not None)
+              or _zs not in IZKLYUCHENI)
     # 🔴 ОТКЛЮЧЕНА (02.09.2026). Заковаваше „седем“ — тоест вдигането на
     # PREDICT_ESPORT_MAX (или на бокса) спираше бота. Сега проверката пази
     # ПРАВИЛОТО: активните са точно тези, които ключовете разрешават.
@@ -13554,10 +13745,21 @@ def selftest():
           all(b not in ACTIVE_SPORTS for b in SPAT))
     check("спящите пак имат код (не са изтрити)",
           all(b in SPORTS and b in SPORT_ORDER for b in SPAT))
-    check("работещите спортове остават седем",
-          len(ACTIVE_SPORTS) == 7 or os.environ.get("PREDICT_SPORTS")
+    # 🔴 БРОЯТ РАСТЕ И ТОВА Е ДОБРЕ (02.09.2026: 7 → 9).
+    # Прибавиха се хокеят (evrohokey: СМ Лига и Шампионската лига) и
+    # ръгбито (ragbi: Топ 14, НПС, тестови мачове). Проверката вече пази
+    # ПОД, не точно число: спорт може да се добави, но не и да изчезне
+    # мълчаливо — а точно тихото изчезване е дефектът, който я роди.
+    check("работещите спортове са поне девет",
+          len(ACTIVE_SPORTS) >= 9 or os.environ.get("PREDICT_SPORTS")
           or os.environ.get("PREDICT_IZKL") is not None
           or BOKS_MAX > 0 or ESPORT_MAX > 0)
+    # И поименно: тези НЕ БИВА да излизат от дневния ред без решение.
+    for _ds in ("football", "tennis", "basketball", "baseball", "volleyball",
+                "tabletennis", "mma", "rugby"):
+        check("работещият спорт " + _ds + " е в дневния ред",
+              _ds in ACTIVE_SPORTS or os.environ.get("PREDICT_SPORTS")
+              or os.environ.get("PREDICT_IZKL"))
 
     # ── резервната стълба НЕ бива да пуска карта без цена ────────────────
     # При тези двамата числото Е цената. Няма цена -> няма число, а резервните
