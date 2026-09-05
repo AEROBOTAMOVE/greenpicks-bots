@@ -1215,8 +1215,14 @@ def _sdb_dvoyki(sabitiya):
             hs, as_ = int(hs), int(as_)
         except (TypeError, ValueError):
             continue
+        # 🔴 СЕДМИЯТ ЧЛЕН Е ЧАСЪТ (05.09.2026). Без него `sdb_result` съдеше
+        # само по календарния ден на ИЗВОРА и лепваше мач от съседния —
+        # измерено: карта за HPK — Kärpät на 07.03 получаваше 3-2, мачът от
+        # 06.03. Присъдата е необратима: `scored` се вдига и картата не се
+        # пита пак.
         out.append((str(e.get("idHomeTeam") or ""), str(e.get("idAwayTeam") or ""),
-                    hs, as_, e.get("strHomeTeam"), e.get("strAwayTeam")))
+                    hs, as_, e.get("strHomeTeam"), e.get("strAwayTeam"),
+                    e.get("strTimestamp")))
     return out
 
 
@@ -1228,6 +1234,26 @@ def sdb_result(rec):
     if not sport or (not hid and not ha):
         return None
 
+    nash_den = str(rec.get("day") or "")[:10]
+
+    def _nashiyat(ts, den_izvor):
+        """Този ли е НАШИЯТ мач, съдено по ЧАСА, не по календара на извора.
+
+        🔴 ЧАСОВАТА ЗОНА МЕСТИ МАЧА С ЧАСОВЕ, НЕ С ДЕН. Затова денят се
+        смята в СОФИЙСКО време от самия миг на мача и се иска ТОЧНО
+        съвпадение. Мач в 23:00 UTC на 06.03 е 01:00 софийско на 07.03 —
+        приема се. Мач в 16:30 UTC на 06.03 е 18:30 софийско същия ден —
+        НЕ се приема за карта от 07.03. Дотук двете се смесваха и картата
+        за HPK — Kärpät от 07.03 получаваше 3-2, мачът от 06.03 (измерено).
+
+        Няма ли час — падаме на стария вид, но САМО за точния ден на
+        извора. Празното значи «не знам», не «друг ден».
+        """
+        d = sofia_den(ts) if ts else ""
+        if d:
+            return (not nash_den) or d == nash_den
+        return (not nash_den) or den_izvor == nash_den
+
     # ВРАТА 1: всички мачове от този спорт за деня (и съседните — часови зони).
     for den in okolni_dni(rec.get("day")):
         if den not in _sdb_den:
@@ -1235,7 +1261,9 @@ def sdb_result(rec):
                           + urllib.parse.quote(sport))
             _sdb_den[den] = _sdb_dvoyki(j.get("events"))
             time.sleep(0.3)
-        for h, a, hs, as_, hn, an in _sdb_den[den]:
+        for h, a, hs, as_, hn, an, ts in _sdb_den[den]:
+            if not _nashiyat(ts, den):
+                continue
             if hid and aid and h == hid and a == aid:
                 return hs, as_
             if same_team(hn, ha) and same_team(an, hb):
@@ -1244,7 +1272,12 @@ def sdb_result(rec):
     # ВРАТА 2: последните мачове на домакина. Спасява разместените по зона.
     if hid:
         j = _sdb_json(SDB + "/eventslast.php?id=" + hid)
-        for h, a, hs, as_, hn, an in _sdb_dvoyki(j.get("results")):
+        for h, a, hs, as_, hn, an, ts in _sdb_dvoyki(j.get("results")):
+            # 🔴 ТУК ЧАСЪТ Е ЕДИНСТВЕНАТА ЗАЩИТА. «Последните мачове» на
+            # един отбор са цял списък назад във времето; без деня вратата
+            # би върнала предишната им среща със същия съперник.
+            if not _nashiyat(ts, ""):
+                continue
             if aid and a == aid and h == hid:
                 return hs, as_
             if same_team(hn, ha) and same_team(an, hb):
@@ -3390,7 +3423,7 @@ def selftest():
           _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
                         "intHomeScore": "96", "intAwayScore": "82",
                         "strHomeTeam": "A", "strAwayTeam": "B"}])
-          == [("1", "2", 96, 82, "A", "B")])
+          == [("1", "2", 96, 82, "A", "B", None)])
     check("незавършил мач не се брои",
           _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
                         "intHomeScore": None, "intAwayScore": None}]) == [])
@@ -3404,12 +3437,116 @@ def selftest():
     check("низ вместо списък не гърми (истинският отговор на SDB)",
           _sdb_dvoyki("Invalid Team ID passed") == [])
     check("речник вместо списък не гърми", _sdb_dvoyki({"a": 1}) == [])
+
+    # 🔴 ЧАСЪТ РЕШАВА, НЕ КАЛЕНДАРЪТ НА ИЗВОРА (05.09.2026).
+    #
+    # Измерено живо от TheSportsDB: 06.03.2026 носи HPK 3-2 Kärpät
+    # (strTimestamp 2026-03-06T16:30:00), а 07.03 изобщо няма финландски
+    # мач. Картата за 07.03 (истината е 6-3) получаваше 3-2 — мачът от
+    # предишния ден — защото `okolni_dni` пуска ±1 и се връщаше ПЪРВИЯТ
+    # съвпаднал по имена.
+    #
+    # 🔴 И ПРИСЪДАТА Е НЕОБРАТИМА: `scored` се вдига и картата не се
+    # пита пак. Фалшивото число влиза в процента, който каналът показва.
+    #
+    # Допускът ±1 съществува заради часовите зони — но те местят мача с
+    # ЧАСОВЕ, тоест само около полунощ. Затова денят се смята в СОФИЙСКО
+    # време от самия миг на мача.
+    _sdb_star = dict(_sdb_den)
+    _sdb_json_star = globals().get("_sdb_json")
+    try:
+        _sdb_den.clear()
+        # 06.03 носи мача в 16:30 UTC; 07.03 е ПРАЗЕН, както живият извор.
+        _sdb_den["2026-03-06"] = [("", "", 3, 2, "HPK", "Kärpät",
+                                   "2026-03-06T16:30:00")]
+        _sdb_den["2026-03-07"] = []
+        _sdb_den["2026-03-08"] = []
+        _sdb_den["2026-03-05"] = []
+        globals()["_sdb_json"] = lambda u: {}
+        _r6 = sdb_result({"bucket": "hockey", "day": "2026-03-06",
+                          "home": "HPK", "away": "Kärpät"})
+        _r7 = sdb_result({"bucket": "hockey", "day": "2026-03-07",
+                          "home": "HPK", "away": "Kärpät"})
+        check("мачът на СВОЯ ден се отсъжда", _r6 == (3, 2))
+        check("🔴 и НЕ се лепва на съседния ден", _r7 is None)
+
+        # —— а истинската часова зона ПАК работи: 23:00 UTC на 06.03
+        # е 01:00 софийско на 07.03 — това Е нашият мач за 07.03.
+        _sdb_den.clear()
+        _sdb_den["2026-03-06"] = [("", "", 4, 1, "Аа", "Бб",
+                                   "2026-03-06T23:00:00")]
+        _sdb_den["2026-03-07"] = []
+        _sdb_den["2026-03-08"] = []
+        _sdb_den["2026-03-05"] = []
+        check("късният мач от предишния ден СЕ признава",
+              sdb_result({"bucket": "hockey", "day": "2026-03-07",
+                          "home": "Аа", "away": "Бб"}) == (4, 1))
+        check("но не и за деня, в който НЕ е",
+              sdb_result({"bucket": "hockey", "day": "2026-03-08",
+                          "home": "Аа", "away": "Бб"}) is None)
+
+        # —— без час: старото поведение, но САМО за точния ден
+        _sdb_den.clear()
+        _sdb_den["2026-03-06"] = [("", "", 2, 0, "Вв", "Гг", None)]
+        _sdb_den["2026-03-07"] = []
+        _sdb_den["2026-03-08"] = []
+        _sdb_den["2026-03-05"] = []
+        check("без час — денят на извора важи",
+              sdb_result({"bucket": "hockey", "day": "2026-03-06",
+                          "home": "Вв", "away": "Гг"}) == (2, 0))
+        check("без час — съседният ден НЕ важи",
+              sdb_result({"bucket": "hockey", "day": "2026-03-07",
+                          "home": "Вв", "away": "Гг"}) is None)
+    finally:
+        _sdb_den.clear()
+        _sdb_den.update(_sdb_star)
+        if _sdb_json_star is not None:
+            globals()["_sdb_json"] = _sdb_json_star
+    check("подставките са върнати",
+          globals().get("_sdb_json") is _sdb_json_star)
+    # 🔴 И ВТОРАТА ВРАТА. «Последните мачове» на един отбор са цял списък
+    # назад във времето; без деня тя връща предишната им среща със същия
+    # съперник. Мутация «врата 2 без проверка за деня» ОЦЕЛЯ, докато тази
+    # проверка я нямаше — изпитвах само първата врата.
+    _sdb_star2 = dict(_sdb_den)
+    _sdb_json_star2 = globals().get("_sdb_json")
+    try:
+        _sdb_den.clear()
+        for _d in ("2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08"):
+            _sdb_den[_d] = []          # първата врата не намира нищо
+        globals()["_sdb_json"] = lambda u: {"results": [
+            {"idHomeTeam": "77", "idAwayTeam": "88", "intHomeScore": "5",
+             "intAwayScore": "1", "strHomeTeam": "Дд", "strAwayTeam": "Ее",
+             "strTimestamp": "2026-02-01T18:00:00"}]}
+        _v2_star = sdb_result({"bucket": "hockey", "day": "2026-03-07",
+                               "home_id": "77", "away_id": "88",
+                               "home": "Дд", "away": "Ее"})
+        globals()["_sdb_json"] = lambda u: {"results": [
+            {"idHomeTeam": "77", "idAwayTeam": "88", "intHomeScore": "5",
+             "intAwayScore": "1", "strHomeTeam": "Дд", "strAwayTeam": "Ее",
+             "strTimestamp": "2026-03-07T18:00:00"}]}
+        _v2_nash = sdb_result({"bucket": "hockey", "day": "2026-03-07",
+                               "home_id": "77", "away_id": "88",
+                               "home": "Дд", "away": "Ее"})
+    finally:
+        _sdb_den.clear()
+        _sdb_den.update(_sdb_star2)
+        if _sdb_json_star2 is not None:
+            globals()["_sdb_json"] = _sdb_json_star2
+    check("🔴 врата 2 НЕ връща стар мач от друг ден", _v2_star is None)
+    check("врата 2 връща мача от НАШИЯ ден", _v2_nash == (5, 1))
+
+    check("часът се чете от суровия отговор",
+          _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
+                        "intHomeScore": "1", "intAwayScore": "0",
+                        "strTimestamp": "2026-03-06T16:30:00"}])[0][6]
+          == "2026-03-06T16:30:00")
     check("списък от низове не гърми", _sdb_dvoyki(["abc", "def"]) == [])
     check("число не гърми", _sdb_dvoyki(42) == [])
     check("списък с речник И боклук взима само речника",
           _sdb_dvoyki([{"idHomeTeam": "1", "idAwayTeam": "2",
                         "intHomeScore": "3", "intAwayScore": "1"}, "боклук"])
-          == [("1", "2", 3, 1, None, None)])
+          == [("1", "2", 3, 1, None, None, None)])
 
     # 🔴 ПРЕПИСАНО 11.08.2026. Тук стоеше ПРЕПИС на миграцията — двайсет реда
     # близнак със свое заковано „3". Мутационен тест го обори: смених живия
