@@ -386,6 +386,13 @@ jobs:
           PREDICT_MAX_URGENT: ${{ vars.PREDICT_MAX_URGENT }}
           PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM || '23' }}
           PREDICT_QUIET_TO: ${{ vars.PREDICT_QUIET_TO || '0' }}
+          # 🔴 ОСТАВА НА НУЛА (05.09.2026). Завъртях я на едно и я върнах:
+          # самият код носи доказателството, че WTT Е ЗАЛОЖИМ —
+          # каталогът на собственика от bet365 изрежда «World Table
+          # Tennis — Grand Smashes; Champions; Star Contender;
+          # Contender; Feeder». Строгият режим щеше да изтрие 273
+          # ЗАЛОЖИМИ карти само защото не сме им намерили цената.
+          # Липсва КОЕФИЦИЕНТЪТ, не пазарът — и той се вади от Kambi.
           PREDICT_SAMO_S_KOEF: ${{ vars.PREDICT_SAMO_S_KOEF || '0' }}
           PREDICT_SMELOST_MAX: ${{ vars.PREDICT_SMELOST_MAX }}
           PREDICT_TOTAL_MAX: ${{ vars.PREDICT_TOTAL_MAX }}
