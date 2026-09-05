@@ -9119,6 +9119,61 @@ KOEF_PRAG = float((os.environ.get("PREDICT_KOEF_PRAG") or "1.70").strip() or 1.7
 KOEF_SHTAFA = float((os.environ.get("PREDICT_KOEF_SHTAFA") or "1000").strip() or 1000)
 
 
+# 🚪 ПОРТИЕРЪТ НА ДВИЖЕНИЕТО (05.09.2026).
+#
+# Дотук движението се записваше и НИКОЙ не го четеше: 63 споменавания на
+# `dvizhenie`, нула решения. Ръбът е измерен на 22 333 мача: +12% ROI при
+# 3% движение — и стоеше неизползван.
+#
+# Прагът е 3%: числото, при което ръбът е мерен. Под него е закръгляне на
+# книгата, не сигнал.
+DVIZH_PRAG = float((os.environ.get("PREDICT_DVIZH_PRAG") or "0.03").strip()
+                   or 0.03)
+# 🔴 РАВНА НА ТЕЖЕСТТА ЗА КОЕФИЦИЕНТА, не по-голяма. Онази е мерена на
+# НАШИЯ дневник (724 карти); тази — на чужда извадка. Неизмереното у нас не
+# бива да бие измереното у нас.
+DVIZH_TEZHEST = float((os.environ.get("PREDICT_DVIZH_TEZHEST") or "1000").strip()
+                      or 1000)
+# Колко пускания трябва да са видели цената. Една точка не е движение.
+DVIZH_MIN_N = env_int("PREDICT_DVIZH_MIN_N", 2, 1, 20)
+
+
+def dvizh_tezhest(an):
+    """Колко тежи движението на цената в подредбата.
+
+    Положително, ако цената на НАШИЯ избор е паднала (парите идват към
+    нас); отрицателно, ако се е вдигнала. Нула при липса на редица или при
+    движение под прага.
+
+    🔴 ИСКА РЕДИЦА ОТ ПОНЕ ДВЕ ЦЕНИ. `dvizhenie_n` брои колко ПУСКАНИЯ са
+    видели цената — една точка не е движение, а моментна снимка.
+
+    🔴 ЗНАКЪТ Е ВАЖЕН И Е ПРОВЕРЕН: `dvizhenie` връща разликата в
+    имплицитна вероятност спрямо ПЪРВАТА видяна цена, тоест поевтиняване
+    за нас дава ПОЛОЖИТЕЛНО число (мерено: 1.80 → 1.60 дава +0.0665).
+    """
+    if DVIZH_PRAG <= 0 or not isinstance(an, dict):
+        return 0.0
+    try:
+        n = int(an.get("dvizhenie_n") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+    if n < DVIZH_MIN_N:
+        return 0.0
+    d = an.get("dvizhenie")
+    if d is None:
+        return 0.0
+    try:
+        d = float(d)
+    except (TypeError, ValueError):
+        return 0.0
+    if d >= DVIZH_PRAG:
+        return DVIZH_TEZHEST
+    if d <= -DVIZH_PRAG:
+        return -DVIZH_TEZHEST
+    return 0.0
+
+
 def koef_tezhest(an):
     """Колко тежи коефициентът в подредбата. Нула или отрицателно.
 
@@ -9202,7 +9257,7 @@ def choose(cands, limit, now=None, urgent_limit=None, dnes_po_sport=None):
 
     speshni.sort(key=kogato)               # кой започва пръв, той пръв
     ostanali.sort(key=lambda a: -(a["stars"] * 1000.0 + a["strength"] * 100.0
-                                  + koef_tezhest(a)))
+                                  + koef_tezhest(a) + dvizh_tezhest(a)))
 
     picked, used, taken = [], {}, set()
     # 1) СПЕШНИТЕ — със свой таван, не се състезават с останалите.
@@ -9686,7 +9741,8 @@ def run():
               + str(_a.get("dvizhenie_n")) + " виждания)")
     print("   📈 движение: " + str(len(_dv_redici)) + " от " + str(len(picks))
           + " карти имат редица от поне две цени · в тефтера "
-          + str(len(CENI)) + " срещи. Само запис — портиер няма.")
+          + str(len(CENI)) + " срещи. Портиерът работи (праг "
+          + str(round(100 * DVIZH_PRAG, 1)) + "%).")
     sent = 0
     hkey = now.strftime("%Y-%m-%d") + "|header"
     if not already_posted(state, hkey):
@@ -10701,6 +10757,66 @@ def selftest():
     _t3 = 3 * 1000.0 + 0.2 * 100.0 + koef_tezhest({"pazar_cena": 1.95})
     _t2 = 2 * 1000.0 + 0.2 * 100.0 + koef_tezhest({"pazar_cena": 1.30})
     check("скъпа 3★ тежи колкото евтина 2★", abs(_t3 - _t2) < 1e-9)
+
+    # ═══ 🚪 ПОРТИЕРЪТ НА ДВИЖЕНИЕТО (05.09.2026) ══════════════════════
+    #
+    # 🔴 Дотук движението се ЗАПИСВАШЕ и никой не го четеше: 63 споменавания
+    # на `dvizhenie` в този файл и НУЛА решения. Ръбът е измерен на 22 333
+    # мача (+12% ROI при 3% движение) и стоеше неизползван.
+    check("падналата цена ВДИГА картата",
+          dvizh_tezhest({"dvizhenie": 0.05, "dvizhenie_n": 2}) > 0)
+    check("вдигналата се цена СВАЛЯ картата",
+          dvizh_tezhest({"dvizhenie": -0.05, "dvizhenie_n": 2}) < 0)
+    check("движение под прага е шум, не сигнал",
+          dvizh_tezhest({"dvizhenie": 0.01, "dvizhenie_n": 2}) == 0.0
+          and dvizh_tezhest({"dvizhenie": -0.01, "dvizhenie_n": 2}) == 0.0)
+    check("точно на прага СЕ брои",
+          dvizh_tezhest({"dvizhenie": DVIZH_PRAG, "dvizhenie_n": 2}) > 0)
+    # 🔴 ЕДНА ТОЧКА НЕ Е ДВИЖЕНИЕ, А МОМЕНТНА СНИМКА.
+    check("една цена не стига за присъда",
+          dvizh_tezhest({"dvizhenie": 0.09, "dvizhenie_n": 1}) == 0.0)
+    check("без редица — нула",
+          dvizh_tezhest({"dvizhenie": 0.09}) == 0.0)
+    check("без движение — нула",
+          dvizh_tezhest({"dvizhenie_n": 5}) == 0.0)
+    check("боклук не гърми",
+          dvizh_tezhest(None) == 0.0
+          and dvizh_tezhest({"dvizhenie": "абв", "dvizhenie_n": 2}) == 0.0
+          and dvizh_tezhest({"dvizhenie": 0.09, "dvizhenie_n": "х"}) == 0.0)
+    # 🔴 ТЕЖИ КОЛКОТО КОЕФИЦИЕНТА, НЕ ПОВЕЧЕ. Онова число е мерено на
+    # НАШИЯ дневник; това — на чужда извадка.
+    check("не бие измереното у нас",
+          abs(DVIZH_TEZHEST - KOEF_SHTAFA) < 1e-9)
+    # ── и ръчката го гаси
+    _st_dvp = DVIZH_PRAG
+    try:
+        globals()["DVIZH_PRAG"] = 0.0
+        check("PREDICT_DVIZH_PRAG=0 изключва портиера",
+              dvizh_tezhest({"dvizhenie": 0.9, "dvizhenie_n": 9}) == 0.0)
+    finally:
+        globals()["DVIZH_PRAG"] = _st_dvp
+    check("прагът е върнат", DVIZH_PRAG == _st_dvp)
+
+    # 🔴 И ЧЕ СТИГА ДО САМАТА ПОДРЕДБА. Точно този шаблон ме хвана пет пъти
+    # днес: сметката работи, пътят до нея — не.
+    def _dv_kand(ime, dv):
+        return {"fx": {"home": ime, "away": "Х", "when": datetime.now(SOFIA)
+                       + timedelta(hours=6), "bucket": "football"},
+                "bucket": "football", "pick": "1 · " + ime, "p": 0.60,
+                "stars": 2, "strength": 0.2, "pazar_cena": 1.45,
+                "dvizhenie": dv, "dvizhenie_n": 2}
+    _dv_kum = _dv_kand("КЪМ НАС", 0.06)
+    _dv_ot = _dv_kand("ОТ НАС", -0.06)
+    _dv_iz = choose([_dv_ot, _dv_kum], 1)
+    check("🚪 картата с пари КЪМ нас излиза първа",
+          bool(_dv_iz) and _dv_iz[0]["fx"]["home"] == "КЪМ НАС")
+    try:
+        globals()["DVIZH_PRAG"] = 0.0
+        _dv_iz2 = choose([_dv_ot, _dv_kum], 1)
+        check("без портиера редът се връща на стария",
+              bool(_dv_iz2) and _dv_iz2[0]["fx"]["home"] == "ОТ НАС")
+    finally:
+        globals()["DVIZH_PRAG"] = _st_dvp
 
     # ═══ ЛИГА БЕЗ НИТО ЕДНА ЦЕНА СЕ КАЗВА ВЕДНАГА (05.09.2026) ═════════
     #
