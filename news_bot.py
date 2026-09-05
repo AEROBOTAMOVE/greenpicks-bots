@@ -1859,6 +1859,24 @@ MIN_ZAPISI = int(prag_ot_sreda("NEWS_MIN_ZAPISI", 150.0, 0.0, 100000.0))
 # причината за целия пазач.
 TREVOGA_IZHOD = (os.environ.get("NEWS_TREVOGA_IZHOD", "1") or "1") != "0"
 
+# 🔴 ГЛАСЪТ НАВЪН БЕШЕ ЗАКЛЮЧЕН ТРИ ПЪТИ (05.09.2026).
+#
+# «izprati_trevoga» беше написана и проверена, но никой не я викаше;
+# «TREVOGA_IZHOD» беше угасен отвън от news.yml; и в самия workflow нямаше
+# стъпка, която да реагира. Тоест паднал източник се обявяваше в дневник,
+# който никой не чете, и рънът светеше зелено.
+#
+# ПЪТ НАЗАД: NEWS_TREVOGA_PRATI=0 връща точно старото поведение.
+TREVOGA_PRATI = (os.environ.get("NEWS_TREVOGA_PRATI", "1") or "1") != "0"
+TREVOGA_SAST = (os.environ.get("NEWS_TREVOGA_SAST")
+                or "news_trevoga_state.json").strip()
+# Почивката е ПО ПРОБЛЕМ, не обща — виж «trevoga_klyuch».
+try:
+    TREVOGA_POCHIVKA_CH = float((os.environ.get("NEWS_TREVOGA_POCHIVKA")
+                                 or "12").strip() or 12)
+except ValueError:
+    TREVOGA_POCHIVKA_CH = 12.0
+
 # Присъдите за ЕДИН източник. ЖИВО е единствената, която брои за успех.
 IZVOR_ZHIV = "живо"
 IZVOR_MREZHA = "мрежа"      # адресът не отговори: 403, 429, таймаут, DNS
@@ -1963,6 +1981,83 @@ def izprati_trevoga(text):
         print("   🔴 няма BOT_TOKEN или CHAT_ID — тревогата НЯМА КЪДЕ да излезе")
         return False
     return tg_call("sendMessage", trevoga_paket(text))
+
+
+def trevoga_klyuch(presada):
+    """Отпечатък на ПРОБЛЕМА, не на времето.
+
+    🔴 ЗАЩО ОТ ПРИЧИНИТЕ. Ако ключът беше общ («източници»), паднал ВТОРИ
+    източник по време на почивката щеше да мълчи заедно с първия. В този
+    проект вече има случай, когато пазач срещу фалшива тревога направи
+    сляпо петно — затова заглушава се ЕДИН И СЪЩИЯТ проблем, не класът.
+    """
+    p = (presada or {}).get("prichini") or []
+    osnova = "|".join(sorted(str(x) for x in p))
+    return hashlib.sha256(osnova.encode("utf-8")).hexdigest()[:16]
+
+
+def cheti_trevoga_sast(path=None):
+    try:
+        with io.open(path or TREVOGA_SAST, encoding="utf-8-sig") as f:
+            d = json.load(f)
+            return d if isinstance(d, dict) else {}
+    except Exception:                                        # noqa: BLE001
+        return {}
+
+
+def pishi_trevoga_sast(d, path=None):
+    try:
+        with io.open(path or TREVOGA_SAST, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=1, sort_keys=True)
+        return True
+    except Exception as e:                                   # noqa: BLE001
+        print("   (не можах да запиша състоянието на тревогата: "
+              + str(e)[:60] + ")")
+        return False
+
+
+def kazvai_li_trevoga(klyuch, sast, sega=None, pochivka_ch=None):
+    """Да се обади ли за ТОЗИ проблем сега, или още е в почивка.
+
+    Същата дисциплина като «pazach.kazvai_li». Непознат ключ говори винаги —
+    новият проблем никога не чака.
+    """
+    sega = sega or datetime.now(timezone.utc)
+    ch = TREVOGA_POCHIVKA_CH if pochivka_ch is None else float(pochivka_ch)
+    posl = ((sast or {}).get("kazano") or {}).get(klyuch)
+    if not posl:
+        return True
+    try:
+        t = datetime.fromisoformat(str(posl).replace("Z", "+00:00"))
+    except Exception:                                        # noqa: BLE001
+        return True                     # счупен запис не бива да заглушава
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return (sega - t).total_seconds() / 3600.0 >= ch
+
+
+def obadi_se_za_izvori(presada, tekst, sega=None, sast=None, path=None):
+    """Пуска тревогата навън, ако трябва. Връща (пратена, защо).
+
+    🔴 РЕШЕНИЕТО Е ОТДЕЛНО ОТ ПРАЩАНЕТО и се връща с думи, за да може
+    самопроверката да пита ЗАЩО не е пратено, вместо да гадае по True/False.
+    """
+    if not (presada or {}).get("trevoga"):
+        return False, "няма тревога"
+    if os.environ.get("NEWS_DRY_RUN", "") == "1":
+        return False, "пробно пускане"
+    if not TREVOGA_PRATI:
+        return False, "изключено с NEWS_TREVOGA_PRATI=0"
+    kl = trevoga_klyuch(presada)
+    s = cheti_trevoga_sast(path) if sast is None else sast
+    if not kazvai_li_trevoga(kl, s, sega):
+        return False, ("същият проблем е казан преди по-малко от "
+                       + ("%g" % TREVOGA_POCHIVKA_CH) + " ч")
+    if not izprati_trevoga(tekst):
+        return False, "Telegram не прие"
+    s.setdefault("kazano", {})[kl] = (sega or datetime.now(timezone.utc)).isoformat()
+    pishi_trevoga_sast(s, path)
+    return True, "пратена"
 
 
 # ------------------------------------------------------------- източници ---
@@ -2240,8 +2335,15 @@ def main():
         # 🔴 ОБЯВЯВАНЕ, НЕ ПРАЩАНЕ. Гласът навън е готов и проверен, но се пуска
         # съзнателно отвън — не сам от рутинен рън.
         izhod = 2 if TREVOGA_IZHOD else 0
-        for red in tekst_trevoga_izvori(presada, diag).split(NL):
+        _tt = tekst_trevoga_izvori(presada, diag)
+        for red in _tt.split(NL):
             print(red)
+        # 🔴 И НАВЪН (05.09.2026). Дотук тревогата стигаше само до дневника
+        # на Actions — а той е зад токен и никой не го отваря. Пазачът на
+        # гласа е в «obadi_se_za_izvori»; почивката е ПО ПРОБЛЕМ.
+        _pratena, _zashto = obadi_se_za_izvori(presada, _tt)
+        print("   📣 тревогата излезе навън" if _pratena
+              else "   (навън НЕ излезе: " + _zashto + ")")
 
     now = datetime.now(timezone.utc)
     sections, stats = build_stories(collected, sent_keys, sent_sigs, now)
@@ -2954,11 +3056,138 @@ def run_selftest():
         globals()["CHAT_ID"] = _old_chat
 
     # 16и. ГЛАСЪТ Е ГОТОВ, НО НЕ СЕ ВИКА САМ; изходният код стига до обвивката
+    # 🔴 ОБЪРНАТО НА 05.09.2026. Тук стоеше «тревогата се вика 0 пъти» и
+    # «main НЕ праща сам» — тоест самопроверката ПАЗЕШЕ мълчанието. Сега
+    # гласът излиза, но само през пазача: main не вика «izprati_trevoga»
+    # право, а минава през «obadi_se_za_izvori».
     _predi_selftest = src.split("def run_selftest():")[0]
-    check("извън самопроверката тревогата се вика 0 пъти",
-          _predi_selftest.count("izprati_trevoga(") == 1)
+    check("тревогата се вика ТОЧНО веднъж извън самопроверката",
+          _predi_selftest.count("izprati_trevoga(") == 2)
+    _pazach_src = (_predi_selftest.split("def obadi_se_za_izvori(")[1]
+                   .split(NL + "def ")[0])
+    check("единственото викане е ВЪТРЕ в пазача на гласа",
+          "izprati_trevoga(tekst)" in _pazach_src)
     _main_src = src.split("def main():")[1].split(NL + "def ")[0]
-    check("main НЕ праща тревогата сам", "izprati_trevoga" not in _main_src)
+    check("main НЕ праща тревогата право", "izprati_trevoga" not in _main_src)
+    check("main минава през пазача на гласа",
+          "obadi_se_za_izvori(" in _main_src)
+
+    # --- 16й. ПАЗАЧЪТ НА ГЛАСА СЕ ПУСКА, НЕ СЕ ЧЕТЕ (05.09.2026) ---
+    _sega_t = datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+    _pA = {"trevoga": True, "prichini": ["НУЛА живи източника от 12"]}
+    _pB = {"trevoga": True, "prichini": ["записи 3, под прага 150"]}
+    check("еднакъв проблем дава еднакъв ключ",
+          trevoga_klyuch(_pA) == trevoga_klyuch(dict(_pA)))
+    check("различен проблем дава РАЗЛИЧЕН ключ",
+          trevoga_klyuch(_pA) != trevoga_klyuch(_pB))
+    check("редът на причините не мени ключа",
+          trevoga_klyuch({"prichini": ["а", "б"]})
+          == trevoga_klyuch({"prichini": ["б", "а"]}))
+    check("непознат ключ говори винаги", kazvai_li_trevoga("нов", {}, _sega_t))
+    _skoro = {"kazano": {"к": (_sega_t - timedelta(hours=2)).isoformat()}}
+    check("казан преди 2 ч при почивка 12 ч мълчи",
+          not kazvai_li_trevoga("к", _skoro, _sega_t, 12))
+    _otdavna = {"kazano": {"к": (_sega_t - timedelta(hours=13)).isoformat()}}
+    check("казан преди 13 ч при почивка 12 ч говори",
+          kazvai_li_trevoga("к", _otdavna, _sega_t, 12))
+    check("счупен час НЕ заглушава",
+          kazvai_li_trevoga("к", {"kazano": {"к": "боклук"}}, _sega_t, 12))
+    check("час без часова зона не гърми",
+          not kazvai_li_trevoga(
+              "к", {"kazano": {"к": "2026-09-05T11:00:00"}}, _sega_t, 12))
+    check("почивка 0 значи говори всеки път",
+          kazvai_li_trevoga("к", _skoro, _sega_t, 0))
+
+    _stari = (globals()["izprati_trevoga"], globals()["pishi_trevoga_sast"],
+              globals()["TREVOGA_PRATI"])
+    _prateni = []
+    _zapisi = []
+    # 🔴 СРЕДАТА СЕ ИЗЧИСТВА ИЗРИЧНО (05.09.2026). Осем от тези проверки
+    # паднаха при пускане с NEWS_DRY_RUN=1: пазачът я чете и отказваше да
+    # праща, а проверките очакваха щастливия път. Тоест те минаваха само
+    # когато променливата липсва — мереха как е пуснат тестът, не кода.
+    _dry_predi = os.environ.pop("NEWS_DRY_RUN", None)
+    try:
+        globals()["izprati_trevoga"] = lambda tekst: (
+            _prateni.append(tekst) or True)
+        globals()["pishi_trevoga_sast"] = lambda d, path=None: (
+            _zapisi.append(1) or True)
+        globals()["TREVOGA_PRATI"] = True
+        _s = {}
+        _ok, _z = obadi_se_za_izvori(_pA, "текст А", _sega_t, _s)
+        check("първата тревога излиза", _ok is True and _z == "пратена")
+        check("текстът стига до Telegram непокътнат", _prateni == ["текст А"])
+        check("състоянието се записва", len(_zapisi) == 1)
+        _ok2, _z2 = obadi_se_za_izvori(_pA, "текст А", _sega_t, _s)
+        check("СЪЩИЯТ проблем веднага след това мълчи", _ok2 is False)
+        check("и казва защо мълчи", "по-малко от" in _z2)
+        # 🔴 ТОВА Е ЦЯЛАТА ПРИЧИНА ПОЧИВКАТА ДА Е ПО ПРОБЛЕМ.
+        _ok3, _z3 = obadi_se_za_izvori(_pB, "текст Б", _sega_t, _s)
+        check("ДРУГ проблем по време на почивката говори ВЕДНАГА",
+              _ok3 is True and _prateni[-1] == "текст Б")
+        _ok4, _z4 = obadi_se_za_izvori(
+            _pA, "текст А", _sega_t + timedelta(hours=13), _s)
+        check("след почивката същият проблем пак говори", _ok4 is True)
+        check("без тревога не се праща нищо",
+              obadi_se_za_izvori({"trevoga": False}, "х", _sega_t, {})[0] is False)
+        check("празна присъда не гърми",
+              obadi_se_za_izvori(None, "х", _sega_t, {})[0] is False)
+        # Отказ от Telegram НЕ бива да се записва — иначе следващият рън
+        # мълчи заради вик, който никога не е излязъл.
+        _br = len(_zapisi)
+        globals()["izprati_trevoga"] = lambda tekst: False
+        _s5 = {}
+        _ok5, _z5 = obadi_se_za_izvori(
+            {"trevoga": True, "prichini": ["в"]}, "х", _sega_t, _s5)
+        check("отказан Telegram не се брои за казано",
+              _ok5 is False and _z5 == "Telegram не прие"
+              and not _s5.get("kazano") and len(_zapisi) == _br)
+        # 🔴 СТЪБЪТ СЕ ВРЪЩА НА «ПРИЕМА». Дотук тук стоеше стъбът-отказвач
+        # от проверката отгоре, тоест False идваше от Telegram, не от
+        # ръчката — зелено по грешен път. Хванато с мутация.
+        globals()["izprati_trevoga"] = lambda tekst: (
+            _prateni.append(tekst) or True)
+        globals()["TREVOGA_PRATI"] = False
+        _br2 = len(_prateni)
+        _ok6, _z6 = obadi_se_za_izvori(_pB, "х", _sega_t, {})
+        check("ръчката PRATI=0 спира всичко",
+              _ok6 is False and _z6 == "изключено с NEWS_TREVOGA_PRATI=0"
+              and len(_prateni) == _br2)
+    finally:
+        (globals()["izprati_trevoga"], globals()["pishi_trevoga_sast"],
+         globals()["TREVOGA_PRATI"]) = _stari
+        if _dry_predi is not None:
+            os.environ["NEWS_DRY_RUN"] = _dry_predi
+
+    _sr = os.environ.get("NEWS_DRY_RUN", "")
+    try:
+        os.environ["NEWS_DRY_RUN"] = "1"
+        check("пробното пускане НЕ праща навън",
+              obadi_se_za_izvori(_pA, "х", _sega_t, {}) == (False, "пробно пускане"))
+    finally:
+        if _sr:
+            os.environ["NEWS_DRY_RUN"] = _sr
+        else:
+            os.environ.pop("NEWS_DRY_RUN", None)
+
+    # 🔴 ПОЧИВКАТА СЪЩЕСТВУВА САМО АКО СЪСТОЯНИЕТО ОЦЕЛЕЕ. Рънърът е нов
+    # всеки път — незапазен файл значи почивка нула и вик на всеки рън.
+    # Затова проверката е тук, а не «някой ще се сети».
+    _yml_p = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          ".github", "workflows", "news.yml")
+    try:
+        _yml_news = open(_yml_p, encoding="utf-8-sig").read()
+    except Exception:                                        # noqa: BLE001
+        _yml_news = ""
+    check("workflow-ът се чете", len(_yml_news) > 500)
+    # 🔴 ТЪРСИ СЕ РЕДЪТ, НЕ ДУМАТА. Дотук тези две проверки търсеха голите
+    # имена — а те стоят и в коментарите на самия workflow, тоест иглата
+    # беше в копчето сено. Хванато с мутация: махнах реда, проверката остана
+    # зелена.
+    check("почивката се пази между рънове",
+          "last_news_titles.json news_trevoga_state.json" in _yml_news)
+    check("ръчката за пращане се подава отвън",
+          "NEWS_TREVOGA_PRATI: " in _yml_news)
     check("main обявява присъдата", "pazach_izvori(" in _main_src)
     check("main връща ненулев код при тревога", "izhod = 2" in _main_src)
     check("всички изходи на main носят кода", _main_src.count("return izhod") >= 3)
