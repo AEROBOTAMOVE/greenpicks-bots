@@ -486,6 +486,34 @@ def tiho_li(posl, sega=None, prag=None):
     return (False, "последна карта преди %.1f ч" % chasove)
 
 
+def _golyam_fayl(meta):
+    """Съдържанието на файл, който contents API е отказал да носи.
+
+    🔴 ЗАЩО СЪЩЕСТВУВА (05.09.2026). contents API реже на 1 МБ и над този
+    размер връща 200 OK с `"encoding": "none"` и ПРАЗНО content — тоест
+    отговор, който изглежда наред и няма данни. predict_log.json стана
+    1 113 544 байта и точно това се случи: пазачът за мълчанието на
+    продукта ослепя, без никой да е решавал да го изключва.
+
+    🔴 НЕ ПРЕЗ RAW. raw кешира и може да върне стар файл. `git/blobs/<sha>`
+    е същият api, без кеш, с таван 100 МБ, а sha го носи самият отговор на
+    contents — и когато не носи съдържание.
+    """
+    import base64
+    sha = str((meta or {}).get("sha") or "").strip()
+    if not sha:
+        return None
+    b = _api("git/blobs/" + sha)
+    if b is NEPITAN or not isinstance(b, dict):
+        return None
+    if str(b.get("encoding") or "") != "base64" or not b.get("content"):
+        return None
+    try:
+        return base64.b64decode(b["content"]).decode("utf-8-sig")
+    except Exception:                                        # noqa: BLE001
+        return None
+
+
 def dnevnik_ot_github():
     """Живият дневник. None при какъвто и да е отказ — НЕ празен списък."""
     j = _api("contents/predict_log.json?ref=main")
@@ -493,8 +521,16 @@ def dnevnik_ot_github():
         return None
     try:
         import base64
-        return json.loads(base64.b64decode(j.get("content") or "")
-                          .decode("utf-8-sig"))
+        suro = j.get("content")
+        if suro:
+            return json.loads(base64.b64decode(suro).decode("utf-8-sig"))
+        # 🔴 ПРАЗНО СЪДЪРЖАНИЕ ПРИ 200 OK = файлът е над 1 МБ.
+        t = _golyam_fayl(j)
+        if t is None:
+            print("   (predict_log.json е %s байта — над тавана на contents,"
+                  " и blobs не отговори)" % str(j.get("size")))
+            return None
+        return json.loads(t)
     except Exception:                                        # noqa: BLE001
         return None
 
@@ -805,6 +841,80 @@ def selftest():
     check("всеки важен има написано какво прави",
           all(len(str(o)) > 5 for _i, o in VAZHNI))
     check("няма повторено име", len(_gledani) == len(VAZHNI))
+
+    # ---------------------------------------------- 🔴 ДНЕВНИКЪТ НАД 1 МБ
+    # (05.09.2026). contents API реже на 1 048 576 байта и над това връща
+    # 200 OK с празно content. predict_log.json стана 1 113 544 байта и
+    # dnevnik_ot_github() почна да връща None — тоест пазачът за мълчанието
+    # на продукта беше изключен, без никой да го е изключвал.
+    import base64 as _b64
+    _telo = _b64.b64encode('[{"day": "2026-09-05"}]'.encode("utf-8")).decode()
+    _st_api = globals()["_api"]
+    _pitani = []
+    try:
+        def _fake(path, timeout=30):
+            _pitani.append(path)
+            if path.startswith("contents/"):
+                return {"size": 1113544, "encoding": "none", "content": "",
+                        "sha": "abc123"}
+            if path == "git/blobs/abc123":
+                return {"size": 1113544, "encoding": "base64", "content": _telo}
+            return NEPITAN
+        globals()["_api"] = _fake
+        _d = dnevnik_ot_github()
+        check("голям дневник СЕ ЧЕТЕ през blobs", isinstance(_d, list) and len(_d) == 1)
+        check("и blobs наистина е питан", "git/blobs/abc123" in _pitani)
+        # малък файл НЕ бива да минава през blobs — това е излишна заявка
+        _pitani[:] = []
+        def _malak(path, timeout=30):
+            _pitani.append(path)
+            return {"size": 42, "encoding": "base64", "content": _telo,
+                    "sha": "abc123"}
+        globals()["_api"] = _malak
+        _d2 = dnevnik_ot_github()
+        check("малък файл се чете направо", isinstance(_d2, list) and len(_d2) == 1)
+        check("и blobs НЕ се пита излишно",
+              not [p for p in _pitani if p.startswith("git/blobs")])
+        # 🔴 ПРАЗЕН sha: смисълът на реда е ДА НЕ СЕ ХОДИ до blobs. Първата
+        # ми версия гледаше само резултата и мутацията «махни проверката за
+        # sha» остана ЗЕЛЕНА — подложката отговаряше еднакво на всеки адрес.
+        _pitani[:] = []
+        globals()["_api"] = lambda path, timeout=30: (
+            _pitani.append(path) or {"size": 1113544, "encoding": "none",
+                                     "content": "", "sha": ""})
+        check("празно без sha дава None, НЕ празен списък",
+              dnevnik_ot_github() is None)
+        check("и при празен sha към blobs НЕ се ходи",
+              not [p for p in _pitani if p.startswith("git/blobs")])
+        # 🔴 БЛОБ С ЧУЖДА КОДИРОВКА: съдържанието Е валиден base64, но
+        # blobs казва, че кодировката е друга. Без пазача функцията би
+        # върнала данни от нещо, което не е обявено за base64. Първата ми
+        # подложка връщаше НЕвалиден base64 и външният except я хващаше —
+        # тоест мерех except-а, не пазача.
+        def _blob_s(kodirovka):
+            def _f(path, timeout=30):
+                if path.startswith("git/blobs"):
+                    return {"encoding": kodirovka, "content": _telo}
+                return {"size": 9, "encoding": "none", "content": "", "sha": "z"}
+            return _f
+
+        globals()["_api"] = _blob_s("utf-8")
+        check("чужда кодировка НЕ се декодира",
+              _golyam_fayl({"sha": "z"}) is None)
+        globals()["_api"] = _blob_s("base64")
+        check("а обявеният base64 СЕ декодира",
+              str(_golyam_fayl({"sha": "z"}) or "").strip().startswith("["))
+        # boklučav base64 пак дава None (външният пазач също работи)
+        def _bokluk(path, timeout=30):
+            if path.startswith("contents/"):
+                return {"size": 9, "encoding": "none", "content": "", "sha": "z"}
+            return {"encoding": "base64", "content": "не-base64!!"}
+        globals()["_api"] = _bokluk
+        check("боклучав base64 дава None", dnevnik_ot_github() is None)
+        globals()["_api"] = lambda path, timeout=30: NEPITAN
+        check("отказ на API дава None", dnevnik_ot_github() is None)
+    finally:
+        globals()["_api"] = _st_api
 
     def run(kogato, zakl):
         return {"created_at": kogato, "conclusion": zakl}
