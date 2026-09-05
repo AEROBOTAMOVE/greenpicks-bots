@@ -1270,9 +1270,22 @@ def sveri_vunshnite():
     return 0
 
 
+# Колко пъти сме опрели в тавана на заявките. Отделно от `_http_fail`:
+# «свърши ни бюджетът» и «изворът падна» са различни повреди.
+_http_stig = [0]
+
+
 def http_bytes(url, headers=None, timeout=30):
     """Една заявка навън, с таван, пауза и разсгъстяване. Хвърля при провал."""
     if _http_used[0] >= HTTP_BUDGET:
+        # 🔴 ИЗЧЕРПАНИЯТ БЮДЖЕТ СЕ БРОИ ОТДЕЛНО (05.09.2026).
+        #
+        # `http_json` лови ВСЯКО изключение и връща None — нарочно, «нито
+        # един спорт не бива да събори рън». Тоест рънът не умира; но дотук
+        # изчерпаният бюджет се сливаше с мрежовите провали в едно число
+        # «N провала», и «свърши ни бюджетът» се четеше като «изворите бяха
+        # капризни». Две различни повреди с едно и също име.
+        _http_stig[0] += 1
         raise RuntimeError("изчерпан лимит заявки (" + str(HTTP_BUDGET) + ")")
     hd = glavi_za(url, headers)
     time.sleep(HTTP_GAP)
@@ -9548,6 +9561,10 @@ def run():
           + (" (+" + str(OTCHET["suho"]) + " сухи)" if OTCHET["suho"] else "")
           + " · отказани: " + str(_otk))
     _tt = int(DIAG.get("totali") or 0)
+    if _http_stig[0]:
+        print("   🛑 ОПРЯХМЕ В ТАВАНА НА ЗАЯВКИТЕ " + str(_http_stig[0])
+              + " пъти (таван " + str(HTTP_BUDGET) + "). Спортовете след това"
+              + " са нула ЗАРАДИ БЮДЖЕТА, не защото няма мачове.")
     print("Готово: " + str(len(picks)) + " прогнози"
           + ((" + " + str(_tt) + " тотала") if _tt else "") + ", " + str(sent)
           + " съобщения -> стая "
@@ -10386,6 +10403,44 @@ def selftest():
         except OSError:
             pass
     check("стая 4 е разрешена за фишовете", PICKS_THREAD in ALLOWED_THREADS)
+
+    # ═══ ИЗЧЕРПАН БЮДЖЕТ ≠ ПАДНАЛ ИЗВОР (05.09.2026) ══════════════════
+    #
+    # `http_json` лови ВСЯКО изключение и връща None — нарочно, «нито един
+    # спорт не бива да събори рън». Но дотук изчерпаният таван се сливаше с
+    # мрежовите провали в едно число «N провала», и «свърши ни бюджетът» се
+    # четеше като «изворите бяха капризни». Две повреди с едно име.
+    _st_bud, _st_stig = HTTP_BUDGET, _http_stig[0]
+    _st_fail, _st_used = _http_fail[0], _http_used[0]
+    _st_kesh = dict(_http_cache)
+    try:
+        globals()["HTTP_BUDGET"] = 0        # таванът е опрян по устройство
+        _http_cache.clear()
+        _r_b = http_json("https://example.invalid/няма", quiet=True)
+        check("при опрян таван се връща мълчание, не изключение", _r_b is None)
+        check("🔴 опирането в тавана се БРОИ отделно",
+              _http_stig[0] == _st_stig + 1)
+        check("и си остава провал (за да се види в отчета)",
+              _http_fail[0] > _st_fail)
+        check("но НЕ харчи заявка от брояча", _http_used[0] == _st_used)
+        # ── а при жив таван броячът на тавана НЕ мърда
+        _stig_predi = _http_stig[0]
+        globals()["HTTP_BUDGET"] = _st_bud
+        _http_cache.clear()
+        http_json("https://example.invalid/пак", quiet=True)
+        check("мрежов провал НЕ се брои за опрян таван",
+              _http_stig[0] == _stig_predi)
+        check("но пак е провал", _http_fail[0] > _st_fail + 1)
+    finally:
+        globals()["HTTP_BUDGET"] = _st_bud
+        _http_stig[0] = _st_stig
+        _http_fail[0] = _st_fail
+        _http_used[0] = _st_used
+        _http_cache.clear()
+        _http_cache.update(_st_kesh)
+    check("броячите са върнати",
+          _http_stig[0] == _st_stig and _http_fail[0] == _st_fail
+          and HTTP_BUDGET == _st_bud)
 
     # ═══ ОГРАДАТА СТИГА ДО САМАТА КАРТА (05.09.2026) ══════════════════
     #
