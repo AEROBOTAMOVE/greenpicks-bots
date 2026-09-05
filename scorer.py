@@ -136,6 +136,47 @@ SPORT_PATH = {
     "rugby": ("rugby", "🏉"),
 }
 
+# 🏒 ЕВРОПЕЙСКИЯТ ХОКЕЙ ИМА СВОЯ ВРАТА (02.09.2026).
+#
+# `hockey` по-горе сочи ESPN път — той важи за НХЛ, чиито карти носят номера
+# на отбори. СМ Лига и Шампионската лига идват от liiga.fi и chl.hockey,
+# нямат такива номера, и без този ред картите им остават НЕОЦЕНЕНИ ЗАВИНАГИ.
+# Намерено живо: «Jukurit — Sport» стоеше със scored=False.
+# Разпознават се по `slug`, който `evrohokey.srechti` слага: "liiga" / "chl".
+EVRO_HOKEY_SLUG = {"liiga", "chl"}
+try:
+    import evrohokey as _EVH
+except Exception:                                            # noqa: BLE001
+    _EVH = None
+
+
+def _evro_hokey_slugove():
+    """Кои `slug` изобщо произвежда `evrohokey`. За кръстосаната проверка.
+
+    🔴 ЧЕТЕ СЕ ОТ ИЗТОЧНИКА, НЕ СЕ ПРЕПИСВА. Преписан списък се разминава
+    мълчаливо, а разминаването тук значи «картите пак не се оценяват» —
+    точно дефектът, заради който тази врата съществува.
+    """
+    if _EVH is None:
+        return set()
+    return set(getattr(_EVH, "LIGI", {}) or {})
+
+
+def evro_hokey_rezultat(rec):
+    """(дом, гост) за европейски хокеен мач. None = още няма или не е такъв."""
+    if _EVH is None or not isinstance(rec, dict):
+        return None
+    if str(rec.get("slug") or "") not in EVRO_HOKEY_SLUG:
+        return None
+    zap = dict(rec)
+    zap.setdefault("extra", {})
+    if not zap["extra"].get("evro"):
+        zap["extra"] = dict(zap["extra"], evro=str(rec.get("slug") or ""))
+    try:
+        return _EVH.rezultat(zap)
+    except Exception:                                        # noqa: BLE001
+        return None
+
 # СПОРТОВЕ БЕЗ ИЗТОЧНИК НА РЕЗУЛТАТИ.
 #
 # Тенисът на маса влиза тук след шест измервания на 04.08.2026, не по усещане:
@@ -1427,6 +1468,14 @@ def sport_result(rec):
         # espn_result(), а ESPN не знае такъв спорт: sport 'esports' е
         # „invalid" (HTTP 400, мерено). Тоест присъда нямаше как да излезе.
         return esport_result(rec)
+    if b == "hockey" and str(rec.get("slug") or "") in EVRO_HOKEY_SLUG:
+        # 🏒 СВОЯ ВРАТА ЗА ЕВРОПЕЙСКИЯ ХОКЕЙ (05.09.2026). НХЛ идва от ESPN и
+        # носи НОМЕРА на отбори; СМ Лига и Шампионската лига идват от
+        # liiga.fi и chl.hockey и носят ИМЕНА. Пуснат по стария път, такъв
+        # запис строи адрес `hockey/liiga/scoreboard` — път, който при ESPN
+        # не съществува. Живо: картата «Jukurit — Sport» висеше неоценена.
+        # Старите хокейни записи нямат такъв slug и минават непокътнати.
+        return evro_hokey_rezultat(rec)
     # 🔴 БЕЗ slug ESPN не може да го намери — това са срещите от резервния
     # източник (виж дългото обяснение при sdb_result). Дотук такава прогноза
     # висеше вечно: 22 за WNBA, нула отсъдени.
@@ -4841,6 +4890,59 @@ def selftest():
           verdict(_vol, 1, 3) is True)
     check("волейбол: същата карта пада, щом победителят е друг",
           verdict(_vol, 3, 1) is False)
+
+    # ═══ ЕВРОПЕЙСКИЯТ ХОКЕЙ МИНАВА ПРЕЗ СВОЯТА ВРАТА (05.09.2026) ═══
+    #
+    # 🔴 ПРОВЕРЯВА СЕ ПЪТЯТ, НЕ ФУНКЦИЯТА. Функцията работеше — 605 верни
+    # отговора върху 605 истински мача — и въпреки това нито една карта
+    # нямаше да се оцени, защото `sport_result` нямаше хокеен клон.
+    # Единайсети път в този проект. Затова тук през вратата минава ИСТИНСКИ
+    # запис и се гледа КЪДЕ ИЗЛИЗА.
+    _st_evh = globals().get("evro_hokey_rezultat")
+    _st_espn = globals().get("espn_result")
+    _st_sdb = globals().get("sdb_result")
+    _minali = []
+    try:
+        globals()["evro_hokey_rezultat"] = lambda r: ("ЕВРОХОКЕЙ", r.get("slug"))
+        globals()["espn_result"] = lambda r: ("ESPN", r.get("slug"))
+        globals()["sdb_result"] = lambda r: None
+        for _sl, _kade in (("liiga", "ЕВРОХОКЕЙ"), ("chl", "ЕВРОХОКЕЙ"),
+                           ("nhl", "ESPN"), ("", "ESPN")):
+            _out = sport_result({"bucket": "hockey", "slug": _sl,
+                                 "home": "А", "away": "Б", "day": "2026-09-04"})
+            _minali.append((_sl, _out[0] if _out else None, _kade))
+    finally:
+        globals()["evro_hokey_rezultat"] = _st_evh
+        globals()["espn_result"] = _st_espn
+        globals()["sdb_result"] = _st_sdb
+    check("подставките са върнати",
+          globals()["evro_hokey_rezultat"] is _st_evh
+          and globals()["espn_result"] is _st_espn
+          and globals()["sdb_result"] is _st_sdb)
+    for _sl, _stana, _kade in _minali:
+        check("хокей slug=%r отива в %s" % (_sl, _kade), _stana == _kade)
+    # 🔴 И ОБРАТНАТА ПОСОКА: чужд кош със същия slug НЕ бива да влиза тук.
+    _st_evh2 = globals().get("evro_hokey_rezultat")
+    _st_v = globals().get("volley_result")
+    try:
+        globals()["evro_hokey_rezultat"] = lambda r: "ЕВРОХОКЕЙ"
+        globals()["volley_result"] = lambda r: "ВОЛЕЙБОЛ"
+        _chuzhd = sport_result({"bucket": "volleyball", "slug": "liiga",
+                                "home": "А", "away": "Б", "day": "2026-09-04"})
+    finally:
+        globals()["evro_hokey_rezultat"] = _st_evh2
+        globals()["volley_result"] = _st_v
+    check("волейбол със slug=liiga НЕ влиза в хокейната врата",
+          _chuzhd == "ВОЛЕЙБОЛ")
+
+    # ── и множеството не бива да се разминава с това, което срещите дават.
+    # Чете се от източника, не се преписва: преписан списък се разминава
+    # мълчаливо, а разминаването значи «картите пак не се оценяват».
+    _slug_izvor = _evro_hokey_slugove()
+    check("евро-хокейният модул се зарежда", bool(_slug_izvor))
+    check("вратата приема точно лигите, които модулът дава",
+          not _slug_izvor or _slug_izvor == EVRO_HOKEY_SLUG)
+    check("НХЛ НЕ е в тях (тя е от ESPN)", "nhl" not in EVRO_HOKEY_SLUG)
 
     check("блокът за серията добави поне 20 свои проверки",
           ok - _ok_predi_serii >= 20)
