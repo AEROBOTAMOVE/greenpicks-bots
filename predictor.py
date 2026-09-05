@@ -16235,9 +16235,36 @@ def selftest():
               "pazar_liga": "eng.league_cup", "pazar_sport": "soccer",
               "bucket": "football"}
     _lk_txt = cena_red(_lk_an)
-    if PZ is not None and os.environ.get("PAZAR_LINK", "0") in ("1", "true", "да"):
-        check("🔗 адресът стига до картата", "espn.com" in _lk_txt)
-        check("и е на СЪЩИЯ ред с цената", "1.85" in _lk_txt and "espn.com" in _lk_txt)
+    # 🔴 НЕ ЗАВИСИ ОТ НАЧИНА НА ПУСКАНЕ (05.09.2026). Дотук тези две стояха
+    # зад `os.environ.get("PAZAR_LINK")` и се ПРЕСКАЧАХА навсякъде, където
+    # самопроверката се пуска без env блок — тоест точно в router.yml и
+    # support.yml, малко преди производството да пусне бота С включена
+    # връзка. Проверка, която не върви там, където функцията ще работи,
+    # не пази нищо.
+    #
+    # Днес същият клас (проверка, зависеща от стартирането) счупи рутера за
+    # два дни. Флагът се пали ТУК и се връща в finally — както го прави и
+    # самият pazar.py в своята самопроверка.
+    if PZ is not None:
+        # 🔴 ПОРТАТА Е LINK_VKL НА ТОЗИ ФАЙЛ, не PAZAR_LINK_VKL на pazar.
+        # Първата ми редакция въртеше чуждия флаг и новата проверка «угасената
+        # ръчка МАХА адреса» падна веднага — тя си свърши работата.
+        _st_lnk = globals()["LINK_VKL"]
+        try:
+            globals()["LINK_VKL"] = True
+            _lk_vkl = cena_red(_lk_an)
+            check("🔗 адресът стига до картата", "espn.com" in _lk_vkl)
+            check("и е на СЪЩИЯ ред с цената",
+                  "1.85" in _lk_vkl and "espn.com" in _lk_vkl)
+            # 🔴 И ОБРАТНОТО: угасен флаг НЕ бива да пуска адрес. Инак
+            # горните две можеха да минават просто защото адресът винаги е
+            # там, независимо от ръчката.
+            globals()["LINK_VKL"] = False
+            _lk_bez = cena_red(_lk_an)
+            check("🔗 угасената ръчка МАХА адреса", "espn.com" not in _lk_bez)
+            check("но цената си остава", "1.85" in _lk_bez)
+        finally:
+            globals()["LINK_VKL"] = _st_lnk
     check("🔗 без номер няма адрес",
           "espn.com" not in cena_red(dict(_lk_an, pazar_ev=None)))
     # 🔗 РЕЗЕРВАТА ПРЕЗ НОМЕРА НА СРЕЩАТА (01.09.2026) — ПОВЕДЕНЧЕСКИ.
