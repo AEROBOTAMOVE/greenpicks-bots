@@ -154,6 +154,20 @@ jobs:
       #  Дубли няма и от втората страна: предсказателят помни какво е пуснал.
       - name: Проспа ли предсказателя
         id: budilnik
+        env:
+          # 🔴 БЕЗ ТЕЗИ ДВА РЕДА ТОЗИ БУДИЛНИК СПЕШЕ 23:00-07:59 (05.09.2026).
+          #
+          # budilnik.py чете PREDICT_QUIET_TO/PREDICT_QUIET_FROM и без тях
+          # пада на 8..22. router.yml ги подава от 02.09; тук поправката не
+          # беше слязла. Тоест девет часа в денонощието вторият будилник по
+          # устройство не можеше да върне budim=1 и трите стъпки след него
+          # не се пускаха — а целият повод за втори будилник е, че кронът на
+          # рутера дава 6.5 пускания на ден с медианна пауза 74 минути.
+          #
+          # Кронът тук е денонощен (7,22,37,52 * * * *), тоест джобът
+          # НАИСТИНА стига до 02:30 и наистина отказваше да буди.
+          PREDICT_QUIET_TO: ${{ vars.PREDICT_QUIET_TO || '0' }}
+          PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM || '23' }}
         run: python budilnik.py
 
       - name: Модулът за тениса на маса
@@ -259,7 +273,20 @@ jobs:
           PREDICT_PRICHINI: ${{ vars.PREDICT_PRICHINI || '2' }}
           PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM || '23' }}
           PREDICT_QUIET_TO: ${{ vars.PREDICT_QUIET_TO || '0' }}
+          # 🔴 ОСТАВА НА НУЛА (05.09.2026). Завъртях я на едно и я върнах:
+          # самият код носи доказателството, че WTT Е ЗАЛОЖИМ —
+          # каталогът на собственика от bet365 изрежда «World Table
+          # Tennis — Grand Smashes; Champions; Star Contender;
+          # Contender; Feeder». Строгият режим щеше да изтрие 273
+          # ЗАЛОЖИМИ карти само защото не сме им намерили цената.
+          # Липсва КОЕФИЦИЕНТЪТ, не пазарът — и той се вади от Kambi.
           PREDICT_SAMO_S_KOEF: ${{ vars.PREDICT_SAMO_S_KOEF || '0' }}
+          # 🔴 ЕДИН БОТ, ДВЕ РАЗЛИЧНИ КАРТИ (05.09.2026). predict.yml и
+          # router.yml подават PAZAR_IZTOCHNIK, тук го нямаше, а
+          # подразбирането в кода е '0'. Тоест картата, родена по съпорт-
+          # пътя, оставаше БЕЗ реда с името на източника, а същата карта от
+          # predict.yml го носеше — без нито един ред разлика в дневника.
+          PAZAR_IZTOCHNIK: ${{ vars.PAZAR_IZTOCHNIK || '1' }}
           PREDICT_SHOW_RECORD: ${{ vars.PREDICT_SHOW_RECORD || '1' }}
           PREDICT_SMELOST_MAX: ${{ vars.PREDICT_SMELOST_MAX }}
           PREDICT_SPORTS: ${{ vars.PREDICT_SPORTS }}
