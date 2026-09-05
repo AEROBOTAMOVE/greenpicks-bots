@@ -3406,7 +3406,19 @@ def model_hockey(fx):
     a = tab.get(str(fx.get("away_id") or ""))
     if not h or not a:
         return None
-    lvl = mean([_rate(t["gf"], t["gp"], 3.0) for t in tab.values()]) or 3.05
+    # 🔴 НИВОТО СЕ ПРЕТЕГЛЯ ПО МАЧОВЕ (05.09.2026). Дотук всеки отбор
+    # тежеше 1, независимо дали има 6 мача или 111. Измерено върху живите
+    # таблици:
+    #     НХЛ      32 отбора, 82–82 мача  →  3.1269 / 3.1269   0.00%
+    #     СМ Лига  17 отбора, 13–93       →  2.6986 / 2.7283  +1.10%
+    #     ШХЛ     100 отбора,  6–111      →  2.5015 / 2.7766  +11.00%
+    # `lvl` стои в ЗНАМЕНАТЕЛЯ на всяка ламбда, тоест подценяването му
+    # надуваше всяко очаквано число — за Шампионската лига с около 10%.
+    # НХЛ остава БАЙТ ЗА БАЙТ същата: 32 отбора по 82 мача правят двете
+    # сметки еднакви до последната цифра.
+    _gp_sum = sum(t["gp"] for t in tab.values())
+    lvl = (sum(t["gf"] for t in tab.values()) / _gp_sum
+           if _gp_sum else 3.05) or 3.05
     att_h = _rate(h["hgf"], h["hgp"], _rate(h["gf"], h["gp"], lvl)) / lvl
     def_a = _rate(a["rga"], a["rgp"], _rate(a["ga"], a["gp"], lvl)) / lvl
     att_a = _rate(a["rgf"], a["rgp"], _rate(a["gf"], a["gp"], lvl)) / lvl
@@ -10267,6 +10279,69 @@ def selftest():
         except OSError:
             pass
     check("стая 4 е разрешена за фишовете", PICKS_THREAD in ALLOWED_THREADS)
+
+    # ═══ НИВОТО СЕ ПРЕТЕГЛЯ ПО МАЧОВЕ (05.09.2026) ════════════════════
+    #
+    # 🔴 Дотук всеки отбор тежеше 1, независимо дали има 6 мача или 111.
+    # `lvl` стои в ЗНАМЕНАТЕЛЯ на всяка ламбда, тоест подценяването му
+    # надуваше всяко очаквано число. Измерено върху живите таблици:
+    # НХЛ 0.00% (32 отбора по 82 мача) · СМ Лига +1.10% · ШХЛ +11.00%.
+    #
+    # Подложката е нарочно КРИВА: един отбор с много мачове и слаба атака,
+    # много отбори с малко мачове и силна. Равните тежести дават едно, а
+    # претеглените — друго. Подложка с еднакви мачове НЕ БИ РАЗЛИЧИЛА двете
+    # сметки (точно затова НХЛ не се мени) и проверката щеше да е тавтология.
+    def _hok_tab(golemi, malki):
+        t = {}
+        for i in range(golemi):
+            t["Г%d" % i] = {"gp": 100, "gf": 200, "ga": 200, "hgp": 50,
+                            "hgf": 100, "hga": 100, "rgp": 50, "rgf": 100,
+                            "rga": 100}
+        for i in range(malki):
+            t["М%d" % i] = {"gp": 6, "gf": 24, "ga": 24, "hgp": 3, "hgf": 12,
+                            "hga": 12, "rgp": 3, "rgf": 12, "rga": 12}
+        return t
+
+    _kt = _hok_tab(1, 9)
+    _gp = sum(v["gp"] for v in _kt.values())
+    _po_machove = sum(v["gf"] for v in _kt.values()) / _gp
+    _po_otbori = mean([_rate(v["gf"], v["gp"], 3.0) for v in _kt.values()])
+    check("подложката РАЗЛИЧАВА двете сметки",
+          abs(_po_machove - _po_otbori) > 0.3)
+    _st_evh, _st_nhl = globals().get("EVH"), globals().get("nhl_table")
+    try:
+        globals()["EVH"] = None
+        globals()["nhl_table"] = lambda: _kt
+        _mh = model_hockey({"home_id": "Г0", "away_id": "М0", "extra": {}})
+    finally:
+        globals()["EVH"] = _st_evh
+        globals()["nhl_table"] = _st_nhl
+    check("подставките са върнати",
+          globals()["EVH"] is _st_evh and globals()["nhl_table"] is _st_nhl)
+    check("моделът смята с кривата таблица", bool(_mh))
+    # 🔴 ЛАМБДАТА Е ОБРАТНО ПРОПОРЦИОНАЛНА НА lvl, не право. Алгебрично
+    # lam = lvl·(rate_h/lvl)·(rate_a/lvl) = rate_h·rate_a / lvl. Първата ми
+    # версия питаше «по-близо ли е сборът до 2·lvl» — сравнение, което
+    # ОСТАВА вярно и при двете сметки, тоест не различаваше нищо. Мутацията
+    # «нивото пак по отбори» оцеля и я показа. Тук се мери ТОЧНО.
+    _rate_h = _kt["Г0"]["hgf"] / _kt["Г0"]["hgp"]      # атака у дома
+    _rate_a = _kt["М0"]["rga"] / _kt["М0"]["rgp"]      # защита на гости
+    _ochakvan = 2.0 * (_rate_h * _rate_a) / _po_machove
+    _stariyat = 2.0 * (_rate_h * _rate_a) / _po_otbori
+    _sbor = _mh["lam_h"] + _mh["lam_a"]
+    check("подложката различава двата изхода",
+          abs(_ochakvan - _stariyat) > 1.0)
+    check("ламбдите следват сметката ПО МАЧОВЕ (точно)",
+          abs(_sbor - _ochakvan) < 1e-6)
+    check("и НЕ по отбори", abs(_sbor - _stariyat) > 1.0)
+    # ── и празна таблица не гърми
+    _st_nhl2 = globals().get("nhl_table")
+    try:
+        globals()["nhl_table"] = lambda: {}
+        check("празна таблица → мълчание, не изключение",
+              model_hockey({"home_id": "А", "away_id": "Б", "extra": {}}) is None)
+    finally:
+        globals()["nhl_table"] = _st_nhl2
 
     # ═══ КОНСТАНТИТЕ НА КОФАТА СТИГАТ ДО МОДЕЛА (05.09.2026) ═══════════
     #
