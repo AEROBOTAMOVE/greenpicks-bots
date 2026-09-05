@@ -218,6 +218,70 @@ NE_SE_GLEDAT = {
 }
 
 
+def suh_klyuch(bot, papka=None):
+    """Кой ключ за сух режим ЧЕТЕ този бот. Празно, ако няма такъв.
+
+    🔴 ЧЕТЕ СЕ ОТ КОДА, НЕ СЕ ИЗБРОЯВА. Ключ, който само yml-ът познава, е
+    мъртва ръчка: слагаш го и нищо не се променя.
+    """
+    import re as _re
+    baza = papka or os.path.dirname(os.path.abspath(__file__))
+    try:
+        with io.open(os.path.join(baza, bot), encoding="utf-8-sig") as f:
+            t = f.read()
+    except (OSError, UnicodeDecodeError):
+        return ""
+    nam = _re.findall(
+        r"environ(?:\.get)?\(?\[?\s*[\'\"]([A-Z_0-9]*DRY[A-Z_0-9]*)[\'\"]", t)
+    return sorted(set(nam))[0] if nam else ""
+
+
+def selftest_stypki(papka=None, kod=None):
+    """[(файл, стъпка, бот, само_тест, има_сух)] за всяка стъпка със selftest.
+
+    🔴 РАЗЛИКАТА «САМО ТЕСТ» СЕ МЕРИ. Стъпка, която пуска и самия бот, НЕ
+    бива да получава сух режим — това би спряло производството. Точно
+    router.yml «Събуди оценителя» е такава.
+    """
+    import re as _re
+    bazi = [papka] if papka else [".github/workflows", "../.github/workflows"]
+    for baza in bazi:
+        if not baza or not os.path.isdir(baza):
+            continue
+        namereni = []
+        for ime in sorted(os.listdir(baza)):
+            if not ime.endswith(".yml"):
+                continue
+            try:
+                with io.open(os.path.join(baza, ime), encoding="utf-8") as f:
+                    r = f.read().split("\n")
+            except (OSError, UnicodeDecodeError):
+                continue
+            zap = [i for i, l in enumerate(r)
+                   if l.strip().startswith("- ")
+                   and (len(l) - len(l.lstrip())) == 6] + [len(r)]
+            for a, b in zip(zap, zap[1:]):
+                blok = r[a:b]
+                txt = "\n".join(blok)
+                for m in _re.finditer(
+                        r"python\s+([a-z_0-9]+\.py)\s+(?:--)?selftest", txt):
+                    bot = m.group(1)
+                    klyuch = suh_klyuch(bot, kod)
+                    if not klyuch:
+                        continue
+                    zhiv = bool(_re.search(
+                        r"python\s+" + _re.escape(bot) + r"\s*($|[^\w\-])(?!.*selftest)",
+                        txt, _re.M))
+                    ime_st = blok[0].strip()
+                    if ime_st.startswith("- name:"):
+                        ime_st = ime_st[7:].strip()
+                    namereni.append((ime, ime_st[:44], bot, not zhiv,
+                                     (klyuch + ":") in txt))
+        if namereni:
+            return namereni
+    return []
+
+
 def cronovi_yml(papka=None):
     """Всеки workflow с часовник, прочетен от диска. Празно значи не намерих.
 
@@ -841,6 +905,27 @@ def selftest():
     check("всеки важен има написано какво прави",
           all(len(str(o)) > 5 for _i, o in VAZHNI))
     check("няма повторено име", len(_gledani) == len(VAZHNI))
+
+    # ---------------------------------------------- 🔴 САМОПРОВЕРКА БЕЗ СУХ
+    # РЕЖИМ (05.09.2026). Две проверки, които искат УСПЕХ от вратата навън,
+    # счупиха рутера за ДВА ДНИ: 400 ръна, нула успешни. Стъпката няма env
+    # блок, DRY_RUN е угасен, вратата отказва. Поправих проверките в кода;
+    # това е втората ключалка — стъпката да не МОЖЕ да прати нищо.
+    _ss = selftest_stypki()
+    check("стъпките със самопроверка се намират", len(_ss) >= 5)
+    _bez = ["%s/%s" % (f, s) for f, s, _b, samo, ima in _ss if samo and not ima]
+    check("всяка САМО-тестова стъпка е в сух режим: "
+          + ("; ".join(_bez)[:80] or "-"), not _bez)
+    # 🔴 И ОБРАТНОТО: стъпка, която пуска и самия бот, НЕ бива да е суха —
+    # това би спряло производството.
+    _suhi_zhivi = ["%s/%s" % (f, s) for f, s, _b, samo, ima in _ss
+                   if not samo and ima]
+    check("производствена стъпка НЕ е суха: "
+          + ("; ".join(_suhi_zhivi)[:60] or "-"), not _suhi_zhivi)
+    check("ключът за сух режим се чете от КОДА",
+          suh_klyuch("predictor.py") == "PREDICT_DRY_RUN"
+          and suh_klyuch("scorer.py") == "SCORE_DRY_RUN"
+          and suh_klyuch("nyama_takav_fayl.py") == "")
 
     # ---------------------------------------------- 🔴 ДНЕВНИКЪТ НАД 1 МБ
     # (05.09.2026). contents API реже на 1 048 576 байта и над това връща
