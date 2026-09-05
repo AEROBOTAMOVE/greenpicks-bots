@@ -191,7 +191,7 @@ jobs:
           SPORTSDB_KEY: ${{ secrets.SPORTSDB_KEY || vars.SPORTSDB_KEY }}
           # Настройки на модела — празна стойност = вътрешната подразбираща се.
           MAX_PICKS: ${{ vars.MAX_PICKS }}
-          PREDICT_POOL: ${{ vars.PREDICT_POOL }}
+          PREDICT_POOL: ${{ vars.PREDICT_POOL || '60' }}
           PREDICT_PER_SPORT: ${{ vars.PREDICT_PER_SPORT }}
           PREDICT_MIN_STRENGTH: ${{ vars.PREDICT_MIN_STRENGTH }}
           # 🔴 ОТКОВАНО 11.08.2026. Тук стоеше твърдо '18'. Списъкът в кода
@@ -225,7 +225,7 @@ jobs:
           #   MAX_DAY    таван прогнози за ЦЕЛИЯ ден, за да не залее стаята
           #   HORIZON_H  докъде напред гледаме — далечният мач чака своя час
           #   LEAD_MIN   колко минути преди начало спираме да пускаме карта
-          PREDICT_MAX_DAY: ${{ vars.PREDICT_MAX_DAY }}
+          PREDICT_MAX_DAY: ${{ vars.PREDICT_MAX_DAY || '80' }}
           # 🔴 КЛЮЧАЛКИТЕ НА СПЯЩИТЕ СПОРТОВЕ (01.09.2026).
           #
           # Дотук тези пет променливи НЕ СЕ ПОДАВАХА изобщо — тоест
@@ -256,7 +256,7 @@ jobs:
           # Празно = нищо не се изключва. Хокеят вече има извор (evrohokey.py),
           # амер. футбол също. ПЪТ НАЗАД: PREDICT_IZKL=hockey,amfootball.
           PREDICT_IZKL: ${{ vars.PREDICT_IZKL || '' }}
-          PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '0' }}
+          PREDICT_AMFUTBOL_MAX: ${{ vars.PREDICT_AMFUTBOL_MAX || '6' }}
           PREDICT_BOKS_MAX: ${{ vars.PREDICT_BOKS_MAX || '0' }}
           # 🎮 ЕСПОРТЪТ СЕ БУДИ — САМО CS2 (01.09.2026).
           #
@@ -370,6 +370,25 @@ jobs:
           PREDICT_ZALOZHIMO_SPORTOVE: ${{ vars.PREDICT_ZALOZHIMO_SPORTOVE }}
           # прагът на волейболната стълбица; под него минава само с цена
           VOL_PRAG: ${{ vars.VOL_PRAG || '50' }}
+          PREDICT_DREBEN_TT_REJI: ${{ vars.PREDICT_DREBEN_TT_REJI || '0' }}
+          PREDICT_DVIZHENIE: ${{ vars.PREDICT_DVIZHENIE || '1' }}
+          PREDICT_HORIZON_AMF: ${{ vars.PREDICT_HORIZON_AMF }}
+          PREDICT_HORIZON_HOK: ${{ vars.PREDICT_HORIZON_HOK }}
+          PREDICT_HORIZON_MMA: ${{ vars.PREDICT_HORIZON_MMA || '96' }}
+          PREDICT_HTTP_BUDGET: ${{ vars.PREDICT_HTTP_BUDGET || '520' }}
+          PREDICT_ITF_MAX: ${{ vars.PREDICT_ITF_MAX }}
+          PREDICT_MAX_URGENT: ${{ vars.PREDICT_MAX_URGENT }}
+          PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM || '23' }}
+          PREDICT_QUIET_TO: ${{ vars.PREDICT_QUIET_TO || '0' }}
+          PREDICT_SAMO_S_KOEF: ${{ vars.PREDICT_SAMO_S_KOEF || '0' }}
+          PREDICT_SMELOST_MAX: ${{ vars.PREDICT_SMELOST_MAX }}
+          PREDICT_TOTAL_MAX: ${{ vars.PREDICT_TOTAL_MAX }}
+          PREDICT_TOTAL_MIN: ${{ vars.PREDICT_TOTAL_MIN }}
+          PREDICT_TOTAL_PAZAR: ${{ vars.PREDICT_TOTAL_PAZAR }}
+          PREDICT_TTLOKAL: ${{ vars.PREDICT_TTLOKAL }}
+          PREDICT_TTLOKAL_MAX: ${{ vars.PREDICT_TTLOKAL_MAX }}
+          PREDICT_TTLOKAL_SCALE: ${{ vars.PREDICT_TTLOKAL_SCALE }}
+          PREDICT_URGENT_LEAD_H: ${{ vars.PREDICT_URGENT_LEAD_H }}
         run: python predictor.py
 
       # ══════════════════════════════════════════════════════════════
