@@ -79,7 +79,18 @@ VKLYUCHENO = (os.environ.get("PREDICT_EVROHOKEY") or "1").strip() not in (
 UA = "greenpicks-bot/1.0 (+github.com/AEROBOTAMOVE/greenpicks-bots)"
 TIMEOUT = int((os.environ.get("EVROHOKEY_TIMEOUT") or "25").strip() or 25)
 
-LIIGA_URL = "https://liiga.fi/api/v2/schedule?season=%d"
+# 🔴 РЕДЪТ НА ПАРАМЕТРИТЕ НЕ Е УКРАСА — ИЗМЕРЕН Е (05.09.2026):
+#     ?season=2027                        → 🔴 HTTP 500
+#     ?season=2027&tournament=runkosarja  → 🔴 HTTP 500
+#     ?tournament=runkosarja&season=2027  → 🟢 544 записа
+# Питан за целия сезон, сървърът събира всичките си турнири; през септември
+# плейофите на новия сезон още не съществуват и сглобяването се пука.
+# Затова турнирът се пита ПОИМЕННО и ВИНАГИ пръв.
+LIIGA_URL = "https://liiga.fi/api/v2/schedule?tournament=%s&season=%d"
+# Турнирите на СМ Лига. Подредени по важност за нас: редовният сезон дава
+# почти всичко, плейофите се появяват през март, подготвителните — през
+# август. 500 при отделен турнир значи «още го няма», не «изворът отказа».
+LIIGA_TURNIRI = ("runkosarja", "playoffs", "valmistavat_ottelut")
 CHL_STR = "https://www.chl.hockey/en/schedule"
 CHL_URL = "https://www.chl.hockey/api/s3?q=schedule-21ec9dad81abe2e0240460d0-%s.json"
 # Последният известен сезонен файл. Ползва се САМО ако страницата не се
@@ -174,15 +185,46 @@ def _liiga_sezon(sega=None):
 
 
 def liiga_surovo(sezon, vzemi=None):
-    """Списъкът мачове за един сезон. None значи „не можах да питам"."""
+    """Мачовете за един сезон, събрани от всичките турнири.
+
+    None значи „не можах да питам" — и това е ТОЧНО когато МЪЛЧАТ ВСИЧКИТЕ
+    турнири. Празен списък значи „питах и няма мачове".
+
+    🔴 РАЗЛИКАТА Е ЦЕНАТА НА ЦЯЛ СПОРТ. Един турнир може да върне 500,
+    защото още не съществува (плейофите през септември) — това е нормално и
+    не бива да заглушава редовния сезон. Ако бях слял двете, СМ Лига щеше да
+    мълчи цял сезон, а дневникът да казва «изворът отказа».
+    """
     vz = vzemi if callable(vzemi) else _vzemi
     if sezon in _kesh_sur:
         return _kesh_sur[sezon]
-    d = vz(LIIGA_URL % int(sezon))
-    if not isinstance(d, list):
+    sabrani, vidyani, otgovori = [], set(), 0
+    for turnir in LIIGA_TURNIRI:
+        d = vz(LIIGA_URL % (turnir, int(sezon)))
+        if not isinstance(d, list):
+            continue
+        otgovori += 1
+        for x in d:
+            if not isinstance(x, dict):
+                continue
+            # 🔴 СЛИВА СЕ САМО ПО ИСТИНСКО `id`. Ключ, който при липсващо
+            # поле обявява различни редове за един и същ, трие данни.
+            # Първата ми версия ползваше (сезон, id, начало, домакин) и
+            # сля шест различни мача в един, щом подложката нямаше id.
+            # Измерено живо: всичките 605 записа носят id, и нито едно id
+            # не се среща в два турнира — тоест сливането е застраховка, не
+            # нужда. Няма id → редът минава. Един повторен мач е по-евтин
+            # от един изтрит.
+            nid = str(x.get("id") or "").strip()
+            if nid:
+                if nid in vidyani:
+                    continue
+                vidyani.add(nid)
+            sabrani.append(x)
+    if not otgovori:
         return None
-    _kesh_sur[sezon] = d
-    return d
+    _kesh_sur[sezon] = sabrani
+    return sabrani
 
 
 def chl_hashove(vzemi=None):
@@ -363,6 +405,10 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
                 "league": LIGI["liiga"]["bg"],
                 "weight": LIGI["liiga"]["tezhest"],
                 "when": w,
+                # 🔴 `slug` НОСИ ЛИГАТА и стига до дневника. Без него
+                # оценителят няма как да разбере от коя лига е мачът —
+                # `extra` не се записва целият в дневника.
+                "slug": "liiga",
                 "extra": {"home_en": dom, "away_en": gost,
                           "evro": "liiga", "id": str(x.get("id") or "")},
             })
@@ -398,6 +444,7 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
                 "league": LIGI["chl"]["bg"],
                 "weight": LIGI["chl"]["tezhest"],
                 "when": w,
+                "slug": "chl",
                 "extra": {"home_en": dom, "away_en": gost,
                           "evro": "chl", "id": str(x.get("_entityId") or "")},
             })
@@ -406,6 +453,137 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
         return NEPITAN
     out.sort(key=lambda r: r["when"])
     return out[:TAVAN]
+
+
+# ─────────────────────────────────────────────────────────── РЕЗУЛТАТЪТ
+def rezultat(zapis, sega=None, vzemi=None):
+    """(голове_дом, голове_гост) за ИЗИГРАН мач. None = още няма.
+
+    🔴 СЪЩЕСТВУВА, ЗАЩОТО БЕЗ НЕЯ КАРТИТЕ НЕ МОГАТ ДА СЕ ОЦЕНЯТ. Оценителят
+    строи адрес ESPN/{път}/{slug}/scoreboard и сверява по НОМЕР на отбор.
+    СМ Лига и Шампионската лига не са от ESPN и нямат такива номера — тоест
+    без своя врата всяка европейска хокейна карта остава неоценена ЗАВИНАГИ.
+    Намерено живо: картата «Jukurit — Sport» стоеше с `scored=False` и
+    оценителят връщаше None.
+
+    🔴 НЕ СЕ ВЯРВА НА ГОЛОВЕТЕ, докато `ended` не е True. При насрочен мач
+    полетата са 0-0, а това НЕ значи „домакинът губи" — значи „още не е
+    играно". Същият капан има и при коефициентите на Veikkaus, където след
+    мача полето се преписва със сетълмент.
+    """
+    # Празен вход не бива да гърми: следващият ред пипа `zapis` пряко.
+    zapis = zapis or {}
+    ex = zapis.get("extra") or {}
+    # 🔴 `slug` Е РАВНОПРАВЕН ВХОД. Дневникът носи лигата там, а `extra` не
+    # се записва целият. Измерено: оценителят даваше (0, 4) за запис, за
+    # който тази функция даваше None — защото той вписваше `extra.evro`
+    # преди да я извика. Функция, която работи само през един викащ, е
+    # счупена; поправката просто още не си е личала.
+    lg = str(ex.get("evro") or zapis.get("evro")
+             or zapis.get("slug") or "").lower()
+    dom = str(zapis.get("home_id") or zapis.get("home") or "").strip()
+    gost = str(zapis.get("away_id") or zapis.get("away") or "").strip()
+    den = str(zapis.get("day") or "")[:10]
+    if not lg or not dom or not gost:
+        return None
+    sega = sega or _dt.datetime.now(_dt.timezone.utc)
+
+    if lg == "liiga":
+        for sez in (_liiga_sezon(sega), _liiga_sezon(sega) - 1):
+            d = liiga_surovo(sez, vzemi)
+            tochni, blizki = [], []
+            for x in (d or []):
+                if not x.get("ended"):
+                    continue
+                if str(x.get("homeTeamName") or "").strip() != dom:
+                    continue
+                if str(x.get("awayTeamName") or "").strip() != gost:
+                    continue
+                den_x = str(x.get("start") or "")[:10]
+                if den and den_x not in _sasedni(den):
+                    continue
+                try:
+                    g = (int(x.get("homeTeamGoals")),
+                         int(x.get("awayTeamGoals")))
+                except (TypeError, ValueError):
+                    continue
+                (tochni if (not den or den_x == den) else blizki).append(g)
+            res = _edinstveniyat(tochni, blizki)
+            if res is not _NEREShEN:
+                return res
+        return None
+
+    if lg == "chl":
+        hh, _r = chl_hashove(vzemi)
+        vz = vzemi if callable(vzemi) else _vzemi
+        for hsh in reversed(hh[-2:] or hh):
+            tochni, blizki = [], []
+            d = vz(CHL_URL % hsh)
+            m = d if isinstance(d, list) else []
+            if not m and isinstance(d, dict):
+                for k in d:
+                    if isinstance(d[k], list) and d[k] and isinstance(d[k][0], dict):
+                        m = d[k]
+                        break
+            for x in m:
+                if not isinstance(x, dict) or str(x.get("status")) != "finished":
+                    continue
+                p = _dvoyka(x)
+                if not p:
+                    continue
+                if p[0] != dom or p[1] != gost:
+                    continue
+                den_x = str(x.get("startDate") or "")[:10]
+                if den and den_x not in _sasedni(den):
+                    continue
+                (tochni if (not den or den_x == den) else blizki).append(
+                    (int(p[2]), int(p[3])))
+            res = _edinstveniyat(tochni, blizki)
+            if res is not _NEREShEN:
+                return res
+        return None
+    return None
+
+
+# Отделен белег за «в този сезон/файл не намерих нищо», за да не се бърка с
+# «намерих, но е спорно» (и двете иначе биха били None и вторият случай щеше
+# да продължи да търси в предишния сезон — точно каквото НЕ бива).
+_NEREShEN = object()
+
+
+def _edinstveniyat(tochni, blizki):
+    """Кой резултат важи: точният ден бие съседния, спорът не се решава.
+
+    🔴 ТОЧНИЯТ ДЕН Е ПЪРВИ И БЕЗУСЛОВЕН. Съседният ден съществува само
+    заради часовите зони; той е ДОПУСК, не равностоен източник.
+
+    🔴 ДВАМА КАНДИДАТИ = ОТКАЗ. Измерено живо: HPK — Kärpät играят на 06.03
+    (3-2) и на 07.03 (6-3). Стар вид взимаше първия срещнат и лепваше 3-2
+    на картата за 07.03 — фалшив резултат с уверен вид. По-добре картата да
+    чака, отколкото да бъде оценена по чужд мач.
+    """
+    if tochni:
+        edin = set(tochni)
+        return tochni[0] if len(edin) == 1 else None
+    if len(blizki) == 1:
+        return blizki[0]
+    if blizki:
+        return None
+    return _NEREShEN
+
+
+def _sasedni(den):
+    """Денят и съседните му. Часовите зони местят мача с ден в двете посоки.
+
+    Дневникът пази деня по БЪЛГАРСКО време, а изворите — по свое. Мач в
+    02:00 българско е предишният ден във Финландия. Без този допуск част от
+    картите остават неоценени, а причината изглежда като „няма резултат".
+    """
+    try:
+        d0 = _dt.date.fromisoformat(str(den)[:10])
+    except ValueError:
+        return {str(den)[:10]}
+    return {(d0 + _dt.timedelta(days=k)).isoformat() for k in (-1, 0, 1)}
 
 
 # ───────────────────────────────────────────────────────── САМОПРОВЕРКА
@@ -541,6 +719,19 @@ def selftest():
         _mnogo.append({"ended": True, "homeTeamName": "Бб", "awayTeamName": "Аа",
                        "homeTeamGoals": 2, "awayTeamGoals": 3})
     _mnogo.append({"ended": False, "homeTeamName": "Аа", "awayTeamName": "Вв"})
+    # 🔴 ШЕСТ НЕИГРАНИ МАЧА НА «Гг» — с ГОЛОВЕ, точно както ги дава живият
+    # извор: насроченият мач носи 0-0, а не празно. Шест е над прага от 5,
+    # тоест ако `ended` бъде махнат, «Гг» ВЛИЗА в таблицата и проверката
+    # долу почервенява.
+    #
+    # Преди този ред същата мутация минаваше безшумно: единственият неигран
+    # мач беше един, «Вв» падаше по ПРАГА, и проверката «ненаиграният отбор
+    # пада» мереше броя, не `ended`. Изречението беше вярно и не проверяваше
+    # каквото твърди — най-скъпият вид проверка.
+    for _i in range(6):
+        _mnogo.append({"ended": False, "homeTeamName": "Гг",
+                       "awayTeamName": "Дд",
+                       "homeTeamGoals": 0, "awayTeamGoals": 0})
 
     # 🔴 ПОДЛОЖКАТА Е СЕЗОННО-ОСЪЗНАТА, и това не е дребно. `tablica` чете
     # ДВА сезона (миналият за тежест, тазгодишният за свежест). Първата ми
@@ -553,15 +744,34 @@ def selftest():
         if surovo:
             return None
         _pitani.append(u)
-        return _mnogo if "season=2026" in u else []
+        # 🔴 И ТУРНИРНО-ОСЪЗНАТА, по същата причина като сезонната по-горе.
+        # Турнирите станаха три; подложка, която дава едни и същи мачове на
+        # трите, ги утроява (36 вместо 12) и тестът щеше да измерва
+        # собствената си щедрост. Живият извор носи РАЗЛИЧНИ мачове във
+        # всеки турнир — измерено: 480 · 60 · 65 записа, нула общи id.
+        if "season=2026" in u and "tournament=runkosarja" in u:
+            return _mnogo
+        return []
 
     tb = tablica("liiga", _sega, _po_sezon)
     check("таблицата се строи от изиграните", set(tb) == {"Аа", "Бб"})
     check("ненаиграният отбор пада (под прага)", "Вв" not in tb)
+    # 🔴 ТОВА мери `ended`, а горното мери прага. Двете изглеждат еднакво и
+    # не са: «Гг» има шест неиграни мача — стига му броят, липсва му само
+    # това да са ИГРАНИ.
+    check("неигран мач не влиза в таблицата, дори да са много",
+          "Гг" not in tb and "Дд" not in tb)
     check("прагът е точно 5", MIN_MACHOVE == 5)
     check("броят мачове е верен (12, не 24)", tb["Аа"]["gp"] == 12)
+    # 🔴 МЕРИ СЕ СЕЗОНЪТ, НЕ АДРЕСЪТ. Адресите вече са шест (три турнира по
+    # два сезона), а въпросът, който тази проверка задава, е «различават ли
+    # се сезоните». Отслабването щеше да е да я махна; вярното е да я
+    # насоча към това, което винаги е искала да каже.
     check("питани са ДВА различни сезона",
-          len({u for u in _pitani}) == 2)
+          len({u.split("season=")[-1] for u in _pitani}) == 2)
+    check("и трите турнира се питат за всеки сезон", len(_pitani) == 6)
+    check("нито един адрес не пита за целия сезон вкупом",
+          all("tournament=" in u for u in _pitani))
     check("и единият е миналият, другият текущият",
           any("season=2026" in u for u in _pitani)
           and any("season=2027" in u for u in _pitani))
@@ -588,6 +798,153 @@ def selftest():
     check("ВХЛ я няма", "vhl" not in LIGI)
     check("Metal Ligaen я няма", "metal" not in LIGI)
     check("точно две лиги", len(LIGI) == 2)
+
+    # ═══ ВРАТАТА ЗА РЕЗУЛТАТ (05.09.2026) ═══════════════════════════
+    #
+    # Три живи дефекта, всичките намерени с истински мачове, не с четене:
+    #   1. адресът за СМ Лига гърмеше с 500 → лигата беше НЯМА
+    #   2. съседният ден лепваше ЧУЖД мач → фалшив резултат
+    #   3. функцията четеше само `extra.evro` → работеше само през оценителя
+    #
+    # Всичките проверки тук са ПОВЕДЕНЧЕСКИ и без мрежа.
+
+    def _liiga_stub(mach):
+        """Четец-подставка: помни какво са го питали, връща `mach`."""
+        pitani = []
+
+        def vz(url, surovo=False):
+            pitani.append(url)
+            if "tournament=runkosarja" in url:
+                return list(mach)
+            # Точно като живия сървър: турнир без данни връща 500 → None.
+            return None
+        return vz, pitani
+
+    _m1 = {"ended": True, "start": "2026-03-06T16:30:00Z", "id": 1,
+           "homeTeamName": "HPK", "awayTeamName": "Kärpät",
+           "homeTeamGoals": 3, "awayTeamGoals": 2}
+    _m2 = {"ended": True, "start": "2026-03-07T16:30:00Z", "id": 2,
+           "homeTeamName": "HPK", "awayTeamName": "Kärpät",
+           "homeTeamGoals": 6, "awayTeamGoals": 3}
+    _m3 = {"ended": False, "start": "2026-03-20T16:30:00Z", "id": 3,
+           "homeTeamName": "Ilves", "awayTeamName": "TPS",
+           "homeTeamGoals": 0, "awayTeamGoals": 0}
+
+    def _pit(den, dom="HPK", gost="Kärpät", mach=(_m1, _m2, _m3), klyuch="slug"):
+        vz, _p = _liiga_stub(mach)
+        _kesh_sur.clear()
+        z = {"day": den, "home_id": dom, "away_id": gost, klyuch: "liiga"}
+        try:
+            return rezultat(z, _dt.datetime(2026, 3, 10,
+                                            tzinfo=_dt.timezone.utc), vz)
+        finally:
+            _kesh_sur.clear()
+
+    # ── 1 · ТУРНИРЪТ СЕ ПИТА ПОИМЕННО И ПРЪВ.
+    # Измерено живо: `?season=2027` дава 500, `?tournament=…&season=2027`
+    # дава 544 записа. Сървърът се пука, като събира турнири, които още не
+    # съществуват. Проверява се ПО АДРЕСА, който излиза от модула.
+    _vz, _pitani = _liiga_stub([_m1])
+    _kesh_sur.clear()
+    _d = liiga_surovo(2027, _vz)
+    check("СМ Лига пита за поименен турнир",
+          all("tournament=" in u for u in _pitani))
+    check("турнирът стои ПРЕДИ сезона в адреса",
+          all(u.index("tournament=") < u.index("season=") for u in _pitani))
+    check("питат се повече от един турнир", len(_pitani) >= 2)
+    check("един жив турнир стига за резултат", _d == [_m1])
+    # 🔴 И ОБРАТНОТО: 500 при ЕДИН турнир НЕ Е отказ на извора, но 500 при
+    # ВСИЧКИТЕ — е. Без тази разлика цял сезон би мълчал като „няма мачове".
+    _kesh_sur.clear()
+    check("всичките мълчат → None (отказ, не празно)",
+          liiga_surovo(2027, lambda u, surovo=False: None) is None)
+    _kesh_sur.clear()
+    check("отговор с празен списък → празно, НЕ отказ",
+          liiga_surovo(2027, lambda u, surovo=False: []) == [])
+    _kesh_sur.clear()
+
+    # ── 2 · ТОЧНИЯТ ДЕН БИЕ СЪСЕДНИЯ.
+    # Измерено живо: HPK — Kärpät играят на 06.03 (3-2) и 07.03 (6-3).
+    # Стар вид даваше 3-2 и на двете карти.
+    check("06.03 дава своя резултат", _pit("2026-03-06") == (3, 2))
+    check("07.03 дава СВОЯ, не съседния", _pit("2026-03-07") == (6, 3))
+    # ── и когато спорът е неразрешим — ОТКАЗ, не догадка.
+    # 🔴 ДУПКАТА Е НАРОЧНА: мачове на 06.03 и 08.03, въпрос за 07.03. Само
+    # тогава и двата са съседни и точен няма. (Първата ми версия питаше за
+    # 08.03 при мачове на 06 и 07 — но 06.03 е на два дни и не е съседен,
+    # тоест кандидатът беше един и отговорът верен. Тестът мереше друго.)
+    _dupka = ({"ended": True, "start": "2026-03-06T16:30:00Z", "id": 21,
+               "homeTeamName": "HPK", "awayTeamName": "Kärpät",
+               "homeTeamGoals": 3, "awayTeamGoals": 2},
+              {"ended": True, "start": "2026-03-08T16:30:00Z", "id": 22,
+               "homeTeamName": "HPK", "awayTeamName": "Kärpät",
+               "homeTeamGoals": 6, "awayTeamGoals": 3})
+    check("два съседни без точен → отказ",
+          _pit("2026-03-07", mach=_dupka) is None)
+    check("но точният ден между тях се решава",
+          _pit("2026-03-06", mach=_dupka) == (3, 2))
+    # ── а допускът ±1 работи, когато няма спор
+    check("допускът ±1 хваща самотен мач",
+          _pit("2026-03-19", "Ilves", "TPS",
+               ({"ended": True, "start": "2026-03-20T16:30:00Z", "id": 9,
+                 "homeTeamName": "Ilves", "awayTeamName": "TPS",
+                 "homeTeamGoals": 5, "awayTeamGoals": 1},)) == (5, 1))
+
+    # ── 3 · `slug` Е РАВНОПРАВЕН ВХОД.
+    # Измерено: оценителят даваше (0,4), а `rezultat` — None за СЪЩИЯ запис,
+    # защото четеше само `extra.evro`. Работеше само защото един викащ го
+    # подпираше.
+    check("работи през slug", _pit("2026-03-06", klyuch="slug") == (3, 2))
+    check("работи и през evro", _pit("2026-03-06", klyuch="evro") == (3, 2))
+    _kesh_sur.clear()
+    _vz2, _ = _liiga_stub([_m1])
+    check("работи и през extra.evro",
+          rezultat({"day": "2026-03-06", "home_id": "HPK",
+                    "away_id": "Kärpät", "extra": {"evro": "liiga"}},
+                   _dt.datetime(2026, 3, 10, tzinfo=_dt.timezone.utc),
+                   _vz2) == (3, 2))
+    _kesh_sur.clear()
+
+    # ── 4 · НЕИЗИГРАН МАЧ НЕ Е 0-0.
+    # Живият извор дава `homeTeamGoals: 0, awayTeamGoals: 0, ended: False`
+    # за насрочен мач. Прочетено буквално, това е „домакинът не отбеляза".
+    check("неизигран мач не дава резултат",
+          _pit("2026-03-20", "Ilves", "TPS") is None)
+
+    # ── 5 · ЧУЖДОТО НЕ ВЛИЗА
+    check("непозната лига → None",
+          rezultat({"day": "2026-03-06", "home_id": "HPK",
+                    "away_id": "Kärpät", "slug": "nhl"}) is None)
+    check("празен запис → None", rezultat({}) is None)
+    check("None вместо запис → None", rezultat(None) is None)
+    check("без отбори → None",
+          rezultat({"day": "2026-03-06", "slug": "liiga"}) is None)
+
+    # ── 6 · РАЗСЪДНИКЪТ поотделно
+    check("точният бие съседния", _edinstveniyat([(1, 0)], [(9, 9)]) == (1, 0))
+    check("два различни точни → отказ",
+          _edinstveniyat([(1, 0), (2, 0)], []) is None)
+    check("два еднакви точни → минават",
+          _edinstveniyat([(1, 0), (1, 0)], []) == (1, 0))
+    check("един съседен → минава", _edinstveniyat([], [(4, 2)]) == (4, 2))
+    check("два съседни → отказ", _edinstveniyat([], [(4, 2), (1, 1)]) is None)
+    check("нищо → НЕРЕШЕН (търси в предишния сезон)",
+          _edinstveniyat([], []) is _NEREShEN)
+    check("НЕРЕШЕН не е None", _NEREShEN is not None)
+
+    # ── 7 · СРЕЩИТЕ НОСЯТ ЛИГАТА В `slug`.
+    # 🔴 ЖИВИЯТ ДЕФЕКТ, ОТ КОЙТО ТРЪГНА ВСИЧКО: картата «Jukurit — Sport»
+    # стоеше със `slug=None` и не можеше да бъде оценена никога. Проверките
+    # по-горе гледат `extra.evro` — но `extra` НЕ СЕ ЗАПИСВА целият в
+    # дневника. До оценителя стига `slug`, и точно за него нямаше проверка.
+    nuliray()
+    _r7 = srechti(_sega, 72, None, _podhvarlen)
+    check("всяка среща носи slug", bool(_r7) and all(x.get("slug") for x in _r7))
+    check("slug сочи същата лига като extra.evro",
+          all(x["slug"] == x["extra"]["evro"] for x in _r7))
+    check("и двете лиги дават slug",
+          {x["slug"] for x in _r7} == {"liiga", "chl"})
+    nuliray()
 
     # ── нула мрежа в цялата самопроверка
     check("самопроверката не пипна мрежата", broi_zayavki() == 0)
