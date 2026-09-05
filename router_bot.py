@@ -533,6 +533,66 @@ def main():
               + ". Виж " + STATE_FILE + ".")
 
 
+def chetat_se_klyuchove(izvor=None):
+    """Кои променливи на средата чете ТОЗИ файл."""
+    src = izvor if izvor is not None else open(__file__, encoding="utf-8").read()
+    edno = re.findall(r"os\.environ\.get\(\s*[\"\']([A-Z_0-9]+)[\"\']", src)
+    dve = re.findall(r"os\.environ\[\s*[\"\']([A-Z_0-9]+)[\"\']", src)
+    return set(edno) | set(dve)
+
+
+def adresni(klyuchove):
+    """От прочетените — тези, чиято липса мести СЪОБЩЕНИЕТО, не настройка.
+
+    🔴 ПРАВИЛО, НЕ СПИСЪК. Номерът на стая и адресът на чата решават КЪДЕ
+    отива постът; таваните и опитите решават само колко бързо. Първото
+    мълчи, когато сгреши — затова само то се изисква.
+    """
+    return {k for k in klyuchove
+            if k.endswith("_THREAD_ID") or k in ("CHAT_ID", "CHANNEL_ID")}
+
+
+def stypki_s_rutera(papka=None):
+    """[(файл, име на стъпка, подадени ключове)] за всяка стъпка, която
+    пуска рутера НАИСТИНА (пускането с --selftest не праща никъде)."""
+    bazi = [papka] if papka else [".github/workflows", "../.github/workflows"]
+    for baza in bazi:
+        if not baza or not os.path.isdir(baza):
+            continue
+        namereni = []
+        for ime in sorted(os.listdir(baza)):
+            if not ime.endswith(".yml"):
+                continue
+            # 🔴 io НЕ Е ВНЕСЕН В ТОЗИ ФАЙЛ. Първата редакция ползваше
+            # io.open и NameError-ът се глътна от широкия except — функцията
+            # обяви НУЛА стъпки, тоест грешка в кода мина за празнота в
+            # данните. Точно класът, който тази проверка гони.
+            #
+            # Затова: голо open, и уловът е САМО за файлови грешки.
+            try:
+                with open(os.path.join(baza, ime), encoding="utf-8") as f:
+                    redove = f.read().split("\n")
+            except (OSError, UnicodeDecodeError):
+                continue
+            zap = [i for i, l in enumerate(redove)
+                   if l.strip().startswith("- name:")] + [len(redove)]
+            for a, b in zip(zap, zap[1:]):
+                blok = redove[a:b]
+                puska = any("router_bot.py" in l and "selftest" not in l
+                            and l.strip().startswith("run:") for l in blok)
+                if not puska:
+                    continue
+                klyuchove = set()
+                for l in blok:
+                    m = re.match(r"\s{10}([A-Z_0-9]+)\s*:", l)
+                    if m:
+                        klyuchove.add(m.group(1))
+                namereni.append((ime, blok[0].strip()[:60], klyuchove))
+        if namereni:
+            return namereni
+    return []
+
+
 def selftest():
     """🔴 ДОБАВЕНА 11.08.2026. Рутерът беше ЕДИНСТВЕНИЯТ жив бот без самопроверка
     — и точно затова разделянето стая 9 / стая 10 му се размина цял ден, докато
@@ -546,6 +606,30 @@ def selftest():
             ok += 1
         else:
             bad.append(ime)
+
+    # --- 🔴 КОЙТО ПУСКА РУТЕРА, ДЪЛЖИ МУ АДРЕСИТЕ (05.09.2026)
+    #
+    # predict.yml пускаше router_bot.py без НИТО ЕДИН номер на стая и ботът
+    # падаше на заковани резерви 5/6/7/8/4/9/10. Смени ли се стая през vars,
+    # router.yml щеше да я уважи, а рутерът от predict.yml щеше да пише в
+    # старата — без нито един ред грешка.
+    #
+    # Проверката ОТКРИВА: чете кои променливи ползва самият файл, отделя
+    # адресните от настройките и иска всяка стъпка, която пуска рутера, да
+    # ги подава всичките.
+    _adr = adresni(chetat_se_klyuchove())
+    check("адресните ключове се намират", len(_adr) >= 7)
+    check("таваните НЕ се броят за адресни",
+          not {k for k in _adr if k.startswith("TG_")})
+    _stypki = stypki_s_rutera()
+    check("стъпките, които пускат рутера, се намират", len(_stypki) >= 2)
+    _lipsi = []
+    for _f, _n, _kl in _stypki:
+        _m = sorted(_adr - _kl)
+        if _m:
+            _lipsi.append(_f + " -> " + ", ".join(_m))
+    check("никой не пуска рутера без адреси: " + ("; ".join(_lipsi) or "-"),
+          not _lipsi)
 
     # --- разпознаване по спорт
     check("футболът отива в стаята си", ROOM_FOOT in pick_rooms("Лудогорец днес"))
