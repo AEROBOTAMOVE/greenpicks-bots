@@ -26889,9 +26889,10 @@
   "p": 0.7164,
   "stars": 2,
   "sample": "ранглиста и 6 скорошни мача",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_done": true
+  "combo_done": true,
+  "opit": 1
  },
  {
   "key": "2026-08-30|baseball|torontobluejays|seattlemariners",
@@ -39997,7 +39998,8 @@
   "sample": "цената на пазара, без надценката",
   "scored": true,
   "hit": true,
-  "score": "1:0"
+  "score": "1:0",
+  "combo_done": true
  },
  {
   "key": "2026-09-04|volleyball|msen|япония|oman",
@@ -40280,7 +40282,10 @@
   "p": 0.5869,
   "stars": 1,
   "sample": "следени 5 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1",
+  "combo_done": true
  },
  {
   "key": "2026-09-04|tennis|michaelzheng|buyunchaokete",
@@ -40560,7 +40565,9 @@
   "p": 0.8139,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-05|tennis|elisemertens|naomiosaka",
@@ -41442,7 +41449,9 @@
   "p": 0.9428,
   "stars": 2,
   "sample": "ранглиста и 19 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-04|tabletennis|miuhirano|haeunyang",
@@ -44075,7 +44084,12 @@
   "p": 0.6381,
   "stars": 1,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3",
+  "pazar_close": 1.52,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-05|tabletennis|shunsuketogami|alvarorobles",
