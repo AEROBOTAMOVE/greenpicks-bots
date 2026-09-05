@@ -2028,14 +2028,37 @@ def hvani_zatvaryashta(r):
     if not r.get("pazar_cena") or r.get("pazar_close") is not None:
         return False
     ev, sp, lg = r.get("pazar_ev"), r.get("pazar_sport"), r.get("pazar_liga")
-    if not (ev and sp and lg):
+    izt = str(r.get("pazar_izt") or "").strip().lower()
+    # 🔴 ПОРТАТА ПИТА ЗА КАКВОТО ТРЯБВА НА ТОЗИ ИЗТОЧНИК (05.09.2026).
+    #
+    # Дотук тук стоеше `if not (ev and sp and lg)`, а `pazar_liga` се пише
+    # САМО за ESPN. Pinnacle пази номер + спорт + «обърнат ли е редът» и
+    # няма лига — тоест портата изхвърляше НАЙ-ГОЛЕМИЯ ни източник без
+    # нито един ред някъде. Измерено: 264 карти с CLV, всичките espn;
+    # 368 карти с цена от Pinnacle, нула с CLV.
+    #
+    # А `pazar.cena_zatvarayashta_pin` съществува и се викаше само от
+    # собствената си самопроверка. Дванайсети път «построено, но не
+    # свързано» в този проект.
+    if not (ev and sp):
+        return False
+    if izt != "pinnacle" and not lg:
         return False
     try:
         import pazar as PZ
     except Exception:                                        # noqa: BLE001
         return False
     try:
-        dom, gost, raven = PZ.cena_zatvarayashta(sp, lg, ev)
+        if izt == "pinnacle":
+            # 🔴 ОБЪРНАТИТЕ СТРАНИ СЕ ПОДАВАТ. `pazar_obarnat` значи
+            # «Pinnacle държи нашия домакин като гост»; функцията връща
+            # страните В НАШИЯ ред само ако ѝ се каже. Без този довод CLV
+            # би сравнявал цената на домакина с тази на госта — шум с
+            # уверен вид.
+            dom, gost, raven = PZ.cena_zatvarayashta_pin(
+                sp, ev, bool(r.get("pazar_obarnat")))
+        else:
+            dom, gost, raven = PZ.cena_zatvarayashta(sp, lg, ev)
     except Exception:                                        # noqa: BLE001
         return False
     pick = str(r.get("pick") or "")
@@ -3488,6 +3511,82 @@ def selftest():
         globals()["LIGA_VKL"] = _st_lv
     check("ръчката е върната", LIGA_VKL is _st_lv)
     check("интервалът при нула карти е пълният", _wilson(0, 0) == (0.0, 1.0))
+
+    # ═══ CLV И ЗА PINNACLE (05.09.2026) ═════════════════════
+    #
+    # 🔴 Портата искаше `pazar_liga`, а той се пише САМО за ESPN.
+    # Измерено: 264 карти с CLV, ВСИЧКИТЕ espn; 368 карти с цена от
+    # Pinnacle — нула с CLV. А `pazar.cena_zatvarayashta_pin` съществуваше
+    # и се викаше само от собствената си самопроверка. Дванайсети път
+    # «построено, но не свързано».
+    _st_pz = sys.modules.get("pazar")
+    try:
+        import types as _t3
+        _fp = _t3.ModuleType("pazar")
+        _vidyani = []
+
+        def _czp(sport, mid, obarnat=False):
+            _vidyani.append(("pin", sport, mid, bool(obarnat)))
+            return (3.10, 1.40, None) if obarnat else (1.40, 3.10, None)
+
+        def _cz(sport, liga, ev):
+            _vidyani.append(("espn", sport, liga, ev))
+            return (1.50, 2.90, 3.40)
+
+        _fp.cena_zatvarayashta_pin = _czp
+        _fp.cena_zatvarayashta = _cz
+        _fp.dvizhenie = lambda a, b: (1.0 / float(b)) - (1.0 / float(a))
+        sys.modules["pazar"] = _fp
+
+        # —— PINNACLE: минава БЕЗ лига
+        _r = {"pazar_cena": 1.80, "pazar_izt": "pinnacle",
+              "pazar_ev": "123", "pazar_sport": "tennis", "pick": "1 · А"}
+        check("🔴 Pinnacle минава БЕЗ pazar_liga",
+              hvani_zatvaryashta(_r) is True)
+        check("взима се затварящата на НАШАТА страна",
+              abs(float(_r["pazar_close"]) - 1.40) < 1e-9)
+        check("CLV се смята", _r.get("pazar_clv") is not None)
+        check("викан е ПИНАКЪЛ-пътят, не ESPN",
+              _vidyani and _vidyani[-1][0] == "pin")
+
+        # 🔴 ОБЪРНАТИТЕ СТРАНИ СЕ ПОДАВАТ. Инак CLV сравнява цената
+        # на домакина с тази на госта — шум с уверен вид.
+        _vidyani[:] = []
+        _r2 = {"pazar_cena": 1.80, "pazar_izt": "pinnacle", "pazar_ev": "123",
+               "pazar_sport": "tennis", "pazar_obarnat": True, "pick": "1 · А"}
+        hvani_zatvaryashta(_r2)
+        check("обърнатият ред стига до функцията", _vidyani[-1][3] is True)
+        check("и дава ДРУГАТА цена",
+              abs(float(_r2["pazar_close"]) - 3.10) < 1e-9)
+
+        # —— ESPN: пътят му е НЕПОКЪТНАТ и още иска лига
+        _vidyani[:] = []
+        _r3 = {"pazar_cena": 1.80, "pazar_izt": "espn", "pazar_ev": "9",
+               "pazar_sport": "soccer", "pazar_liga": "eng.1", "pick": "1 · А"}
+        check("ESPN пътят работи както преди",
+              hvani_zatvaryashta(_r3) is True and _vidyani[-1][0] == "espn")
+        _r4 = {"pazar_cena": 1.80, "pazar_izt": "espn", "pazar_ev": "9",
+               "pazar_sport": "soccer", "pick": "1 · А"}
+        check("🔴 ESPN БЕЗ лига пада (нищо работещо не се разхлабва)",
+              hvani_zatvaryashta(_r4) is False)
+
+        # —— и общите порти пазят
+        check("без номер не се пита",
+              hvani_zatvaryashta({"pazar_cena": 1.8, "pazar_izt": "pinnacle",
+                                  "pazar_sport": "tennis"}) is False)
+        check("без цена не се пита",
+              hvani_zatvaryashta({"pazar_izt": "pinnacle", "pazar_ev": "1",
+                                  "pazar_sport": "tennis"}) is False)
+        check("вече сметнат CLV не се пипа пак",
+              hvani_zatvaryashta({"pazar_cena": 1.8, "pazar_close": 1.5,
+                                  "pazar_izt": "pinnacle", "pazar_ev": "1",
+                                  "pazar_sport": "tennis"}) is False)
+    finally:
+        if _st_pz is not None:
+            sys.modules["pazar"] = _st_pz
+        else:
+            sys.modules.pop("pazar", None)
+    check("подставката е върната", sys.modules.get("pazar") is _st_pz)
 
     # ═══ ВТОРИЯТ РАЗРЕЗ: ПО ВИД ЗАЛОГ (05.09.2026) ═══════════
     #
