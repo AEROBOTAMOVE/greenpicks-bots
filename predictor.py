@@ -7502,6 +7502,40 @@ def nothing_card(now, seen, thin, weak):
 
 
 # ================================================================= ПОДБОР
+# 🔴 КОИ КОФИ МОГАТ ДА КАЖАТ «НЕ МОЖАХ ДА ПИТАМ» (05.09.2026).
+#
+# Модул със сентинел различава провала от празнотата и си го казва сам.
+# Без сентинел двете се сливат — и точно това е класът дефекти, който в
+# този проект вече е струвал дни мълчание на цели спортове.
+#
+# 🔴 ОТКРИВА СЕ, НЕ СЕ ИЗБРОЯВА. Списък с имена е ръчката, която някой
+# забравя при следващия модул.
+_SENTINELI = ("NEPITAN", "ZAPUSHENO", "OTLOZHEN")
+
+
+def sport_ima_sentinel(b):
+    """Може ли модулът зад тази кофа да каже «не можах да питам»."""
+    import types as _t
+    for v in list(globals().values()):
+        if not isinstance(v, _t.ModuleType):
+            continue
+        if not any(hasattr(v, s) for s in _SENTINELI):
+            continue
+        # кофата се познава по собственото ѝ обявено име
+        if str(getattr(v, "NASH_KLYUCH", "")) == str(b):
+            return True
+    return str(b) in SENTINEL_KOFI
+
+
+# Кофите, чиито модули имат сентинел, но НЕ го обявяват през NASH_KLYUCH.
+#
+# 🔴 САМО ДВЕ. Измерено: `NASH_KLYUCH` покрива hockey, rugby, boxing и
+# amfootball сам. Да ги държа и тук значеше модулният път да е незначещ —
+# махнеш ли го, списъкът пак дава верния отговор и мутацията оцелява.
+# Остават само тези, които наистина нямат друг начин да се обявят.
+SENTINEL_KOFI = {"tabletennis", "esports"}
+
+
 def collect_all(now):
     ymd = now.strftime("%Y%m%d")
     ymd_dash = now.strftime("%Y-%m-%d")
@@ -7655,6 +7689,26 @@ def collect_all(now):
         far = n_near - len(rows)
         rows.sort(key=lambda fx: -fx.get("weight", 0))
         buckets[b] = rows
+        # 🔴 НУЛА СУРОВИ СРЕЩИ БЕЗ НИТО ЕДНА ПРИЧИНА Е ПОДОЗРЕНИЕ.
+        #
+        # Четири модула (volley_evro, azia, itf, esport_rez) връщат празно и
+        # при провал, и при честна нула. Пазач имаше САМО за азия и за
+        # разписанието на тениса на маса — правилото се прилагаше там,
+        # където някой се е сетил.
+        #
+        # 🔴 ГЛЕДА СЕ СУРОВИЯТ БРОЙ, НЕ ФИЛТРИРАНИЯТ. Първата ми
+        # версия питаше за `rows` и извика за ММА, където имаше десет мача —
+        # просто всичките бяха започнали. Филтърът е НАШЕ решение; повреда
+        # е само когато изворът не е дал НИЩО.
+        #
+        # И три условия, за да не е шум: спортът да не спи · модулът да няма
+        # сентинел (инак сам би казал «не можах») · и да няма записана
+        # причина (инак черната кутия вече я знае).
+        _prich = ([_gr] if _gr else []) + _http_why[_pr:]
+        if (not n_all and b not in SPAT and not sport_ima_sentinel(b)
+                and not _prich):
+            print("   ⚠ " + b + ": НУЛА сурови срещи и НИТО ЕДНА"
+                  " причина — подозрение за тих провал, не доказана нула.")
         # ЧЕРНАТА КУТИЯ. Дневникът на GitHub се чете само с админски права, а
         # страницата му не се рендира навсякъде — тоест отвън НЕ СЕ ВИЖДА защо
         # един спорт мълчи. Три спорта не дадоха карта НИТО ВЕДНЪЖ и никой не
@@ -10883,6 +10937,114 @@ def selftest():
     _t3 = 3 * 1000.0 + 0.2 * 100.0 + koef_tezhest({"pazar_cena": 1.95})
     _t2 = 2 * 1000.0 + 0.2 * 100.0 + koef_tezhest({"pazar_cena": 1.30})
     check("скъпа 3★ тежи колкото евтина 2★", abs(_t3 - _t2) < 1e-9)
+
+    # ═══ ТИХАТА НУЛА СЕ КАЗВА НА ГЛАС (05.09.2026) ════════════════════
+    #
+    # 🔴 Четири модула (volley_evro, azia, itf, esport_rez) връщат празно и
+    # при провал, и при честна нула. Пазач имаше САМО за азия и за
+    # разписанието на тениса на маса — правилото се прилагаше там, където
+    # някой се е сетил.
+    #
+    # 🔴 ГЛЕДА СЕ СУРОВИЯТ БРОЙ. Първата ми версия питаше за филтрираните и
+    # извика за ММА, където имаше десет мача — просто всичките бяха
+    # започнали. Филтърът е НАШЕ решение; повреда е само празен извор.
+    import io as _io2
+    import contextlib as _ctx
+    _st_vf = globals().get("vol_fixtures")
+    _st_act2 = list(ACTIVE_SPORTS)
+    try:
+        globals()["ACTIVE_SPORTS"] = ["volleyball"]
+        globals()["vol_fixtures"] = lambda *a, **k: []
+        _buf = _io2.StringIO()
+        with _ctx.redirect_stdout(_buf):
+            collect_all(datetime.now(SOFIA))
+        check("🔴 тихата нула се обажда",
+              "НУЛА сурови срещи" in _buf.getvalue())
+    finally:
+        if _st_vf is not None:
+            globals()["vol_fixtures"] = _st_vf
+        globals()["ACTIVE_SPORTS"] = _st_act2
+    check("подставките са върнати",
+          globals().get("vol_fixtures") is _st_vf
+          and list(ACTIVE_SPORTS) == _st_act2)
+    # ── и самото разпознаване на сентинел
+    check("хокеят се разпознава като СЪС сентинел",
+          sport_ima_sentinel("hockey") is True)
+    check("волейболът — БЕЗ", sport_ima_sentinel("volleyball") is False)
+    check("непознат спорт — БЕЗ", sport_ima_sentinel("няма такъв") is False)
+    # 🔴 И ЧЕ МОДУЛНИЯТ ПЪТ Е НОСЕЩ, не резервният списък.
+    _st_sk = SENTINEL_KOFI
+    try:
+        globals()["SENTINEL_KOFI"] = set()
+        check("хокеят се разпознава и БЕЗ резервния списък",
+              sport_ima_sentinel("hockey") is True)
+        check("ръгбито също", sport_ima_sentinel("rugby") is True)
+    finally:
+        globals()["SENTINEL_KOFI"] = _st_sk
+    check("резервният списък е върнат", SENTINEL_KOFI is _st_sk)
+    check("резервният пази само необявените",
+          SENTINEL_KOFI == {"tabletennis", "esports"})
+
+    # ── и двете посоки на самия пазач
+    _st_hf = globals().get("hockey_fixtures")
+    _st_act3 = list(ACTIVE_SPORTS)
+    try:
+        # 🔴 СПОРТ СЪС СЕНТИНЕЛ МЪЛЧИ — той сам би казал «не можах».
+        # Ръгбито се събира през `RAG.srechti`, не през местна функция —
+        # затова се подменя САМИЯТ МОДУЛ. (Първата ми версия подменяше
+        # `hockey_fixtures`, а хокеят минава по друг път: срещи ИМАШЕ,
+        # тоест проверката не изпитваше нищо и мутацията оцеля.)
+        globals()["ACTIVE_SPORTS"] = ["rugby"]
+        _st_rag = globals().get("RAG")
+        try:
+            import types as _t4
+            _fr = _t4.ModuleType("ragbi_proba")
+            _fr.NEPITAN = object()
+            _fr.NASH_KLYUCH = "rugby"
+            _fr.srechti = lambda *a, **k: []
+            globals()["RAG"] = _fr
+            _b3 = _io2.StringIO()
+            with _ctx.redirect_stdout(_b3):
+                collect_all(datetime.now(SOFIA))
+            check("🔴 спорт СЪС сентинел не се обажда",
+                  "НУЛА сурови срещи" not in _b3.getvalue())
+        finally:
+            globals()["RAG"] = _st_rag
+        check("модулът е върнат", globals().get("RAG") is _st_rag)
+
+        # 🔴 И КОГАТО ПРИЧИНАТА Е ЗАПИСАНА — пазачът мълчи. Черната кутия
+        # вече я знае; втори ред за същото е шум.
+        globals()["ACTIVE_SPORTS"] = ["volleyball"]
+
+        def _vf_gramva(*a, **k):
+            _http_why.append("проба: изворът падна")
+            return []
+
+        globals()["vol_fixtures"] = _vf_gramva
+        _b5 = _io2.StringIO()
+        with _ctx.redirect_stdout(_b5):
+            collect_all(datetime.now(SOFIA))
+        check("🔴 при ЗАПИСАНА причина пазачът мълчи",
+              "НУЛА сурови срещи" not in _b5.getvalue())
+        # 🔴 И СУРОВИ СРЕЩИ, ФИЛТРИРАНИ ДО НУЛА, НЕ СА ПОВРЕДА.
+        # Точно това извика за ММА: десет мача, всичките започнали.
+        globals()["ACTIVE_SPORTS"] = ["volleyball"]
+        _mnogo_star = [{"bucket": "volleyball", "emoji": "🏐", "home": "А",
+                        "away": "Б", "league": "Проба", "weight": 5,
+                        "when": datetime.now(SOFIA) - timedelta(hours=9),
+                        "extra": {}} for _ in range(6)]
+        globals()["vol_fixtures"] = lambda *a, **k: list(_mnogo_star)
+        _b4 = _io2.StringIO()
+        with _ctx.redirect_stdout(_b4):
+            collect_all(datetime.now(SOFIA))
+        check("🔴 сурови срещи, филтрирани до нула, НЕ са повреда",
+              "НУЛА сурови срещи" not in _b4.getvalue())
+    finally:
+        if _st_hf is not None:
+            globals()["hockey_fixtures"] = _st_hf
+        if _st_vf is not None:
+            globals()["vol_fixtures"] = _st_vf
+        globals()["ACTIVE_SPORTS"] = _st_act3
 
     # ═══ 📉 ДВИЖЕНИЕТО СЕ ВИЖДА И ОТ ЧИТАТЕЛЯ (05.09.2026) ═════════════
     #
