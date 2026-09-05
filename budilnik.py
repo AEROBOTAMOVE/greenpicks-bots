@@ -1345,26 +1345,46 @@ def selftest():
           _sliapo(_lazhliv) == [] and ryachkite_v_router(_lazhliv)
           == sorted(RYACHKI))
 
-    # --- и чак сега ЖИВИЯТ router.yml
+    # --- и чак сега ЖИВИТЕ workflow-и
+    #
+    # 🔴 ДВА ФАЙЛА, НЕ ЕДИН (05.09.2026). Дотук се четеше САМО router.yml.
+    # Пуснат върху живия support.yml, СЪЩИЯТ уред викаше
+    # ['PREDICT_QUIET_FROM', 'PREDICT_QUIET_TO'] — тоест виждаше дефекта, а
+    # никой не му подаваше файла. Резултатът: вторият будилник спеше от
+    # 23:00 до 07:59, а рънът светеше зелено.
+    #
+    # 🔴 ОТКРИВА, НЕ ИЗБРОЯВА. Обхожда се цялата папка и се пита всеки
+    # workflow, който пуска ГОЛИЯ budilnik.py. Утрешният трети няма да се
+    # забрави.
     sverka_zapochva()
-    _rsrc = None
+    _papka = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          ".github", "workflows")
+    _namereni = 0
     try:
-        with io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  ".github", "workflows", "router.yml"),
-                     encoding="utf-8-sig") as f:
-            _rsrc = f.read()
+        _imena = sorted(x for x in os.listdir(_papka) if x.endswith(".yml"))
     except Exception as _e:                                  # noqa: BLE001
-        nesverimo("ръчките в router.yml: " + str(_e)[:60])
-    if _rsrc is not None:
+        _imena = []
+        nesverimo("папката с workflow-ите: " + str(_e)[:60])
+    for _ime in _imena:
+        try:
+            with io.open(os.path.join(_papka, _ime), encoding="utf-8-sig") as f:
+                _rsrc = f.read()
+        except Exception as _e:                              # noqa: BLE001
+            nesverimo("ръчките в " + _ime + ": " + str(_e)[:50])
+            continue
         _lipsvat = ryachkite_v_router(_rsrc)
         if _lipsvat is None:
-            nesverimo("в router.yml няма стъпка, която пуска голия budilnik.py")
-        elif _lipsvat:
-            nesverimo("МЪРТВА РЪЧКА: router.yml НЕ подава на будилника "
+            continue                    # този файл не пуска голия будилник
+        _namereni += 1
+        if _lipsvat:
+            nesverimo("МЪРТВА РЪЧКА: " + _ime + " НЕ подава на будилника "
                       + ", ".join(_lipsvat)
                       + " — predict.yml ги подава на предсказателя, тоест "
                       + "денонощният режим ще важи за него, но не и за "
                       + "будилника (той ще спре на " + str(DO_CHAS) + ":59)")
+    if _imena and not _namereni:
+        nesverimo("НИТО ЕДИН workflow не пуска голия budilnik.py — "
+                  "будилникът е построен и не се вика")
 
     # ═══════════════════════════════════════════════════════════════════
     #  📤 ИЗХОДЪТ КЪМ WORKFLOW-А. Двата реда budim= и ocenitel= са ЕДИНСТВЕНАТА
