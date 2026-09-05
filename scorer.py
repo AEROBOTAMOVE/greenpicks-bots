@@ -3438,6 +3438,71 @@ def selftest():
           _sdb_dvoyki("Invalid Team ID passed") == [])
     check("речник вместо списък не гърми", _sdb_dvoyki({"a": 1}) == [])
 
+    # ═══ ПАЗАЧ ЗА ЛИГИТЕ (05.09.2026) ════════════════════
+    #
+    # 🔴 Общият процент на бота е ЧЕСТЕН (обявява 64.0%, сбъдва 63.3%),
+    # а вътре в него Czech Liga Pro обявява 62.0% и сбъдва 43.3% на 30 карти.
+    # Една счупена лига се удавя в хиляда други. Сборът е верен и въпреки
+    # това крие — затова се гледа ПО ЛИГА.
+    _l_chest = [{"scored": True, "hit": (i % 3 != 0), "p": 0.66,
+                 "league": "Честна", "bucket": "x"} for i in range(30)]
+    _l_lazh = [{"scored": True, "hit": (i % 5 == 0), "p": 0.80,
+                "league": "Лъжлива", "bucket": "x"} for i in range(30)]
+    _l_malka = [{"scored": True, "hit": False, "p": 0.90,
+                 "league": "Мъничка", "bucket": "x"} for i in range(5)]
+    _naideni = {x[0] for x in ligi_nechestni(_l_chest + _l_lazh + _l_malka)}
+    check("лъжливата лига се хваща", "Лъжлива" in _naideni)
+    check("честната НЕ се обявява за лъжлива", "Честна" not in _naideni)
+    # 🔴 МАЛКАТА ИЗВАДКА МЪЛЧИ. Пет карти с 0 познати и обявени 90%
+    # изглеждат ужасно, но интервалът им е толкова широк, че нищо не е
+    # доказано. Списък с шум е списък, който никой не чете.
+    check("под прага не се обявява нищо", "Мъничка" not in _naideni)
+    check("по-нисък праг я вижда",
+          "Мъничка" in {x[0] for x in ligi_nechestni(_l_chest + _l_malka, 5)})
+    # —— подредбата: най-голямата лъжа е първа
+    # Втората трябва да лъже ДОКАЗУЕМО, но по-малко: 0.85 обявено срещу
+    # 50% сбъднато. (Първата ми версия ѝ даде 75% сбъднато — тогава 0.85
+    # попада ВЪТРЕ в интервала, лигата изобщо не влиза в списъка и
+    # проверката пада, защото сравнява един елемент с втори, който го няма.)
+    _dve = ligi_nechestni(_l_lazh + [{"scored": True, "hit": (i % 2 == 0),
+                                      "p": 0.85, "league": "Малко лъжлива",
+                                      "bucket": "x"} for i in range(30)])
+    check("най-голямата лъжа излиза първа",
+          len(_dve) >= 2 and _dve[0][3] - _dve[0][4] >= _dve[1][3] - _dve[1][4])
+    # —— боклук не гърми
+    check("празен дневник дава празен списък", ligi_nechestni([]) == [])
+    check("None не гърми", ligi_nechestni(None) == [])
+    check("неотсъдените не се броят",
+          ligi_nechestni([{"scored": False, "hit": None, "p": 0.9,
+                           "league": "Х", "bucket": "x"}] * 40) == [])
+    check("карта без вероятност не се брои",
+          ligi_nechestni([{"scored": True, "hit": False, "p": None,
+                           "league": "Х", "bucket": "x"}] * 40) == [])
+    # —— и ръчката го гаси
+    _st_lv = LIGA_VKL
+    try:
+        globals()["LIGA_VKL"] = False
+        check("SCORER_LIGA_PAZACH=0 го спира",
+              kazhi_nechestnite(_l_lazh) == 0)
+    finally:
+        globals()["LIGA_VKL"] = _st_lv
+    check("ръчката е върната", LIGA_VKL is _st_lv)
+    check("интервалът при нула карти е пълният", _wilson(0, 0) == (0.0, 1.0))
+    # 🔴 И ЧЕ `main` НАИСТИНА ГО ВИКА — и честно за силата на реда:
+    # `main()` праща в Telegram, не може да бъде пуснат в самопроверка.
+    # Чете се изворът на ЕДНА функция (не на файла — инак низът щеше да се
+    # среща и в теста и да пази собствения си текст).
+    import inspect as _insp2
+    try:
+        _src_main = _insp2.getsource(main)
+    except Exception:                                        # noqa: BLE001
+        _src_main = ""
+    check("изворът на `main` се прочете", len(_src_main) > 500)
+    check("`main` вика пазача на лигите",
+          "kazhi_nechestnite(" in _src_main)
+    check("низът не пази сам себе си",
+          _src_main.count("kazhi_nechestnite(") == 1)
+
     # 🔴 ЧАСЪТ РЕШАВА, НЕ КАЛЕНДАРЪТ НА ИЗВОРА (05.09.2026).
     #
     # Измерено живо от TheSportsDB: 06.03.2026 носи HPK 3-2 Kärpät
@@ -5351,6 +5416,87 @@ def combo_marki(prateno, legs, tavan=None):
     return zatvoreni, ostavat
 
 
+# 🔴 ПАЗАЧ ЗА ЛИГИТЕ (05.09.2026) — виж дългото обяснение в `ligi_nechestni`.
+LIGA_MIN = int((os.environ.get("SCORER_LIGA_MIN") or "25").strip() or 25)
+LIGA_VKL = (os.environ.get("SCORER_LIGA_PAZACH") or "1").strip() != "0"
+
+
+def _wilson(k, n):
+    """Интервалът на сбъднатото. Празен при нула карти."""
+    if not n:
+        return (0.0, 1.0)
+    p = float(k) / float(n)
+    z = 1.96
+    den = 1.0 + z * z / n
+    # 🔴 ИМЕТО Е ЧИСТО ЛАТИНСКО. Първата ми версия го написа
+    # `sred` + кирилско `а` — работи в Python, но е същият капан,
+    # който днес уби 18 агента в схема на работилница: окото не
+    # различава `а` от `a`.
+    sreda = (p + z * z / (2.0 * n)) / den
+    # Коренът е на ръка: `math` не се внася в този файл, а един
+    # нов внос заради едно вдигане на степен е промяна без нужда.
+    hw = z * ((p * (1.0 - p) / n + z * z / (4.0 * n * n)) ** 0.5) / den
+    return (max(0.0, sreda - hw), min(1.0, sreda + hw))
+
+
+def ligi_nechestni(rows, min_n=None):
+    """Лигите, които обявяват ПОВЕЧЕ, отколкото сбъдват — доказано.
+
+    Връща [(лига, кош, брой, обявено, сбъднато, долна, горна)], подредени
+    по големината на лъжата.
+
+    🔴 «ДОКАЗАНО» ЗНАЧИ: обявеното е ИЗВЪН интервала на сбъднатото. Лига,
+    чието обявено число попада вътре, НЕ влиза — разликата там е шум, а
+    списък с шум е списък, който никой не чете.
+
+    🔴 ЗАЩО ИЗОБЩО: общият процент на бота е честен (64.0 срещу 63.3), но
+    вътре в него Czech Liga Pro обявява 62.0% и сбъдва 43.3% на 30 карти.
+    Една счупена лига се удавя в хиляда други карти. Сборът е верен и
+    въпреки това крие.
+    """
+    prag = LIGA_MIN if min_n is None else int(min_n)
+    po = {}
+    for r in (rows or []):
+        if not isinstance(r, dict) or not r.get("scored"):
+            continue
+        if r.get("hit") is None:
+            continue
+        try:
+            p = float(r.get("p") or 0.0)
+        except (TypeError, ValueError):
+            continue
+        if not (0.0 < p < 1.0):
+            continue
+        k = (str(r.get("league") or "?"), str(r.get("bucket") or "?"))
+        po.setdefault(k, []).append((p, bool(r.get("hit"))))
+    out = []
+    for (lg, b), v in po.items():
+        n = len(v)
+        if n < prag:
+            continue
+        k = sum(1 for _p, h in v if h)
+        ob = sum(_p for _p, _h in v) / n
+        lo, hi = _wilson(k, n)
+        if ob > hi:                    # обявеното е ИЗВЪН интервала
+            out.append((lg, b, n, ob, float(k) / n, lo, hi))
+    out.sort(key=lambda x: -(x[3] - x[4]))
+    return out
+
+
+def kazhi_nechestnite(rows):
+    """Печата счупените лиги. Мълчи, когато няма — тишината значи нещо."""
+    if not LIGA_VKL:
+        return 0
+    lo = ligi_nechestni(rows)
+    for lg, b, n, ob, sb, dolu, gore in lo:
+        print("   \u2696\ufe0f " + lg[:34] + " (" + b + "): обявява "
+              + str(round(100 * ob, 1)) + "%, сбъдва "
+              + str(round(100 * sb, 1)) + "% ["
+              + str(round(100 * dolu, 1)) + "–" + str(round(100 * gore, 1))
+              + "] на " + str(n) + mn(n, " карта", " карти"))
+    return len(lo)
+
+
 def main():
     if not BOT_TOKEN and not DRY_RUN:
         print("Липсва BOT_TOKEN.")
@@ -5488,6 +5634,13 @@ def main():
             pass
         fresh.append((r, hs, as_, bool(ok_hit)))
 
+    # 🔴 СЧУПЕНАТА ЛИГА СЕ КАЗВА НА ГЛАС. Общият процент може да е честен,
+    # а вътре в него една лига да лъже системно — измерено: Czech Liga Pro
+    # обявява 62.0%, сбъдва 43.3% на 30 карти, докато сборът е 64.0/63.3.
+    try:
+        kazhi_nechestnite(load_log())
+    except Exception as e:                                   # noqa: BLE001
+        print("   пазачът на лигите не мина (" + str(e)[:50] + ")")
     print("Проверени " + str(checked) + mn(checked, " твърдение", " твърдения")
           + mn(len(fresh), ", отсъдено ", ", отсъдени ") + str(len(fresh)) + ".")
 
