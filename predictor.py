@@ -8169,6 +8169,75 @@ def _pazar_surovo(an):
     return an
 
 
+# 🔴 ДОСМЕСВАНЕТО (05.09.2026) — виж дългото обяснение в `dosmesi`.
+DOSMES_VKL = env_int("PREDICT_DOSMES", 1, 0, 1) == 1
+
+
+def dosmesi(an):
+    """Смесва с пазара картите, минали през РАНЕН ИЗХОД на `_pazar_surovo`.
+
+    🔴 ЗАЩО СЪЩЕСТВУВА. `_pazar_surovo` има два ранни изхода, които слагат
+    `pazar_p` и се връщат ПРЕДИ блока за смесване. Такава карта излиза с
+    НАШЕТО число, а пазарното стои до него неизползвано.
+
+    Измерено на живия дневник (1448 карти, 33 дни):
+        смесени    n=326 · обявено 68.2% · сбъдна 66.6% · ROI  −8.6%
+        НЕсмесени  n=398 · обявено 59.5% · сбъдна 54.5% · ROI −13.1%
+    Несмесените са надценени с ПЕТ пункта. От тях 159 биха паднали под
+    своя праг след смесването и изобщо нямаше да излязат — те са на −19.8%.
+
+    Файлът вече документира точно този капан за тефтера на цените и го
+    решава с обвивка. Тук е втората половина на същото решение.
+
+    🔴 НЕ СМЕСВА ДВА ПЪТИ. `p_model` е белегът, че блокът вече е минал;
+    повторно смесване би презаписало нашето число с вече смесеното.
+    """
+    if not DOSMES_VKL or SG is None or not isinstance(an, dict):
+        return an
+    if an.get("p_model") is not None:
+        return an                      # главният път вече е смесил
+    chist = an.get("pazar_p")
+    b = str(an.get("bucket") or "")
+    if not chist or b in BEZ_SMESVANE:
+        return an
+    try:
+        chist = float(chist)
+    except (TypeError, ValueError):
+        return an
+    an["p_model"] = float(an.get("p") or 0.0)
+    sm = SG.smesi(an.get("p"), chist)
+    if sm is None:
+        return an
+    pick = str(an.get("pick") or "")
+    fx = an.get("fx") or {}
+    if b in DVA_IZHODA and SG.obrasta_li(an.get("p"), chist):
+        # Огледалото: сместа е минала от другата страна на 50%, значи
+        # изборът я следва. Линейната смес е симетрична — 1−смес(p) Е
+        # сместа на другата страна, затова правилото е едно, не две.
+        og = ogledalo(pick, fx.get("home"), fx.get("away"))
+        dr_c = an.get("pazar_cena_drug")
+        if og and dr_c:
+            an["pick"] = og
+            an["p"] = round(min(0.95, max(0.05, 1.0 - sm)), 4)
+            an["pazar_cena"] = dr_c
+            an["pazar_p"] = round(1.0 - chist, 4)
+            an["obarnata"] = True
+            # Обяснението е писано за СТАРАТА страна — оставено както си е,
+            # картата би спорила сама със себе си пред читателя.
+            an["why"] = ["числото е претеглено с пазарното"]
+        else:
+            an["p"] = sm
+    else:
+        an["p"] = sm
+    # 🔴 И ПРАГЪТ СЕ ПРЕМЕРВА. Той е приложен ПРЕДИ цената; карта, чието
+    # число падне под летвата след смесването, не бива да излиза. Тук само
+    # се ОТБЕЛЯЗВА — изхвърлянето става там, където се брои, инак числото
+    # пак би изчезнало мълчаливо.
+    an["pod_prag_sled_pazar"] = (
+        float(an.get("p") or 0.0) < dolen_prag(an.get("bucket")))
+    return an
+
+
 def dobavi_pazar(an):
     """Цената + една точка в редицата ѝ. Нула нови заявки.
 
@@ -8179,7 +8248,72 @@ def dobavi_pazar(an):
     проект е ударил осем пъти. Обвивката няма как да бъде заобиколена.
     """
     an = _pazar_surovo(an)
+    # 🔴 СМЕСВАНЕТО Е В ОБВИВКАТА, НЕ ВЪТРЕ. Двата ранни изхода на
+    # `_pazar_surovo` слагат цената и се връщат преди блока за смесване —
+    # мълчаливо, точно както преди това правеха и с тефтера на цените.
+    an = dosmesi(an)
     return zapishi_cena(an)
+
+
+# 🔴 ДОСЛЕДЯВАНЕТО НА ЦЕНИТЕ (05.09.2026) — виж дългото обяснение отдолу.
+DOSLED_VKL = env_int("PREDICT_DOSLED", 1, 0, 1) == 1
+DOSLED_TAVAN = env_int("PREDICT_DOSLED_TAVAN", 120, 0, 600)
+
+
+def dosledi_cenite(buckets, now):
+    """Още една точка в редицата на ВЕЧЕ ПУБЛИКУВАНИТЕ, неизиграни срещи.
+
+    🔴 ЗАЩО СЪЩЕСТВУВА. Единственият измерен ръб в целия проект е
+    движението на линията: +12% ROI при 3% движение, мерено на 22 333 мача.
+    Той е НЕИЗПОЛЗВАЕМ, защото данните ги няма — на живия дневник само 12
+    от 724 карти имат редица от поне две цени.
+
+    Причината: `dobavi_pazar` се вика само за картите ПОД ЛУПАТА (44 на
+    рън), а мачът получава карта веднъж и излиза от лупата завинаги. Тоест
+    почти всяка редица има точно една точка.
+
+    🔴 НУЛА НОВИ ЗАЯВКИ. Пазарът се тегли НАКУП за целия спорт и се кешира;
+    цената на вече публикувана среща ВЕЧЕ е в отговора, който този рън е
+    изтеглил. Тук просто се поглежда.
+
+    Пипа се САМО срещу вече започната редица (`_key` е в `CENI`): среща,
+    която никога не е имала цена, не се гони — тя няма и карта.
+
+    Връща колко точки са добавени.
+    """
+    if not (DVIZHENIE_VKL and DOSLED_VKL) or not isinstance(buckets, dict):
+        return 0
+    n = 0
+    for _b, redove in buckets.items():
+        for fx in (redove or []):
+            if n >= DOSLED_TAVAN:
+                return n
+            if not isinstance(fx, dict):
+                continue
+            # 🔴 КЛЮЧЪТ СЕ СМЯТА ТУК. `fx["_key"]` се слага САМО на
+            # НЕпубликуваните срещи (виж цикъла `fresh`) — тоест точно тези,
+            # които доследяваме, го НЯМАТ. Първата ми версия четеше полето и
+            # мълчаливо не правеше нищо: живият рън добави 0 точки.
+            try:
+                k = match_key(fx, now)
+            except Exception:                                # noqa: BLE001
+                continue
+            # само вече започнала редица — инак гоним мачове без карта
+            if not k or k not in CENI:
+                continue
+            # и само НЕЗАПОЧНАЛ мач: след началото цената е друго нещо
+            w = fx_start(fx, now)
+            if w is not None and w <= now:
+                continue
+            predi = int((CENI.get(k) or {}).get("n") or 0)
+            try:
+                # Пипа се КОПИЕ: чуждата среща не бива да носи наш ключ.
+                dobavi_pazar({"fx": dict(fx, _key=k)})
+            except Exception:                                # noqa: BLE001
+                continue
+            if int((CENI.get(k) or {}).get("n") or 0) > predi:
+                n += 1
+    return n
 
 
 # ═══════════════════════════════════ ТРИТЕ КОМБИНИРАНИ ФИША (стая 4)
@@ -9529,6 +9663,14 @@ def run():
 
     if maybe_footer(state, now, seen, thin, weak):
         sent += 1
+    # 🔴 ОЩЕ ЕДНА ТОЧКА В РЕДИЦАТА НА ЦЕНИТЕ, преди тефтерът да се запише.
+    # Нула нови заявки — пазарът е в кеша. Без този ред единственият
+    # измерен ръб на проекта остава без данни: 12 от 724 карти имаха
+    # редица от поне две цени.
+    _dosl = dosledi_cenite(buckets, now)
+    if _dosl:
+        print("   \U0001f4c8 доследени цени: " + str(_dosl)
+              + mn(_dosl, " среща", " срещи") + " (нула нови заявки)")
     persist(state, now)
     # 🔴 ЧУЖДИТЕ ЗАЯВКИ СЕ ПРИБАВЯТ ПРЕДИ ОТЧЕТА (05.09.2026). Цените
     # се теглят СЛЕД събирането на срещите, значи сверката в `collect_all`
@@ -10403,6 +10545,262 @@ def selftest():
         except OSError:
             pass
     check("стая 4 е разрешена за фишовете", PICKS_THREAD in ALLOWED_THREADS)
+
+    # ═══ НИКОЙ РАНЕН ИЗХОД НЕ ЗАОБИКАЛЯ СМЕСВАНЕТО (05.09.2026) ════════
+    #
+    # 🔴 `_pazar_surovo` има ДВА ранни изхода, които слагат `pazar_p` и се
+    # връщат ПРЕДИ блока за смесване. Такава карта излизаше с НАШЕТО число.
+    # Измерено на живия дневник (1448 карти, 33 дни):
+    #     смесени    n=326 · обявено 68.2% · сбъдна 66.6% · ROI  −8.6%
+    #     НЕсмесени  n=398 · обявено 59.5% · сбъдна 54.5% · ROI −13.1%
+    # 287 карти извън прага на безразличие, нито една с `p_model` — тоест
+    # блокът изобщо не е минавал. От тях 159 биха паднали под своя праг
+    # (ROI −19.8%) и нямаше да излязат.
+    #
+    # 🔴 ПРОВЕРЯВА СЕ ОБВИВКАТА, не функцията. Точно затова дефектът е
+    # оцелял: `_pazar_surovo` работеше, а пътят до сместа — не.
+    _st_ps = globals().get("_pazar_surovo")
+    _st_zc = globals().get("zapishi_cena")
+    try:
+        # ранен изход: слага цената и се връща, БЕЗ да смесва
+        def _ranen(an):
+            an["pazar_p"] = 0.40
+            an["pazar_cena"] = 2.35
+            an["pazar_cena_drug"] = 1.55
+            return an
+
+        globals()["_pazar_surovo"] = _ranen
+        globals()["zapishi_cena"] = lambda a, s=None: a
+        _dm = dobavi_pazar({"fx": {"home": "Аа", "away": "Бб"},
+                            "bucket": "football", "pick": "1 · Аа", "p": 0.62})
+        check("🔴 ранният изход ВЕЧЕ минава през сместа",
+              _dm.get("p_model") is not None)
+        check("нашето число е запазено", abs(_dm["p_model"] - 0.62) < 1e-6)
+        check("числото на картата става пазарното (тегло 0.00)",
+              abs(_dm["p"] - 0.40) < 1e-6)
+        check("и прагът се премерва наново",
+              _dm.get("pod_prag_sled_pazar") is True)
+
+        # ── ДВА ПЪТИ НЕ СЕ СМЕСВА: p_model е белегът
+        _vtor = dobavi_pazar(dict(_dm))
+        check("вече смесена карта не се пипа пак",
+              abs(_vtor["p_model"] - 0.62) < 1e-6
+              and abs(_vtor["p"] - 0.40) < 1e-6)
+
+        # ── в прага на безразличие числото НЕ се мени
+        def _blizo(an):
+            an["pazar_p"] = 0.615
+            an["pazar_cena"] = 1.70
+            return an
+
+        globals()["_pazar_surovo"] = _blizo
+        _bl = dobavi_pazar({"fx": {"home": "Аа", "away": "Бб"},
+                            "bucket": "football", "pick": "1 · Аа", "p": 0.62})
+        check("под прага на безразличие числото остава наше",
+              abs(_bl["p"] - 0.62) < 1e-6)
+
+        # ── ОГЛЕДАЛОТО при двуизходен спорт: сместа мина от другата страна
+        def _obraten(an):
+            an["pazar_p"] = 0.30
+            an["pazar_cena"] = 3.20
+            an["pazar_cena_drug"] = 1.35
+            return an
+
+        globals()["_pazar_surovo"] = _obraten
+        _ob = dobavi_pazar({"fx": {"home": "Аа", "away": "Бб"},
+                            "bucket": "tabletennis", "pick": "1 · Аа",
+                            "p": 0.62})
+        check("двуизходен спорт обръща избора", _ob.get("obarnata") is True)
+        check("изборът сочи ДРУГИЯ", "Бб" in str(_ob.get("pick") or ""))
+        check("числото е на другата страна", _ob["p"] > 0.5)
+        check("и цената е на другата страна",
+              abs(float(_ob["pazar_cena"]) - 1.35) < 1e-6)
+        check("обяснението за старата страна е махнато",
+              _ob.get("why") == ["числото е претеглено с пазарното"])
+
+        # ── БЕЗ пазарно число нищо не се пипа
+        globals()["_pazar_surovo"] = lambda an: an
+        _bez = dobavi_pazar({"fx": {"home": "Аа", "away": "Бб"},
+                             "bucket": "football", "pick": "1 · Аа", "p": 0.62})
+        check("без пазарно число картата остава непокътната",
+              _bez.get("p_model") is None and abs(_bez["p"] - 0.62) < 1e-6)
+
+        # ── боксът и еспортът НЕ се смесват (тяхното число ВЕЧЕ е пазарното)
+        globals()["_pazar_surovo"] = _ranen
+        for _b in sorted(BEZ_SMESVANE):
+            _bs = dobavi_pazar({"fx": {"home": "Аа", "away": "Бб"},
+                                "bucket": _b, "pick": "1 · Аа", "p": 0.62})
+            check("%s не се смесва (числото му Е пазарното)" % _b,
+                  _bs.get("p_model") is None and abs(_bs["p"] - 0.62) < 1e-6)
+
+        # ── и ръчката го гаси
+        _st_dsm = DOSMES_VKL
+        try:
+            globals()["DOSMES_VKL"] = False
+            _ga = dobavi_pazar({"fx": {"home": "Аа", "away": "Бб"},
+                                "bucket": "football", "pick": "1 · Аа",
+                                "p": 0.62})
+            check("ръчката PREDICT_DOSMES=0 го спира",
+                  _ga.get("p_model") is None)
+        finally:
+            globals()["DOSMES_VKL"] = _st_dsm
+        check("боклук не гърми",
+              dosmesi(None) is None and dosmesi({}) == {})
+    finally:
+        if _st_ps is not None:
+            globals()["_pazar_surovo"] = _st_ps
+        if _st_zc is not None:
+            globals()["zapishi_cena"] = _st_zc
+    check("подставките са върнати",
+          globals()["_pazar_surovo"] is _st_ps
+          and globals()["zapishi_cena"] is _st_zc)
+
+    # 🔴 ВИКАНЕТО В `run` — И ЧЕСТНО ЗА СИЛАТА НА ТАЗИ ПРОВЕРКА.
+    # `run()` праща в Telegram; не може да бъде пуснат в самопроверка, значи
+    # този ред НЕ Е поведенчески като останалите. Чете се изворът на ЕДНА
+    # ФУНКЦИЯ (не на целия файл — инак низът щеше да се среща и в самия тест
+    # и проверката щеше да пази собствения си текст) и се иска РЕДЪТ:
+    # доследяването ПРЕДИ записа на тефтера. Обратният ред би записал
+    # тефтера без новите точки — тихо.
+    import inspect as _insp
+    try:
+        _src_run = _insp.getsource(run)
+    except Exception:                                        # noqa: BLE001
+        _src_run = ""
+    check("изворът на `run` се прочете", len(_src_run) > 500)
+    _i_dos = _src_run.find("dosledi_cenite(")
+    _i_per = _src_run.rfind("persist(state, now)")
+    check("`run` вика доследяването на цените", _i_dos > 0)
+    check("и то ПРЕДИ да запише тефтера", 0 < _i_dos < _i_per)
+    check("низът не пази сам себе си (веднъж в `run`)",
+          _src_run.count("dosledi_cenite(") == 1)
+
+    # ═══ ДОСЛЕДЯВАНЕТО НА ЦЕНИТЕ (05.09.2026) ═════════════════════════
+    #
+    # 🔴 ЗАЩО СЪЩЕСТВУВА, с числа от живия дневник (1448 карти, 33 дни):
+    #     честност:  обявяваме 64.0% · сбъдва се 63.3%   🟢 честни
+    #     ПАРИТЕ:    ROI −11.1% [−16.7 … −5.5] на 724 карти
+    #     маржът:    5.0% → губим маржа ПЛЮС 6.1% лош подбор
+    #     Брайер:    наш 0.2175 · пазарен 0.2064 → пазарът е по-добър
+    # Единственият измерен ръб на проекта е ДВИЖЕНИЕТО на линията (+12% ROI
+    # при 3% движение, 22 333 мача) — и той беше неизползваем, защото само
+    # 12 от 724 карти имаха редица от поне ДВЕ цени.
+    #
+    # Причината: цената се пишеше само за картите ПОД ЛУПАТА, а мачът
+    # получава карта веднъж и излиза от лупата завинаги.
+    _st_dp = globals().get("dobavi_pazar")
+    _st_ceni = dict(CENI)
+    _st_dv, _st_dos = DVIZHENIE_VKL, DOSLED_VKL
+    _pipnati = []
+    try:
+        globals()["DVIZHENIE_VKL"] = True
+        globals()["DOSLED_VKL"] = True
+
+        def _dp_shpionin(an):
+            fx = (an or {}).get("fx") or {}
+            _pipnati.append(str(fx.get("_key") or ""))
+            z = CENI.get(str(fx.get("_key") or ""))
+            if isinstance(z, dict):        # прави се, че е добавил точка
+                z["n"] = int(z.get("n") or 0) + 1
+            return an
+
+        globals()["dobavi_pazar"] = _dp_shpionin
+        _ds_now = datetime.now(SOFIA)
+        _fx_v = {"bucket": "football", "home": "Аа", "away": "Бб",
+                 "league": "Проба", "when": _ds_now + timedelta(hours=5),
+                 "extra": {}}
+        _fx_zap = {"bucket": "football", "home": "Вв", "away": "Гг",
+                   "league": "Проба", "when": _ds_now - timedelta(hours=2),
+                   "extra": {}}
+        _fx_bez = {"bucket": "football", "home": "Дд", "away": "Ее",
+                   "league": "Проба", "when": _ds_now + timedelta(hours=5),
+                   "extra": {}}
+        _k_v = match_key(_fx_v, _ds_now)
+        _k_zap = match_key(_fx_zap, _ds_now)
+        CENI.clear()
+        # само двете «вече публикувани» имат редица; третата няма
+        CENI[_k_v] = {"t0": "x", "p0": {"1": 0.5}, "c0": {"1": 2.0}, "n": 1}
+        CENI[_k_zap] = {"t0": "x", "p0": {"1": 0.5}, "c0": {"1": 2.0}, "n": 1}
+        _n = dosledi_cenite({"football": [_fx_v, _fx_zap, _fx_bez]}, _ds_now)
+        check("доследява се СРЕЩА С РЕДИЦА и незапочнала", _k_v in _pipnati)
+        check("🔴 ЗАПОЧНАЛИЯТ мач НЕ се доследява", _k_zap not in _pipnati)
+        check("🔴 среща БЕЗ редица не се гони (тя няма и карта)",
+              len(_pipnati) == 1)
+        check("броят добавени точки е верен", _n == 1)
+
+        # ── чуждата среща НЕ се пипа: ключът е наш, не неин
+        check("срещата не носи наш ключ след доследяването",
+              "_key" not in _fx_v)
+
+        # ── таванът
+        _pipnati[:] = []
+        CENI.clear()
+        _mn = []
+        for _i in range(8):
+            _f = {"bucket": "football", "home": "Х%d" % _i, "away": "Г%d" % _i,
+                  "league": "Проба", "when": _ds_now + timedelta(hours=5),
+                  "extra": {}}
+            CENI[match_key(_f, _ds_now)] = {"t0": "x", "p0": {"1": 0.5},
+                                            "c0": {"1": 2.0}, "n": 1}
+            _mn.append(_f)
+        _st_tav = DOSLED_TAVAN
+        try:
+            globals()["DOSLED_TAVAN"] = 3
+            check("таванът се спазва",
+                  dosledi_cenite({"football": _mn}, _ds_now) == 3)
+        finally:
+            globals()["DOSLED_TAVAN"] = _st_tav
+
+        # ── и ръчката го гаси
+        _pipnati[:] = []
+        globals()["DOSLED_VKL"] = False
+        check("ръчката PREDICT_DOSLED=0 го спира",
+              dosledi_cenite({"football": _mn}, _ds_now) == 0
+              and not _pipnati)
+        globals()["DOSLED_VKL"] = True
+        globals()["DVIZHENIE_VKL"] = False
+        check("и спрян тефтер го спира",
+              dosledi_cenite({"football": _mn}, _ds_now) == 0)
+        globals()["DVIZHENIE_VKL"] = True
+        check("боклук вместо кошници не гърми",
+              dosledi_cenite(None, _ds_now) == 0
+              and dosledi_cenite({"а": ["низ", 5]}, _ds_now) == 0)
+    finally:
+        if _st_dp is not None:
+            globals()["dobavi_pazar"] = _st_dp
+        globals()["DVIZHENIE_VKL"] = _st_dv
+        globals()["DOSLED_VKL"] = _st_dos
+        CENI.clear()
+        CENI.update(_st_ceni)
+    check("подставките са върнати",
+          globals()["dobavi_pazar"] is _st_dp and DVIZHENIE_VKL is _st_dv)
+
+    # 🔴 И САМАТА РЕДИЦА: втора точка се брои само на СЛЕДВАЩО пускане.
+    # Инак `n` щеше да мери колко пъти е викана функцията, а не колко пъти
+    # сме видели цената — и «движение» щеше да значи «шум в рамките на един
+    # рън».
+    _st_ceni2 = dict(CENI)
+    try:
+        CENI.clear()
+        _t0 = datetime(2026, 9, 5, 10, 0, tzinfo=SOFIA)
+        _t1 = _t0 + timedelta(hours=1)
+        _kk = "проба|football|а|б"
+        _z = ceni_zapishi(_kk, {"1": 1.80, "2": 2.10}, _t0)
+        check("първата точка се брои", _z["n"] == 1)
+        _z = ceni_zapishi(_kk, {"1": 1.70, "2": 2.25}, _t0)
+        check("СЪЩОТО пускане не брои втора", _z["n"] == 1)
+        _z = ceni_zapishi(_kk, {"1": 1.60, "2": 2.45}, _t1)
+        check("следващото пускане брои втора", _z["n"] == 2)
+        check("първата цена НЕ се пипа", _z["c0"] == {"1": 1.8, "2": 2.1})
+        _d = dvizhenie({"_key": _kk}, "1 · А")
+        check("паднала цена = движение КЪМ нас", _d is not None and _d > 0)
+        _z = ceni_zapishi(_kk, {"1": 2.20, "2": 1.75},
+                          _t1 + timedelta(hours=1))
+        _d2 = dvizhenie({"_key": _kk}, "1 · А")
+        check("вдигната цена = движение ОТ нас", _d2 is not None and _d2 < 0)
+    finally:
+        CENI.clear()
+        CENI.update(_st_ceni2)
 
     # ═══ ИЗЧЕРПАН БЮДЖЕТ ≠ ПАДНАЛ ИЗВОР (05.09.2026) ══════════════════
     #
