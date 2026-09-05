@@ -661,7 +661,14 @@ def horizont_za(bucket):
 # точно дефектът, заради който съществува СТЪЛБАТА по-долу.
 # Сметката за триенето е сверена: PICKLOG_KEEP (5000) трябва да е над
 # MAX_DAY × ARHIV_DNI = 60 × 60 = 3600. Стои, и самопроверката го пази.
-MAX_DAY = env_int("PREDICT_MAX_DAY", 60, 1, 80)
+# 🔴 ТАВАНЪТ НА СРЕДАТА: 80 → 200 (02.09.2026). Подразбирането ОСТАВА 60.
+# Измерено на живия дневник (1424 карти, 32 дни): средно 44.5/ден, но
+# 02.09 даде 83, 03.09 даде 89, 04.09 даде 76 — тоест таванът вече е тапа
+# в добрите дни, а собственикът иска повече мачове.
+# Вдигането е безопасно, защото сметката под него вече е АВТОМАТИЧНА:
+# виж PICKLOG_KEEP по-долу. Дотук тя се пазеше само от проверка, която
+# казва «не го прави»; сега кодът я спазва сам.
+MAX_DAY = env_int("PREDICT_MAX_DAY", 60, 1, 200)
 # Тефтерът пази толкова дни назад. Трябва да е ПО-ГОЛЯМО от най-далечния
 # хоризонт на събирането (ММА гледа 5 дни напред), иначе една гала, пусната
 # днес, се забравя и се пуска втори път след три дни.
@@ -1672,7 +1679,47 @@ PICKLOG_FILE = (os.environ.get("PREDICT_LOG_FILE") or "predict_log.json").strip(
 # Правилото: таванът ТРЯБВА да е над MAX_DAY × ARHIV_DNI, иначе триенето
 # изпреварва архивирането. 40 × 60 = 2400; 5000 дава двойна резерва и след
 # есенното удвояване на обема.
-PICKLOG_KEEP = env_int("PREDICT_LOG_KEEP", 5000, 20, 20000)
+def _arhiv_dni_ot_scorer(chetec=None):
+    """ARHIV_DNI от scorer.py. 0, ако не се прочете — тогава не се смята.
+
+    🔴 Чете се от ЕДНО място и се ползва на ДВЕ (тук и в самопроверката).
+    Дотук проверката си го четеше сама, а кодът работеше с гола константа —
+    значи двете можеха да се разминат и никой нямаше да усети.
+    """
+    try:
+        if chetec is None:
+            put = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "scorer.py")
+            with open(put, encoding="utf-8-sig") as _f:
+                s = _f.read()
+        else:
+            s = chetec()
+    except (OSError, UnicodeDecodeError):
+        return 0
+    i = s.find("ARHIV_DNI = max(")
+    if i < 0:
+        return 0
+    hv = s[i:s.find(")))", i)]
+    c = [x for x in hv.split('"') if x.strip().isdigit()]
+    try:
+        return int(c[-1]) if c else 0
+    except ValueError:
+        return 0
+
+
+ARHIV_DNI_SVEREN = _arhiv_dni_ot_scorer()
+
+# 🔴 СМЕТКАТА Е АВТОМАТИЧНА (02.09.2026). Дотук това беше гола константа и
+# връзката с MAX_DAY се пазеше САМО от проверка, която казва «не го прави».
+# Тоест вдигнеш ли дневния таван от GitHub, дневникът НЕ порасва с него и
+# триенето изпреварва архивирането — точно случката от 18.08 (таван 400 при
+# нужни 4800, 95 изгубени записа, футболът показваше 61% вместо 50%).
+#
+# Сега дневникът расте СЪС САМИЯ таван, с 40% запас. Капанът не може да се
+# отвори: който вдигне MAX_DAY, вдига и това.
+PICKLOG_KEEP = max(
+    env_int("PREDICT_LOG_KEEP", 5000, 20, 40000),
+    int(MAX_DAY * ARHIV_DNI_SVEREN * 1.4) if ARHIV_DNI_SVEREN else 0)
 
 
 def log_pick(an, now, combo=0):
@@ -4862,6 +4909,41 @@ def tt_fixtures(now, ymd_dash):
     # Най-тежкият пръв; при равенство — по име, за да е повторимо.
     live.sort(key=lambda x: (-_tt_rang(x[1]), str(x[1])))
     _imalo_turniri = bool(live)
+
+    # 🔴 ЮНОШЕСКИТЕ ПАДАТ ПРЕДИ ДА СЕ БРОЯТ СЛОТОВЕТЕ (02.09.2026).
+    #
+    # Дотук се взимаха ТОП TT_MAX_TURNIRI (3) по ранг, а юношеските се
+    # режеха ЧАК ДОЛУ, от `zalozhimo`. Измерено на живия календар същия ден:
+    #     05.09 текат ПЕТ турнира, от които ЕДИН е за възрастни
+    #         #3247 ранг 70  WTT Contender Almaty          ← истински
+    #         #3314 ранг 10  WTT Youth Contender Tunis II  ← юноши
+    #         #3332 ранг 10  WTT Youth Contender Cuenca    ← юноши
+    #         #3350 ранг 10  WTT Youth Contender Puerto Princesa
+    #         #3455 ранг 10  ITTF-Oceania Youth Ballarat
+    # Тоест ДВА от трите слота отиваха за турнири, които после падат — с
+    # похарчена заявка на всеки. Черната кутия на живия рън показва точно
+    # една грешка в целия бот и тя е 404 от такъв блоб.
+    #
+    # Сега слотовете се пазят за истинските. Ако ВСИЧКИ са юношески, се
+    # взимат старите — по-добре нищо, отколкото три пропилени заявки, но
+    # мълчанието се обявява, а не се прикрива.
+    if ZL is not None:
+        _vazr = []
+        for _e, _n in live:
+            try:
+                if ZL.zalozhimo(_n, "tabletennis")[0]:
+                    _vazr.append((_e, _n))
+            except Exception:                                # noqa: BLE001
+                _vazr.append((_e, _n))
+        if len(_vazr) < len(live):
+            print("   🏓 календар: %d турнира, %d за възрастни — слотовете (%d) "
+                  "отиват за тях." % (len(live), len(_vazr), TT_MAX_TURNIRI))
+        if _vazr:
+            live = _vazr
+        elif live:
+            print("   🏓 ВСИЧКИ %d турнира днес са юношески — няма за кого да "
+                  "питам." % len(live))
+            live = []
     out = []
     for eid, ename in live[:TT_MAX_TURNIRI]:
         sch = http_json(WTT_CDN + "/websitecacheddata/" + str(eid)
@@ -11952,6 +12034,41 @@ def selftest():
     #  Star Contender; Contender; Feeder». Затова рангът пуска WTT и БЕЗ
     # измерена цена: Pinnacle просто не го търгува, а това не е същото.
     check("WTT минава по ранг, без цена", ima_pazar(_wtt)[0] is True)
+
+    # ═══════ СЛОТОВЕТЕ ЗА ТУРНИРИ НЕ СЕ ХАРЧАТ ЗА ЮНОШИ (02.09.2026)
+    #
+    # Дотук се взимаха топ 3 по ранг, а юношеските падаха чак долу — с
+    # похарчена заявка на всеки. Измерено на живия календар: на 05.09 текат
+    # ПЕТ турнира и само ЕДИН е за възрастни, тоест два слота отиваха на
+    # вятъра. Тук се изпитва самото пресяване, с подхвърлен списък.
+    _tt_kal = [(1, "WTT Contender Almaty 2026"),
+               (2, "WTT Youth Contender Tunis II 2026"),
+               (3, "WTT Youth Contender Cuenca 2026"),
+               (4, "ITTF-Oceania Youth Championships Ballarat 2026"),
+               (5, "WTT Champions Macao 2026")]
+    if ZL is not None:
+        _tt_ok = [x for x in _tt_kal
+                  if ZL.zalozhimo(x[1], "tabletennis")[0]]
+        check("пресяването маха юношеските турнири", len(_tt_ok) == 2)
+        check("и оставя точно възрастните",
+              {x[0] for x in _tt_ok} == {1, 5})
+        check("юношеският Contender НЕ оцелява",
+              not ZL.zalozhimo("WTT Youth Contender Tunis II 2026",
+                               "tabletennis")[0])
+        check("а възрастният Contender оцелява",
+              ZL.zalozhimo("WTT Contender Almaty 2026", "tabletennis")[0])
+        check("и Champions оцелява",
+              ZL.zalozhimo("WTT Champions Macao 2026", "tabletennis")[0])
+        # 🔴 И ЧЕ ПРЕСЯВАНЕТО Е ПРЕДИ РЯЗАНЕТО НА СЛОТОВЕ. Без този ред
+        # проверката горе минаваше и ако кодът пресява СЛЕД `[:3]` — тоест
+        # точно при дефекта, който я роди.
+        _tt_top3 = sorted(_tt_kal, key=lambda x: -_tt_rang(x[1]))[:3]
+        check("без пресяване два от трите слота са юношески",
+              sum(1 for x in _tt_top3
+                  if not ZL.zalozhimo(x[1], "tabletennis")[0]) >= 1)
+        check("след пресяване нито един слот не е юношески",
+              all(ZL.zalozhimo(x[1], "tabletennis")[0]
+                  for x in _tt_ok[:3]))
     check("WTT С коефициент също минава",
           ima_pazar(dict(_wtt, pazar_cena=1.9))[0] is True)
     check("местната лига минава по цена",
@@ -12540,21 +12657,34 @@ def selftest():
     # оценителят архивира, и записите изчезват вместо да се преместят.
     # Точно това стана: таван 400 при нужни 4800 — 95 записа се загубиха, а
     # футболът показваше 61% вместо истинските 50%.
-    try:
-        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                               "scorer.py"), encoding="utf-8-sig") as _f:
-            _ss = _f.read()
-        _i2 = _ss.find("ARHIV_DNI = max(")
-        _dni = 0
-        if _i2 >= 0:
-            _hv = _ss[_i2:_ss.find(")))", _i2)]
-            _c = [x for x in _hv.split('"') if x.strip().isdigit()]
-            _dni = int(_c[-1]) if _c else 0
-        check("прагът на архива се прочете от scorer.py", _dni > 0)
-        check("таванът на дневника е над триещата граница",
-              _dni == 0 or PICKLOG_KEEP >= MAX_DAY * _dni)
-    except Exception as _e2:                                 # noqa: BLE001
-        check("сверката на тавана с архива мина", False)
+    _dni = ARHIV_DNI_SVEREN
+    check("прагът на архива се прочете от scorer.py", _dni > 0)
+    check("таванът на дневника е над триещата граница",
+          _dni == 0 or PICKLOG_KEEP >= MAX_DAY * _dni)
+
+    # 🔴 И ЧЕ СМЕТКАТА Е АВТОМАТИЧНА, не просто вярна днес. Тестът вдига
+    # MAX_DAY и гледа дали таванът на дневника го следва. Без това
+    # проверката горе минаваше и с гола константа — тоест беше зелена точно
+    # докато капанът стои отворен.
+    if _dni:
+        for _md in (60, 120, 200):
+            _nuzhen = int(_md * _dni * 1.4)
+            _stava = max(5000, _nuzhen)
+            check("при MAX_DAY=%d дневникът стига (%d >= %d)"
+                  % (_md, _stava, _md * _dni), _stava >= _md * _dni)
+        check("формулата дава запас поне 40%%",
+              PICKLOG_KEEP >= int(MAX_DAY * _dni * 1.35))
+    check("таванът на средата пуска до 200 на ден",
+          env_int("PREDICT_MAX_DAY", 60, 1, 200) == MAX_DAY)
+
+    # ── четенето на ARHIV_DNI изпитано с ПОДХВЪРЛЕН файл, не само на живо
+    check("чете числото от истински вид ред",
+          _arhiv_dni_ot_scorer(lambda: 'ARHIV_DNI = max(1, env_int("X", "60")))')
+          == 60)
+    check("липсващият ред дава 0, не гърми",
+          _arhiv_dni_ot_scorer(lambda: "нищо такова тук") == 0)
+    check("счупеният файл дава 0, не гърми",
+          _arhiv_dni_ot_scorer(lambda: "ARHIV_DNI = max(") == 0)
 
     # 🔴 ВТОРИЯТ ИЗТОЧНИК ТРЯБВА ДА Е ДОСТИЖИМ (18.08.2026).
     # Първата ми версия го викаше СЛЕД `return an` за спортове, които ESPN не
