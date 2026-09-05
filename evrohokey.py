@@ -98,6 +98,14 @@ CHL_URL = "https://www.chl.hockey/api/s3?q=schedule-21ec9dad81abe2e0240460d0-%s.
 CHL_REZERVA = "fc954f6d33272fdf4a8b95bb"
 CHL_PREFIX = "schedule-21ec9dad81abe2e0240460d0-"
 
+# Кои лиги са мълчали при последното питане (виж `mylchali()`).
+_mylchali = []
+
+# Кои състояния на мач при Шампионската лига значат «предстои».
+# Измерено върху 13-те сезонни файла (1519 мача): finished 1413 ·
+# not-started 72 · canceled 34. Бял списък, не черен — виж `srechti`.
+CHL_PREDSTOYASHTI = {"not-started"}
+
 LIGI = {
     "liiga": {"bg": "СМ Лига, Финландия", "tezhest": 5},
     "chl": {"bg": "Шампионска хокейна лига", "tezhest": 6},
@@ -239,10 +247,40 @@ def chl_hashove(vzemi=None):
     t = vz(CHL_STR, surovo=True)
     if not isinstance(t, str):
         return [CHL_REZERVA], True
-    h = sorted(set(re.findall(re.escape(CHL_PREFIX) + r"([0-9a-f]{16,40})", t)))
-    if not h:
+    naideni = re.findall(re.escape(CHL_PREFIX) + r"([0-9a-f]{16,40})", t)
+    if not naideni:
         return [CHL_REZERVA], True
-    return h, False
+
+    # 🔴 РЕДЪТ Е ПО ВРЕМЕ, НЕ ПО АЗБУКА (05.09.2026).
+    #
+    # Дотук: `sorted(set(...))` върху шестнайсетични низове, и `hh[-1]` се
+    # четеше като «текущият сезон». Измерено върху всичките 13 файла: днес
+    # това улучва, защото `fc95…` е близо до върха на скалата. Но нов
+    # сезонен файл сортира след него с вероятност около 1 на 100 — тоест с
+    # ~99% следващият сезон щеше да започне, а модулът да чете 2026/27
+    # завинаги. Без ред в дневника: файлът се чете успешно и връща честни
+    # мачове, просто от миналото.
+    #
+    # Изворът сам казва кой е текущият, в същата страница:
+    #     "attachments":{"currentSeason":{"_entityId":"fc954f…"
+    # А и редът на срещане в страницата е от новия към стария (проверено за
+    # 13 от 13). `sorted()` изхвърляше и двата сигнала.
+    red = []
+    for x in naideni:                       # реда на страницата: нов → стар
+        if x not in red:
+            red.append(x)
+    red.reverse()                           # договорът: стар → нов
+    tekusht = ""
+    m = re.search(r'"currentSeason"\s*:\s*\{[^}]*?"_entityId"\s*:\s*'
+                  r'"([0-9a-f]{16,40})"', t)
+    if m:
+        tekusht = m.group(1)
+    # Обявеният текущ сезон отива НАКРАЯ — там го търсят двете викащи места.
+    # Ако изворът не го обяви (или обяви непознат), остава редът на
+    # страницата; ако и той не важи, старото азбучно подреждане.
+    if tekusht and tekusht in red:
+        red = [x for x in red if x != tekusht] + [tekusht]
+    return (red or sorted(set(naideni))), False
 
 
 def _dvoyka(x):
@@ -382,10 +420,17 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
     prevod = ime if callable(ime) else (lambda x: x)
     out = []
     pitani = 0
+    # 🔴 ПОИМЕННО, НЕ НА БРОЙ. Един брояч за два независими извора значи, че
+    # живата лига крие мъртвата: измерено днес, liiga.fi даде HTTP 500 час и
+    # половина, `srechti` върна 24 честни срещи само от Шампионската лига и
+    # НЕ КАЗА НИЩО. Половин спорт мъртъв, дневникът спокоен.
+    mylchali = []
 
     # ── SM Liiga
     tek = _liiga_sezon(sega)
     d = liiga_surovo(tek, vzemi)
+    if d is None:
+        mylchali.append("liiga")
     if d is not None:
         pitani += 1
         for x in d:
@@ -408,8 +453,11 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
                 # 🔴 `slug` НОСИ ЛИГАТА и стига до дневника. Без него
                 # оценителят няма как да разбере от коя лига е мачът —
                 # `extra` не се записва целият в дневника.
+                # 🔴 И НА ДВЕТЕ МЕСТА. `log_pick` чете `extra["slug"]`;
+                # горното ниво е за четците, които гледат срещата пряко.
+                # Само горното не стигаше до дневника — измерено.
                 "slug": "liiga",
-                "extra": {"home_en": dom, "away_en": gost,
+                "extra": {"home_en": dom, "away_en": gost, "slug": "liiga",
                           "evro": "liiga", "id": str(x.get("id") or "")},
             })
 
@@ -424,10 +472,22 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
                 if isinstance(d[k], list) and d[k] and isinstance(d[k][0], dict):
                     m = d[k]
                     break
-        if m:
+        # 🔴 ОТГОВОРЪТ Е ОТГОВОР, ДОРИ ПРАЗЕН. Дотук `if m:` броеше успешно
+        # прочетен файл без предстоящи мачове за «не можах да питам» — тоест
+        # честната нула се маскираше като повреда. Мери се ЧЕТЕНЕТО, не
+        # съдържанието.
+        if d is None:
+            mylchali.append("chl")
+        else:
             pitani += 1
         for x in m:
-            if not isinstance(x, dict) or str(x.get("status")) == "finished":
+            # 🔴 БЯЛ СПИСЪК, НЕ ЧЕРЕН. Дотук се махаше само «finished» и
+            # всичко останало минаваше за предстоящо. Измерено върху 13-те
+            # сезонни файла: 34 мача са «canceled» — сезонът 2020 е 32 от 32
+            # отменени. Такава карта излиза за мач, който няма да се играе, и
+            # виси неоценима завинаги. Черният списък пуска и всяко НОВО
+            # състояние, което изворът измисли; белият пуска само познатото.
+            if not isinstance(x, dict) or str(x.get("status")) not in CHL_PREDSTOYASHTI:
                 continue
             w = _kogato(x.get("startDate"))
             if w is None or not (sega <= w <= do):
@@ -445,14 +505,32 @@ def srechti(sega=None, chasove=None, ime=None, vzemi=None):
                 "weight": LIGI["chl"]["tezhest"],
                 "when": w,
                 "slug": "chl",
-                "extra": {"home_en": dom, "away_en": gost,
+                "extra": {"home_en": dom, "away_en": gost, "slug": "chl",
                           "evro": "chl", "id": str(x.get("_entityId") or "")},
             })
 
     if not pitani:
+        _mylchali[:] = sorted(set(LIGI))
         return NEPITAN
+    # 🔴 ЧАСТИЧНИЯТ ПРОВАЛ СЕ КАЗВА НА ГЛАС. Спортът НЕ се спира — 24
+    # истински срещи са по-добри от нула — но мълчалата лига се назовава
+    # поименно. Инак «24 днес, 36 утре» изглежда като календар, а е повреда.
+    _mylchali[:] = sorted(set(mylchali))
+    if mylchali:
+        print("    \U0001f3d2 МЪЛЧА: " + ", ".join(
+            LIGI.get(k, {}).get("bg", k) for k in _mylchali)
+            + " (изворът отказа) — днешните срещи са само от останалите")
     out.sort(key=lambda r: r["when"])
     return out[:TAVAN]
+
+
+def mylchali():
+    """Кои лиги са мълчали при последното питане. Празно = всички говориха.
+
+    Съществува, за да може отчетът да го брои, вместо да разчита на печата.
+    Печатът е за човек; броенето е за черната кутия.
+    """
+    return list(_mylchali)
 
 
 # ─────────────────────────────────────────────────────────── РЕЗУЛТАТЪТ
@@ -942,8 +1020,162 @@ def selftest():
     check("всяка среща носи slug", bool(_r7) and all(x.get("slug") for x in _r7))
     check("slug сочи същата лига като extra.evro",
           all(x["slug"] == x["extra"]["evro"] for x in _r7))
+    # 🔴 И В `extra` — ОТТАМ ГО ЧЕТЕ `log_pick`. Само горното ниво не
+    # стигаше до дневника: измерено живо, картата влизаше със slug=None и
+    # падаше в sdb_result, който лепва съседен мач по име.
+    check("slug е и в extra (log_pick чете оттам)",
+          all((x.get("extra") or {}).get("slug") == x["slug"] for x in _r7))
     check("и двете лиги дават slug",
           {x["slug"] for x in _r7} == {"liiga", "chl"})
+    nuliray()
+
+    # ═══ РЕДЪТ НА СЕЗОННИТЕ ФАЙЛОВЕ (05.09.2026) ═══════════════════
+    #
+    # 🔴 ПОДЛОЖКАТА Е С ПЕТ ХЕША, И АЗБУКАТА В НЕЯ ЛЪЖЕ НАРОЧНО.
+    # Досегашната подложка имаше ЕДИН хеш — а проверка с един елемент не
+    # може да различи подредба. Тя беше тавтология и точно затова
+    # `sorted(...)[-1]` живя незабелязан: измерено живо, азбучно последният
+    # днес Е текущият сезон, но само по случайност (~1 на 100 за следващия).
+    def _stranica(tekusht, hesove):
+        """HTML като на живия извор: обява за текущ сезон + връзки нов→стар."""
+        glava = ('corebine.pageSettings = {"attachments":{"currentSeason":'
+                 '{"_entityId":"%s","_type":"Season"}}};' % tekusht
+                 ) if tekusht else ""
+        return glava + "".join('<a href="/x/' + CHL_PREFIX + h + '.json">s</a>'
+                               for h in hesove)
+
+    # нов → стар, както ги дава страницата; азбучно последен е "ff…",
+    # но обявеният текущ е "0a…" — тоест старият избор би сгрешил.
+    _nov_star = ["0a" + "0" * 18, "ee" + "1" * 18, "ff" + "2" * 18,
+                 "cc" + "3" * 18, "11" + "4" * 18]
+    nuliray()
+    _hh, _rez = chl_hashove(
+        lambda u, surovo=False: _stranica(_nov_star[0], _nov_star))
+    check("обявеният текущ сезон е последният (hh[-1])",
+          _hh[-1] == _nov_star[0])
+    check("а азбучно последен е ДРУГ (подложката лъже нарочно)",
+          sorted(_hh)[-1] != _nov_star[0])
+    check("нищо не се губи по пътя", set(_hh) == set(_nov_star))
+    check("не се дублира", len(_hh) == len(set(_hh)))
+    check("това не е резерва", _rez is False)
+    # 🔴 ВТОРИЯТ ОТЗАД Е ВТОРИЯТ НАЙ-НОВ, не случаен. `rezultat` търси в
+    # `hh[-2:]`; преди поправката там влизаше сезон 2021 редом с 2026.
+    check("вторият отзад е вторият най-нов по страницата",
+          _hh[-2] == _nov_star[1])
+
+    # 🔴 И ОБЯВАТА ДА БИЕ РЕДА — с подложка, в която ДВЕТЕ СЕ РАЗЛИЧАВАТ.
+    # Първата ми версия слагаше обявения сезон и НАЙ-ОТПРЕД по ред: тогава
+    # редът сам даваше верния отговор и стъпалото с обявата не се изпитваше.
+    # Мутация «обявата не се слага накрая» ОЦЕЛЯ — тоест проверката
+    # съдържаше отговора си. Тук обявеният е ТРЕТИ по ред: само четенето на
+    # обявата може да го изкара последен.
+    nuliray()
+    _hh_ob, _ = chl_hashove(
+        lambda u, surovo=False: _stranica(_nov_star[2], _nov_star))
+    check("обявата бие реда на страницата", _hh_ob[-1] == _nov_star[2])
+    check("а редът сам би дал ДРУГ (подложката ги разделя)",
+          _nov_star[2] != _nov_star[0])
+    check("изместеният не изчезва", set(_hh_ob) == set(_nov_star))
+
+    # ── без обява: редът на страницата решава (пак нов → стар)
+    nuliray()
+    _hh2, _ = chl_hashove(lambda u, surovo=False: _stranica("", _nov_star))
+    check("без обява последният пак е най-новият по страницата",
+          _hh2[-1] == _nov_star[0])
+    check("и той пак НЕ Е азбучно последният",
+          sorted(_hh2)[-1] != _hh2[-1])
+
+    # ── обявен, но непознат хеш: не се измисля, пада на реда
+    nuliray()
+    _hh3, _ = chl_hashove(
+        lambda u, surovo=False: _stranica("ab" + "9" * 18, _nov_star))
+    check("непозната обява не влиза в списъка",
+          ("ab" + "9" * 18) not in _hh3)
+    check("при непозната обява остава редът на страницата",
+          _hh3[-1] == _nov_star[0])
+
+    # ── и резервата пак работи
+    nuliray()
+    _hh4, _rez4 = chl_hashove(lambda u, surovo=False: None)
+    check("мълчаща страница → резерва, казано на глас",
+          _hh4 == [CHL_REZERVA] and _rez4 is True)
+    nuliray()
+    _hh5, _rez5 = chl_hashove(lambda u, surovo=False: "страница без хешове")
+    check("страница без хешове → резерва",
+          _hh5 == [CHL_REZERVA] and _rez5 is True)
+    nuliray()
+
+    # ═══ МЪЛЧАЩАТА ЛИГА СЕ НАЗОВАВА (05.09.2026) ═══════════════════
+    #
+    # 🔴 Един брояч за два независими извора значи, че живата лига крие
+    # мъртвата. Измерено днес: liiga.fi даде HTTP 500 час и половина,
+    # `srechti` върна 24 честни срещи само от Шампионската лига и НЕ КАЗА
+    # НИЩО. Разликата между 24 и 36 не се виждаше никъде.
+    _sega_m = _dt.datetime(2026, 9, 5, 10, 0, tzinfo=_dt.timezone.utc)
+    _liiga_edin = [{"ended": False, "started": False, "id": 77,
+                    "start": "2026-09-05T14:00:00Z",
+                    "homeTeamName": "Аа", "awayTeamName": "Бб"}]
+    _chl_edin = [{"status": "not-started", "_entityId": "e1",
+                  "startDate": "2026-09-05T15:00:00Z",
+                  "teams": {"home": {"name": "Вв"}, "away": {"name": "Гг"}}}]
+    _chl_otm = [{"status": "canceled", "_entityId": "e2",
+                 "startDate": "2026-09-05T16:00:00Z",
+                 "teams": {"home": {"name": "Дд"}, "away": {"name": "Ее"}}}]
+
+    def _dva(liiga_dava, chl_dava):
+        """Четец, който дава каквото му кажеш за всяка от двете лиги."""
+        def vz(u, surovo=False):
+            if surovo:
+                return "x" + CHL_PREFIX + "a" * 24 + ".json"
+            if "liiga.fi" in u:
+                return liiga_dava
+            return chl_dava
+        return vz
+
+    nuliray()
+    _r_m = srechti(_sega_m, 72, None, _dva(None, _chl_edin))
+    check("мъртва СМ Лига НЕ спира спорта",
+          _r_m is not NEPITAN and len(_r_m) == 1)
+    check("но мъртвата лига се НАЗОВАВА", mylchali() == ["liiga"])
+    nuliray()
+    _r_m2 = srechti(_sega_m, 72, None, _dva(_liiga_edin, None))
+    check("и в другата посока", _r_m2 is not NEPITAN and len(_r_m2) == 1)
+    check("мъртвата ШХЛ се назовава", mylchali() == ["chl"])
+    nuliray()
+    _r_m3 = srechti(_sega_m, 72, None, _dva(_liiga_edin, _chl_edin))
+    check("двете живи → две срещи", len(_r_m3) == 2)
+    check("никой не мълчи → празен списък", mylchali() == [])
+    nuliray()
+    _r_m4 = srechti(_sega_m, 72, None, _dva(None, None))
+    check("двете мъртви → NEPITAN (както досега)", _r_m4 is NEPITAN)
+    check("и двете се назовават", sorted(mylchali()) == ["chl", "liiga"])
+
+    # 🔴 ПРАЗЕН ОТГОВОР Е ОТГОВОР. Успешно прочетен файл без предстоящи
+    # мачове значи «няма мачове», не «изворът отказа». Дотук `if m:` броеше
+    # празния списък за неуспех — същото сливане, обърнато наопаки.
+    nuliray()
+    _r_p = srechti(_sega_m, 72, None, _dva([], []))
+    check("двата празни отговора НЕ са NEPITAN", _r_p is not NEPITAN)
+    check("празният отговор не е мълчание", mylchali() == [])
+    check("и не ражда срещи от нищото", _r_p == [])
+
+    # 🔴 БЯЛ СПИСЪК, НЕ ЧЕРЕН. Измерено върху 13-те сезонни файла: 34 мача
+    # са «canceled». Дотук се махаше само «finished», тоест отмененият
+    # излизаше като предстоящ и картата му висеше неоценима завинаги.
+    nuliray()
+    _r_o = srechti(_sega_m, 72, None, _dva(None, _chl_otm))
+    check("ОТМЕНЕН мач не влиза в срещите", _r_o is NEPITAN or len(_r_o) == 0)
+    nuliray()
+    _r_o2 = srechti(_sega_m, 72, None, _dva(None, _chl_edin + _chl_otm))
+    check("отмененият пада, предстоящият остава",
+          len(_r_o2) == 1 and _r_o2[0]["home"] == "Вв")
+    nuliray()
+    _r_o3 = srechti(_sega_m, 72, None,
+                    _dva(None, [dict(_chl_otm[0], status="новоизмислено")]))
+    check("НЕПОЗНАТО състояние също не влиза (бял списък)",
+          _r_o3 is NEPITAN or len(_r_o3) == 0)
+    check("белият списък е точно едно състояние",
+          CHL_PREDSTOYASHTI == {"not-started"})
     nuliray()
 
     # ── нула мрежа в цялата самопроверка
