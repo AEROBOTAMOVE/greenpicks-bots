@@ -165,6 +165,20 @@ LIGI = {
     },
 }
 
+def klyuch_liga_svobodna(ime):
+    """Ключ за лига, която НЕ Е в закования `LIGI`. Малки букви, без шум.
+
+    🔴 Съществува, защото `LIGI` е закован речник с две местни лиги, а Kambi
+    носи и трети турнир (WTT Contender Almaty, измерено живо 02.09.2026).
+    Дотук третият падаше мълчаливо. Ключът НЕ бива да съвпадне с познат:
+    познатите се разпознават по-горе и не стигат дотук, но ако някой ден
+    добави лига в `LIGI` със същото име, стесняването по `liga_key` ще
+    работи и за нея — затова нормализацията е същата, а не измислена нова.
+    """
+    s = " ".join(str(ime or "").lower().split())
+    return s or "table tennis"
+
+
 # Еталонният спорт на Kambi: 260 футболни и 295 тенис събития, мерено днес.
 # Футболът не пада под стотици мача; нула футбол значи запушена врата.
 ETALON_KAMBI = "football"
@@ -654,8 +668,29 @@ def ceni_kambi():
             if v["kambi"].lower() in pat.lower():
                 lk = k
                 break
+        # 🔴 НЕПОЗНАТАТА ЛИГА ВЕЧЕ НЕ ПАДА (02.09.2026).
+        #
+        # Тук стоеше `if lk is None: continue`, а `LIGI` е закован речник с
+        # ДВЕ местни лиги. Значи всеки турнир извън тях се хвърляше мълчаливо.
+        # Измерено живо същия ден: Kambi носи ТРИ турнира по тенис на маса —
+        # Czech Republic 150, TT Elite Series 135 и WTT Contender Almaty 2 —
+        # и третият падаше тук. А точно WTT е спортът, в който 319 наши карти
+        # имат само 49 коефициента (15%).
+        #
+        # Сега непознатата лига влиза с ИСТИНСКОТО си име от пътя. Известните
+        # две запазват точните си ключове, за да не се счупи стесняването по
+        # `liga_key` в `cena_za`. Непознат ключ там просто не стеснява — тоест
+        # кандидатите остават всички за тази двойка имена, което е вярното
+        # поведение, когато не знаем лигата.
         if lk is None:
-            continue
+            _chasti = [str(p.get("englishName") or "").strip()
+                       for p in (e.get("path") or [])]
+            _chasti = [c for c in _chasti if c and c.lower() != "table tennis"]
+            _ime_lg = _chasti[0] if _chasti else "Table Tennis"
+            lk = klyuch_liga_svobodna(_ime_lg)
+            _lg_ime = _ime_lg
+        else:
+            _lg_ime = LIGI[lk]["ime"]
         ime = str(e.get("name") or "")
         a, sep, b = ime.partition(" - ")
         if not sep:
@@ -688,7 +723,7 @@ def ceni_kambi():
             ind.setdefault(dv, []).append({
                 "dom_ime": dom[0], "gost_ime": gost[0],
                 "dom": dom[1], "gost": gost[1],
-                "liga": LIGI[lk]["ime"], "liga_key": lk,
+                "liga": _lg_ime, "liga_key": lk,
                 "start": str(e.get("start") or ""),
                 "izvor": "kambi", "nomer": None,
             })
@@ -1257,7 +1292,9 @@ _KAMBI_TEST = {"events": [
                     "outcomes": [{"label": "Trima Igracha", "odds": 1500},
                                  {"label": "Chetvarti Igrach", "odds": 2500},
                                  {"label": "Trima Igracha - G1", "odds": 1900}]}]},
-    # чужда лига — не е наша, не влиза
+    # 🔴 ЧУЖДА ЛИГА — ВЕЧЕ ВЛИЗА (02.09.2026). Дотук коментарът гласеше
+    # „не е наша, не влиза" и точно това беше дефектът: Kambi носи и WTT,
+    # а ситото го хвърляше. Записът остава като подложка за новото.
     {"event": {"name": "Chuzhd Igrach - Vtori Chuzhd",
                "start": "2026-08-25T18:00:00Z",
                "path": [{"englishName": "TT Cup"}]},
@@ -1452,9 +1489,39 @@ def selftest():
         check("указателят на Kambi се строи", isinstance(ik, dict) and len(ik) > 0)
         check("🔴 ТРИ ИЗХОДА в двоен пазар НЕ влизат (това е ГЕЙМ 1, не мач)",
               dvoika("Trima Igracha", "Chetvarti Igrach", strogo=False) not in ik)
-        check("чужда лига не влиза в указателя",
-              dvoika("Chuzhd Igrach", "Vtori Chuzhd", strogo=False) not in ik)
-        check("тоест Kambi дава точно 2 наши двойки", len(ik) == 2)
+        # 🔴 ОБЪРНАТИ (02.09.2026). Дотук доказваха, че ЧУЖДАТА лига НЕ
+        # влиза — и точно това беше дефектът. `LIGI` е закован речник с две
+        # местни лиги, а Kambi носи и трети турнир: измерено живо същия ден,
+        # WTT Contender Almaty с 2 мача и цени 1.13/5.00 и 2.10/1.65.
+        # Тоест ситото изхвърляше единствения WTT коефициент, който изобщо
+        # имаме — в спорта, където 319 карти носят само 49 цени.
+        # Проверките не са махнати; сменена е посоката им.
+        check("чуждата лига ВЕЧЕ влиза в указателя",
+              dvoika("Chuzhd Igrach", "Vtori Chuzhd", strogo=False) in ik)
+        check("и носи името си, не закованото",
+              any(r["liga"] == "TT Cup" for v in ik.values() for r in v))
+        check("и ключът е изведен от него",
+              any(r["liga_key"] == "tt cup"
+                  for v in ik.values() for r in v))
+        check("Kambi дава трите наши двойки", len(ik) == 3)
+        # 🔴 А ТРИТЕ ИЗХОДА ПАК НЕ ВЛИЗАТ. Отварянето на лигата НЕ бива да
+        # отвори и чуждия вид пазар — това са две различни сита.
+        check("три изхода пак НЕ влизат",
+              dvoika("Trima Igracha", "Chetvarti Igrach", strogo=False) not in ik)
+
+        # ═══ 9б. НЕПОЗНАТАТА ЛИГА — самото пресяване
+        check("свободният ключ е малки букви без шум",
+              klyuch_liga_svobodna("  WTT   Contender  Almaty ")
+              == "wtt contender almaty")
+        check("празното дава име, не гърми",
+              klyuch_liga_svobodna("") == "table tennis")
+        check("None не гърми", klyuch_liga_svobodna(None) == "table tennis")
+        # 🔴 И НЕ СЪВПАДА С ПОЗНАТИТЕ. Ако съвпаднеше, стесняването по
+        # liga_key в `cena` щеше да смеси турнирите — а точно то пази двойка,
+        # която играе по три пъти на ден, от чужда цена.
+        for _pk in LIGI:
+            check("свободният ключ не е «" + _pk + "»",
+                  klyuch_liga_svobodna("WTT Contender Almaty") != _pk)
 
         # ═══ 10. ЧЕСТНАТА ЦЕНА ОТ БОРСАТА ═══
         izchisti_kesh()

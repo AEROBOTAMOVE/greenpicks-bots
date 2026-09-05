@@ -163,6 +163,15 @@ try:
 except Exception as _evh_err:                                # noqa: BLE001
     EVH = None
     print("европейският хокей не се зареди (" + str(_evh_err)[:70] + ").")
+# 🏓 ЦЕНАТА ЗА WTT (02.09.2026). `tt_ligi` държи индекс от Kambi и Smarkets;
+# дотук предсказателят го ползваше само косвено, през `tt_lokal`, и САМО за
+# двете местни лиги. WTT мачовете оставаха без цена, макар Kambi да ги дава.
+try:
+    import tt_ligi as TTL
+except Exception as _ttl_err:                                # noqa: BLE001
+    TTL = None
+    print("индексът на тениса на маса не се зареди ("
+          + str(_ttl_err)[:60] + ").")
 try:
     import tt_lokal as TLK
 except Exception as _tl_err:                                 # noqa: BLE001
@@ -7449,6 +7458,53 @@ def _pazar_surovo(an):
     # ключ „esports_pin“ за затварящата цена). Четири чужди проверки го
     # хванаха веднага. Затова условието пита за КОФАТА и за ИЗТОЧНИКА, а не
     # само за полето: едно и също име на поле не значи един и същ път.
+    # 🏓 WTT: ЦЕНАТА СЕ ТЪРСИ, НЕ СЕ ЧАКА (02.09.2026).
+    #
+    # Местните лиги носят цената със себе си (виж по-долу). WTT — не: тези
+    # срещи идват от календара на WTT, а цената им стои при Kambi, под
+    # турнир, който `ceni_kambi` дотук изхвърляше. Двете половини бяха
+    # поправени заедно; всяка сама по себе си не сменя нищо.
+    #
+    # Измерено живо в деня на вплитането: 143 WTT срещи, 2 с отворена книга.
+    # Kambi отваря пазар малко преди мача — останалите се хващат при
+    # следващите пускания, а те са 24 на ден.
+    if (TTL is not None and str(an.get("bucket") or "") == "tabletennis"
+            and not an.get("pazar_cena")
+            and str(fx.get("src") or "") != "ttligi"):
+        try:
+            _wt_d = str(ex.get("home_en") or fx.get("home") or "")
+            _wt_g = str(ex.get("away_en") or fx.get("away") or "")
+            _wt_c = TTL.cena(_wt_d, _wt_g, fx.get("league")) if _wt_d and _wt_g else None
+        except Exception:                                    # noqa: BLE001
+            _wt_c = None
+        if isinstance(_wt_c, dict):
+            _wt_pd, _wt_pg = _wt_c.get("dom"), _wt_c.get("gost")
+            try:
+                _wt_pd, _wt_pg = float(_wt_pd), float(_wt_pg)
+            except (TypeError, ValueError):
+                _wt_pd = _wt_pg = 0.0
+            # Десетичната цена е строго над 1.00 по устройство. Всичко друго
+            # е боклук от чужд отговор и няма право да стигне до читателя.
+            if 1.0 < _wt_pd < 1000.0 and 1.0 < _wt_pg < 1000.0:
+                # Чия страна сме взели: „1 · име" е домакинът, „2 · име" —
+                # гостът. Същото правило като при местните лиги три реда
+                # по-долу; НЕ се измисля второ.
+                _wt_nash_dom = not str(an.get("pick") or "").startswith("2")
+                an["pazar_cena"] = _wt_pd if _wt_nash_dom else _wt_pg
+                an["pazar_cena_drug"] = _wt_pg if _wt_nash_dom else _wt_pd
+                an["pazar_izt"] = str(_wt_c.get("izvor") or "kambi")
+                an["pazar_sport"] = "tabletennis"
+                an["pazar_liga"] = str(_wt_c.get("liga") or "")
+                _wt_p = _wt_c.get("p_dom")
+                try:
+                    _wt_p = float(_wt_p)
+                except (TypeError, ValueError):
+                    _wt_p = None
+                if _wt_p is not None and 0.0 < _wt_p < 1.0:
+                    an["pazar_p"] = round(
+                        _wt_p if _wt_nash_dom else 1.0 - _wt_p, 4)
+                return an
+
     _sm_d, _sm_g = ex.get("cena_dom"), ex.get("cena_gost")
     _sm_moe = (str(an.get("bucket") or "") == "tabletennis"
                and str(fx.get("src") or "") == "ttligi")
@@ -10374,6 +10430,84 @@ def selftest():
 
     # ═══════ ЕВРОПЕЙСКИЯТ ХОКЕЙ (02.09.2026)
     check("модулът за европейски хокей се внесе", EVH is not None)
+
+    # ═══════ ПИТАНЕТО ЗА ЦЕНА НА WTT (02.09.2026)
+    #
+    # Дупката имаше ДВЕ половини и всяка сама по себе си не сменяше нищо:
+    # `tt_ligi.ceni_kambi` изхвърляше турнира, а предсказателят изобщо не
+    # питаше за цена на WTT мач. Тук се изпитва ВТОРАТА — че питането се
+    # случва, че стига до верния изход и че НЕ прегазва чужди пътища.
+    check("индексът на тениса на маса се внесе", TTL is not None)
+    if TTL is not None:
+        _wt_star = TTL.cena
+        try:
+            _wt_vikan = []
+
+            def _wt_falshiva(dom, gost, liga=None, kogato=None, ind=None):
+                _wt_vikan.append((dom, gost, str(liga or "")))
+                return {"dom": 2.10, "gost": 1.65, "p_dom": 0.5606,
+                        "izvor": "kambi", "liga": "WTT Contender Almaty"}
+
+            TTL.cena = _wt_falshiva
+            _wt_an = {"bucket": "tabletennis", "pick": "1 · Bo FANG",
+                      "fx": {"home": "Bo FANG", "away": "Simon GAUZY",
+                             "league": "WTT Contender Almaty 2026",
+                             "src": "wtt",
+                             "extra": {"home_en": "Bo FANG",
+                                       "away_en": "Simon GAUZY"}}}
+            _wt_r = _pazar_surovo(dict(_wt_an))
+            check("WTT мачът получава цена", _wt_r.get("pazar_cena") == 2.10)
+            check("и втората цена", _wt_r.get("pazar_cena_drug") == 1.65)
+            check("източникът се записва", _wt_r.get("pazar_izt") == "kambi")
+            check("лигата се записва",
+                  _wt_r.get("pazar_liga") == "WTT Contender Almaty")
+            check("питането наистина се е случило", len(_wt_vikan) == 1)
+            check("питано е с АНГЛИЙСКИТЕ имена",
+                  bool(_wt_vikan) and _wt_vikan[0][0] == "Bo FANG")
+
+            # 🔴 ОБРАТНА ПОСОКА 1: като сме взели ГОСТА, цената е неговата.
+            _wt_vikan[:] = []
+            _wt_r2 = _pazar_surovo(dict(_wt_an, pick="2 · Simon GAUZY"))
+            check("при избран гост цената е неговата",
+                  _wt_r2.get("pazar_cena") == 1.65)
+            check("и другата е на домакина",
+                  _wt_r2.get("pazar_cena_drug") == 2.10)
+
+            # 🔴 ОБРАТНА ПОСОКА 2: МЕСТНИТЕ лиги НЕ минават оттук. Те носят
+            # цената си в extra и си имат свой път. Без този тест новият клон
+            # можеше да ги прегази мълчаливо — точно каквото се случи на
+            # 01.09 с еспорта, който ползва СЪЩИТЕ имена на полета.
+            _wt_vikan[:] = []
+            _wt_lok = {"bucket": "tabletennis", "pick": "1 · Erik Mares",
+                       "fx": {"home": "Erik Mares", "away": "Jan Cernik",
+                              "league": "Czech Liga Pro", "src": "ttligi",
+                              "extra": {"cena_dom": 1.70, "cena_gost": 1.97,
+                                        "p_pazar": 0.5364,
+                                        "cena_izvor": "smarkets"}}}
+            _wt_rl = _pazar_surovo(dict(_wt_lok))
+            check("местната лига НЕ минава през новия клон",
+                  len(_wt_vikan) == 0)
+            check("и си взима цената от extra",
+                  _wt_rl.get("pazar_cena") == 1.70)
+            check("с нейния източник", _wt_rl.get("pazar_izt") == "smarkets")
+
+            # 🔴 ОБРАТНА ПОСОКА 3: чужд спорт не се пипа.
+            _wt_vikan[:] = []
+            _pazar_surovo({"bucket": "tennis", "pick": "1 · Х",
+                           "fx": {"home": "А", "away": "Б", "extra": {}}})
+            check("чужд спорт не пита индекса на тениса на маса",
+                  len(_wt_vikan) == 0)
+
+            # 🔴 И БОКЛУКЪТ НЕ МИНАВА
+            TTL.cena = lambda *a, **k: {"dom": 0.5, "gost": 1.65}
+            check("цена под 1.00 се отхвърля",
+                  _pazar_surovo(dict(_wt_an)).get("pazar_cena") is None)
+            TTL.cena = lambda *a, **k: None
+            check("липсата на цена не гърми",
+                  _pazar_surovo(dict(_wt_an)).get("pazar_cena") is None)
+        finally:
+            TTL.cena = _wt_star
+        check("функцията е върната както беше", TTL.cena is _wt_star)
     if EVH is not None:
         check("носи точно две лиги", len(EVH.LIGI) == 2)
         check("СМ Лига е вътре", "liiga" in EVH.LIGI)
