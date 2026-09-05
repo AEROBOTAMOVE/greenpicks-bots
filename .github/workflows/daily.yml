@@ -168,6 +168,7 @@ jobs:
       # Календар, който вали дневния бот, ще бъде изключен на втория ден.
       # ПЪТ НАЗАД: махаш тази стъпка — нищо друго не зависи от нея.
       - name: Сезонен будилник — играе ли спорт, който държим заспал
+        id: sezon
         continue-on-error: true
         env:
           # 🔴 БЕЗ ТОЗИ РЕД БУДИЛНИКЪТ СЪДИ ПО КОПИЕ (02.09.2026).
@@ -185,7 +186,30 @@ jobs:
           # Празно = нищо не се изключва. Хокеят вече има извор (evrohokey.py),
           # амер. футбол също. ПЪТ НАЗАД: PREDICT_IZKL=hockey,amfootball.
           PREDICT_IZKL: ${{ vars.PREDICT_IZKL || '' }}
-        run: python sezon.py
+        # 🔴 БУДИЛНИКЪТ ЗВЪНЕШЕ В ПРАЗНА СТАЯ (05.09.2026).
+        #
+        # Тук стоеше голо `python sezon.py`. Стъпката е continue-on-error
+        # (нарочно — виж коментара горе), нямаше id и никой не четеше нищо.
+        # А sezon.py завършва с `return 2 if (trevoga or v_sezon) else 0`,
+        # тоест той ЗНАЕ кога затворен спорт вече играе — и го казваше само
+        # на дневника на Actions, който е зад токен.
+        #
+        # Сега: изходът се хваща в `kod`, текстът отива в sezon.txt (който се
+        # комитва долу, както zdrave.txt), и един ред излиза на страницата на
+        # ръна. Присъдата на деня НЕ се пипа.
+        run: |
+          set -o pipefail
+          kod=0
+          python sezon.py 2>&1 | tee sezon.txt || kod=$?
+          echo "kod=$kod" >> "$GITHUB_OUTPUT"
+          if [ "$kod" = "2" ]; then
+            echo "🔔 СЕЗОНЪТ ЗВЪНИ: затворен спорт вече играе — виж sezon.txt" \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "🔕 сезонът мълчи (изход $kod) — нищо не чака отваряне" \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "sezon.py излезе с $kod (0 = нищо не чака, 2 = има какво да се отвори)"
 
       - name: Здравен преглед
         id: zdrave
@@ -230,7 +254,9 @@ jobs:
           # НИЩО — git отхвърля целия pathspec, щом един файл липсва, а
           # `|| true` крие изход 128. Проверено в истинско repo: stage-нато
           # остава ПРАЗНО и стъпката излиза ЗЕЛЕНА, без да е запазила нищо.
-          for f in daily_state.json seed_state.json zdrave.txt; do
+          # sezon.txt влиза тук по същата причина като zdrave.txt: дневникът
+          # на Actions е зад токен, а хранилището се чете.
+          for f in daily_state.json seed_state.json zdrave.txt sezon.txt; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then
