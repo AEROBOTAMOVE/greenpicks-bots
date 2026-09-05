@@ -975,6 +975,43 @@ def selftest():
     check("стъпките със самопроверка се виждат (за токена)", _vid >= 10)
     check("нито една само-тестова стъпка няма токен: "
           + ("; ".join(_s_tok)[:70] or "-"), not _s_tok)
+    # 🔴 БУДИЛНИКЪТ И НЕГОВИТЕ РЪЧКИ (05.09.2026). support.yml пускаше
+    # `python budilnik.py` БЕЗ нито един env ред; без PREDICT_QUIET_TO/FROM
+    # будилникът пада на 8..22 и спи от 23:00 до 07:59 — а кронът там е
+    # денонощен. Router.yml ги подаваше от 02.09; поправката не беше слязла.
+    #
+    # Самият budilnik го открива, но го казва като предупреждение, за да не
+    # спре рутера. Тук пада ЧЕРВЕНО: pazach.yml не разнася нищо.
+    try:
+        import budilnik as _BUD
+    except Exception:                                        # noqa: BLE001
+        _BUD = None
+    check("будилникът се внася (инак проверката отдолу е сляпа)", _BUD is not None)
+    if _BUD is not None:
+        _pap = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            ".github", "workflows")
+        _lipsi, _namereni = [], 0
+        try:
+            _fajlove = sorted(x for x in os.listdir(_pap) if x.endswith(".yml"))
+        except OSError:
+            _fajlove = []
+        for _f in _fajlove:
+            try:
+                with io.open(os.path.join(_pap, _f), encoding="utf-8-sig") as _fh:
+                    _t = _fh.read()
+            except (OSError, UnicodeDecodeError):
+                continue
+            _r = _BUD.ryachkite_v_router(_t)
+            if _r is None:
+                continue                # този файл не пуска голия будилник
+            _namereni += 1
+            if _r:
+                _lipsi.append(_f + " -> " + ", ".join(_r))
+        check("намерен е поне един workflow, който пуска будилника",
+              _namereni >= 1)
+        check("никой не пуска будилника без ръчките му: "
+              + ("; ".join(_lipsi)[:70] or "-"), not _lipsi)
+
     check("ключът за сух режим се чете от КОДА",
           suh_klyuch("predictor.py") == "PREDICT_DRY_RUN"
           and suh_klyuch("scorer.py") == "SCORE_DRY_RUN"
