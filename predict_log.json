@@ -44687,7 +44687,12 @@
   "p": 0.4864,
   "stars": 3,
   "sample": "гледани 64 мача на единия и 72 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0",
+  "pazar_close": 1.8,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0179
  },
  {
   "key": "2026-09-05|rugby|stadefrancaisparis|perpignan",
@@ -45435,7 +45440,9 @@
   "p": 0.61,
   "stars": 1,
   "sample": "гледани по 5 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "28:28"
  },
  {
   "key": "2026-09-05|tennis|potenzal|montesdelatorrei",
@@ -45671,7 +45678,12 @@
   "p": 0.4609,
   "stars": 3,
   "sample": "гледани 26 мача на единия и 64 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 2.0,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-06|hockey|hknitra|växjölakers",
@@ -46111,7 +46123,9 @@
   "p": 0.5785,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-06|tabletennis|2200|yuriiholovatiuk|jaroslavprokupek",
@@ -46149,7 +46163,12 @@
   "p": 0.5455,
   "stars": 2,
   "sample": "гледани 12 мача на единия и 15 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1",
+  "pazar_close": 1.8345,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-06|tabletennis|2240|andrzejszurgot|pawelpolok",
@@ -46187,7 +46206,9 @@
   "p": 0.8199,
   "stars": 2,
   "sample": "гледани 8 мача на единия и 20 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-09-06|volleyball|msen|иран|индия",
@@ -46985,7 +47006,9 @@
   "p": 0.5636,
   "stars": 1,
   "sample": "гледани 5 мача на единия и 9 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-09-06|tabletennis|2310|krystiangudzik|henryktkaczyk",
@@ -47023,7 +47046,9 @@
   "p": 0.7336,
   "stars": 2,
   "sample": "гледани 20 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-06|tabletennis|2335|andrzejkrezel|jacekoracz",
@@ -47061,7 +47086,9 @@
   "p": 0.6814,
   "stars": 1,
   "sample": "гледани 20 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-09-07|tennis|soranacirstea|jessicapegula",
@@ -47289,7 +47316,9 @@
   "p": 0.7784,
   "stars": 1,
   "sample": "гледани 6 мача на единия и 9 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-06|esports|fokus|nemiga",
