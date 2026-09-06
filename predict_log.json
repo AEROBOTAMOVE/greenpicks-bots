@@ -47432,7 +47432,9 @@
   "p": 0.5395,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-06|tennis|hamzareguigs|zhukovm",
@@ -47668,7 +47670,12 @@
   "p": 0.4937,
   "stars": 3,
   "sample": "гледани по 37 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.95,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0135
  },
  {
   "key": "2026-09-06|tennis|ghazouanidurandy|voelzkeg",
@@ -48536,7 +48543,9 @@
   "p": 0.6109,
   "stars": 1,
   "sample": "гледани по 10 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-09-06|football|çorumfk|eyupspor",
