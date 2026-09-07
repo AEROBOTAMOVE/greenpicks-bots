@@ -47240,7 +47240,9 @@
   "p": 0.7245,
   "stars": 2,
   "sample": "ранглиста и 19 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-09-06|football|cremonese|padova",
@@ -47321,7 +47323,12 @@
   "p": 0.5525,
   "stars": 2,
   "sample": "гледани 163 мача на единия и 162 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "10:1",
+  "pazar_close": 1.69,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0071
  },
  {
   "key": "2026-09-08|amfootball|floridastateseminoles|smumustangs",
@@ -49300,7 +49307,12 @@
   "p": 0.5576,
   "stars": 3,
   "sample": "гледани 51 мача на единия и 21 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.74,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0205
  },
  {
   "key": "2026-09-07|tennis|learnertien|karenkhachanov",
@@ -49662,7 +49674,9 @@
   "p": 0.7228,
   "stars": 3,
   "sample": "ранглиста и 20 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-07|tabletennis|2300|jakubtazler|jirilouda",
