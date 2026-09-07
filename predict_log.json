@@ -32657,7 +32657,8 @@
   "p": 0.8616,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-02|baseball|samsunglions|lottegiants|total",
@@ -32835,7 +32836,8 @@
   "p": 0.5825,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-02|tennis|alexdeminaur|andreaguerrieri",
@@ -33239,7 +33241,8 @@
   "sample": "гледани 6 мача на единия и 16 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:2"
+  "score": "3:2",
+  "combo_done": true
  },
  {
   "key": "2026-09-02|esports|sinners|eac",
@@ -33273,7 +33276,9 @@
   "p": 0.652,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_done": true
  },
  {
   "key": "2026-09-02|baseball|doosanbears|lgtwins",
@@ -33607,7 +33612,8 @@
   "sample": "гледани 18 мача на единия и 16 на другия",
   "scored": true,
   "hit": true,
-  "score": "8:5"
+  "score": "8:5",
+  "combo_done": true
  },
  {
   "key": "2026-09-03|football|charlestonbattery|hartfordathletic",
@@ -34082,7 +34088,8 @@
   "p": 0.5426,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-02|tabletennis|iskenderkharki|sagantaykurmambayev",
@@ -35490,7 +35497,8 @@
   "p": 0.7575,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-02|tabletennis|irisbekartukmetov|maksimgrebnev",
@@ -48954,7 +48962,12 @@
   "p": 0.5931,
   "stars": 1,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "pazar_close": 1.64,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-06|tabletennis|1530|jansteffan|jantrefny",
@@ -50139,7 +50152,9 @@
   "p": 0.5576,
   "stars": 2,
   "sample": "гледани 164 мача на единия и 163 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:4"
  },
  {
   "key": "2026-09-07|esports|nemesis|forzereload",
