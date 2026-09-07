@@ -49565,7 +49565,8 @@
   "sample": "гледани 18 мача на единия и 20 на другия",
   "scored": true,
   "hit": true,
-  "score": "0:3"
+  "score": "0:3",
+  "combo_done": true
  },
  {
   "key": "2026-09-07|tabletennis|2200|viktorvejvoda|jakubtazler",
@@ -49691,7 +49692,8 @@
   "sample": "ранглиста и 20 скорошни мача",
   "scored": true,
   "hit": true,
-  "score": "0:3"
+  "score": "0:3",
+  "combo_done": true
  },
  {
   "key": "2026-09-07|tabletennis|2300|jakubtazler|jirilouda",
@@ -50004,7 +50006,10 @@
   "p": 0.7322,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "73:82",
+  "combo_done": true
  },
  {
   "key": "2026-09-07|volleyball|msen|тайланд|корея",
@@ -50160,7 +50165,8 @@
   "sample": "цената на пазара, без надценката",
   "scored": true,
   "hit": true,
-  "score": "1:0"
+  "score": "1:0",
+  "combo_done": true
  },
  {
   "key": "2026-09-07|football|kalmarff|djurgården|total",
@@ -50317,7 +50323,12 @@
   "p": 0.9076,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "111:56",
+  "pazar_close": 1.05,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-07|basketball|испания|япония",
@@ -50625,7 +50636,9 @@
   "p": 0.7993,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-09|mma|kwonwonil|apollogomes",
@@ -51255,7 +51268,9 @@
   "p": 0.6959,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-08|tennis|lolaradivojevic|luciehavlickova",
@@ -51414,7 +51429,9 @@
   "p": 0.6955,
   "stars": 2,
   "sample": "гледани 10 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-09-07|tennis|brouwerg|martineaum",
@@ -51452,7 +51469,9 @@
   "p": 0.6335,
   "stars": 1,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-09-07|tabletennis|1310|grzegorzwichowski|wojciechtobiasz",
@@ -51490,7 +51509,9 @@
   "p": 0.7297,
   "stars": 1,
   "sample": "гледани по 10 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-07|tabletennis|1400|michalvedmoch|radimpavelka",
@@ -51528,7 +51549,9 @@
   "p": 0.5899,
   "stars": 1,
   "sample": "гледани 9 мача на единия и 11 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-09-07|tabletennis|1600|erikmares|michalzahradka",
@@ -51870,7 +51893,9 @@
   "p": 0.5527,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-07|tabletennis|1530|marekblejchar|vojtechcerny",
@@ -51908,7 +51933,9 @@
   "p": 0.5844,
   "stars": 1,
   "sample": "гледани 15 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-07|tennis|carolyoungsuhlee|vendulavaldmannova",
@@ -52060,7 +52087,9 @@
   "p": 0.7438,
   "stars": 2,
   "sample": "гледани 5 мача на единия и 22 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-09-07|tabletennis|1525|miroslawlewczuk|henryktkaczyk",
@@ -52098,7 +52127,9 @@
   "p": 0.7016,
   "stars": 2,
   "sample": "гледани 21 мача на единия и 20 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-09-07|tabletennis|1550|jacekprzewlocki|piotrstrus",
