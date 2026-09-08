@@ -41,7 +41,12 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ vars.CHAT_ID || '-1004426592150' }}
-          SUPPORT: ${{ vars.SUPPORT || '@greenpicks_support_bot' }}
+          # 🔴 @green_picks_info_bot, НЕ @greenpicks_support_bot (08.09.2026).
+          # Вторият е мъртъв бот; channel_seed.py:71 и reset.py:13 носят
+          # поправката от 11.08.2026, но тя не беше стигнала ДОТУК —
+          # тоест ръчното зареждане слагаше в канала хващалка към бот,
+          # който не отговаря. support_bot.py:165 казва кой работи днес.
+          SUPPORT: ${{ vars.SUPPORT || '@green_picks_info_bot' }}
           SEED_DELAY: '2.0'
           SEED_DRY: ${{ github.event.inputs.dry_run }}
         run: python seed_rooms.py
@@ -51,8 +56,12 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ vars.CHANNEL_ID || '-1004403334702' }}
-          SUPPORT: ${{ vars.SUPPORT || '@greenpicks_support_bot' }}
+          # 🔴 @green_picks_info_bot, НЕ @greenpicks_support_bot (08.09.2026).
+          # Вторият е мъртъв бот; channel_seed.py:71 и reset.py:13 носят
+          # поправката от 11.08.2026, но тя не беше стигнала ДОТУК —
+          # тоест ръчното зареждане слагаше в канала хващалка към бот,
+          # който не отговаря. support_bot.py:165 казва кой работи днес.
+          SUPPORT: ${{ vars.SUPPORT || '@green_picks_info_bot' }}
           GROUP_LINK: "${{ vars.GROUP_LINK || 'https://t.me/+_oYsaYaVKU80Yjc0' }}"
-          CHANNEL_SEED_DELAY: '2.0'
           CHANNEL_SEED_DRY: ${{ github.event.inputs.dry_run }}
         run: python channel_seed.py
