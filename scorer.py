@@ -4280,7 +4280,23 @@ def selftest():
     check("сравнението е ПРЕДИ разопаковането на резултата",
           bool(_sravnenia) and bool(_razopakovane)
           and min(_sravnenia) < min(_razopakovane))
-    check("затварянето слага честна причина", len(_prichini) >= 1)
+    # 🔴 ИГЛАТА БЕШЕ В КОПЧЕТО СЕНО ПРЕЗ AST (поправено 05.09.2026).
+    # `_prichini` се пълни с всеки низ, съдържащ «отложен или отменен» —
+    # включително низовете вътре в САМАТА самопроверка. Затова се броят
+    # само тези, чийто ред е ИЗВЪН нея.
+    # 🔴 «ЖИВО» Е ФАЙЛЪТ МИНУС ТЯЛОТО НА ФУНКЦИЯТА, НЕ «ПРЕДИ НЕЯ».
+    # Първата ми версия режеше всичко след `def selftest` (ред 2588), а
+    # живият код стига до 6202 — истинският низ на ред 6202 падна извън
+    # отреза и проверката извика «0 от 2» върху ЧИСТ файл.
+    _obhvat = []
+    for _n in _ast.walk(_dyrvo):
+        if (isinstance(_n, _ast.FunctionDef)
+                and _n.name in ("selftest", "run_selftest")):
+            _obhvat.append((_n.lineno, getattr(_n, "end_lineno", _n.lineno)))
+    _zhivi_pr = [_l for _l in _prichini
+                 if not any(a <= _l <= b for a, b in _obhvat)]
+    check("затварянето слага честна причина В ЖИВИЯ КОД: %d от %d"
+          % (len(_zhivi_pr), len(_prichini)), len(_zhivi_pr) >= 1)
 
     # ══════════════════════════════════════════════════════════════════════
     # 🔴 КРАШЪТ, КОЙТО УБИ ОЦЕНИТЕЛЯ ЗА 33 ЧАСА (23-25.08.2026)
@@ -4429,7 +4445,27 @@ def selftest():
     finally:
         globals()["DRY_RUN"] = _st
     _star_p = str(ARHIV_DNI)
-    check("прагът е разумен", 30 <= ARHIV_DNI <= 400)
+    # 🔴 ГОРНАТА ПИТАШЕ ДАЛИ max/min РАБОТИ (поправено 05.09.2026). Двете
+    # граници в проверката бяха БУКВАЛНО същите като в `max(30, min(400, ...))`
+    # — тоест проверката не можеше да падне. Сега се пита дали стеснението
+    # ДЕЙСТВА и дали подразбирането е това, което кодът твърди.
+    _st_ad = os.environ.get("SCORE_ARHIV_DNI")
+    try:
+        for _v, _chak in (("5", 30), ("9999", 400), ("", 60), ("боклук", None)):
+            os.environ["SCORE_ARHIV_DNI"] = _v
+            try:
+                _got = max(30, min(400, int(
+                    (os.environ.get("SCORE_ARHIV_DNI") or "60").strip())))
+            except ValueError:
+                _got = None
+            check("SCORE_ARHIV_DNI=%r се свежда до %s" % (_v, _chak),
+                  _got == _chak)
+    finally:
+        if _st_ad is None:
+            os.environ.pop("SCORE_ARHIV_DNI", None)
+        else:
+            os.environ["SCORE_ARHIV_DNI"] = _st_ad
+    check("живата стойност е вътре в границите", 30 <= ARHIV_DNI <= 400)
     check("архивът е отделен файл", ARHIV_FILE != LOG_FILE)
     check("липсващ архив не гърми", isinstance(cheti_arhiv(), list))
 
