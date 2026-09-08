@@ -8917,6 +8917,60 @@ COMBO_MAX_SAME_SPORT = env_int("PREDICT_COMBO_SAME_SPORT", 3, 1, 6)
 SAMO_S_KOEF = (os.environ.get("PREDICT_SAMO_S_KOEF") or "0").strip() in (
     "1", "true", "yes", "да")
 
+# 🔴🔴 КОРИДОРЪТ 1.70-2.10 (08.09.2026). Мерено на 940 отсъдени карти с цена,
+# от 30 агента с адверсарна фаза:
+#
+#     цена < 1.70   n=509  доходност  -4.3% [-9.6..+1.1]  сбъдва 71.1% (обявява 68.5%)
+#     цена >= 1.70  n=275  доходност -22.0% [-33.0..-11.1] сбъдва 40.7% (обявява 54.7%)
+#     разлика -17.7 пп [-30.1..-5.2] ДОКАЗАНА (бутстрап 4000)
+#
+# Оцелява на leave-one-league-out, jackknife по 6-те най-лоши дни, двете
+# половини на периода и плацебо (0 от 200 случайни разреза).
+#
+# 🔴 КОРИДОР, НЕ ПОЛУПРАВА. Над 2.10 НЕ Е доказано (n=52), а 2.10-2.60 е
+# дори +3.2%. Затова има И ГОРНА граница.
+#
+# 🔴 ПРОВЕРЕНО КАКВО НЕ Е: не е един източник (при всичките четири е, а извън
+# коридора всичките са калибровани); не е движение на линията (ЗАТВАРЯЩАТА
+# цена подразбира същите 54.4%); не е закачване за грешната страна (0 от 411
+# карти имат вероятността от другата цена); не е избор на аутсайдер
+# (избираме фаворита 374 срещу 5). Остава: там нямаме ръб и плащаме маржа.
+#
+# 🔴 ИЗКЛЮЧЕНА ПО ПОДРАЗБИРАНЕ. Напред НЕ Е потвърдена (06-08.09 дава n=38),
+# а стоящото нареждане е «нищо да не мълчи». Пуска се с една дума.
+KORIDOR_REJI = (os.environ.get("PREDICT_KORIDOR_REJI") or "0").strip() in (
+    "1", "true", "yes", "да")
+
+
+def _koridor_granica(klyuch, po_podrazbirane):
+    try:
+        v = float((os.environ.get(klyuch) or "").strip()
+                  or po_podrazbirane)
+    except ValueError:
+        return po_podrazbirane
+    return v if 1.01 <= v <= 10.0 else po_podrazbirane
+
+
+KORIDOR_DOLU = _koridor_granica("PREDICT_KORIDOR_DOLU", 1.70)
+KORIDOR_GORE = _koridor_granica("PREDICT_KORIDOR_GORE", 2.10)
+
+
+def v_koridora(an):
+    """В доказано губещия коридор ли е цената на картата.
+
+    🔴 БЕЗ ЦЕНА НЕ Е В КОРИДОРА. Липсата на число не е доказателство за
+    нищо — карта без цена не бива да бъде отрязана от правило за цени.
+    """
+    if not KORIDOR_REJI:
+        return False
+    try:
+        c = float((an or {}).get("pazar_cena"))
+    except (TypeError, ValueError):
+        return False
+    if not (1.0 < c < 1000.0):
+        return False
+    return KORIDOR_DOLU <= c < KORIDOR_GORE
+
 ISKAM_PAZAR = (os.environ.get("PREDICT_ISKAM_PAZAR") or "1").strip() not in (
     "0", "false", "no", "не")
 
@@ -10153,6 +10207,16 @@ def run():
     # ЧЕСТНО ЗА ГРАНИЦАТА: при PREDICT_ISKAM_PAZAR=0 (пътят назад) dobavi_pazar
     # не е викан дотук, знамето липсва и това отсяване е празно. Затова има и
     # ВТОРА врата — в самия цикъл на пращането, малко по-долу.
+    # 🔴🔴 ПОРТАТА НА КОРИДОРА. Чете САМО вече сложената цена — нула нови
+    # заявки. Мълчи, докато `PREDICT_KORIDOR_REJI` не бъде пуснат.
+    _kor = [a for a in cands if v_koridora(a)]
+    if _kor:
+        cands = [a for a in cands if not v_koridora(a)]
+        for _ in _kor:
+            otkaz("v_koridora")
+        print("   ✖ в губещия коридор " + ("%.2f" % KORIDOR_DOLU) + "-"
+              + ("%.2f" % KORIDOR_GORE) + ": " + str(len(_kor))
+              + " карти — там доходността е -22% на 275 мерени карти.")
     _pod2 = [a for a in cands if a.get("pod_prag_sled_pazar")]
     if _pod2:
         _ps2 = {}
@@ -10263,6 +10327,15 @@ def run():
         # dobavi_pazar се вика ПЪРВИ ПЪТ точно тук, знамето се вдига чак сега и
         # горното отсяване е било празно. Без тази врата пътят назад връща
         # дефекта тихо.
+        # 🔴 И ТУК, по същата причина като долната врата за прага: при
+        # PREDICT_ISKAM_PAZAR=0 цената се появява ПЪРВИ ПЪТ чак сега.
+        if v_koridora(a):
+            otkaz("v_koridora")
+            print("   ✖ " + str((a.get("fx") or {}).get("home"))[:18] + " - "
+                  + str((a.get("fx") or {}).get("away"))[:16]
+                  + ": коефициент " + ("%.2f" % float(a.get("pazar_cena")))
+                  + " е в губещия коридор, не излиза.")
+            continue
         if a.get("pod_prag_sled_pazar"):
             otkaz("pod_prag_sled_pazar")
             print("   ✖ " + str((a.get("fx") or {}).get("home"))[:18] + " - "
@@ -14919,6 +14992,51 @@ def selftest():
             BET.ceni_za = _b_cz
             BET._kesh.clear()
             BET._kesh.update(_b_st)
+
+    # --- 🔴🔴 ПОРТАТА НА КОРИДОРА 1.70-2.10 (08.09.2026) ---
+    #
+    # Мерено на 940 отсъдени карти с цена: под 1.70 доходността е -4.3%
+    # [-9.6..+1.1], над 1.70 е -22.0% [-33.0..-11.1], разликата -17.7 пп
+    # [-30.1..-5.2] е ДОКАЗАНА. Механизмът стои ГОТОВ и ИЗКЛЮЧЕН.
+    _kr_st = globals().get("KORIDOR_REJI")
+    try:
+        globals()["KORIDOR_REJI"] = False
+        check("портата е ИЗКЛЮЧЕНА по подразбиране (в ЖИВИЯ код)",
+              'os.environ.get("PREDICT_KORIDOR_REJI") or "0"' in _src_zhiv)
+        check("изключена, тя не реже нищо",
+              v_koridora({"pazar_cena": 1.85}) is False)
+        globals()["KORIDOR_REJI"] = True
+        check("пусната, тя хваща средата на коридора",
+              v_koridora({"pazar_cena": 1.85}) is True)
+        # 🔴 ГРАНИЦИТЕ СА ЗАТВОРЕНА-ОТВОРЕНА. 1.70 влиза, 2.10 НЕ влиза —
+        # инак коридорът щеше да е полуправа, а над 2.10 НЕ Е доказано
+        # (n=52) и кофата 2.10-2.60 е дори +3.2%.
+        check("долната граница ВЛИЗА", v_koridora({"pazar_cena": 1.70}) is True)
+        check("под нея не влиза", v_koridora({"pazar_cena": 1.69}) is False)
+        check("горната граница НЕ влиза",
+              v_koridora({"pazar_cena": 2.10}) is False)
+        check("над нея не влиза", v_koridora({"pazar_cena": 2.60}) is False)
+        # 🔴 ЛИПСАТА НА ЧИСЛО НЕ Е ДОКАЗАТЕЛСТВО ЗА НИЩО. Карта без цена не
+        # бива да бъде отрязана от правило ЗА ЦЕНИ.
+        check("карта БЕЗ цена не се реже", v_koridora({}) is False)
+        check("боклук вместо цена не се реже",
+              v_koridora({"pazar_cena": "абв"}) is False)
+        check("невъзможна цена не се реже",
+              v_koridora({"pazar_cena": 0.5}) is False)
+        check("None не чупи портата", v_koridora(None) is False)
+        check("границите са смислени", 1.0 < KORIDOR_DOLU < KORIDOR_GORE)
+        check("и са точно измерените", abs(KORIDOR_DOLU - 1.70) < 1e-9
+              and abs(KORIDOR_GORE - 2.10) < 1e-9)
+        # 🔴 ПОРТАТА СЕ ВИКА НА ДВЕТЕ ВРАТИ. Броим ИСТИНСКИ викания в живия
+        # код — не срещания на низа: `def` и коментарите не са викания.
+        _kv = [_l for _l in _src_zhiv.split(chr(10))
+               if "v_koridora(" in _l
+               and not _l.lstrip().startswith("#")
+               and not _l.lstrip().startswith("def ")]
+        check("портата се вика на ДВЕТЕ врати, не на една", len(_kv) >= 3)
+        check("и отказът си има име", 'otkaz("v_koridora")' in _src_zhiv)
+    finally:
+        globals()["KORIDOR_REJI"] = _kr_st
 
     check("има път назад (в ЖИВИЯ код)",
           "PREDICT_ISKAM_PAZAR" in _src_zhiv)
