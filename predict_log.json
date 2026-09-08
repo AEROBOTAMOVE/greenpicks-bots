@@ -36262,9 +36262,10 @@
   "p": 0.8489,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_done": true
+  "combo_done": true,
+  "opit": 1
  },
  {
   "key": "2026-09-03|tennis|carlosalcaraz|jaimefaria",
@@ -38564,8 +38565,9 @@
   "p": 0.753,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-03|tabletennis|kirillgerassimenko|mizukioikawa",
