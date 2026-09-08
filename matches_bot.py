@@ -1442,8 +1442,32 @@ def selftest():
         ALLOWED_THREADS.add("0x")
         check("нечислов thread отказан без краш", post_room("0x", "тест") is False)
         ALLOWED_THREADS.discard("0x")
-        ok_pass = post_room(FOOTBALL_THREAD, "тест")
-        check("разрешена стая минава", ok_pass is True and sent == [FOOTBALL_THREAD])
+        # 🔴 ТАЗИ ПРОВЕРКА ЗАВИСЕШЕ ОТ НАЧИНА НА ПУСКАНЕ (08.09.2026).
+        #
+        # Стъпката «Самопроверка» в matches.yml подава MATCHES_DRY_RUN=1 —
+        # правилно, тестова стъпка няма право да праща. Но при сух режим
+        # `post_room` печата и се връща, БЕЗ да мине през подменения
+        # `poster.send_message`; `sent` остава празен и проверката падаше.
+        # Измерено: със сух режим 103/104, без него 104/104. Точно класът,
+        # който на 05.09 уби рутера за два дни.
+        #
+        # Затова сухият режим се гаси ТУК, за тези четири реда, и се връща.
+        _st_dry = globals()["DRY_RUN"]
+        try:
+            globals()["DRY_RUN"] = False
+            sent[:] = []
+            ok_pass = post_room(FOOTBALL_THREAD, "тест")
+            check("разрешена стая минава",
+                  ok_pass is True and sent == [FOOTBALL_THREAD])
+            # 🔴 И ОБРАТНОТО: сухият режим НАИСТИНА не праща. Инак горното
+            # само би заобиколило ръчката, вместо да я провери.
+            globals()["DRY_RUN"] = True
+            sent[:] = []
+            _suh = post_room(FOOTBALL_THREAD, "тест")
+            check("сухият режим НЕ праща нищо", sent == [])
+            check("но и не се преструва на провал", _suh is not False)
+        finally:
+            globals()["DRY_RUN"] = _st_dry
     finally:
         poster.send_message = real_send
 
