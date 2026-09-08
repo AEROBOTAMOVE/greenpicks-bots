@@ -32657,8 +32657,9 @@
   "p": 0.8616,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-02|baseball|samsunglions|lottegiants|total",
@@ -32836,8 +32837,9 @@
   "p": 0.5825,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-02|tennis|alexdeminaur|andreaguerrieri",
@@ -33276,9 +33278,10 @@
   "p": 0.652,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_done": true
+  "combo_done": true,
+  "opit": 1
  },
  {
   "key": "2026-09-02|baseball|doosanbears|lgtwins",
@@ -34088,8 +34091,9 @@
   "p": 0.5426,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-02|tabletennis|iskenderkharki|sagantaykurmambayev",
@@ -35497,8 +35501,9 @@
   "p": 0.7575,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-02|tabletennis|irisbekartukmetov|maksimgrebnev",
@@ -52036,7 +52041,9 @@
   "p": 0.5692,
   "stars": 3,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-07|football|guaraní|deportivorecoleta",
@@ -52805,7 +52812,12 @@
   "p": 0.5879,
   "stars": 3,
   "sample": "гледани 68 мача на единия и 52 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.46,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.048
  },
  {
   "key": "2026-09-08|tennis|carolyoungsuhlee|vendulavaldmannova",
@@ -52843,7 +52855,9 @@
   "p": 0.5751,
   "stars": 3,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-08|volleyball|msen|индия|newzealand",
@@ -53793,7 +53807,9 @@
   "p": 0.7324,
   "stars": 2,
   "sample": "ранглиста и 21 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-08|basketball|япония|унгария",
@@ -53907,6 +53923,120 @@
   "p": 0.5582,
   "stars": 2,
   "sample": "гледани 27 мача на единия и 15 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-09-09|tennis|carlosalcaraz|benshelton",
+  "combo": 0,
+  "posted": "2026-09-08 04:16",
+  "day": "2026-09-09",
+  "bucket": "tennis",
+  "home": "Carlos Alcaraz",
+  "away": "Ben Shelton",
+  "home_id": "3782",
+  "away_id": "9250",
+  "league": "US Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · Carlos Alcaraz",
+  "pazar_cena": 1.26,
+  "pazar_cena_drug": 4.29,
+  "pazar_p": 0.773,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.26,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-09-08 04:21",
+  "p_model": 0.773,
+  "strength": 0.28962613679764804,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1636019383",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "p": 0.773,
+  "stars": 2,
+  "sample": "ранглиста и 15 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-09-08|tabletennis|gustavogomez|alexnaumi",
+  "combo": 0,
+  "posted": "2026-09-08 04:16",
+  "day": "2026-09-08",
+  "bucket": "tabletennis",
+  "home": "Gustavo GOMEZ",
+  "away": "Alex NAUMI",
+  "home_id": "111683",
+  "away_id": "120674",
+  "league": "WTT Contender Panagyurishte 2026 Presented by ASAREL · Men's Singles",
+  "slug": null,
+  "src": "wtt",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Alex NAUMI",
+  "pazar_cena": null,
+  "pazar_cena_drug": null,
+  "pazar_p": null,
+  "dvizhenie": null,
+  "dvizhenie_ot": null,
+  "dvizhenie_n": null,
+  "dvizhenie_koga": null,
+  "p_model": null,
+  "strength": 0.12715236542329145,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "p": 0.5636,
+  "stars": 2,
+  "sample": "гледани 41 мача на единия и 10 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-09-09|tennis|emmanavarro|jessicapegula",
+  "combo": 0,
+  "posted": "2026-09-08 04:16",
+  "day": "2026-09-09",
+  "bucket": "tennis",
+  "home": "Emma Navarro",
+  "away": "Jessica Pegula",
+  "home_id": "3785",
+  "away_id": "2113",
+  "league": "US Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Jessica Pegula",
+  "pazar_cena": 1.25,
+  "pazar_cena_drug": 4.37,
+  "pazar_p": 0.7776,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.25,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-09-08 04:21",
+  "p_model": 0.7776,
+  "strength": 0.11555140608416736,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1636019387",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "p": 0.7776,
+  "stars": 2,
+  "sample": "ранглиста и 20 скорошни мача",
   "scored": false
  }
 ]
