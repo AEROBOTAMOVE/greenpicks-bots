@@ -96,7 +96,11 @@ jobs:
           # реактивен 429-sleep на ред 326). Мъртвите променливи са махнати,
           # за да не лъже входът "delay", че управлява и канала.
           # Същото и тук — при 'both' каналът получава пълния комплект.
-          CHANNEL_SEED_ONLY: ${{ github.event.inputs.target == 'channel' && github.event.inputs.only || '' }}
+          # 🔴 CHANNEL_SEED_ONLY МАХНАТА (08.09.2026). channel_seed.py
+          # я чете само за да отпечата бележка — самият файл я нарича
+          # «остатък от старата сеитба; тук се пренебрегва». Стоеше
+          # само тук, а не и в content.yml, и пазачът я обявяваше за
+          # разминат път — с право.
           CHANNEL_SEED_DRY: ${{ github.event.inputs.dry_run }}
         run: python channel_seed.py
 
