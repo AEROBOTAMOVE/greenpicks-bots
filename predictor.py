@@ -188,6 +188,25 @@ except Exception as _kam_err:                                # noqa: BLE001
     KAM = None
     print("Kambi не се зареди (" + str(_kam_err)[:60]
           + ") — картите остават с досегашните източници.")
+# 🇧🇬 BETANO.BG — БЪЛГАРСКАТА КНИГА (08.09.2026).
+#
+# Стоящото изискване на собственика: картите да са заложими в български
+# къщи, с число. Измерено на живия дневник (1583 отсъдени):
+#
+#     с коефициент   940 · сбъдва 61.4% · доходност -9.1%
+#     БЕЗ коефициент 643 · сбъдва 66.9% · доходност НЕ СЕ ЗНАЕ
+#
+# Тоест 40% от продукта е неизмерим за пари, и точно там сбъдваме повече.
+# Pinnacle, ESPN, Smarkets и Kambi не покриват тези мачове; Betano.bg дава
+# 1905 събития с пазар «победител», вкл. WTT Контендер Панагюрище.
+#
+# 🔴 ТРЕТА РЕЗЕРВА, НЕ ЗАМЕСТНИК. Пита се последна, само ако цена няма.
+try:
+    import betano as BET
+except Exception as _bet_err:                                # noqa: BLE001
+    BET = None
+    print("Betano не се зареди (" + str(_bet_err)[:60]
+          + ") — българската книга няма да се пита.")
 try:
     import tt_ligi as TTL
 except Exception as _ttl_err:                                # noqa: BLE001
@@ -6994,7 +7013,8 @@ IZTOCHNIK_VKL = (os.environ.get("PAZAR_IZTOCHNIK")
 #
 # И ЗАЩО НЯМА ПРИКРИТО ИМЕ ЗА НЕГО: измисленото прозвище е заобикаляне на пазача,
 # а не спазване. Или името минава каквото е, или го няма.
-IZTOCHNIK_IME = {"espn": "ESPN", "pinnacle": "pinnacle", "vitrina": "витрина"}
+IZTOCHNIK_IME = {"espn": "ESPN", "pinnacle": "pinnacle", "vitrina": "витрина",
+                 "kambi": "kambi", "betano": "Betano"}
 
 # Думата КАКВО ЗНАЧИ числото. Изнесена като константа по две причини, и втората
 # е по-важната:
@@ -8581,6 +8601,91 @@ def _kambi_rezerva(an):
     return an
 
 
+def _betano_rezerva(an):
+    """Коефициент от българската книга, ако всичко останало е мълчало.
+
+    🔴 ПОСЛЕДНА ПО РЕД. Pinnacle и ESPN носят номер на мача и с него
+    затваряща цена; Kambi покрива турнири, които Betano няма. Затова тук се
+    стига само когато другите три са мълчали.
+
+    🔴 ЧАСЪТ СЕ ПОДАВА. Адверсарна мерка върху 2432 нарочно сгрешени двойки:
+    без час минават 9.6% лъжливи съвпадения, с прозорец ±30 минути — 1.4%,
+    без да се губи нито едно вярно. Затова часът НЕ Е украса.
+
+    🔴 ДВЕТЕ ИЗПИСВАНИЯ НА ИМЕТО. Betano пише на кирилица, ние държим и
+    двете. Пробва се суровото, после английското — ако се различават.
+    """
+    if not isinstance(an, dict) or an.get("pazar_cena"):
+        return an
+    if BET is None or not getattr(BET, "VKLYUCHENO", False):
+        return an
+    b = str(an.get("bucket") or "")
+    if b not in getattr(BET, "SPORT", {}):
+        return an
+    fx = an.get("fx") or {}
+    ex = fx.get("extra") or {}
+    suro_d, suro_g = str(fx.get("home") or ""), str(fx.get("away") or "")
+    en_d, en_g = _en_ime(fx, ex, "home"), _en_ime(fx, ex, "away")
+    # часът в милисекунди, ако го знаем
+    ms = None
+    try:
+        w = fx_start(fx, datetime.now(timezone.utc))
+        if w is not None:
+            ms = int(w.timestamp() * 1000)
+    except Exception:                                        # noqa: BLE001
+        ms = None
+    imena = [(suro_d, suro_g)]
+    if (en_d, en_g) != (suro_d, suro_g) and en_d and en_g:
+        imena.append((en_d, en_g))
+    r = None
+    for d, g in imena:
+        if not (d and g):
+            continue
+        try:
+            r = BET.ceni_za(b, d, g, ms)
+        except Exception:                                    # noqa: BLE001
+            return an
+        if r is getattr(BET, "NEPITAN", object()):
+            return an
+        if r:
+            break
+    if not r:
+        return an
+    try:
+        c_dom, c_gost = float(r[0]), float(r[1])
+    except (TypeError, ValueError, IndexError):
+        return an
+    if not (1.0 < c_dom < 1000.0 and 1.0 < c_gost < 1000.0):
+        return an
+    try:
+        c_raven = float(r[2]) if len(r) > 2 and r[2] else None
+    except (TypeError, ValueError):
+        c_raven = None
+    if c_raven is not None and not (1.0 < c_raven < 1000.0):
+        c_raven = None
+    pick = str(an.get("pick") or "")
+    if pick.startswith("1"):
+        cena, drug = c_dom, c_gost
+    elif pick.startswith("2"):
+        cena, drug = c_gost, c_dom
+    elif pick[:1] in ("\u0425", "X") and c_raven:
+        cena, drug = c_raven, min(c_dom, c_gost)
+    else:
+        return an                  # равен без число — нищо не се слага
+    an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "\u0425": c_raven}
+    an["pazar_cena"] = cena
+    an["pazar_cena_drug"] = drug
+    an["pazar_izt"] = "betano"
+    try:
+        _pd, _pg, _r = PZ.bez_marzh(b, c_dom, c_gost, None)
+        if _pd and _pg:
+            an["pazar_p"] = _pd if pick.startswith("1") else _pg
+            an["pazar_v"] = 1.0 / cena
+    except Exception:                                        # noqa: BLE001
+        pass
+    return an
+
+
 def dobavi_pazar(an):
     """Цената + една точка в редицата ѝ. Нула нови заявки.
 
@@ -8595,6 +8700,10 @@ def dobavi_pazar(an):
     # всичките пътища на `_pazar_surovo` цена НЯМА. Pinnacle и ESPN остават
     # първи — те носят и номер за затварящата цена, а Kambi не.
     an = _kambi_rezerva(an)
+    # 🇧🇬 И чак накрая БЪЛГАРСКАТА книга. Тя няма номер за затваряща цена и
+    # покрива по-малко турнири от Kambi, но покрива ДРУГИ — и е тази, в
+    # която собственикът и читателите наистина залагат.
+    an = _betano_rezerva(an)
     # 🔴 СМЕСВАНЕТО Е В ОБВИВКАТА, НЕ ВЪТРЕ. Двата ранни изхода на
     # `_pazar_surovo` слагат цената и се връщат преди блока за смесване —
     # мълчаливо, точно както преди това правеха и с тефтера на цените.
@@ -14643,6 +14752,173 @@ def selftest():
         finally:
             KAM._kesh.clear()
             KAM._kesh.update(_k_st)
+
+    # --- 🇧🇬 БЪЛГАРСКАТА КНИГА (08.09.2026) ---
+    #
+    # Стоящото изискване: картата да е заложима тук, с число. Измерено на
+    # живия дневник — 643 от 1583 отсъдени карти нямат число и точно те
+    # сбъдват повече (66.9% срещу 61.4%), тоест 40% от продукта е
+    # неизмерим за пари.
+    if BET is not None:
+        _b_st = dict(getattr(BET, "_kesh", {}))
+        _b_cz = BET.ceni_za
+        try:
+            _b_vidyani = []
+
+            def _b_stub(sport, dom, gost, nachalo=None, otvarach=None):
+                _b_vidyani.append((sport, dom, gost, nachalo))
+                # 🔴 ИЗМИСЛЕНИ ИМЕНА ЗА ПРОВЕРКАТА ПРЕЗ ОБВИВКАТА.
+                # С истински («Tomas Regner») тя падаше, защото това Е
+                # жив мач и `_pazar_surovo` му намира цена от Smarkets —
+                # тоест мереше мрежата, а твърдеше за нашия код.
+                if "regnerov" in BET.latinica(dom):
+                    return (2.40, 1.55, None, "Чехия / Лига Про",
+                            "/koefitsienti/x/1/")
+                if sport != "tabletennis":
+                    return None
+                if "regner" in BET.latinica(dom) and \
+                   "svoboda" in BET.latinica(gost):
+                    return (2.40, 1.55, None, "Чехия / Лига Про",
+                            "/koefitsienti/x/1/")
+                if "svoboda" in BET.latinica(dom) and \
+                   "regner" in BET.latinica(gost):
+                    return (1.55, 2.40, None, "Чехия / Лига Про",
+                            "/koefitsienti/x/1/")
+                return None
+            BET.ceni_za = _b_stub
+            _bf = {"home": "Tomas Regner", "away": "Adam Svoboda", "extra": {}}
+            _b1 = _betano_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                   "fx": dict(_bf)})
+            check("Betano дава коефициент на НАШАТА страна",
+                  abs(float(_b1.get("pazar_cena") or 0) - 2.40) < 1e-9)
+            check("и другата страна се пази",
+                  abs(float(_b1.get("pazar_cena_drug") or 0) - 1.55) < 1e-9)
+            check("българският източник се назовава",
+                  _b1.get("pazar_izt") == "betano")
+            check("вероятността е БЕЗ марж и е между 0 и 1",
+                  0.0 < float(_b1.get("pazar_p") or 0) < 1.0)
+            _b2 = _betano_rezerva({"pick": "2 · Г", "bucket": "tabletennis",
+                                   "fx": dict(_bf)})
+            check("изборът «2» взима цената на ГОСТА",
+                  abs(float(_b2.get("pazar_cena") or 0) - 1.55) < 1e-9)
+            # 🔴 НЕ ПИПА ВЕЧЕ НАМЕРЕНА ЦЕНА — инак губим номера за CLV.
+            _b3 = _betano_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                   "pazar_cena": 1.99, "pazar_izt": "pinnacle",
+                                   "fx": dict(_bf)})
+            check("вече намерена цена НЕ се пренаписва от Betano",
+                  _b3.get("pazar_izt") == "pinnacle"
+                  and abs(float(_b3.get("pazar_cena")) - 1.99) < 1e-9)
+            # 🔴 ЧАСЪТ СЕ ПОДАВА. Без него лъжливите съвпадения скачат от
+            # 1.4% на 9.6% (мерено адверсарно на 2432 сгрешени двойки).
+            # Проверката гледа КАКВО Е ПОЛУЧИЛ изворът, не какво пише кодът.
+            # 🔴 ПОЛЕТО Е «when», НЕ «start». Първата ми проверка подаваше
+            # «start» — поле, което `fx_start` изобщо не чете — и падна.
+            del _b_vidyani[:]
+            _betano_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                             "fx": {"home": "Tomas Regner",
+                                    "away": "Adam Svoboda",
+                                    "extra": {},
+                                    "when": datetime(2026, 9, 9, 11, 30,
+                                                     tzinfo=timezone.utc)}})
+            check("часът на мача СТИГА до българската книга",
+                  any(v[3] for v in _b_vidyani))
+            check("и е точно неговият час, не «сега»",
+                  any(v[3] == 1788953400000 for v in _b_vidyani))
+            del _b_vidyani[:]
+            _betano_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                             "fx": dict(_bf)})
+            check("без известен час се пита БЕЗ час, не с измислен",
+                  _b_vidyani and _b_vidyani[0][3] is None)
+            # 🔴 И СУРОВОТО, И АНГЛИЙСКОТО ИМЕ. Betano пише на кирилица;
+            # тук суровото име е кирилско, а латинското идва от extra.
+            del _b_vidyani[:]
+            _bk = _betano_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                   "fx": {"home": "Томас Регнер",
+                                          "away": "Адам Свобода",
+                                          "extra": {}}})
+            check("кирилското име среща книгата направо",
+                  abs(float(_bk.get("pazar_cena") or 0) - 2.40) < 1e-9)
+            check("непознат мач НЕ получава цена",
+                  _betano_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                                   "fx": {"home": "Никой", "away": "Другият",
+                                          "extra": {}}}).get("pazar_cena")
+                  is None)
+            check("непознат за Betano спорт не се пита",
+                  _betano_rezerva({"pick": "1 · Т", "bucket": "кегли",
+                                   "fx": dict(_bf)}).get("pazar_cena") is None)
+            check("ръгбито НЕ се пита — Betano го няма",
+                  "rugby" not in getattr(BET, "SPORT", {}))
+            # 🔴 СЕНТИНЕЛЪТ СЕ ПОЗНАВА ПО ИДЕНТИЧНОСТ, НЕ ПО ФОРМА.
+            _bn = BET.NEPITAN
+            try:
+                BET.NEPITAN = (1.5, 2.5, None, "х", "/y/")
+                BET.ceni_za = lambda *a, **k: BET.NEPITAN
+                check("сентинел С ФОРМА НА ЦЕНА пак не минава",
+                      _betano_rezerva({"pick": "1 · Т",
+                                       "bucket": "tabletennis",
+                                       "fx": dict(_bf)}).get("pazar_cena")
+                      is None)
+            finally:
+                BET.NEPITAN = _bn
+                BET.ceni_za = _b_stub
+            try:
+                BET.ceni_za = lambda *a, **k: (_ for _ in ()).throw(
+                    RuntimeError("гръмна"))
+                _bg = _betano_rezerva({"pick": "1 · Т",
+                                       "bucket": "tabletennis",
+                                       "fx": dict(_bf)})
+                check("гръмнала българска книга не чупи картата",
+                      _bg.get("pazar_cena") is None)
+            finally:
+                BET.ceni_za = _b_stub
+            _bv = BET.VKLYUCHENO
+            try:
+                BET.VKLYUCHENO = False
+                check("ръчката BETANO_CENI=0 спира резервата",
+                      _betano_rezerva({"pick": "1 · Т",
+                                       "bucket": "tabletennis",
+                                       "fx": dict(_bf)}).get("pazar_cena")
+                      is None)
+            finally:
+                BET.VKLYUCHENO = _bv
+            # 🔴 ПОВЕДЕНЧЕСКИ, ПРЕЗ ОБВИВКАТА. Това е проверката, която не
+            # може да бъде излъгана от «построено, но не свързано»: ако
+            # редът в `dobavi_pazar` изчезне, цената не се появява. Броене
+            # на низове в извора НЕ Е доказателство за викане.
+            # 🔴 KAMBI СЕ ЗАГЛУШАВА НАРОЧНО. Първата ми версия не го правеше
+            # и падна — защото Kambi отговори ПЪРВА, с истинска цена от
+            # живата мрежа. Тоест тестът мереше реда, а твърдеше за викането.
+            # Сега двете се мерят поотделно.
+            _kz = KAM.ceni_za if KAM is not None else None
+            try:
+                if KAM is not None:
+                    KAM.ceni_za = lambda *a, **k: None
+                _bw = dobavi_pazar({"pick": "1 · Т", "bucket": "tabletennis",
+                                    "fx": {"home": "Izmislen Regnerov",
+                                           "away": "Nikoga Svobodov",
+                                           "extra": {}}})
+                check("обвивката НАИСТИНА вика българската резерва",
+                      _bw.get("pazar_izt") == "betano"
+                      and abs(float(_bw.get("pazar_cena") or 0) - 2.40) < 1e-9)
+                # 🔴 И РЕДЪТ: Kambi е ПРЕДИ Betano, защото покрива турнири,
+                # които българската книга няма. Ако някой ден размени двете,
+                # това пада.
+                if KAM is not None:
+                    KAM.ceni_za = lambda *a, **k: (1.11, 9.99, None)
+                    _br = dobavi_pazar({"pick": "1 · Т",
+                                        "bucket": "tabletennis",
+                                        "fx": {"home": "Izmislen Regnerov",
+                                               "away": "Nikoga Svobodov",
+                                               "extra": {}}})
+                    check("Kambi остава ПРЕДИ българската книга",
+                          _br.get("pazar_izt") == "kambi")
+            finally:
+                if KAM is not None:
+                    KAM.ceni_za = _kz
+        finally:
+            BET.ceni_za = _b_cz
+            BET._kesh.clear()
+            BET._kesh.update(_b_st)
 
     check("има път назад (в ЖИВИЯ код)",
           "PREDICT_ISKAM_PAZAR" in _src_zhiv)
