@@ -450,6 +450,27 @@ jobs:
       - name: Събуди оценителя
         if: steps.budilnik.outputs.ocenitel == '1'
         env:
+          # 🔴 РЪЧКИТЕ НА ОЦЕНИТЕЛЯ (05.09.2026). Тази стъпка пускаше
+          # ЖИВИЯ scorer.py с 11 ключа, а score.yml му дава 25 — тоест
+          # 13 ръчки работеха за плановия рън в 13:30/22:30 и НЕ работеха
+          # за спасителния, който будилникът пуска точно когато плановият
+          # е пропуснат. Редовете са взети ДОСЛОВНО от score.yml.
+          #
+          # 🔴 SCORE_DRY_RUN НАРОЧНО ГО НЯМА: тук се пуска ЖИВИЯТ
+          # оценител и сух режим би спрял отчитането.
+          SCORE_ARHIV_DNI: ${{ vars.SCORE_ARHIV_DNI || '60' }}
+          SCORE_CLOSE_REDICA: ${{ vars.SCORE_CLOSE_REDICA || '1' }}
+          SCORE_CLV_MIN: ${{ vars.SCORE_CLV_MIN || '20' }}
+          SCORE_COMBO_OPITI: ${{ vars.SCORE_COMBO_OPITI }}
+          SCORE_COMBO_TAVAN: ${{ vars.SCORE_COMBO_TAVAN }}
+          SCORE_DOHOD_MIN: ${{ vars.SCORE_DOHOD_MIN || '40' }}
+          SCORE_MAX_AGE_DAYS: ${{ vars.SCORE_MAX_AGE_DAYS || '5' }}
+          SCORE_OBZOR_MACHOVE: ${{ vars.SCORE_OBZOR_MACHOVE || '24' }}
+          SCORE_PAZAR_MIN: ${{ vars.SCORE_PAZAR_MIN || '40' }}
+          SCORE_PO_SPORT: ${{ vars.SCORE_PO_SPORT || '0' }}
+          SCORE_PO_SPORT_MAKS: ${{ vars.SCORE_PO_SPORT_MAKS || '8' }}
+          SCORE_PO_SPORT_MIN: ${{ vars.SCORE_PO_SPORT_MIN || '5' }}
+          SCORE_WTT_TURNIRI: ${{ vars.SCORE_WTT_TURNIRI || '12' }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           # Резервните стойности НЕ са излишни: незададена променлива в GitHub
           # идва като празен низ и празният низ бие подразбиращото се в скрипта.
