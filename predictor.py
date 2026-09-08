@@ -8986,7 +8986,19 @@ SAMO_S_KOEF = (os.environ.get("PREDICT_SAMO_S_KOEF") or "0").strip() in (
 #
 # 🔴 ИЗКЛЮЧЕНА ПО ПОДРАЗБИРАНЕ. Напред НЕ Е потвърдена (06-08.09 дава n=38),
 # а стоящото нареждане е «нищо да не мълчи». Пуска се с една дума.
-KORIDOR_REJI = (os.environ.get("PREDICT_KORIDOR_REJI") or "0").strip() in (
+# 🔴 ПУСНАТА ПО ПОДРАЗБИРАНЕ (08.09.2026, по изрично решение на собственика
+# «всичко на макс, почвай да го правиш»). Премерено на пресния дневник, 940
+# отсъдени карти с число, бутстрап 3000:
+#
+#     праг    остават  сбъдва   доходност [95%]        присъда
+#     няма       940    61.4%    -9.1% [-13.9 .. -4.2]  🔴 ДОКАЗАНО ГУБИ
+#     2.10       888    62.8%    -8.7% [-13.3 .. -3.9]  🔴 губи
+#     1.70       620    71.3%    -3.5% [ -8.5 .. +1.2]  ⚪ нула
+#     1.40       285    84.9%    +1.2% [ -4.1 .. +6.4]  ⚪ нула
+#
+# 1.70 е ПЪРВИЯТ праг, при който остатъкът престава да е доказано губещ.
+# По-строгите не купуват нищо доказано, а плащат с карти.
+KORIDOR_REJI = (os.environ.get("PREDICT_KORIDOR_REJI") or "1").strip() in (
     "1", "true", "yes", "да")
 
 
@@ -8996,11 +9008,15 @@ def _koridor_granica(klyuch, po_podrazbirane):
                   or po_podrazbirane)
     except ValueError:
         return po_podrazbirane
-    return v if 1.01 <= v <= 10.0 else po_podrazbirane
+    return v if 1.01 <= v <= 99.0 else po_podrazbirane
 
 
 KORIDOR_DOLU = _koridor_granica("PREDICT_KORIDOR_DOLU", 1.70)
-KORIDOR_GORE = _koridor_granica("PREDICT_KORIDOR_GORE", 2.10)
+# 🔴 БЕЗ ГОРНА ГРАНИЦА (08.09.2026). Дотук беше 2.10, защото скептикът на
+# армията каза, че над нея не е доказано. На пресния дневник лентата 2.10+
+# дава 36.5% сбъдване и -15.7% доходност (n=52) — същата посока. С коридор
+# остатъкът е -4.5%, с гола долна граница -3.5%.
+KORIDOR_GORE = _koridor_granica("PREDICT_KORIDOR_GORE", 99.0)
 
 
 def v_koridora(an):
@@ -10264,7 +10280,7 @@ def run():
             otkaz("v_koridora")
         print("   ✖ в губещия коридор " + ("%.2f" % KORIDOR_DOLU) + "-"
               + ("%.2f" % KORIDOR_GORE) + ": " + str(len(_kor))
-              + " карти — там доходността е -22% на 275 мерени карти.")
+              + " карти — там доходността е -20% на 320 мерени карти.")
     _pod2 = [a for a in cands if a.get("pod_prag_sled_pazar")]
     if _pod2:
         _ps2 = {}
@@ -15079,21 +15095,32 @@ def selftest():
     _kr_st = globals().get("KORIDOR_REJI")
     try:
         globals()["KORIDOR_REJI"] = False
-        check("портата е ИЗКЛЮЧЕНА по подразбиране (в ЖИВИЯ код)",
-              'os.environ.get("PREDICT_KORIDOR_REJI") or "0"' in _src_zhiv)
+        # 🔴 ПУСНАТА ПО ПОДРАЗБИРАНЕ (08.09.2026). Премерено: без нея
+        # остатъкът е -9.1% [-13.9..-4.2] — ДОКАЗАНО губещ; с нея -3.5%
+        # [-8.5..+1.2], тоест нула. Пътят назад е PREDICT_KORIDOR_REJI=0.
+        check("портата е ПУСНАТА по подразбиране (в ЖИВИЯ код)",
+              'os.environ.get("PREDICT_KORIDOR_REJI") or "1"' in _src_zhiv)
+        check("но пътят назад съществува (в ЖИВИЯ код)",
+              "PREDICT_KORIDOR_REJI" in _src_zhiv)
         check("изключена, тя не реже нищо",
               v_koridora({"pazar_cena": 1.85}) is False)
         globals()["KORIDOR_REJI"] = True
-        check("пусната, тя хваща средата на коридора",
+        check("пусната, тя реже губещата лента",
               v_koridora({"pazar_cena": 1.85}) is True)
-        # 🔴 ГРАНИЦИТЕ СА ЗАТВОРЕНА-ОТВОРЕНА. 1.70 влиза, 2.10 НЕ влиза —
-        # инак коридорът щеше да е полуправа, а над 2.10 НЕ Е доказано
-        # (n=52) и кофата 2.10-2.60 е дори +3.2%.
         check("долната граница ВЛИЗА", v_koridora({"pazar_cena": 1.70}) is True)
         check("под нея не влиза", v_koridora({"pazar_cena": 1.69}) is False)
-        check("горната граница НЕ влиза",
-              v_koridora({"pazar_cena": 2.10}) is False)
-        check("над нея не влиза", v_koridora({"pazar_cena": 2.60}) is False)
+        # 🔴 НЯМА ГОРНА ГРАНИЦА. Лентата 2.10+ дава 36.5% сбъдване и -15.7%
+        # доходност — същата посока, затова се реже и тя.
+        check("над 2.10 СЪЩО се реже", v_koridora({"pazar_cena": 2.60}) is True)
+        check("и много високите също", v_koridora({"pazar_cena": 9.00}) is True)
+        # но границата остава ръчка: с изрично зададена горна тя пак работи
+        _kg = globals()["KORIDOR_GORE"]
+        try:
+            globals()["KORIDOR_GORE"] = 2.10
+            check("зададена горна граница СЕ спазва",
+                  v_koridora({"pazar_cena": 2.60}) is False)
+        finally:
+            globals()["KORIDOR_GORE"] = _kg
         # 🔴 ЛИПСАТА НА ЧИСЛО НЕ Е ДОКАЗАТЕЛСТВО ЗА НИЩО. Карта без цена не
         # бива да бъде отрязана от правило ЗА ЦЕНИ.
         check("карта БЕЗ цена не се реже", v_koridora({}) is False)
@@ -15103,8 +15130,8 @@ def selftest():
               v_koridora({"pazar_cena": 0.5}) is False)
         check("None не чупи портата", v_koridora(None) is False)
         check("границите са смислени", 1.0 < KORIDOR_DOLU < KORIDOR_GORE)
-        check("и са точно измерените", abs(KORIDOR_DOLU - 1.70) < 1e-9
-              and abs(KORIDOR_GORE - 2.10) < 1e-9)
+        check("долната е точно измерената", abs(KORIDOR_DOLU - 1.70) < 1e-9)
+        check("горната е изключена по подразбиране", KORIDOR_GORE >= 99.0)
         # 🔴 ПОРТАТА СЕ ВИКА НА ДВЕТЕ ВРАТИ. Броим ИСТИНСКИ викания в живия
         # код — не срещания на низа: `def` и коментарите не са викания.
         _kv = [_l for _l in _src_zhiv.split(chr(10))
