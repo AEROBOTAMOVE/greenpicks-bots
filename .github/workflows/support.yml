@@ -287,6 +287,11 @@ jobs:
           # пътя, оставаше БЕЗ реда с името на източника, а същата карта от
           # predict.yml го носеше — без нито един ред разлика в дневника.
           PAZAR_IZTOCHNIK: ${{ vars.PAZAR_IZTOCHNIK || '1' }}
+          # 🔴 БЛИЗНАКЪТ (05.09.2026). Добавих PAZAR_IZTOCHNIK и
+          # пропуснах PAZAR_LINK — а pazar.py му дава подразбиране
+          # '0', тоест картата от съпорт-пътя излизаше без адреса на
+          # мача, докато същата карта от predict.yml го носи.
+          PAZAR_LINK: ${{ vars.PAZAR_LINK || '1' }}
           PREDICT_SHOW_RECORD: ${{ vars.PREDICT_SHOW_RECORD || '1' }}
           PREDICT_SMELOST_MAX: ${{ vars.PREDICT_SMELOST_MAX }}
           PREDICT_SPORTS: ${{ vars.PREDICT_SPORTS }}
