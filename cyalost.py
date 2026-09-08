@@ -371,6 +371,10 @@ NE_BIVA_MARTVI = {
     # беше причината модулът да се роди.
     "kambi_ceni.py": ["ceni_za", "sabitiya", "turniri", "imena_ot_sabitie",
                       "koef_po_tip"],
+    # 🇧🇬 Българската книга (08.09.2026). Спре ли да се вика, картите тихо
+    # губят числото, с което читателят изобщо може да заложи.
+    "betano.py": ["ceni_za", "sabitiya", "turniri", "imena_ot_sabitie",
+                  "koef_ot_sabitie", "latinica"],
     "pin_volei.py": ["cena", "index", "_index_ili_vzemi"],
     # Пазач, който не се вика, е файл. Тези трябва да се ползват НАИСТИНА.
     "pazach.py": ["obhod", "sadi", "kazvai_li", "tekst_trevoga", "dopusk_min",
