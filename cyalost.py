@@ -374,7 +374,11 @@ NE_BIVA_MARTVI = {
     # 🇧🇬 Българската книга (08.09.2026). Спре ли да се вика, картите тихо
     # губят числото, с което читателят изобщо може да заложи.
     "betano.py": ["ceni_za", "sabitiya", "turniri", "imena_ot_sabitie",
-                  "koef_ot_sabitie", "latinica"],
+                  "koef_ot_sabitie", "latinica",
+                  # 🔴 08.09.2026: скелетът вдига улова 62%->88%; етикетът
+                  # пази мъжка карта да не вземе женска цена; насочването по
+                  # лига връща 1085-те събития, които таванът изхвърляше.
+                  "skelet", "etiket", "etiketite_pasvat", "podredi"],
     "pin_volei.py": ["cena", "index", "_index_ili_vzemi"],
     # Пазач, който не се вика, е файл. Тези трябва да се ползват НАИСТИНА.
     "pazach.py": ["obhod", "sadi", "kazvai_li", "tekst_trevoga", "dopusk_min",
