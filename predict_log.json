@@ -53100,7 +53100,8 @@
   "sample": "гледани по 25 мача на всеки",
   "scored": true,
   "hit": false,
-  "score": "1:3"
+  "score": "1:3",
+  "combo_done": true
  },
  {
   "key": "2026-09-09|volleyball|wsen|бразилия|венецуела",
@@ -53297,7 +53298,10 @@
   "p": 0.8345,
   "stars": 3,
   "sample": "гледани 34 мача на единия и 33 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "combo_done": true
  },
  {
   "key": "2026-09-08|volleyball|msen|япония|австралия",
@@ -53498,7 +53502,8 @@
   "sample": "гледани 43 мача на единия и 23 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_done": true
  },
  {
   "key": "2026-09-08|volleyball|msen|катар|корея",
@@ -53541,7 +53546,8 @@
   "score": "0:3",
   "pazar_close": 1.19,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0207
+  "pazar_clv": 0.0207,
+  "combo_done": true
  },
  {
   "key": "2026-09-08|tabletennis|abdullahyigenler|davidkostadinov",
