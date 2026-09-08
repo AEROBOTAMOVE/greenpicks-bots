@@ -9705,6 +9705,19 @@ def post_totali(picks, state, now):
         if str(a.get("bucket") or "") not in TOTAL_SPORTS:
             continue
         nov = pazaren_total(a)
+        # 🔴 И ТОТАЛЪТ СЕ СМЕСВА С ПАЗАРА (05.09.2026).
+        #
+        # Дотук тази карта беше единствената, която не минаваше през
+        # `dosmesi` — тоест носеше ЧУЖДАТА цена (линията и коефициентът са
+        # на Pinnacle) и НАШИЯ процент до нея.
+        #
+        # Измерено на живия дневник: тоталите обявяват 59.5%, сбъдват 50.5%
+        # на 95 отсъдени, доходност −14.8% на 86 с цена. Числото 59.5%
+        # съвпада дословно с несмесената група в надслова на `dosmesi`.
+        #
+        # `dosmesi` не смесва два пъти — познава по `p_model`.
+        if nov is not None:
+            nov = dosmesi(nov)
         if nov is None:
             # 🔴 ДВЕТЕ ПРИЧИНИ СЕ РАЗДЕЛЯТ (19.08.2026). Първата ми версия
             # питаше МОДЕЛА дали може да смята и наричаше отговора „няма
@@ -12919,6 +12932,30 @@ def selftest():
         _ravno = dict(_ant)
         _ravno["tot"] = {"vid": "mx", "lam_h": 1.3, "lam_a": 1.2, "svii": OU_SHRINK}
         check("на монетата тотал НЕ излиза", pazaren_total(_ravno) is None)
+
+        # --- 🔴 ТОТАЛЪТ СЕ СМЕСВА С ПАЗАРА (05.09.2026) ---
+        #
+        # Измерено на живия дневник: тоталите обявяваха 59.5%, сбъдваха
+        # 50.5% на 95 отсъдени, доходност −14.8% на 86 с цена. Числото
+        # 59.5% съвпада дословно с несмесената група в надслова на
+        # `dosmesi` — тоест тоталите СА тя.
+        _td = dosmesi({"p": 0.70, "pazar_p": 0.55, "pazar_cena": 1.80,
+                       "bucket": "football", "pick": "над 2.5"})
+        check("смесването дърпа НАШЕТО число към пазарното",
+              float(_td.get("p")) < 0.70 + 1e-9
+              and abs(float(_td.get("p")) - 0.70) > 1e-9)
+        check("и помни какво е било наше", "p_model" in _td)
+        _td2 = dosmesi(dict(_td))
+        check("не смесва два пъти",
+              abs(float(_td2.get("p")) - float(_td.get("p"))) < 1e-12)
+        # 🔴 РЕДЪТ В ЖИВИЯ ПОТОК. Копчето сено е живият код, не целият файл.
+        _zt = zhiv_izvor()
+        _i1 = _zt.find("nov = pazaren_total(a)")
+        _i2 = _zt.find("nov = dosmesi(nov)")
+        _i3 = _zt.find("gotovi.append(nov)")
+        check("трите места ги има в живия код", min(_i1, _i2, _i3) >= 0)
+        check("тоталът се смесва МЕЖДУ строенето и пускането",
+              _i1 < _i2 < _i3)
         # 🔴 СВИВАНЕТО ИДВА ОТ ОПИСАНИЕТО НА ТОТАЛА, НЕ Е ЗАКОВАНО.
         # Измерено е, че върху калибрирано число свиването ВРЕДИ (виж MLB_DISP):
         # НБ 2.44 без свиване греши −0.1 т, със свиване 0.58 греши −1.4 т и до
@@ -14151,7 +14188,32 @@ def selftest():
           abs(SMELOST_MAX - _sm_sreda) < 1e-9)
     check("💸 прагът е в разумни граници", 0.05 <= SMELOST_MAX <= 1.0)
     check("💸 стандартът е измереният 0.15",
-          abs(env_float("PREDICT_SMELOST_PROBA", 0.15, 0.05, 1.0) - 0.15) < 1e-9)
+          abs(SMELOST_MAX
+              - env_float("PREDICT_SMELOST_MAX", 0.15, 0.05, 1.00)) < 1e-12)
+    # 🔴 ГОРНАТА СРАВНЯВАШЕ 0.15 СЪС СЕБЕ СИ (поправено 05.09.2026). Двата
+    # довода бяха един и същ литерал, написан на същия ред, а ключът
+    # `PREDICT_SMELOST_PROBA` не се подава от НИТО ЕДИН workflow — двойна
+    # украса.
+    #
+    # Сега се сверява, че константата идва от ЖИВАТА ръчка, а не е закована:
+    # прочита се наново и се сравнява. НЕ се сравнява с 0.15 — собственикът
+    # може да смени ръчката през vars и такава проверка би счупила рън, точно
+    # както днес две проверки убиха рутера за два дни.
+    check("смелостта е в обявените граници", 0.05 <= SMELOST_MAX <= 1.00)
+    check("мъртвият ключ PREDICT_SMELOST_PROBA не се подава отникъде",
+          not [1 for _f in (os.listdir(".github/workflows")
+                            if os.path.isdir(".github/workflows") else [])
+               if _f.endswith(".yml")
+               and "PREDICT_SMELOST_PROBA" in open(
+                   os.path.join(".github/workflows", _f),
+                   encoding="utf-8-sig").read()])
+    check("живата ръчка PREDICT_SMELOST_MAX СЕ подава",
+          any("PREDICT_SMELOST_MAX" in open(
+                  os.path.join(".github/workflows", _f),
+                  encoding="utf-8-sig").read()
+              for _f in (os.listdir(".github/workflows")
+                         if os.path.isdir(".github/workflows") else [])
+              if _f.endswith(".yml")))
     # 🔴 ПЪТЯТ НАЗАД, ПРОВЕРЕН ПОВЕДЕНЧЕСКИ, не по текст: с ключ 1.00
     # правилото трябва да СПРЕ да реже, каквото и да му подадеш.
     _sm_staro = SMELOST_MAX
