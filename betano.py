@@ -74,6 +74,7 @@ import json
 import os
 import re
 import sys
+import time
 import unicodedata
 import urllib.request
 
@@ -118,6 +119,19 @@ try:
 except ValueError:
     PROZOREC = 240
 
+try:
+    # 🔴 ЗАПОЧНАЛ МАЧ = ЖИВА ЦЕНА (08.09.2026). Мерено с две снимки на 116
+    # секунди: 5 от 5 започнали мача смениха цената (един от 1.67 на 1.20).
+    # Такава цена е погълнала резултата — на нея никой не може да заложи, а
+    # за затваряща цена тя ФАБРИКУВА ръб.
+    #
+    # Числото е ГРАТИС в минути срещу разминаване на часовниците, не
+    # разрешение за жива цена. -1 изключва проверката (път назад).
+    GRATIS_MIN = max(-1, min(120, int(
+        (os.environ.get("BETANO_GRATIS") or "3").strip() or 3)))
+except ValueError:
+    GRATIS_MIN = 3
+
 UA = "greenpicks-bot/1.0 (+github.com/AEROBOTAMOVE/greenpicks-bots)"
 BAZA = "https://www.betano.bg/api"
 OPASHKA = "?req=la,s,stnf,c,mb"
@@ -138,9 +152,17 @@ SPORT = {
     "mma": "mma",
     "amfootball": "american-football",
     "esports": "esports",
-    # 🔴 РЪГБИ НЯМА. Питано живо на 08.09.2026 с «rugby» и «ragbi» —
-    # и двата пътя връщат нула турнира. Не се обявява спорт, който изворът
-    # не дава: това би било мълчание под чуждо име.
+    # 🔴 РЪГБИТО Е ТАМ — поправено 08.09.2026. Дотук тук пишеше «РЪГБИ НЯМА,
+    # питано с «rugby» и «ragbi», и двата дават нула турнира». И двете ми
+    # догадки бяха грешни адреси: те връщат 404, а верният път е
+    # `rugby-union` (12 турнира) и `rugby-league` (4). «Нула турнира» не беше
+    # отговор на извора — беше моят въпрос, зададен на грешно място, записан
+    # като факт за света. И после го зазидах с проверка.
+    #
+    # 🔴 САМО ЮНИЪН. Нашите лиги са «Топ 14», «НПС», «Тестови мачове» —
+    # всичките юниън. «Ръгби Лига» е ДРУГ спорт, с други отбори; смесването
+    # им би залепило чужд мач за нашата карта.
+    "rugby": "rugby-union",
 }
 
 _kesh = {}
@@ -235,6 +257,9 @@ FONETIKA = (("dzh", "j"), ("dj", "j"), ("tch", "ch"), ("sch", "sh"),
 _GLASNI = re.compile(r"[aeiou]+")
 _DVOYNI = re.compile(r"(.)\1+")
 _G_PRED_E = re.compile(r"g(?=[ei])")
+# 🔴 «v», дошло от «w», ВИНАГИ е пред гласна. «в» накрая на думата е
+# славянски суфикс и НЕ бива да пада — инак «petrov» става «petro».
+_V_PRED_GLASNA = re.compile(r"v(?=[aeiou])")
 
 
 def skelet(w):
@@ -247,8 +272,9 @@ def skelet(w):
         bournemouth / bornemut    ->  barnamat
         chargers / chardzhars     ->  harjars
 
-    🔴 «w» ПАДА, а не става «v». Българското «у» е гласна и се прибира с
-    останалите; «Уориърс» никога не носи «в».
+    🔴 «w» ВЕЧЕ ГО НЯМА, КОГАТО СТИГНЕ ДОТУК. `latinica()` прави w -> v
+    преди това, тоест редът долу е предпазен, не работещ. Затова има и
+    втори вариант — виж `skelet_bez_v`.
     """
     t = str(w or "")
     for a, b in FONETIKA:
@@ -258,6 +284,27 @@ def skelet(w):
     t = t.replace("w", "")
     t = _GLASNI.sub("a", t)          # всяка редица гласни -> една
     return _DVOYNI.sub(r"\1", t)     # двойните съгласни -> една
+
+
+def skelet_bez_v(w):
+    """Скелетът, но без «v». За думите, чието «w» е станало «v».
+
+    🔴 ЗАЩО СЪЩЕСТВУВА. `latinica()` свива w -> v, а българският пише
+    английското «W» и като «У» (Уориърс), и като «В» (Вашингтон). Едно
+    правило не може да покрие двете; затова се пробват ДВАТА скелета.
+
+    🔴 ПАДА САМО «v» ПРЕД ГЛАСНА. Първата ми версия махаше ВСЯКО «v» и
+    слепи «petrov» с «petro» — тоест цял клас славянски фамилии. Английското
+    «w» ВИНАГИ е пред гласна (warriors, washington, williams), а «в» накрая
+    на думата е суфикс, не «w». Мерено на трите варианта:
+
+        всяко v пада        24/28 верни · 1/26 лъжи · 🔴 слива petrov/petro
+        v пред гласна пада  24/28 верни · 1/26 лъжи · ✅ различни
+        само начално v      23/28 верни · 1/26 лъжи · ✅ различни
+
+    Средното е същият улов без загубата.
+    """
+    return skelet(_V_PRED_GLASNA.sub("", str(w or "")))
 
 
 def blizki(x, y):
@@ -280,7 +327,15 @@ def blizki(x, y):
             difflib.SequenceMatcher(None, x, y).ratio() >= 0.85:
         return True
     sx, sy = skelet(x), skelet(y)
-    return len(sx) >= 5 and sx == sy
+    if len(sx) >= 5 and sx == sy:
+        return True
+    # 🔴 ВТОРИЯТ ВАРИАНТ. Не знаем коя от двете думи е носила «w», затова се
+    # пробва и от двете страни. Прагът 5 остава — скелетът вече е загубил
+    # гласните, а сега губи и «v».
+    for a, b in ((skelet_bez_v(x), sy), (sx, skelet_bez_v(y))):
+        if len(a) >= 5 and a == b:
+            return True
+    return False
 
 
 # 🔴 БЕЛЯЗАНИТЕ ЕТИКЕТИ. «Мъже» НЕ е между тях: мъжкото е мълчаливото
@@ -535,7 +590,8 @@ def sabitiya(sport, otvarach=None, liga=None):
     return vsi
 
 
-def ceni_za(sport, dom, gost, nachalo=None, otvarach=None, liga=None):
+def ceni_za(sport, dom, gost, nachalo=None, otvarach=None, liga=None,
+            sega=None):
     """(коеф_дом, коеф_гост, коеф_равен, лига, път) или None. NEPITAN при отказ.
 
     🔴 СЪВПАДЕНИЕТО ИСКА И ДВЕТЕ СТРАНИ. Една обща фамилия вече е свързала
@@ -555,9 +611,20 @@ def ceni_za(sport, dom, gost, nachalo=None, otvarach=None, liga=None):
         return NEPITAN
     if not (redica(dom) and redica(gost)):
         return None
+    # 🔴 ЧАСЪТ СЕ ПОДАВА, НЕ СЕ ЧЕТЕ ОТ СТЕНАТА. Тест, който пита истинския
+    # часовник, е наблюдение върху деня, не тест.
+    try:
+        sega_ms = int((time.time() if sega is None else float(sega)) * 1000)
+    except (TypeError, ValueError):
+        sega_ms = int(time.time() * 1000)
     kand = []
     for zap in ev:
         A, B, st = zap[0], zap[1], zap[2]
+        # 🔴 ВЕЧЕ ЗАПОЧНАЛ = ЖИВА ЦЕНА, ПОГЪЛНАЛА РЕЗУЛТАТА. Мерено: 5 от 5
+        # започнали мача смениха цената за 116 секунди. В кеширана оферта от
+        # 3072 събития 555 вече бяха започнали — тоест вратата беше широка.
+        if GRATIS_MIN >= 0 and st and st < sega_ms - GRATIS_MIN * 60000:
+            continue
         # 🔴 ПОЛ И ВЪЗРАСТ. Турнирът на Betano е zap[6]; нашата лига идва
         # отвън. Разминат ли се белязаните етикети, това не е нашият мач.
         #
@@ -588,15 +655,32 @@ def ceni_za(sport, dom, gost, nachalo=None, otvarach=None, liga=None):
     return kand[0][1]
 
 
-def ima_go(sport, dom, gost, nachalo=None, otvarach=None, liga=None):
+def ima_go(sport, dom, gost, nachalo=None, otvarach=None, liga=None,
+           sega=None):
     """Заложим ли е мачът в българската книга. None при отказ на извора."""
-    r = ceni_za(sport, dom, gost, nachalo, otvarach, liga)
+    r = ceni_za(sport, dom, gost, nachalo, otvarach, liga, sega)
     if r is NEPITAN:
         return None
     return bool(r)
 
 
 # ═════════════════════════════════════════ САМОПРОВЕРКА
+_ZP_IZVOR = ""
+try:
+    _ZP_IZVOR = io.open(__file__, encoding="utf-8-sig").read()
+except Exception:                                        # noqa: BLE001
+    _ZP_IZVOR = ""
+
+
+# 🔴 ЕДИН ЧАС ЗА ЦЕЛИЯ ТЕСТ, ЧАС ПРЕДИ ПОДЛОЖКИТЕ (08.09.2026).
+#
+# Пазачът «започнал мач = жива цена» чете часовника, когато викащият
+# не подаде час. Шест проверки паднаха от това: подложките им носят
+# закован startTime в миналото. Дефектът беше в ТЕСТОВЕТЕ — те
+# зависеха от стенния часовник, а такъв тест е наблюдение върху деня.
+_SEGA_V_TESTA = (1788850800000 - 3600000) / 1000.0
+
+
 def selftest():
     ok, bad = 0, []
 
@@ -669,7 +753,28 @@ def selftest():
     check("«gh» пада", skelet("brighton") == skelet("braitan"))
     check("«дж» и «g» пред «e» се срещат",
           skelet("khargers") == skelet("khardzhars"))
-    check("«w» ПАДА, не става «v»", "v" not in skelet("warriors"))
+    # 🔴 ТАЗИ ПРОВЕРКА МИНАВАШЕ ЗА ГРЕШНОТО. Тя гледаше `skelet("warriors")`
+    # — дума, която в живия път НИКОГА не стига дотук с «w», защото
+    # `latinica()` вече го е сменила на «v». Тоест изпитваше мъртъв ред.
+    check("скелетът наистина маха «w», ако го види",
+          "v" not in skelet("warriors"))
+    check("но в живия път «w» вече е «v»", "v" in latinica("warriors"))
+    check("затова има ВТОРИ вариант", skelet_bez_v("varriors")
+          == skelet("warriors"))
+    check("и той се ползва от blizki", blizki("varriors", "uoriars"))
+    # 🔴 И В ОБРАТНАТА ПОСОКА. Betano понякога пише латиница («Andrea
+    # Puppo»), а нашият дневник — кирилица. Тогава «w»-то е от ТЯХНАТА
+    # страна. Без тази проверка мутацията «пробвай само едната посока»
+    # оставаше зелена — нито един мой тест не я изпитваше.
+    check("вторият вариант работи и в ОБРАТНАТА посока",
+          blizki("uoriars", "varriors"))
+    check("Уориърс среща Warriors през целия матчър",
+          sreshta("Golden State Warriors", "Голдън Стейт Уориърс"))
+    # 🔴 И ОТРИЦАТЕЛНА КОНТРОЛА: вторият вариант не слива всичко.
+    check("вторият вариант НЕ слива различни имена",
+          not blizki("liverpool", "levski"))
+    check("и не слива Вашингтон с Уориърс",
+          not blizki(latinica("washington"), latinica("уориърс")))
     check("двойните съгласни се свиват", skelet("tigerr") == skelet("tiger"))
     # 🔴 И ОТРИЦАТЕЛНА КОНТРОЛА: скелетът НЕ слива всичко.
     check("различни имена дават РАЗЛИЧНИ скелети",
@@ -705,9 +810,16 @@ def selftest():
     check("двата отбора от един град наистина се сливат по име",
           sreshta("Golden State Valkyries", "Голдън Стейт Уориърс")
           and sreshta("Golden State Warriors", "Голдън Стейт Уориърс"))
-    check("но силата им е РАВНА",
-          sila("Golden State Valkyries", "Голдън Стейт Уориърс")
-          == sila("Golden State Warriors", "Голдън Стейт Уориърс"))
+    # 🔴 СИЛИТЕ ВЕЧЕ НЕ СА РАВНИ — и това е ПОДОБРЕНИЕ. Преди втория
+    # вариант на скелета «varriors» не срещаше «uoriars», двата отбора от
+    # един град бяха неразличими и `ceni_za` отказваше и двата. Сега верният
+    # печели с 3 срещу 1 и картата получава цена вместо мълчание.
+    check("верният отбор има ПО-ГОЛЯМА сила",
+          sila("Golden State Warriors", "Голдън Стейт Уориърс")
+          > sila("Golden State Valkyries", "Голдън Стейт Уориърс"))
+    check("и разликата идва от прякора, не от града",
+          blizki(latinica("Warriors"), latinica("Уориърс"))
+          and not blizki(latinica("Valkyries"), latinica("Уориърс")))
     _kesh.clear()
     _dvusm = {"data": {"blocks": [{"events": [
         {"participants": [{"name": "Голдън Стейт Уориърс"},
@@ -746,12 +858,12 @@ def selftest():
     # сливат по име, но срещу РАЗЛИЧНИ противници — тогава едната двойка
     # съвпада и по двете страни, а другата не.
     _dv1 = ceni_za("basketball", "Golden State Warriors", "Phoenix Suns",
-                   1788850800000, _dv_otv)
+                   1788850800000, _dv_otv, sega=_SEGA_V_TESTA)
     check("противникът разплита двата отбора от един град",
           isinstance(_dv1, tuple) and abs(_dv1[0] - 1.70) < 1e-9)
     _kesh.clear()
     _dv2 = ceni_za("basketball", "Golden State Valkyries", "Dallas Wings",
-                   1788850800000, _dv_otv)
+                   1788850800000, _dv_otv, sega=_SEGA_V_TESTA)
     check("и другият отбор води до ДРУГАТА цена",
           isinstance(_dv2, tuple) and abs(_dv2[0] - 3.10) < 1e-9)
     _kesh.clear()
@@ -786,9 +898,58 @@ def selftest():
                 return False
         return F()
 
-    check("две неразличими срещи дават МЪЛЧАНИЕ, не грешна цена",
-          ceni_za("basketball", "Golden State Warriors", "Phoenix Suns",
-                  1788850800000, _dv_otv2) is None)
+    # 🔴 ИСТИНСКОТО ДВУСМИСЛИЕ НЕ Е «ДВА ОТБОРА ОТ ЕДИН ГРАД», а «едни и
+    # същи двама играят ДВА ПЪТИ в един ден» — редовно в чешките лиги по
+    # тенис на маса. Там силите са наистина равни и отказът е единственият
+    # честен отговор. Първата ми проба ползваше Уориърс/Валкирии и спря да
+    # мери двусмислие в момента, в който матчърът се научи да ги различава.
+    _kesh.clear()
+    _dv_dvazh = {"data": {"blocks": [{"events": [
+        {"participants": [{"name": "Томас Регнер"},
+                          {"name": "Адам Свобода"}],
+         "startTime": 1788850800000, "url": "/koefitsienti/a/1/",
+         "markets": [{"handicap": 0.0, "selections": [
+             {"name": "Томас Регнер", "price": 1.70},
+             {"name": "Адам Свобода", "price": 2.10}]}]},
+        {"participants": [{"name": "Томас Регнер"},
+                          {"name": "Адам Свобода"}],
+         # 🔴 ОТВЪД ПРОЗОРЕЦА (240 мин). При 90 минути двете срещи още са
+         # вътре в него и подаденият час НЕ ги разделя — първата ми проба
+         # мереше точно това и падна с право.
+         "startTime": 1788850800000 + 6 * 3600000, "url": "/koefitsienti/b/2/",
+         "markets": [{"handicap": 0.0, "selections": [
+             {"name": "Томас Регнер", "price": 3.10},
+             {"name": "Адам Свобода", "price": 1.31}]}]}]}]}}
+    _dv_d2 = {"data": {"regionGroups": [{"regions": [
+        {"name": "Чехия", "leagues": [
+            {"name": "Лига Про", "url": "/sport/x/1/"}]}]}]}}
+
+    def _dv_otv3(rq, timeout=None):
+        u = rq.full_url
+        pitani.append(u)
+        telo = _dv_dvazh if "/sport/x/1/" in u else _dv_d2
+
+        class F(object):
+            def read(self_inner):
+                return json.dumps(telo).encode("utf-8")
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *a):
+                return False
+        return F()
+
+    check("едни и същи двама, два пъти в деня -> МЪЛЧАНИЕ, не гадаене",
+          ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
+                  None, _dv_otv3, None,
+                  (1788850800000 - 3600000) / 1000.0) is None)
+    # 🔴 И КОНТРОЛА: с ПОДАДЕН час прозорецът ги разделя и цената се връща.
+    _kesh.clear()
+    check("но с подаден час прозорецът ги разделя",
+          isinstance(ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
+                             1788850800000, _dv_otv3, None,
+                             (1788850800000 - 3600000) / 1000.0), tuple))
     _kesh.clear()
 
     check("късата дума НЕ се слива с по-дългата",
@@ -864,10 +1025,17 @@ def selftest():
           sabitiya("tabletennis", otkaz) is NEPITAN)
     _kesh.clear()
     check("и до цените", ceni_za("tabletennis", "A Bcde", "F Ghij",
-                                 None, otkaz) is NEPITAN)
+                                 None, otkaz, sega=_SEGA_V_TESTA) is NEPITAN)
     _kesh.clear()
     check("непознат спорт не пипа мрежата", turniri("krikett") == [])
-    check("ръгбито НЕ се обявява за покрито", "rugby" not in SPORT)
+    # 🔴 ТАЗИ ПРОВЕРКА БРАНЕШЕ ГРЕШКАТА. Тя твърдеше «ръгбито НЕ се
+    # обявява за покрито» и така пазеше едно невярно наблюдение да не бъде
+    # поправено. Проверка, която зазижда догадка, е по-лоша от липсваща.
+    check("ръгбито Е покрито, и то през ЮНИЪН",
+          SPORT.get("rugby") == "rugby-union")
+    # 🔴 «Ръгби Лига» е ДРУГ спорт — не бива да се лепи за нашия.
+    check("ръгби лига НЕ се смесва с ръгби юниън",
+          "rugby-league" not in SPORT.values())
 
     # ── целият път, върху подложка
     _kesh.clear()
@@ -899,7 +1067,7 @@ def selftest():
         return F()
 
     _r = ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
-                 1788850800000, dvoen)
+                 1788850800000, dvoen, sega=_SEGA_V_TESTA)
     check("латинското име среща кирилското през целия път",
           isinstance(_r, tuple) and abs(_r[0] - 2.40) < 1e-9)
     check("и гостът е на мястото си",
@@ -910,7 +1078,7 @@ def selftest():
           isinstance(_r, tuple) and str(_r[4]).startswith("/koefitsienti/"))
     _kesh.clear()
     _o = ceni_za("tabletennis", "Adam Svoboda", "Tomas Regner",
-                 1788850800000, dvoen)
+                 1788850800000, dvoen, sega=_SEGA_V_TESTA)
     check("обърнатите страни връщат ОБЪРНАТИ коефициенти",
           isinstance(_o, tuple) and abs(_o[0] - 1.55) < 1e-9
           and abs(_o[1] - 2.40) < 1e-9)
@@ -919,21 +1087,21 @@ def selftest():
     _kesh.clear()
     check("час, изместен с 3 часа, ВСЕ ПАК дава цена",
           isinstance(ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
-                             1788850800000 + 3 * 3600000, dvoen), tuple))
+                             1788850800000 + 3 * 3600000, dvoen, sega=_SEGA_V_TESTA), tuple))
     _kesh.clear()
     check("но час от друг ДЕН не дава",
           ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
-                  1788850800000 + 26 * 3600000, dvoen) is None)
+                  1788850800000 + 26 * 3600000, dvoen, sega=_SEGA_V_TESTA) is None)
     _kesh.clear()
     check("и прозорецът наистина е широк", PROZOREC >= 120)
     _kesh.clear()
     check("непознат мач не дава цена",
           ceni_za("tabletennis", "Ivan Petrov", "Georgi Dimov",
-                  1788850800000, dvoen) is None)
+                  1788850800000, dvoen, sega=_SEGA_V_TESTA) is None)
     _kesh.clear()
     check("една позната страна НЕ стига",
           ceni_za("tabletennis", "Tomas Regner", "Georgi Dimov",
-                  1788850800000, dvoen) is None)
+                  1788850800000, dvoen, sega=_SEGA_V_TESTA) is None)
     # 🔴 ДВА ЕДНАКВО ДОБРИ КАНДИДАТА = ОТКАЗ. Без този тест мутацията
     # «не отказвай при двусмислие» оставаше зелена: нищо не строеше две
     # еднакво силни съвпадения.
@@ -970,16 +1138,16 @@ def selftest():
 
     check("два еднакво добри мача НЕ дават цена — отказва се",
           ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
-                  1788850800000, dva) is None)
+                  1788850800000, dva, sega=_SEGA_V_TESTA) is None)
 
     _kesh.clear()
     check("ima_go казва ДА за познат мач",
           ima_go("tabletennis", "Tomas Regner", "Adam Svoboda",
-                 1788850800000, dvoen) is True)
+                 1788850800000, dvoen, sega=_SEGA_V_TESTA) is True)
     _kesh.clear()
     check("ima_go казва НЕ ЗНАМ при отказ",
           ima_go("tabletennis", "Tomas Regner", "Adam Svoboda",
-                 1788850800000, otkaz) is None)
+                 1788850800000, otkaz, sega=_SEGA_V_TESTA) is None)
 
     # ── 🔴 БЮДЖЕТЪТ, КЕШЪТ ПО ТУРНИР И НАСОЧВАНЕТО ПО ЛИГА (08.09.2026)
     #
@@ -1051,7 +1219,7 @@ def selftest():
     try:
         globals()["TAVAN_ZAYAVKI"] = 1
         _r1 = ceni_za("football", "Palmeiras", "Boca Juniors",
-                      1788850800000, _mnogo, "Копа Либертадорес")
+                      1788850800000, _mnogo, "Копа Либертадорес", sega=_SEGA_V_TESTA)
         check("с бюджет 1 насочената лига ВСЕ ПАК се намира",
               isinstance(_r1, tuple) and abs(_r1[0] - 1.80) < 1e-9)
         check("и е похарчена точно една заявка за турнир",
@@ -1059,7 +1227,7 @@ def selftest():
         # другата лига НЕ може да се стигне — бюджетът е свършил
         check("а мач от НЕтърсената лига остава ненамерен",
               ceni_za("football", "Inter Miami", "Orlando City",
-                      1788850800000, _mnogo, "Копа Либертадорес") is None)
+                      1788850800000, _mnogo, "Копа Либертадорес", sega=_SEGA_V_TESTA) is None)
     finally:
         globals()["TAVAN_ZAYAVKI"] = _st_tz
 
@@ -1069,10 +1237,10 @@ def selftest():
     _HARCH.clear()
     del _mn_pit[:]
     _a = ceni_za("football", "Palmeiras", "Boca Juniors",
-                 1788850800000, _mnogo, "Копа Либертадорес")
+                 1788850800000, _mnogo, "Копа Либертадорес", sega=_SEGA_V_TESTA)
     _sled_prva = len(_mn_pit)
     _b2 = ceni_za("football", "Inter Miami", "Orlando City",
-                  1788850800000, _mnogo, "МЛС")
+                  1788850800000, _mnogo, "МЛС", sega=_SEGA_V_TESTA)
     check("втората карта също се намира",
           isinstance(_b2, tuple) and abs(_b2[0] - 1.90) < 1e-9)
     check("дървото НЕ се тегли втори път",
@@ -1081,6 +1249,72 @@ def selftest():
           len(set(_mn_pit)) == len(_mn_pit))
     _kesh.clear()
     _HARCH.clear()
+
+    # ── 🔴 ЗАПОЧНАЛ МАЧ = ЖИВА ЦЕНА (08.09.2026)
+    #
+    # Мерено живо с две снимки на 116 секунди: 5 от 5 започнали мача смениха
+    # цената, един от 1.67 на 1.20. Цена, погълнала резултата, не е нито
+    # заложима, нито годна за затваряща — тя фабрикува ръб.
+    _zp_darvo = {"data": {"regionGroups": [{"regions": [
+        {"name": "Чехия", "leagues": [
+            {"name": "Лига Про", "url": "/sport/x/1/"}]}]}]}}
+
+    def _zp_liga(start):
+        return {"data": {"blocks": [{"events": [
+            {"participants": [{"name": "Томас Регнер"},
+                              {"name": "Адам Свобода"}],
+             "startTime": start, "url": "/koefitsienti/x/1/",
+             "markets": [{"handicap": 0.0, "selections": [
+                 {"name": "Томас Регнер", "price": 2.40},
+                 {"name": "Адам Свобода", "price": 1.55}]}]}]}]}}
+
+    _ZP_START = 1788850800000        # часът на мача, в милисекунди
+
+    def _zp_otv(rq, timeout=None):
+        u = rq.full_url
+        pitani.append(u)
+        telo = _zp_liga(_ZP_START) if "/sport/x/1/" in u else _zp_darvo
+
+        class F(object):
+            def read(self_inner):
+                return json.dumps(telo).encode("utf-8")
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *a):
+                return False
+        return F()
+
+    # 🔴 «СЕГА» Е ПАРАМЕТЪР. Тест, който пита стенния часовник, пада в събота.
+    _kesh.clear()
+    check("мач, който още НЕ е започнал, дава цена",
+          isinstance(ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
+                             None, _zp_otv, None,
+                             (_ZP_START - 3600000) / 1000.0), tuple))
+    _kesh.clear()
+    check("🔴 мач, започнал преди час, НЕ дава цена",
+          ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
+                  None, _zp_otv, None,
+                  (_ZP_START + 3600000) / 1000.0) is None)
+    _kesh.clear()
+    check("гратисът пази от разминат часовник",
+          isinstance(ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
+                             None, _zp_otv, None,
+                             (_ZP_START + 60000) / 1000.0), tuple))
+    _kesh.clear()
+    check("но гратисът НЕ е разрешение за жива цена",
+          ceni_za("tabletennis", "Tomas Regner", "Adam Svoboda",
+                  None, _zp_otv, None,
+                  (_ZP_START + 20 * 60000) / 1000.0) is None)
+    _kesh.clear()
+    check("ima_go също уважава започналия мач",
+          ima_go("tabletennis", "Tomas Regner", "Adam Svoboda",
+                 None, _zp_otv, None,
+                 (_ZP_START + 3600000) / 1000.0) is False)
+    _kesh.clear()
+    check("гратисът е в разумни граници", -1 <= GRATIS_MIN <= 120)
+    check("и пътят назад съществува", "BETANO_GRATIS" in _ZP_IZVOR)
 
     # ── 🔴 ПОЛ И ВЪЗРАСТ (08.09.2026)
     #
@@ -1144,15 +1378,15 @@ def selftest():
     check("женска наша лига ВЗИМА цена от женския турнир",
           isinstance(ceni_za("volleyball", "Бразилия", "Венецуела",
                              1788850800000, _et_otv,
-                             "CSV Women South American Championship"), tuple))
+                             "CSV Women South American Championship", sega=_SEGA_V_TESTA), tuple))
     _kesh.clear()
     check("🔴 МЪЖКА наша лига НЕ взима цена от женския турнир",
           ceni_za("volleyball", "Бразилия", "Венецуела", 1788850800000,
-                  _et_otv, "Men's South American Cup") is None)
+                  _et_otv, "Men's South American Cup", sega=_SEGA_V_TESTA) is None)
     _kesh.clear()
     check("без подадена лига пазачът мълчи (старото поведение)",
           isinstance(ceni_za("volleyball", "Бразилия", "Венецуела",
-                             1788850800000, _et_otv), tuple))
+                             1788850800000, _et_otv, sega=_SEGA_V_TESTA), tuple))
     _kesh.clear()
 
     # ── 🔴 ПОДЪТ НА ЦЕНАТА
