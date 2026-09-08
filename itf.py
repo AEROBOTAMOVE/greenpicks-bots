@@ -253,6 +253,12 @@ def _den(day):
     if kl in _kesh:
         return _kesh[kl]
     txt = _text("/f_%d_%d_%d_en_1" % (SPORT, int(day), POYAS))
+    # 🔴 ПРОВАЛЪТ НЕ Е ПРАЗЕН ДЕН (05.09.2026). `_text` връща None при всяка
+    # мрежова беда, `raztvori` прави от него [], и по-долу празното влизаше в
+    # кеша — тоест едно кихване заключваше деня за целия рън и малкият тур
+    # мълчеше, скрит зад живия ATP/WTA.
+    if txt is None:
+        return []
     zap = raztvori(txt)
     out = []
     liga = ""
