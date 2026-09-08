@@ -417,6 +417,54 @@ def chete_klyuchove(bot, kod=None):
         r"environ(?:\.get)?\(?\[?\s*['\"]([A-Z_0-9]{3,})['\"]", t))
 
 
+def razminati_stoynosti(papka=None):
+    """[(ключ, {стойност: [файлове]})] за ключове с РАЗЛИЧНИ подразбирания.
+
+    🔴 ПРИСЪСТВИЕТО НЕ СТИГА (08.09.2026). `seed.yml` и `content.yml` даваха
+    на един и същ бот ключа `SUPPORT` — и двата го имаха, но с различни
+    стойности, и втората сочеше МЪРТЪВ бот. Пазачът мълчеше, защото сравняваше
+    само дали ключът го има.
+
+    🔴 САМО ЛИТЕРАЛИТЕ. `${{ vars.X }}` се пресмята при пускането; литералът
+    след `||` е записан в yml-а и е единственото, което ние решаваме.
+    """
+    # `re` се внася ТУК, както прави и `zhivi_stypki` — файлът няма
+    # модулен внос.
+    import re as _re
+    _lit = _re.compile(r"\|\|\s*'([^']*)'")
+    bazi = [papka] if papka else [".github/workflows", "../.github/workflows"]
+    for baza in bazi:
+        if not baza or not os.path.isdir(baza):
+            continue
+        po = {}
+        for ime in sorted(os.listdir(baza)):
+            if not ime.endswith(".yml"):
+                continue
+            try:
+                with io.open(os.path.join(baza, ime), encoding="utf-8") as f:
+                    redove = f.read().split("\n")
+            except (OSError, UnicodeDecodeError):
+                continue
+            for l in redove:
+                if l.strip().startswith("#"):
+                    continue
+                m = _re.match(r"^\s*([A-Z][A-Z0-9_]{2,}):\s*(.+?)\s*$", l)
+                if not m:
+                    continue
+                d = _lit.search(m.group(2))
+                if not d:
+                    continue
+                po.setdefault(m.group(1), {}).setdefault(
+                    d.group(1), []).append(ime)
+        nam = []
+        for kl in sorted(po):
+            if len(po[kl]) > 1:
+                nam.append((kl, dict((v, sorted(f))
+                                     for v, f in po[kl].items())))
+        return nam
+    return []
+
+
 def razminati_ruchki(papka=None, kod=None):
     """[(бот, ключ, кой го има, кой не)] за живите пътища на един бот.
 
@@ -1169,6 +1217,55 @@ def selftest():
           all(k in chete_klyuchove(b) for b, k in RUCHKI_PO_ZAMISAL))
     check("сухите ключове НЕ се изравняват",
           not [1 for _b, k, _i, _n in _razm if k.endswith("_DRY_RUN")])
+    # 🔴 И СТОЙНОСТИТЕ, НЕ САМО ПРИСЪСТВИЕТО (08.09.2026). `seed.yml` и
+    # `content.yml` даваха на `channel_seed.py` един и същ ключ `SUPPORT` с
+    # РАЗЛИЧНИ стойности, втората сочеща МЪРТЪВ бот. Пазачът мълчеше, защото
+    # сравняваше само дали ключът го има.
+    _rst = razminati_stoynosti()
+    _rst_kaz = "; ".join("%s: %s" % (k, " срещу ".join(sorted(v)[:2]))
+                         for k, v in _rst[:3])
+    check("един ключ НЕ носи различни подразбирания: "
+          + (_rst_kaz[:90] or "-"), not _rst)
+    # 🔴 И ЧЕ ПРОВЕРКАТА НАИСТИНА ВИЖДА. Празен резултат от сляп четец
+    # изглежда точно като чисто; тук се подхвърля НАРОЧНО разминат yml.
+    import tempfile as _tf
+    _rst_proba = os.path.join(_tf.gettempdir(), "pz_proba_stoynosti")
+    try:
+        if not os.path.isdir(_rst_proba):
+            os.makedirs(_rst_proba)
+        for _ime, _st in (("a.yml", "@edin_bot"), ("b.yml", "@drug_bot")):
+            with io.open(os.path.join(_rst_proba, _ime), "w",
+                         encoding="utf-8") as _f:
+                _f.write("jobs:\n  x:\n    steps:\n      - name: s\n"
+                         "        env:\n          SUPPORT: ${{ vars.SUPPORT"
+                         " || '" + _st + "' }}\n"
+                         "        run: python channel_seed.py\n")
+        _vidya = razminati_stoynosti(_rst_proba)
+        check("проверката НАИСТИНА хваща разминати стойности",
+              any(k == "SUPPORT" and len(v) == 2 for k, v in _vidya))
+        # 🔴 КОМЕНТАРИТЕ НЕ СА СТОЙНОСТИ. Същият капан вече е хващан в
+        # `zhivi_stypki`: «# на `python news_bot.py`» вътре в коментар
+        # се четеше за викане — осем фалшиви находки от една чертичка.
+        # Трети файл с ТРЕТА стойност, но в коментар: не бива да брои.
+        _tri = os.path.join(_rst_proba, "c.yml")
+        with io.open(_tri, "w", encoding="utf-8") as _f:
+            _f.write("jobs:" + chr(10)
+                     + "  x:" + chr(10)
+                     + "    steps:" + chr(10)
+                     + "      - name: s" + chr(10)
+                     + "        env:" + chr(10)
+                     + "          # SUPPORT: ${{ vars.SUPPORT || '@treti_bot' }}" + chr(10)
+                     + "          CHAT_ID: '1'" + chr(10)
+                     + "        run: python channel_seed.py" + chr(10))
+        _vidya2 = razminati_stoynosti(_rst_proba)
+        check("но КОМЕНТИРАНАТА стойност НЕ се брои",
+              any(k == "SUPPORT" and len(v) == 2 for k, v in _vidya2))
+        try:
+            os.remove(_tri)
+        except OSError:
+            pass
+    except OSError:
+        check("проверката НАИСТИНА хваща разминати стойности", False)
 
     check("ключът за сух режим се чете от КОДА",
           suh_klyuch("predictor.py") == "PREDICT_DRY_RUN"
