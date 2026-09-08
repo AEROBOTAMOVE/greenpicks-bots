@@ -76,6 +76,17 @@ try:
 except ValueError:
     TAIMAUT = 20
 try:
+    # 🔴 БЮДЖЕТ ПО СПОРТ, НЕ СЛЯП ТАВАН (08.09.2026). Измерено живо: таванът
+    # от 14 турнира изхвърляше 1085 от 1596 отборни събития (68%) и
+    # ВСИЧКИТЕ 43 ИТФ турнира при тениса — тоест точно това, от което идват
+    # картите ни. Тук се брои КОЛКО ЗАЯВКИ може да похарчи спортът за целия
+    # рън; турнирите се подреждат по търсената лига, тоест харчът е насочен.
+    # 0 връща старото поведение (само първите TAVAN_TURNIRI, без насочване).
+    TAVAN_ZAYAVKI = max(0, min(400, int(
+        (os.environ.get("BETANO_TAVAN_ZAYAVKI") or "24").strip() or 24)))
+except ValueError:
+    TAVAN_ZAYAVKI = 24
+try:
     # Прозорецът в МИНУТИ. 0 значи «не гледай часа» — губи седем пъти повече
     # лъжливи съвпадения и затова НЕ е подразбирането.
     PROZOREC = max(0, min(360, int(
@@ -110,11 +121,15 @@ SPORT = {
 
 _kesh = {}
 _STAT = {"zayavki": 0, "provali": 0}
+# Колко заявки е похарчил всеки спорт за този рън. Отделно от _STAT, защото
+# бюджетът е ПО СПОРТ, а _STAT брои всичко.
+_HARCH = {}
 
 
 def _nulirai_stat():
     _STAT["zayavki"] = 0
     _STAT["provali"] = 0
+    _HARCH.clear()
 
 
 def statistika():
@@ -189,16 +204,98 @@ def redica(s):
     return r
 
 
+# 🔴 ДВОЙКИТЕ, КОИТО ДВАТА ПРАВОПИСА ПИШАТ РАЗЛИЧНО. Редът има значение:
+# по-дългите съчетания се заменят първи.
+FONETIKA = (("dzh", "j"), ("dj", "j"), ("tch", "ch"), ("sch", "sh"),
+            ("th", "t"), ("ph", "f"), ("ck", "k"), ("gh", ""), ("kh", "h"))
+_GLASNI = re.compile(r"[aeiou]+")
+_DVOYNI = re.compile(r"(.)\1+")
+_G_PRED_E = re.compile(r"g(?=[ei])")
+
+
+def skelet(w):
+    """Фонетичният скелет на една дума — за сравнение, не за показване.
+
+    Прибира точно местата, където българският и английският правопис на едно
+    и също име се разминават: неударената гласна, «th», «дж», «gh», «w».
+
+        sunderland / sandarland   ->  sandarland
+        bournemouth / bornemut    ->  barnamat
+        chargers / chardzhars     ->  harjars
+
+    🔴 «w» ПАДА, а не става «v». Българското «у» е гласна и се прибира с
+    останалите; «Уориърс» никога не носи «в».
+    """
+    t = str(w or "")
+    for a, b in FONETIKA:
+        t = t.replace(a, b)
+    # «g» пред предна гласна звучи «дж» в английските имена (Chargers, Angeles)
+    t = _G_PRED_E.sub("j", t)
+    t = t.replace("w", "")
+    t = _GLASNI.sub("a", t)          # всяка редица гласни -> една
+    return _DVOYNI.sub(r"\1", t)     # двойните съгласни -> една
+
+
 def blizki(x, y):
-    """Две думи са една и съща дума. Размитото важи само за дълги думи.
+    """Две думи са една и съща дума. Три стъпала, от строго към прощаващо.
 
     🔴 ПРАГЪТ 6 БУКВИ Е ИЗМЕРЕН. По-къс праг слива «Симек» и «Юпа».
+
+    🔴 СКЕЛЕТЪТ СЕ ИСКА ТОЧЕН (08.09.2026). Размито сравнение върху скелети
+    умножава двете хлабавини. Мерено на 24 прочетени верни двойки и 3277
+    адверсарни: скелетът вдига улова от 62% на 88% срещу +0.3 пункта
+    адверсарни лъжи, докато разхлабването на прага до 0.74 дава 79% срещу
+    25% лъжи по прочетените — тоест скелетът е по-добрата сделка.
+
+    🔴 ПРАГЪТ 5 БУКВИ ЗА СКЕЛЕТА. По-къс слива твърде много: скелетът и без
+    това е загубил гласните.
     """
     if x == y:
         return True
-    if len(x) >= 6 and len(y) >= 6:
-        return difflib.SequenceMatcher(None, x, y).ratio() >= 0.85
-    return False
+    if len(x) >= 6 and len(y) >= 6 and \
+            difflib.SequenceMatcher(None, x, y).ratio() >= 0.85:
+        return True
+    sx, sy = skelet(x), skelet(y)
+    return len(sx) >= 5 and sx == sy
+
+
+# 🔴 БЕЛЯЗАНИТЕ ЕТИКЕТИ. «Мъже» НЕ е между тях: мъжкото е мълчаливото
+# подразбиране в спортното именуване, а женското и възрастовото се пишат.
+_ZHENI = re.compile(
+    "(\u0436\u0435\u043d\u0438|\u0436\u0435\u043d\u0441\u043a|"
+    "\u0434\u0430\u043c\u0438|\u0434\u0430\u043c\u0441\u043a|"
+    "women|female|girls|wta|ladies)", re.I)
+# 🔴 СУРОВ НИЗ. Първата ми версия беше нормален низ, тоест "\b" ставаше
+# BACKSPACE и цялата възрастова половина НИКОГА не се хващаше — U17 минаваше
+# за открит турнир. Собствената ми проверка го улови.
+_VAZRAST = re.compile(
+    r"(\bu-?(1[5-9]|2[0-3])\b|\u044e\u043d\u043e\u0448|"
+    r"\u0434\u0435\u0432\u043e\u0439\u043a|youth|junior|cadet)", re.I)
+
+
+def etiket(tekst):
+    """Белязаните етикети в един текст. Празно множество = мъжки/открит.
+
+    Ползва се за ЛИГАТА, не за имената: «Бразилия» е «Бразилия» и в двата
+    турнира, а разликата стои в името на състезанието.
+    """
+    t = str(tekst or "")
+    e = set()
+    if _ZHENI.search(t):
+        e.add("zheni")
+    if _VAZRAST.search(t):
+        e.add("vazrast")
+    return e
+
+
+def etiketite_pasvat(nash, tehen):
+    """Може ли наша лига и техен турнир да са едно и също състезание.
+
+    🔴 БЕЛЯЗАНОТО ТРЯБВА ДА Е И ОТ ДВЕТЕ СТРАНИ ИЛИ ОТ НИТО ЕДНА. Женски мач
+    с цена от мъжкия е тиха грешна цена — най-лошият вид, защото картата
+    изглежда пълна.
+    """
+    return etiket(nash) == etiket(tehen)
 
 
 def sreshta(a, b):
@@ -271,7 +368,10 @@ def koef_ot_sabitie(ev):
             except (TypeError, ValueError):
                 dobre = False
                 break
-            if c <= 1.0:
+            # 🔴 ПОДЪТ Е 1.02, НЕ 1.00 (08.09.2026). Живо намерен коефициент
+            # 1.001 минаваше пазача и се печаташе като «1.00» — число, което
+            # се закръгля до едно, не е цена, а «няма пазар» с цифри.
+            if c < 1.02:
                 dobre = False
                 break
             ceni.append(c)
@@ -323,42 +423,95 @@ def turniri(sport, otvarach=None):
     return nam
 
 
-def sabitiya(sport, otvarach=None):
-    """[(дом, гост, начало_мс, коеф_дом, коеф_гост, коеф_равен, лига, път)].
+def podredi(turnirite, liga):
+    """Турнирите, подредени по близост до ТЪРСЕНАТА лига.
 
-    NEPITAN, ако САМОТО ДЪРВО е отказало. Отказ на отделен турнир не е отказ
-    на извора — той се брои и се минава нататък.
+    🔴 ЗАЩО. Дотук се взимаха първите `TAVAN_TURNIRI` в реда на дървото. При
+    футбола това са България×3, УЕФА×3, Англия×8 — а картите ни идват от Копа
+    Либертадорес, MLS, Аржентина и Бразилия, които падат извън. Насочването
+    харчи същите заявки, но по мача, който наистина търсим.
     """
-    kl = ("sab", sport)
+    if not liga:
+        return list(turnirite)
+    dl = redica(liga)
+    if not dl:
+        return list(turnirite)
+
+    def tezhest(x):
+        di = redica(x[0])
+        if not di:
+            return 0
+        n = sum(1 for a in dl if any(blizki(a, b) for b in di))
+        return n
+    belyazani = [(tezhest(x), i, x) for i, x in enumerate(turnirite)]
+    belyazani.sort(key=lambda y: (-y[0], y[1]))
+    return [y[2] for y in belyazani]
+
+
+def _sabitiya_ot_turnir(put, ime, otvarach=None):
+    """Събитията на ЕДИН турнир. Кешира се ПО ТУРНИР, само при успех."""
+    kl = ("turnir", put)
     if kl in _kesh:
         return _kesh[kl]
-    t = turniri(sport, otvarach)
-    if t is NEPITAN:
+    d = _json(BAZA + put + OPASHKA, otvarach)
+    if d is NEPITAN:
         return NEPITAN
     vsi = []
-    for ime, put in t[:TAVAN_TURNIRI]:
-        d = _json(BAZA + put + OPASHKA, otvarach)
-        if d is NEPITAN:
-            continue
-        for b in (((d or {}).get("data") or {}).get("blocks") or []):
-            for ev in (b.get("events") or []):
-                im = imena_ot_sabitie(ev)
-                if not im:
-                    continue
-                k = koef_ot_sabitie(ev)
-                if not k:
-                    continue
-                try:
-                    st = int(ev.get("startTime") or 0)
-                except (TypeError, ValueError):
-                    st = 0
-                vsi.append((im[0], im[1], st, k.get("1"), k.get("2"),
-                            k.get("Х"), ime, str(ev.get("url") or "")))
+    for b in (((d or {}).get("data") or {}).get("blocks") or []):
+        for ev in (b.get("events") or []):
+            im = imena_ot_sabitie(ev)
+            if not im:
+                continue
+            k = koef_ot_sabitie(ev)
+            if not k:
+                continue
+            try:
+                st = int(ev.get("startTime") or 0)
+            except (TypeError, ValueError):
+                st = 0
+            vsi.append((im[0], im[1], st, k.get("1"), k.get("2"),
+                        k.get("Х"), ime, str(ev.get("url") or "")))
     _kesh[kl] = vsi
     return vsi
 
 
-def ceni_za(sport, dom, gost, nachalo=None, otvarach=None):
+def sabitiya(sport, otvarach=None, liga=None):
+    """[(дом, гост, начало_мс, коеф_дом, коеф_гост, коеф_равен, лига, път)].
+
+    NEPITAN, ако САМОТО ДЪРВО е отказало. Отказ на отделен турнир не е отказ
+    на извора — той се брои и се минава нататък.
+
+    🔴 КЕШЪТ Е ПО ТУРНИР, НЕ ПО СПОРТ (08.09.2026). Дотук спортът се теглеше
+    ВЕДНЪЖ и каквото хванеше в първите 14 турнира — това оставаше за целия
+    рън. Сега всеки турнир се помни отделно и питанията се ТРУПАТ: втората
+    карта от същия спорт ползва свалените и досваля само каквото ѝ трябва.
+
+    🔴 БЮДЖЕТ ПО СПОРТ. `BETANO_TAVAN_ZAYAVKI` казва колко заявки МОЖЕ да
+    похарчи този спорт за целия рън. Нула връща старото поведение.
+    """
+    t = turniri(sport, otvarach)
+    if t is NEPITAN:
+        return NEPITAN
+    if not TAVAN_ZAYAVKI:
+        # старият път: първите N в реда на дървото, без насочване
+        red = list(t[:TAVAN_TURNIRI])
+    else:
+        red = podredi(t, liga)
+    vsi = []
+    for ime, put in red:
+        kl = ("turnir", put)
+        if kl not in _kesh:
+            if TAVAN_ZAYAVKI and _HARCH.get(sport, 0) >= TAVAN_ZAYAVKI:
+                continue          # бюджетът за този спорт е свършил
+            _HARCH[sport] = _HARCH.get(sport, 0) + 1
+        r = _sabitiya_ot_turnir(put, ime, otvarach)
+        if r is NEPITAN:
+            continue
+        vsi.extend(r)
+    return vsi
+
+
+def ceni_za(sport, dom, gost, nachalo=None, otvarach=None, liga=None):
     """(коеф_дом, коеф_гост, коеф_равен, лига, път) или None. NEPITAN при отказ.
 
     🔴 СЪВПАДЕНИЕТО ИСКА И ДВЕТЕ СТРАНИ. Една обща фамилия вече е свързала
@@ -373,7 +526,7 @@ def ceni_za(sport, dom, gost, nachalo=None, otvarach=None):
     """
     if not VKLYUCHENO:
         return None
-    ev = sabitiya(sport, otvarach)
+    ev = sabitiya(sport, otvarach, liga)
     if ev is NEPITAN:
         return NEPITAN
     if not (redica(dom) and redica(gost)):
@@ -381,6 +534,15 @@ def ceni_za(sport, dom, gost, nachalo=None, otvarach=None):
     kand = []
     for zap in ev:
         A, B, st = zap[0], zap[1], zap[2]
+        # 🔴 ПОЛ И ВЪЗРАСТ. Турнирът на Betano е zap[6]; нашата лига идва
+        # отвън. Разминат ли се белязаните етикети, това не е нашият мач.
+        #
+        # 🔴 ПРЕЗ ФУНКЦИЯТА, НЕ НА РЪКА. Първата ми версия сравняваше двете
+        # множества направо тук и остави `etiketite_pasvat` МЪРТВА — родена
+        # и незакачена в същия час. Собственият ми проверчик за цялост я
+        # хвана. Правилото трябва да живее НА ЕДНО място.
+        if liga and not etiketite_pasvat(liga, str(zap[6] or "")):
+            continue
         if PROZOREC and nachalo and st:
             try:
                 if abs(int(st) - int(nachalo)) > PROZOREC * 60000:
@@ -402,9 +564,9 @@ def ceni_za(sport, dom, gost, nachalo=None, otvarach=None):
     return kand[0][1]
 
 
-def ima_go(sport, dom, gost, nachalo=None, otvarach=None):
+def ima_go(sport, dom, gost, nachalo=None, otvarach=None, liga=None):
     """Заложим ли е мачът в българската книга. None при отказ на извора."""
-    r = ceni_za(sport, dom, gost, nachalo, otvarach)
+    r = ceni_za(sport, dom, gost, nachalo, otvarach, liga)
     if r is NEPITAN:
         return None
     return bool(r)
@@ -469,6 +631,142 @@ def selftest():
     # 🔴 ДВОЙКАТА Е ИЗБРАНА ДА МИНАВА ПРАГА. «simek»/«supa» дават 0.44 и
     # падат така или иначе — тестът минаваше и с махнат пазач. «petro» и
     # «petrov» дават 0.91: с пазача са различни, без него се сливат.
+    # ── 🔴 ФОНЕТИЧНИЯТ СКЕЛЕТ (08.09.2026)
+    #
+    # Мерено на 24 ПРОЧЕТЕНИ верни двойки и 3277 адверсарни: скелетът вдига
+    # улова от 62% на 88% срещу +0.3 пункта адверсарни лъжи. Разхлабването
+    # на прага до 0.74 дава 79% срещу 25% лъжи — по-лошата сделка.
+    #
+    # 🔴 ПРОВЕРКИТЕ СА ПО ДВОЙКИ, КОИТО СЪМ ЧЕЛ. Скелет, изпитан със
+    # съчинени думи, доказва аритметика, не съвпадане на имена.
+    check("неударената гласна се прибира",
+          skelet("sunderland") == skelet("sandarland"))
+    check("«th» става «t»", skelet("bournemouth") == skelet("bornemut"))
+    check("«gh» пада", skelet("brighton") == skelet("braitan"))
+    check("«дж» и «g» пред «e» се срещат",
+          skelet("khargers") == skelet("khardzhars"))
+    check("«w» ПАДА, не става «v»", "v" not in skelet("warriors"))
+    check("двойните съгласни се свиват", skelet("tigerr") == skelet("tiger"))
+    # 🔴 И ОТРИЦАТЕЛНА КОНТРОЛА: скелетът НЕ слива всичко.
+    check("различни имена дават РАЗЛИЧНИ скелети",
+          skelet("liverpool") != skelet("levski"))
+    check("и още едно", skelet("arsenal") != skelet("barcelona"))
+    check("скелетът на къса дума не се ползва",
+          not blizki("abc", "adc"))
+
+    # прочетените двойки, през целия матчър
+    check("Съндърланд се среща", sreshta("Sunderland", "Съндърланд"))
+    check("Борнемут се среща", sreshta("Bournemouth", "Борнемут"))
+    check("Брайтън се среща", sreshta("Brighton", "Брайтън"))
+    check("Ривър Плейт се среща", sreshta("River Plate", "Ривър Плейт"))
+    check("Лос Анджелис Чарджърс се среща",
+          sreshta("Los Angeles Chargers", "Лос Анджелис Чарджърс"))
+    check("Каролина Хърикейнс се среща",
+          sreshta("Carolina Hurricanes", "Каролина Хърикейнс"))
+    # 🔴 ПРОЧЕТЕНИ РАЗЛИЧНИ: тук съвпадение е ЛЪЖА.
+    check("Копа Олимпия НЕ е Олимпиакос",
+          not sreshta("Club Olimpia", "Олимпиакос"))
+    check("Брага НЕ е Брайтън", not sreshta("Braga", "Брайтън"))
+    check("Орегон Бийвърс НЕ е Чикаго Беърс",
+          not sreshta("Oregon State Beavers", "Чикаго Беърс"))
+    check("Мартин Бух НЕ е Витолд Бучински",
+          not sreshta("Martin BUCH", "Витолд Бучински"))
+    check("Феликс Льобрюн НЕ е Гжегож Фелкел",
+          not sreshta("Felix LEBRUN", "Гжегож Фелкел"))
+
+    # 🔴 ЕДИНСТВЕНАТА ИЗМЕРЕНА ЛЪЖА И ЗАЩО НЕ БОЛИ. «Golden State Valkyries»
+    # и «Golden State Warriors» СЕ СРЕЩАТ с «Голдън Стейт Уориърс» — два
+    # отбора от един град. Силата им е РАВНА, а `ceni_za` отказва при равни
+    # кандидати; тоест двусмислието дава МЪЛЧАНИЕ, не грешна цена.
+    check("двата отбора от един град наистина се сливат по име",
+          sreshta("Golden State Valkyries", "Голдън Стейт Уориърс")
+          and sreshta("Golden State Warriors", "Голдън Стейт Уориърс"))
+    check("но силата им е РАВНА",
+          sila("Golden State Valkyries", "Голдън Стейт Уориърс")
+          == sila("Golden State Warriors", "Голдън Стейт Уориърс"))
+    _kesh.clear()
+    _dvusm = {"data": {"blocks": [{"events": [
+        {"participants": [{"name": "Голдън Стейт Уориърс"},
+                          {"name": "Финикс Сънс"}],
+         "startTime": 1788850800000, "url": "/koefitsienti/a/1/",
+         "markets": [{"handicap": 0.0, "selections": [
+             {"name": "Голдън Стейт Уориърс", "price": 1.70},
+             {"name": "Финикс Сънс", "price": 2.10}]}]},
+        {"participants": [{"name": "Голдън Стейт Валкирии"},
+                          {"name": "Далас Уингс"}],
+         "startTime": 1788850800000, "url": "/koefitsienti/b/2/",
+         "markets": [{"handicap": 0.0, "selections": [
+             {"name": "Голдън Стейт Валкирии", "price": 3.10},
+             {"name": "Далас Уингс", "price": 1.31}]}]}]}]}}
+    _dv_darvo = {"data": {"regionGroups": [{"regions": [
+        {"name": "САЩ", "leagues": [
+            {"name": "НБА", "url": "/sport/x/1/"}]}]}]}}
+
+    def _dv_otv(rq, timeout=None):
+        u = rq.full_url
+        pitani.append(u)
+        telo = _dvusm if "/sport/x/1/" in u else _dv_darvo
+
+        class F(object):
+            def read(self_inner):
+                return json.dumps(telo).encode("utf-8")
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *a):
+                return False
+        return F()
+
+    # 🔴 ПРОТИВНИКЪТ РАЗПЛИТА ДВУСМИСЛИЕТО. Двата отбора от един град се
+    # сливат по име, но срещу РАЗЛИЧНИ противници — тогава едната двойка
+    # съвпада и по двете страни, а другата не.
+    _dv1 = ceni_za("basketball", "Golden State Warriors", "Phoenix Suns",
+                   1788850800000, _dv_otv)
+    check("противникът разплита двата отбора от един град",
+          isinstance(_dv1, tuple) and abs(_dv1[0] - 1.70) < 1e-9)
+    _kesh.clear()
+    _dv2 = ceni_za("basketball", "Golden State Valkyries", "Dallas Wings",
+                   1788850800000, _dv_otv)
+    check("и другият отбор води до ДРУГАТА цена",
+          isinstance(_dv2, tuple) and abs(_dv2[0] - 3.10) < 1e-9)
+    _kesh.clear()
+    # 🔴 А КОГАТО И ПРОТИВНИКЪТ Е ЕДИН — ОТКАЗ, не гадаене.
+    _dv_ednakvi = {"data": {"blocks": [{"events": [
+        {"participants": [{"name": "Голдън Стейт Уориърс"},
+                          {"name": "Финикс Сънс"}],
+         "startTime": 1788850800000, "url": "/koefitsienti/a/1/",
+         "markets": [{"handicap": 0.0, "selections": [
+             {"name": "Голдън Стейт Уориърс", "price": 1.70},
+             {"name": "Финикс Сънс", "price": 2.10}]}]},
+        {"participants": [{"name": "Голдън Стейт Валкирии"},
+                          {"name": "Финикс Меркурий"}],
+         "startTime": 1788850800000, "url": "/koefitsienti/b/2/",
+         "markets": [{"handicap": 0.0, "selections": [
+             {"name": "Голдън Стейт Валкирии", "price": 3.10},
+             {"name": "Финикс Меркурий", "price": 1.31}]}]}]}]}}
+
+    def _dv_otv2(rq, timeout=None):
+        u = rq.full_url
+        pitani.append(u)
+        telo = _dv_ednakvi if "/sport/x/1/" in u else _dv_darvo
+
+        class F(object):
+            def read(self_inner):
+                return json.dumps(telo).encode("utf-8")
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *a):
+                return False
+        return F()
+
+    check("две неразличими срещи дават МЪЛЧАНИЕ, не грешна цена",
+          ceni_za("basketball", "Golden State Warriors", "Phoenix Suns",
+                  1788850800000, _dv_otv2) is None)
+    _kesh.clear()
+
     check("късата дума НЕ се слива с по-дългата",
           not blizki("petro", "petrov"))
     check("а дългите се сливат", blizki("petrov", "petrovv"))
@@ -651,7 +949,194 @@ def selftest():
           ima_go("tabletennis", "Tomas Regner", "Adam Svoboda",
                  1788850800000, otkaz) is None)
 
+    # ── 🔴 БЮДЖЕТЪТ, КЕШЪТ ПО ТУРНИР И НАСОЧВАНЕТО ПО ЛИГА (08.09.2026)
+    #
+    # Измерено живо: старият таван от 14 турнира изхвърляше 1085 от 1596
+    # отборни събития (68%) и ВСИЧКИТЕ 43 ИТФ турнира при тениса. Първите 14
+    # футболни турнира са България×3, УЕФА×3, Англия×8 — а картите ни идват
+    # от Копа Либертадорес, MLS, Аржентина, Бразилия.
+    _kesh.clear()
+    _HARCH.clear()
+    _mn_pit = []
+    _mn_darvo = {"data": {"regionGroups": [{"regions": [
+        {"name": "Англия", "leagues": [
+            {"name": "Висша лига", "url": "/sport/x/anglia/"}]},
+        {"name": "Южна Америка", "leagues": [
+            {"name": "Копа Либертадорес", "url": "/sport/x/libertadores/"}]},
+        {"name": "САЩ", "leagues": [
+            {"name": "МЛС", "url": "/sport/x/mls/"}]}]}]}}
+
+    def _mn_liga(dom, gost, cena):
+        return {"data": {"blocks": [{"events": [
+            {"participants": [{"name": dom}, {"name": gost}],
+             "startTime": 1788850800000, "url": "/koefitsienti/x/1/",
+             "markets": [{"handicap": 0.0, "selections": [
+                 {"name": dom, "price": cena},
+                 {"name": gost, "price": 2.00}]}]}]}]}}
+
+    def _mnogo(rq, timeout=None):
+        u = rq.full_url
+        _mn_pit.append(u)
+        if "/anglia/" in u:
+            telo = _mn_liga("Арсенал Лондон", "Челси Лондон", 1.70)
+        elif "/libertadores/" in u:
+            telo = _mn_liga("Палмейрас Сао Пауло", "Бока Хуниорс", 1.80)
+        elif "/mls/" in u:
+            telo = _mn_liga("Интер Маями", "Орландо Сити", 1.90)
+        else:
+            telo = _mn_darvo
+
+        class F(object):
+            def read(self_inner):
+                return json.dumps(telo).encode("utf-8")
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *a):
+                return False
+        return F()
+
+    # 🔴 НАСОЧВАНЕТО: с лига «Копа Либертадорес» нейният турнир трябва да е
+    # ПЪРВИ в реда, а не осми зад английските дивизии.
+    _t3 = [("Англия / Висша лига", "/a/"),
+           ("Южна Америка / Копа Либертадорес", "/b/"),
+           ("САЩ / МЛС", "/c/")]
+    check("насочването слага търсената лига ПЪРВА",
+          podredi(_t3, "Копа Либертадорес, Южна Америка")[0][1] == "/b/")
+    check("и другата лига дава друг ред",
+          podredi(_t3, "МЛС, САЩ")[0][1] == "/c/")
+    check("без лига редът НЕ се пипа",
+          [x[1] for x in podredi(_t3, None)] == ["/a/", "/b/", "/c/"])
+    check("непозната лига също не чупи реда",
+          len(podredi(_t3, "Нещо, което го няма")) == 3)
+
+    # 🔴 БЮДЖЕТЪТ: с бюджет 1 се тегли САМО първият турнир.
+    _kesh.clear()
+    _HARCH.clear()
+    del _mn_pit[:]
+    _st_tz = TAVAN_ZAYAVKI
+    try:
+        globals()["TAVAN_ZAYAVKI"] = 1
+        _r1 = ceni_za("football", "Palmeiras", "Boca Juniors",
+                      1788850800000, _mnogo, "Копа Либертадорес")
+        check("с бюджет 1 насочената лига ВСЕ ПАК се намира",
+              isinstance(_r1, tuple) and abs(_r1[0] - 1.80) < 1e-9)
+        check("и е похарчена точно една заявка за турнир",
+              _HARCH.get("football") == 1)
+        # другата лига НЕ може да се стигне — бюджетът е свършил
+        check("а мач от НЕтърсената лига остава ненамерен",
+              ceni_za("football", "Inter Miami", "Orlando City",
+                      1788850800000, _mnogo, "Копа Либертадорес") is None)
+    finally:
+        globals()["TAVAN_ZAYAVKI"] = _st_tz
+
+    # 🔴 КЕШЪТ Е ПО ТУРНИР И СЕ ТРУПА: втора карта от друга лига досваля само
+    # своя турнир, а вече свалените не се теглят пак.
+    _kesh.clear()
+    _HARCH.clear()
+    del _mn_pit[:]
+    _a = ceni_za("football", "Palmeiras", "Boca Juniors",
+                 1788850800000, _mnogo, "Копа Либертадорес")
+    _sled_prva = len(_mn_pit)
+    _b2 = ceni_za("football", "Inter Miami", "Orlando City",
+                  1788850800000, _mnogo, "МЛС")
+    check("втората карта също се намира",
+          isinstance(_b2, tuple) and abs(_b2[0] - 1.90) < 1e-9)
+    check("дървото НЕ се тегли втори път",
+          sum(1 for u in _mn_pit if "/sport/soccer/" in u) == 1)
+    check("а вече свалените турнири не се теглят пак",
+          len(set(_mn_pit)) == len(_mn_pit))
+    _kesh.clear()
+    _HARCH.clear()
+
+    # ── 🔴 ПОЛ И ВЪЗРАСТ (08.09.2026)
+    #
+    # Националните отбори носят ЕДНО И СЪЩО име за мъже и жени. Живо: Betano
+    # държи 241 женски събития, 742 мъжки и 4 двойки с еднакви имена и
+    # РАЗЛИЧЕН етикет. Информацията я имаме в ЛИГАТА, липсваше сравнението.
+    check("женското се разпознава на български",
+          "zheni" in etiket("CSV жени, Южна Америка"))
+    check("и на английски",
+          "zheni" in etiket("CSV Women South American Championship"))
+    check("и «girls» брои", "zheni" in etiket("FIVB Girls U17 World Cup"))
+    check("възрастта се разпознава",
+          "vazrast" in etiket("FIVB Volleyball Girls' U17 World Championship"))
+    check("и «юноши» брои", "vazrast" in etiket("Юноши до 19, Испания"))
+    # 🔴 «МЪЖЕ» НЕ Е БЕЛЯЗАН. Мъжкото е мълчаливото подразбиране; ако беше
+    # белязано, всяка мъжка лига без думата «мъже» щеше да се разминава.
+    check("«мъже» НЕ е белязан етикет",
+          etiket("Men's South American Cup") == set())
+    check("открита лига няма етикет", etiket("Чешка професионална лига") == set())
+    check("празното няма етикет", etiket(None) == set())
+    check("женска среща женска", etiketite_pasvat(
+        "CSV Women South American Championship", "Международни / ... жени"))
+    check("мъжка среща открита", etiketite_pasvat(
+        "Men's South American Cup", "Международни / South American Champ"))
+    # 🔴 РАЗМИНАТИТЕ СЕ ОТКАЗВАТ — в двете посоки.
+    check("мъжка НЕ среща женска", not etiketite_pasvat(
+        "Men's South American Cup", "Международни / ... жени"))
+    check("женска НЕ среща мъжка", not etiketite_pasvat(
+        "CSV Women South American Championship", "Международни / мъже"))
+    check("U17 НЕ среща открита", not etiketite_pasvat(
+        "FIVB Girls U17 World Championship", "Международни / жени"))
+
+    # поведенчески, през целия път
+    _kesh.clear()
+    _et_darvo = {"data": {"regionGroups": [{"regions": [
+        {"name": "Международни", "leagues": [
+            {"name": "Южноамериканско жени", "url": "/sport/x/zheni/"}]}]}]}}
+    _et_liga = {"data": {"blocks": [{"events": [
+        {"participants": [{"name": "Бразилия"}, {"name": "Венецуела"}],
+         "startTime": 1788850800000, "url": "/koefitsienti/x/1/",
+         "markets": [{"handicap": 0.0, "selections": [
+             {"name": "Бразилия", "price": 1.20},
+             {"name": "Венецуела", "price": 4.50}]}]}]}]}}
+
+    def _et_otv(rq, timeout=None):
+        u = rq.full_url
+        pitani.append(u)
+        telo = _et_liga if "/zheni/" in u else _et_darvo
+
+        class F(object):
+            def read(self_inner):
+                return json.dumps(telo).encode("utf-8")
+
+            def __enter__(self_inner):
+                return self_inner
+
+            def __exit__(self_inner, *a):
+                return False
+        return F()
+
+    check("женска наша лига ВЗИМА цена от женския турнир",
+          isinstance(ceni_za("volleyball", "Бразилия", "Венецуела",
+                             1788850800000, _et_otv,
+                             "CSV Women South American Championship"), tuple))
+    _kesh.clear()
+    check("🔴 МЪЖКА наша лига НЕ взима цена от женския турнир",
+          ceni_za("volleyball", "Бразилия", "Венецуела", 1788850800000,
+                  _et_otv, "Men's South American Cup") is None)
+    _kesh.clear()
+    check("без подадена лига пазачът мълчи (старото поведение)",
+          isinstance(ceni_za("volleyball", "Бразилия", "Венецуела",
+                             1788850800000, _et_otv), tuple))
+    _kesh.clear()
+
+    # ── 🔴 ПОДЪТ НА ЦЕНАТА
+    # Живо намерен коефициент 1.001 минаваше стария пазач (>1.0) и се
+    # печаташе като «1.00» — число, което се закръгля до едно, не е цена.
+    _pod = {"participants": [{"name": "Tomas Regner"},
+                             {"name": "Adam Svoboda"}],
+            "markets": [{"handicap": 0.0, "selections": [
+                {"name": "Tomas Regner", "price": 1.001},
+                {"name": "Adam Svoboda", "price": 20.0}]}]}
+    check("коефициент 1.001 НЕ е цена", koef_ot_sabitie(_pod) == {})
+    _pod["markets"][0]["selections"][0]["price"] = 1.02
+    check("а 1.02 е", koef_ot_sabitie(_pod) != {})
+
     # ── ръчките
+    check("бюджетът е в разумни граници", 0 <= TAVAN_ZAYAVKI <= 400)
     check("прозорецът е в разумни граници", 0 <= PROZOREC <= 360)
     check("таванът е в разумни граници", 0 <= TAVAN_TURNIRI <= 60)
     check("подписът е нашият, не преправен браузър",
