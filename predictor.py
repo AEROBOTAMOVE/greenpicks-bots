@@ -8293,12 +8293,18 @@ def _pazar_surovo(an):
         cena = gost
     elif pick.startswith("Х") or pick.startswith("X"):
         cena = raven
+    # 📈 СУРОВИТЕ ЦЕНИ НА ВСИЧКИ ИЗХОДИ, както са в ТОЗИ момент — за
+    # тефтера на цените. Етикетът е ИЗХОДЪТ, не «наша/друга»: изборът се
+    # обръща, изходът не.
+    #
+    # 🔴 ИЗВЪН КЛОНА ЗА ИЗБОРА (08.09.2026). Дотук стоеше вътре в `if cena:`
+    # и се губеше при всеки анализ БЕЗ избор — тоест при цялото доследяване
+    # на вече публикувани срещи (`dosledi_cenite` подава `fx` без `pick`).
+    # А тефтерът етикетира по изход и изборът изобщо не му трябва. Цената:
+    # движението на линията е единственият измерен ръб в проекта, а само 12
+    # от 724 карти имат редица от две точки.
+    an["_ceni_sur"] = {"1": dom, "2": gost, "Х": raven}
     if cena:
-        # 📈 СУРОВИТЕ ЦЕНИ НА ВСИЧКИ ИЗХОДИ, както са в ТОЗИ момент — за
-        # тефтера на цените. Пише се ТУК, защото само тук dom/gost/raven са
-        # пълни и още не са пипани от обръщането на избора по-долу. Етикетът
-        # е ИЗХОДЪТ, не «наша/друга»: изборът се обръща, изходът не.
-        an["_ceni_sur"] = {"1": dom, "2": gost, "Х": raven}
         an["pazar_cena"] = cena
         # 🔴 И ДРУГАТА СТРАНА (01.09.2026). Дотук вадехме dom, gost И raven
         # от една и съща заявка, а записвахме САМО нашата — другата се
@@ -8601,6 +8607,8 @@ def _kambi_rezerva(an):
         c_raven = None
     if c_raven is not None and not (1.0 < c_raven < 1000.0):
         c_raven = None
+    # 🔴 РЕДИЦАТА СЕ ПЪЛНИ И БЕЗ ИЗБОР (08.09.2026) — виж главния път.
+    an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "\u0425": c_raven}
     pick = str(an.get("pick") or "")
     if pick.startswith("1"):
         cena, drug = c_dom, c_gost
@@ -8610,7 +8618,6 @@ def _kambi_rezerva(an):
         cena, drug = c_raven, min(c_dom, c_gost)
     else:
         return an                  # равен без число — нищо не се слага
-    an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "\u0425": c_raven}
     an["pazar_cena"] = cena
     an["pazar_cena_drug"] = drug
     an["pazar_izt"] = "kambi"
@@ -8688,6 +8695,8 @@ def _betano_rezerva(an):
         c_raven = None
     if c_raven is not None and not (1.0 < c_raven < 1000.0):
         c_raven = None
+    # 🔴 РЕДИЦАТА СЕ ПЪЛНИ И БЕЗ ИЗБОР (08.09.2026) — виж главния път.
+    an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "\u0425": c_raven}
     pick = str(an.get("pick") or "")
     if pick.startswith("1"):
         cena, drug = c_dom, c_gost
@@ -8697,7 +8706,6 @@ def _betano_rezerva(an):
         cena, drug = c_raven, min(c_dom, c_gost)
     else:
         return an                  # равен без число — нищо не се слага
-    an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "\u0425": c_raven}
     an["pazar_cena"] = cena
     an["pazar_cena_drug"] = drug
     an["pazar_izt"] = "betano"
@@ -8806,7 +8814,18 @@ def dosledi_cenite(buckets, now, state=None):
             predi = int((CENI.get(k) or {}).get("n") or 0)
             try:
                 # Пипа се КОПИЕ: чуждата среща не бива да носи наш ключ.
-                dobavi_pazar({"fx": dict(fx, _key=k)})
+                #
+                # 🔴 СПОРТЪТ СЕ ПОДАВА (08.09.2026). Дотук тук минаваше анализ
+                # БЕЗ `bucket` и всеки път до цената се затваряше мълчаливо:
+                # Kambi и Betano падат на `b not in SPORT`, а тенисът на маса,
+                # волейболът и боксът съдят по същото поле. Тоест функцията,
+                # построена да пълни редицата от цени, не можеше да добави
+                # НИТО ЕДНА точка за тези спортове.
+                #
+                # 🔴 `pick` НЕ СЕ ИЗМИСЛЯ. Срещата е чужда; фалшив избор би
+                # сложил число за страна, която никой не е посочвал. Тефтерът
+                # етикетира по ИЗХОД и изборът не му трябва.
+                dobavi_pazar({"fx": dict(fx, _key=k), "bucket": _b})
             except Exception:                                # noqa: BLE001
                 continue
             if int((CENI.get(k) or {}).get("n") or 0) > predi:
@@ -15086,6 +15105,138 @@ def selftest():
               len(_mv) >= 2)
     finally:
         globals()["KORIDOR_REJI"] = _kr_st
+
+    # --- 📈 ДОСЛЕДЯВАНЕТО НА ЦЕНИТЕ (08.09.2026) ---
+    #
+    # Движението на линията е ЕДИНСТВЕНИЯТ измерен ръб в проекта (+12% ROI
+    # при 3% движение, 22 333 мача). `dosledi_cenite` е построена да пълни
+    # редицата — и не пълнеше нищо: подаваше анализ БЕЗ `bucket` и БЕЗ
+    # `pick`, а суровите цени се записваха ВЪТРЕ в клона за избора.
+    #
+    # 🔴 ЗАЩО СТАРИТЕ ПРОВЕРКИ НЕ ГО ВИДЯХА: всичките подават `pick`. Дефектът
+    # живее точно в пътя БЕЗ избор — тоест в единственото, което никой тест
+    # не пробваше.
+    _ds_vid = []
+    _ds_dp = globals().get("dobavi_pazar")
+    _ds_fx = {"home": "Аа", "away": "Бб", "when": now + timedelta(hours=6)}
+    # 🔴 СРЕЩАТА СЕ СЛАГА В ТЕФТЕРА ПЪРВО. Първата ми версия не го
+    # правеше: портиерът (`k not in CENI`) отрязваше срещата, `dobavi_pazar`
+    # не се викаше нито веднъж и трите проверки минаваха ПРАЗНИ.
+    # Мутацията «махни bucket» оставаше зелена — проверка, съдържаща
+    # отговора си.
+    try:
+        _ds_k = match_key(_ds_fx, now)
+    except Exception:                                        # noqa: BLE001
+        _ds_k = ""
+    _ds_star = CENI.get(_ds_k)
+    try:
+        if _ds_k:
+            CENI[_ds_k] = {"n": 1, "t0": now.isoformat(),
+                           "c0": {"1": 1.80, "2": 2.10}}
+        globals()["dobavi_pazar"] = lambda an: (_ds_vid.append(dict(an)) or an)
+        dosledi_cenite({"tabletennis": [_ds_fx]}, now, {"posted": {}, "v": 1})
+        # 🔴 ПЪРВО: ИМА ЛИ ИЗОБЩО ВИКАНЕ. Без това всичко след него
+        # е «нямаше какво да проверя», облечено като «проверих».
+        check("доследяването ИЗОБЩО стига до пазара", len(_ds_vid) >= 1)
+        check("доследяването подава СПОРТА, не само срещата",
+              bool(_ds_vid) and all(v.get("bucket") for v in _ds_vid))
+        check("и подаденият спорт е ВЕРНИЯТ",
+              bool(_ds_vid) and all(v.get("bucket") == "tabletennis"
+                                    for v in _ds_vid))
+        check("но НЕ измисля избор",
+              bool(_ds_vid) and all(not v.get("pick") for v in _ds_vid))
+        check("и срещата си носи ключа",
+              bool(_ds_vid) and all((v.get("fx") or {}).get("_key")
+                                    for v in _ds_vid))
+    finally:
+        if _ds_dp is not None:
+            globals()["dobavi_pazar"] = _ds_dp
+        if _ds_k:
+            if _ds_star is None:
+                CENI.pop(_ds_k, None)
+            else:
+                CENI[_ds_k] = _ds_star
+
+    # 🔴 СУРОВИТЕ ЦЕНИ СЕ ЗАПИСВАТ И БЕЗ ИЗБОР. Тефтерът етикетира по ИЗХОД
+    # («1»/«2»/«Х»), не по «наша/друга» — изборът не му трябва. Дотук записът
+    # стоеше вътре в `if cena:` и целият път на доследяването беше ням.
+    if BET is not None:
+        _dz_cz = BET.ceni_za
+        _dz_st = dict(getattr(BET, "_kesh", {}))
+        try:
+            BET.ceni_za = (lambda *a, **k:
+                           (2.40, 1.55, None, "Чехия / Лига Про", "/k/1/"))
+            _dz = _betano_rezerva({"bucket": "tabletennis",
+                                   "fx": {"home": "Аа", "away": "Бб",
+                                          "extra": {}}})
+            check("БЕЗ избор пак се пазят суровите цени",
+                  isinstance(_dz.get("_ceni_sur"), dict)
+                  and abs(float(_dz["_ceni_sur"]["1"]) - 2.40) < 1e-9
+                  and abs(float(_dz["_ceni_sur"]["2"]) - 1.55) < 1e-9)
+            check("но БЕЗ избор картата НЕ получава цена",
+                  _dz.get("pazar_cena") is None)
+            check("и НЕ получава източник",
+                  _dz.get("pazar_izt") is None)
+            _dz2 = _betano_rezerva({"bucket": "tabletennis", "pick": "1 · Аа",
+                                    "fx": {"home": "Аа", "away": "Бб",
+                                           "extra": {}}})
+            check("С избор всичко си идва на мястото",
+                  abs(float(_dz2.get("pazar_cena") or 0) - 2.40) < 1e-9
+                  and _dz2.get("pazar_izt") == "betano"
+                  and isinstance(_dz2.get("_ceni_sur"), dict))
+        finally:
+            BET.ceni_za = _dz_cz
+            BET._kesh.clear()
+            BET._kesh.update(_dz_st)
+
+    # 🔴 И ГЛАВНИЯТ ПЪТ, не само резервите. Мутацията «върни суровите цени
+    # вътре в клона за избора» оставаше ЗЕЛЕНА, защото проверката по-горе
+    # мери само пътя на Betano. Тук се пуска ИСТИНСКИЯТ `_pazar_surovo` с
+    # подменен само ИЗВОРА — подмяната на самата функция би изпитвала стъба.
+    if PIN is not None and getattr(PIN, "SPORT_ID", None):
+        _gp_cz = PIN.ceni_za
+        _gp_b = next(iter(PIN.SPORT_ID))
+        try:
+            PIN.ceni_za = lambda *a, **k: (1.80, 2.10, None)
+            _gp = _pazar_surovo({"bucket": _gp_b,
+                                 "fx": {"home": "Аа Ааа", "away": "Бб Ббб",
+                                        "league": "Проба", "extra": {}}})
+            check("главният път пази суровите цени и БЕЗ избор",
+                  isinstance(_gp.get("_ceni_sur"), dict)
+                  and abs(float(_gp["_ceni_sur"]["1"]) - 1.80) < 1e-9
+                  and abs(float(_gp["_ceni_sur"]["2"]) - 2.10) < 1e-9)
+            check("но БЕЗ избор пак няма цена на картата",
+                  _gp.get("pazar_cena") is None)
+            _gp2 = _pazar_surovo({"bucket": _gp_b, "pick": "1 · Аа",
+                                  "fx": {"home": "Аа Ааа", "away": "Бб Ббб",
+                                         "league": "Проба", "extra": {}}})
+            check("С избор главният път дава и цена",
+                  abs(float(_gp2.get("pazar_cena") or 0) - 1.80) < 1e-9)
+        finally:
+            PIN.ceni_za = _gp_cz
+
+    # 🔴 И РЕЗЕРВАТА KAMBI. Позиционна мутация показа, че тя е единственият
+    # от трите пътя без такава проверка — тоест суровите цени можеха да се
+    # върнат вътре в клона за избора и да останат зелени.
+    if KAM is not None:
+        _ks_cz = KAM.ceni_za
+        _ks_st = dict(getattr(KAM, "_kesh", {}))
+        try:
+            KAM.ceni_za = lambda *a, **k: (1.90, 1.95, None)
+            _ks = _kambi_rezerva({"bucket": "tabletennis",
+                                  "fx": {"home": "Aaa Bbbb",
+                                         "away": "Cccc Dddd", "extra": {}}})
+            check("Kambi пази суровите цени и БЕЗ избор",
+                  isinstance(_ks.get("_ceni_sur"), dict)
+                  and abs(float(_ks["_ceni_sur"]["1"]) - 1.90) < 1e-9
+                  and abs(float(_ks["_ceni_sur"]["2"]) - 1.95) < 1e-9)
+            check("но БЕЗ избор Kambi не слага цена на картата",
+                  _ks.get("pazar_cena") is None
+                  and _ks.get("pazar_izt") is None)
+        finally:
+            KAM.ceni_za = _ks_cz
+            KAM._kesh.clear()
+            KAM._kesh.update(_ks_st)
 
     check("има път назад (в ЖИВИЯ код)",
           "PREDICT_ISKAM_PAZAR" in _src_zhiv)
