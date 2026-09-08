@@ -996,6 +996,28 @@ def koga_pak(sportove, now, napred_dni=7):
     return out
 
 
+def vazrast_na_dnevnik(zapisi, sega):
+    """На колко ДНИ е най-новият запис. None, ако не може да се каже.
+
+    🔴 «МОЖЕ ДА Е СТАРО» НЕ Е ОТГОВОР. Локалното копие беше на 28 дни и
+    целият доклад излизаше от него, а единственият знак беше тази дума.
+    """
+    naj = ""
+    for z in (zapisi or []):
+        if not isinstance(z, dict):
+            continue
+        d = str(z.get("posted") or z.get("day") or "")[:10]
+        if len(d) == 10 and d > naj:
+            naj = d
+    if not naj:
+        return None
+    try:
+        t = datetime.strptime(naj, "%Y-%m-%d").replace(tzinfo=SOFIA)
+    except ValueError:
+        return None
+    return max(0.0, (sega - t).total_seconds() / 86400.0)
+
+
 def main():
     kratko = "--kratko" in sys.argv
     now = datetime.now(SOFIA)
@@ -1006,10 +1028,29 @@ def main():
     nepitani = []          # какво НЕ можах да проверя. Не е „чисто".
 
     log = ot_github("predict_log.json")
+    # 🔴 ВТОРИ ОПИТ (08.09.2026). Един преходен 504 не бива да решава деня;
+    # дотук първият отказ пращаше целия доклад на локалното копие.
     if log is NEPITAN:
-        nepitani.append("predict_log.json от GitHub — чета локалното копие,"
-                        " което може да е старо")
+        log = ot_github("predict_log.json")
+    if log is NEPITAN:
         log = None
+        _mesten = chetiv("predict_log.json", [])
+        _dni = vazrast_na_dnevnik(_mesten, now)
+        # 🔴 ВЪЗРАСТТА СЕ КАЗВА С ЧИСЛО. «Може да е старо» не различава
+        # «вчерашно» от «на 28 дни», а вторият случай прави ЦЕЛИЯ доклад —
+        # успеваемост, пари, калибрация, тревоги — измислица.
+        if _dni is None:
+            nepitani.append("predict_log.json от GitHub (два опита) — и"
+                            " локалното копие е без четима дата")
+        elif _dni > 2.0:
+            nepitani.append(
+                "predict_log.json от GitHub (два опита); локалното копие е"
+                " с последен запис отпреди %.1f дни — всяко число по-долу"
+                " е за ТОГАВА, не за днес" % _dni)
+        else:
+            nepitani.append("predict_log.json от GitHub (два опита) — чета"
+                            " локалното копие, на %.1f дни" % _dni)
+        log = _mesten
     if log is None:
         log = chetiv("predict_log.json", [])
     # 🗄️ 18.08.2026. Приключените стари записи вече живеят в архив, за да не
@@ -2009,6 +2050,63 @@ def selftest():
     # Шампионската лига; живият рън в 09:23 даде 36 сурови / 24 годни.
     # Спорт, който произвежда карти, в този списък би заглушил истинската
     # тревога.
+    # --- 🔴 ВЪЗРАСТТА НА РЕЗЕРВНИЯ ДНЕВНИК (08.09.2026) ---
+    #
+    # Един преходен HTTP 504 пращаше целия доклад на локалното копие БЕЗ
+    # повторен опит и БЕЗ да провери на колко дни е. Локалното копие беше
+    # 261 записа с последна дата отпреди 28 дни, а единственият знак беше
+    # думата «може да е старо» — тя не различава вчерашно от месечно.
+    _sega = datetime(2026, 9, 8, 12, 0, tzinfo=SOFIA)
+    check("възрастта се мери по НАЙ-НОВИЯ запис",
+          abs(vazrast_na_dnevnik(
+              [{"posted": "2026-08-11"}, {"posted": "2026-09-06"}],
+              _sega) - 2.5) < 0.01)
+    check("и «day» също се чете",
+          vazrast_na_dnevnik([{"day": "2026-09-07"}], _sega) is not None)
+    check("вчерашен дневник е под ден и половина",
+          vazrast_na_dnevnik([{"posted": "2026-09-07"}], _sega) < 1.6)
+    check("месечен дневник е над 27 дни",
+          vazrast_na_dnevnik([{"posted": "2026-08-11"}], _sega) > 27.0)
+    # 🔴 «НЕ ЗНАМ» СЕ РАЗЛИЧАВА ОТ «НУЛА ДНИ». Празен или нечетим дневник
+    # НЕ бива да мине за пресен — това е същата грешка, само с друго лице.
+    check("празен дневник НЕ е на нула дни",
+          vazrast_na_dnevnik([], _sega) is None)
+    check("дата с 10 знака, но невалидна, НЕ е на нула дни",
+          vazrast_na_dnevnik([{"posted": "2026-13-45"}], _sega) is None)
+    check("не-речник не чупи мярката",
+          vazrast_na_dnevnik(["боклук", None, {"posted": "2026-09-06"}],
+                             _sega) is not None)
+    check("бъдеща дата не дава отрицателна възраст",
+          vazrast_na_dnevnik([{"posted": "2027-01-01"}], _sega) == 0.0)
+    # 🔴 БРОИ СЕ САМО ЖИВИЯТ КОД. Първата ми версия броеше ЦЕЛИЯ файл — а
+    # самите тези проверки съдържат търсения низ по два пъти. Тоест
+    # мутацията «махни втория опит» оставаше зелена: проверка, съдържаща
+    # собствения си отговор. Тялото на самопроверката се маха с ast.
+    _vz_zhiv = ""
+    try:
+        import ast as _ast
+        _vz_all = io.open(__file__, encoding="utf-8-sig").read()
+        _vz_r = _vz_all.split(chr(10))
+        for _n in _ast.walk(_ast.parse(_vz_all)):
+            if isinstance(_n, _ast.FunctionDef) and _n.name == "selftest":
+                for _i in range(_n.lineno, min(_n.end_lineno, len(_vz_r))):
+                    _vz_r[_i] = ""
+        _vz_zhiv = chr(10).join(_vz_r)
+    except Exception:                                        # noqa: BLE001
+        _vz_zhiv = ""
+    # Белегът е низ, който съществува САМО в тялото на самопроверката.
+    check("изворът на самопроверката се отдели",
+          bool(_vz_zhiv) and "2026-13-45" not in _vz_zhiv)
+    if _vz_zhiv:
+        _vz = [_l for _l in _vz_zhiv.split(chr(10))
+               if "vazrast_na_dnevnik(" in _l
+               and not _l.lstrip().startswith("#")
+               and not _l.lstrip().startswith("def ")]
+        check("възрастта се вика в ЖИВИЯ поток, не само в теста",
+              len(_vz) >= 1)
+        check("и има ВТОРИ опит към GitHub, преди да се падне на локалното",
+              _vz_zhiv.count('ot_github("predict_log.json")') >= 2)
+
     check("хокеят НЕ е в «извън сезона»", "hockey" not in IZVAN_SEZONA)
     check("всеки ред в «извън сезона» носи причина",
           all(v and len(str(v)) > 20 for v in IZVAN_SEZONA.values()))
