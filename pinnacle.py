@@ -207,7 +207,13 @@ def machove(sport_key):
     if kl in _kesh:
         return _kesh[kl]
     out = {}
-    for x in (_j("/sports/%d/matchups" % sid) or []):
+    # 🔴 ОТКАЗЪТ НЕ Е «НЯМА МАЧОВЕ» (05.09.2026). Дотук `or []` даваше празен
+    # цикъл и по-долу празният речник влизаше в кеша — спортът оставаше без
+    # нито една цена за целия рън, обявено като празнота.
+    _mm = _j("/sports/%d/matchups" % sid)
+    if _mm is None:
+        return {}
+    for x in (_mm or []):
         if not isinstance(x, dict) or x.get("type") != "matchup":
             continue
         # Подматчъпите (сетове, геймове) носят parentId. Искаме само мача.
@@ -233,6 +239,29 @@ def machove(sport_key):
     return out
 
 
+def _surovi_ili_otkaz(sport_key):
+    """Суровите пазари, или None ако изворът е ОТКАЗАЛ.
+
+    🔴 РАЗЛИКАТА СЕ ВДИГА ДО ПОВЪРХНОСТТА (05.09.2026). `_surovi` връща `[]`
+    и при отказ, и при честно празно, а функциите отгоре градяха празен
+    речник и ГО ЗАПОМНЯХА — провалът се заключваше едно ниво по-нагоре.
+
+    Честно празно СЕ кешира: спорт в междусезоние е отговор и не бива да
+    струва заявка на всяко викане.
+    """
+    sid = SPORT_ID.get(str(sport_key))
+    if not sid:
+        return []
+    kl = ("s", sid)
+    if kl in _kesh:
+        return _kesh[kl]
+    sur = _j("/sports/%d/markets/straight" % sid)
+    if sur is None:
+        return None
+    _kesh[kl] = sur
+    return sur
+
+
 def _surovi(sport_key):
     """Суровият отговор на /markets/straight за един спорт. ЕДНА заявка, кеширана.
 
@@ -246,7 +275,14 @@ def _surovi(sport_key):
         return []
     kl = ("s", sid)
     if kl not in _kesh:
-        _kesh[kl] = _j("/sports/%d/markets/straight" % sid) or []
+        # 🔴 КЕШИРА СЕ САМО УСПЕХ (05.09.2026). Дотук `or []` превръщаше
+        # провала в празен списък и го запомняше — тоест едно кихване
+        # оставяше спорта без нито една цена за ЦЕЛИЯ рън, обявено като
+        # «няма мачове». Pinnacle е и единственият път до затварящата цена.
+        _sur = _j("/sports/%d/markets/straight" % sid)
+        if _sur is None:
+            return []
+        _kesh[kl] = _sur
     return _kesh[kl]
 
 
@@ -282,7 +318,11 @@ def totali(sport_key):
     if kl in _kesh:
         return _kesh[kl]
     out = {}
-    for k in _surovi(sport_key):
+    # 🔴 ОТКАЗЪТ НЕ Е ПРАЗЕН ПАЗАР — виж `_surovi_ili_otkaz`.
+    _sur = _surovi_ili_otkaz(sport_key)
+    if _sur is None:
+        return {}
+    for k in _sur:
         if not isinstance(k, dict):
             continue
         if k.get("type") != "total" or k.get("period") != 0:
@@ -365,7 +405,11 @@ def pazari(sport_key):
     if kl in _kesh:
         return _kesh[kl]
     out = {}
-    for k in _surovi(sport_key):
+    # 🔴 ОТКАЗЪТ НЕ Е ПРАЗЕН ПАЗАР — виж `_surovi_ili_otkaz`.
+    _sur = _surovi_ili_otkaz(sport_key)
+    if _sur is None:
+        return {}
+    for k in _sur:
         if not isinstance(k, dict):
             continue
         # period 0 = целият мач. Сетовете и геймовете не ни трябват.
