@@ -8359,7 +8359,16 @@ def _pazar_surovo(an):
             # ТАМ Е пазарното — смесването на пазара със самия него дава
             # изречение, вярно по конструкция („мислим същото"), тоест
             # празно. Същият капан е описан три реда по-долу за p_model.
-            if SG is not None and str(an.get("bucket") or "") not in BEZ_SMESVANE:
+            # 🔴 ПАЗАЧЪТ СРЕЩУ ВТОРО СМЕСВАНЕ (08.09.2026). `dobavi_pazar`
+            # се вика ДВА ПЪТИ по един и същи речник — веднъж през
+            # `pazar_razdeli`, веднъж в `run()`. Без този пазач второто
+            # минаване презаписваше `p_model` с ВЕЧЕ СМЕСЕНОТО число и
+            # редът «📐 пазарът мисли същото» сравняваше пазара СЪС САМИЯ
+            # СЕБЕ СИ. Мерено: 319 от 758 карти (42.1%) — двете числа бит
+            # за бит еднакви. `dosmesi` имаше същия пазач от самото начало;
+            # тук липсваше, а тестът не го видя, защото ПОДМЕНЯШЕ тази
+            # функция със стъб и изпитваше другия път.
+            if moje_da_smesi(an):
                 # 🔴 НАШЕТО ЧИСЛО СЕ ПАЗИ, ПРЕДИ ДА БЪДЕ ЗАМЕНЕНО (25.08.2026).
                 # Теглото е 0.00, значи `an["p"]` СТАВА пазарното. Без този
                 # ред картата после сравнява пазарното със самото себе си и
@@ -8447,6 +8456,21 @@ def _pazar_surovo(an):
 DOSMES_VKL = env_int("PREDICT_DOSMES", 1, 0, 1) == 1
 
 
+def moje_da_smesi(an):
+    """Има ли право този анализ да бъде смесен с пазарното число.
+
+    🔴 ЕДНО МЯСТО ЗА ДВАТА ПЪТЯ. Дотук главният път (`_pazar_surovo`) и
+    обвивката (`dosmesi`) съдеха поотделно, и главният нямаше пазач
+    срещу второ смесване. Изнесено тук, за да може да се ИЗПИТА, без да
+    се подменя нито един от двата пътя.
+    """
+    if SG is None or not isinstance(an, dict):
+        return False
+    if an.get("p_model") is not None:
+        return False               # вече е смесен — не пипай пак
+    return str(an.get("bucket") or "") not in BEZ_SMESVANE
+
+
 def dosmesi(an):
     """Смесва с пазара картите, минали през РАНЕН ИЗХОД на `_pazar_surovo`.
 
@@ -8466,13 +8490,14 @@ def dosmesi(an):
     🔴 НЕ СМЕСВА ДВА ПЪТИ. `p_model` е белегът, че блокът вече е минал;
     повторно смесване би презаписало нашето число с вече смесеното.
     """
-    if not DOSMES_VKL or SG is None or not isinstance(an, dict):
+    if not DOSMES_VKL:
         return an
-    if an.get("p_model") is not None:
-        return an                      # главният път вече е смесил
+    # 🔴 СЪЩИЯТ ПАЗАЧ КАТО ГЛАВНИЯ ПЪТ, от едно място.
+    if not moje_da_smesi(an):
+        return an
     chist = an.get("pazar_p")
     b = str(an.get("bucket") or "")
-    if not chist or b in BEZ_SMESVANE:
+    if not chist:
         return an
     try:
         chist = float(chist)
@@ -11718,6 +11743,21 @@ def selftest():
         check("вече смесена карта не се пипа пак",
               abs(_vtor["p_model"] - 0.62) < 1e-6
               and abs(_vtor["p"] - 0.40) < 1e-6)
+        # 🔴 ГОРНАТА ПРОВЕРКА Е СЛЯПА ЗА ГЛАВНИЯ ПЪТ. Тя тече, докато
+        # `_pazar_surovo` е ПОДМЕНЕН със стъб — тоест изпитва пазача на
+        # `dosmesi` и твърди за другия. Затова пазачът е изнесен в
+        # `moje_da_smesi` и се изпитва тук ПРЯКО, без подмяна.
+        check("несмесен анализ МОЖЕ да бъде смесен",
+              moje_da_smesi({"bucket": "football", "p": 0.62}) is True)
+        check("вече смесен анализ НЕ МОЖЕ пак",
+              moje_da_smesi({"bucket": "football", "p": 0.40,
+                             "p_model": 0.62}) is False)
+        check("p_model=0.0 също брои за «вече смесен»",
+              moje_da_smesi({"bucket": "football", "p_model": 0.0}) is False)
+        check("спортовете без смесване НЕ се смесват",
+              all(moje_da_smesi({"bucket": _b}) is False for _b in BEZ_SMESVANE))
+        check("не-речник не чупи пазача", moje_da_smesi(None) is False)
+
 
         # ── в прага на безразличие числото НЕ се мени
         def _blizo(an):
@@ -15035,6 +15075,15 @@ def selftest():
                and not _l.lstrip().startswith("def ")]
         check("портата се вика на ДВЕТЕ врати, не на една", len(_kv) >= 3)
         check("и отказът си има име", 'otkaz("v_koridora")' in _src_zhiv)
+        # 🔴 ПАЗАЧЪТ СРЕЩУ ВТОРО СМЕСВАНЕ СЕ ВИКА ОТ ДВАТА ПЪТЯ.
+        # Стои ТУК, а не при другите си проверки, защото `_src_zhiv` се
+        # смята чак сега. Броим ИСТИНСКИ викания: `def` и коментар не са.
+        _mv = [_l for _l in _src_zhiv.split(chr(10))
+               if "moje_da_smesi(" in _l
+               and not _l.lstrip().startswith("#")
+               and not _l.lstrip().startswith("def ")]
+        check("пазачът срещу второ смесване се вика от ДВАТА пътя",
+              len(_mv) >= 2)
     finally:
         globals()["KORIDOR_REJI"] = _kr_st
 
