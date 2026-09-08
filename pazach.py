@@ -262,7 +262,12 @@ def selftest_stypki(papka=None, kod=None):
                    and (len(l) - len(l.lstrip())) == 6] + [len(r)]
             for a, b in zip(zap, zap[1:]):
                 blok = r[a:b]
-                txt = "\n".join(blok)
+                # 🔴 КОМЕНТАРИТЕ НЕ СА КОМАНДИ. Дотук се четеше
+                # «# на `python news_bot.py`» вътре в коментар на стъпката
+                # `- uses: actions/setup-python@v5` и новинарят се обявяваше
+                # за пуснат оттам — осем фалшиви находки от една чертичка.
+                txt = "\n".join(
+                    l for l in blok if not l.strip().startswith("#"))
                 for m in _re.finditer(
                         r"python\s+([a-z_0-9]+\.py)\s+(?:--)?selftest", txt):
                     bot = m.group(1)
@@ -308,7 +313,12 @@ def selftest_s_token(papka=None):
                    and (len(l) - len(l.lstrip())) == 6] + [len(r)]
             for a, b in zip(zap, zap[1:]):
                 blok = r[a:b]
-                txt = "\n".join(blok)
+                # 🔴 КОМЕНТАРИТЕ НЕ СА КОМАНДИ. Дотук се четеше
+                # «# на `python news_bot.py`» вътре в коментар на стъпката
+                # `- uses: actions/setup-python@v5` и новинарят се обявяваше
+                # за пуснат оттам — осем фалшиви находки от една чертичка.
+                txt = "\n".join(
+                    l for l in blok if not l.strip().startswith("#"))
                 for m in _re.finditer(
                         r"python\s+([a-z_0-9]+\.py)\s+(?:--)?selftest", txt):
                     bot = m.group(1)
@@ -327,6 +337,114 @@ def selftest_s_token(papka=None):
         if vidyani:
             return vidyani, losho
     return 0, []
+
+
+# Ключове, които СЕ РАЗЛИЧАВАТ по замисъл и не се изравняват.
+# Празен списък тук би вдигнал фалшива тревога при всеки сух тест.
+RAZLICHNI_PO_ZAMISAL = ("_DRY_RUN", "_DRY", "BUDILNIK_")
+
+# Ключове, които СЪЗНАТЕЛНО се подават само по единия път — с причината до
+# тях. Извинение без причина е забравяне, написано на чисто; проверката
+# отдолу изисква всяка причина да е написана.
+RUCHKI_PO_ZAMISAL = {
+    ("seed_rooms.py", "SEED_ONLY_NEW"):
+        "дневният ритъм сее САМО новите стаи; ръчният бутон сее всичко",
+    ("seed_rooms.py", "SEED_ROOMS"):
+        "идва от входа на ръчното пускане — дневният ритъм няма откъде",
+    ("seed_rooms.py", "SEED_DELAY"):
+        "идва от входа на ръчното пускане — дневният ритъм няма откъде",
+}
+
+
+def zhivi_stypki(papka=None):
+    """{бот: [(файл, стъпка, ключове)]} за стъпките, които пускат бота ЖИВО.
+
+    🔴 ЖИВО ЗНАЧИ БЕЗ selftest. Тестовата стъпка нарочно има друг набор.
+    """
+    import re as _re
+    bazi = [papka] if papka else [".github/workflows", "../.github/workflows"]
+    for baza in bazi:
+        if not baza or not os.path.isdir(baza):
+            continue
+        po_bot = {}
+        for ime in sorted(os.listdir(baza)):
+            if not ime.endswith(".yml"):
+                continue
+            try:
+                with io.open(os.path.join(baza, ime), encoding="utf-8") as f:
+                    r = f.read().split("\n")
+            except (OSError, UnicodeDecodeError):
+                continue
+            zap = [i for i, l in enumerate(r)
+                   if l.strip().startswith("- ")
+                   and (len(l) - len(l.lstrip())) == 6] + [len(r)]
+            for a, b in zip(zap, zap[1:]):
+                blok = r[a:b]
+                # 🔴 КОМЕНТАРИТЕ НЕ СА КОМАНДИ. Дотук се четеше
+                # «# на `python news_bot.py`» вътре в коментар на стъпката
+                # `- uses: actions/setup-python@v5` и новинарят се обявяваше
+                # за пуснат оттам — осем фалшиви находки от една чертичка.
+                txt = "\n".join(
+                    l for l in blok if not l.strip().startswith("#"))
+                for m in _re.finditer(
+                        r"python\s+(?:-m\s+)?([a-z_0-9]+)\.py"
+                        r"\s*($|[^\w\-])", txt, _re.M):
+                    bot = m.group(1) + ".py"
+                    if _re.search(r"python\s+" + _re.escape(bot)
+                                  + r"\s+(--)?selftest", txt):
+                        continue          # тази стъпка го пуска само за тест
+                    klyuchove = set(_re.findall(
+                        r"^\s{10}([A-Z_0-9]+)\s*:", txt, _re.M))
+                    st = blok[0].strip()
+                    if st.startswith("- name:"):
+                        st = st[7:].strip()
+                    po_bot.setdefault(bot, []).append((ime, st[:40], klyuchove))
+        if po_bot:
+            return po_bot
+    return {}
+
+
+def chete_klyuchove(bot, kod=None):
+    """Кои env ключове ЧЕТЕ самият бот. Празно, ако файлът го няма."""
+    import re as _re
+    baza = kod or os.path.dirname(os.path.abspath(__file__))
+    try:
+        with io.open(os.path.join(baza, bot), encoding="utf-8-sig") as f:
+            t = f.read()
+    except (OSError, UnicodeDecodeError):
+        return set()
+    return set(_re.findall(
+        r"environ(?:\.get)?\(?\[?\s*['\"]([A-Z_0-9]{3,})['\"]", t))
+
+
+def razminati_ruchki(papka=None, kod=None):
+    """[(бот, ключ, кой го има, кой не)] за живите пътища на един бот.
+
+    🔴 САМО КЛЮЧОВЕ, КОИТО БОТЪТ ЧЕТЕ. Първата ми версия приписваше всички
+    ключове на стъпката на всеки скрипт в нея — а една стъпка пуска по
+    няколко (router.yml «Събуди оценителя» вика и cyalost.py, и scorer.py).
+    Излизаха 68 находки, от които 68 фалшиви.
+    """
+    nam = []
+    for bot, stypki in sorted((zhivi_stypki(papka) or {}).items()):
+        if len(stypki) < 2:
+            continue
+        vsi = set()
+        for _f, _s, k in stypki:
+            vsi |= k
+        _negovi = chete_klyuchove(bot, kod)
+        for kl in sorted(vsi):
+            if any(x in kl for x in RAZLICHNI_PO_ZAMISAL):
+                continue
+            if kl not in _negovi:
+                continue          # чужд ключ, който просто дели стъпката
+            if (bot, kl) in RUCHKI_PO_ZAMISAL:
+                continue          # съзнателна разлика, с написана причина
+            ima = [f + "/" + s for f, s, k in stypki if kl in k]
+            nyama = [f + "/" + s for f, s, k in stypki if kl not in k]
+            if ima and nyama:
+                nam.append((bot, kl, ima, nyama))
+    return nam
 
 
 def cronovi_yml(papka=None):
@@ -939,7 +1057,29 @@ def selftest():
     # часовник имаха девет: support.yml (на 15 мин, с будилника и
     # събуждането на предсказателя), hub.yml и pazach.yml.
     _cr = cronovi_yml()
-    check("workflow-ите с часовник се намират", len(_cr) >= 6)
+    # 🔴 ПРАГЪТ БЕШЕ ЗАКОВАН НА СТАРОТО ЧИСЛО (поправено 05.09.2026).
+    # Сложих `>= 6` — шестте от VAZHNI отпреди днешната поправка — а живите
+    # workflow-и с крон са ДЕВЕТ. Тоест откривателят можеше да падне с една
+    # трета и проверката пак щеше да е зелена; а тя е построена именно
+    # защото support.yml имаше крон и никой не го гледаше.
+    #
+    # Затова: втори, НЕЗАВИСИМ брояч — просто колко файла съдържат «cron:».
+    # Два уреда, които броят по различен начин, не грешат еднакво.
+    _s_cron = 0
+    for _f in sorted(os.listdir(".github/workflows")
+                     if os.path.isdir(".github/workflows") else []):
+        if not _f.endswith(".yml"):
+            continue
+        try:
+            with io.open(os.path.join(".github/workflows", _f),
+                         encoding="utf-8-sig") as _fh:
+                if "cron:" in _fh.read():
+                    _s_cron += 1
+        except (OSError, UnicodeDecodeError):
+            pass
+    check("вторият брояч намира workflow-и с часовник", _s_cron >= 6)
+    check("двата брояча се съгласяват: %d срещу %d" % (len(_cr), _s_cron),
+          len(_cr) == _s_cron)
     _gledani = {i for i, _o in VAZHNI}
     _zabraveni = sorted(set(_cr) - _gledani - set(NE_SE_GLEDAT))
     check("никой с часовник не е забравен: " + (", ".join(_zabraveni) or "-"),
@@ -1011,6 +1151,24 @@ def selftest():
               _namereni >= 1)
         check("никой не пуска будилника без ръчките му: "
               + ("; ".join(_lipsi)[:70] or "-"), not _lipsi)
+
+    # 🔴 ЕДИН БОТ, ЕДНИ РЪЧКИ ПО ВСИЧКИ ЖИВИ ПЪТИЩА (05.09.2026).
+    # Днес този клас удари три пъти: будилникът спеше 9 часа, картата от
+    # съпорт-пътя излизаше без името на източника, а оценителят получаваше
+    # 11 от 25 ръчки, когато го буди рутерът. Всеки път поправката беше
+    # «добави редовете»; тук се строи правилото.
+    _zh = zhivi_stypki()
+    check("живите стъпки се намират", len(_zh) >= 3)
+    _razm = razminati_ruchki()
+    _kazvane = "; ".join("%s:%s" % (b, k) for b, k, _i, _n in _razm[:4])
+    check("никой бот не получава различни ръчки по различните пътища: "
+          + (_kazvane[:80] or "-"), not _razm)
+    check("всяко извинение за ръчка носи причина",
+          all(len(str(v)) > 20 for v in RUCHKI_PO_ZAMISAL.values()))
+    check("не се извинява ръчка, която ботът НЕ чете",
+          all(k in chete_klyuchove(b) for b, k in RUCHKI_PO_ZAMISAL))
+    check("сухите ключове НЕ се изравняват",
+          not [1 for _b, k, _i, _n in _razm if k.endswith("_DRY_RUN")])
 
     check("ключът за сух режим се чете от КОДА",
           suh_klyuch("predictor.py") == "PREDICT_DRY_RUN"
