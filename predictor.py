@@ -15013,8 +15013,8 @@ def selftest():
             check("непознат за Betano спорт не се пита",
                   _betano_rezerva({"pick": "1 · Т", "bucket": "кегли",
                                    "fx": dict(_bf)}).get("pazar_cena") is None)
-            check("ръгбито НЕ се пита — Betano го няма",
-                  "rugby" not in getattr(BET, "SPORT", {}))
+            check("ръгбито СЕ пита — Betano го има през rugby-union",
+                  getattr(BET, "SPORT", {}).get("rugby") == "rugby-union")
             # 🔴 СЕНТИНЕЛЪТ СЕ ПОЗНАВА ПО ИДЕНТИЧНОСТ, НЕ ПО ФОРМА.
             _bn = BET.NEPITAN
             try:
