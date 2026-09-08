@@ -153,19 +153,73 @@ def dumi(s):
     return d
 
 
-def _dvoyka_ot_izhodi(bo):
-    """(дом, гост) от ИЗХОДИТЕ на пазара, не от името на събитието.
+def imena_ot_sabitie(ev, bo=None):
+    """(дом, гост) от САМОТО СЪБИТИЕ. None, ако няма имена.
 
-    Името съдържа запетаи («Strnad, Jaroslav (1964)») и цепенето по тях
-    руши имена. Изходите носят по едно чисто име всеки.
+    🔴 НЕ ОТ `outcome.label` (поправено 08.09.2026). При триизходните пазари
+    там пише буквално «1», «X», «2» — измерено на живия хокей:
+
+        label=1  participant=Genève-Servette HC  type=OT_ONE
+        label=X  participant=None                type=OT_CROSS
+        label=2  participant=Storhamar Hockey    type=OT_TWO
+
+    Заради това хокеят събираше 25 срещи и получаваше НУЛА цени, докато
+    Kambi държеше 44 хокейни събития с коефициент.
+
+    `homeName`/`awayName` са чисти и за двата вида пазар. `participant`
+    е резервата, а името на събитието — последната (то носи запетаи в
+    «Strnad, Jaroslav (1964)» и цепенето по тях руши имена).
     """
-    oc = [o for o in (bo.get("outcomes") or [])
-          if str(o.get("type") or "") != "OT_DRAW"]
-    if len(oc) < 2:
-        return None
-    a = str(oc[0].get("label") or oc[0].get("englishLabel") or "")
-    b = str(oc[1].get("label") or oc[1].get("englishLabel") or "")
-    return (a, b) if a and b else None
+    ev = ev or {}
+    a = str(ev.get("homeName") or "").strip()
+    b = str(ev.get("awayName") or "").strip()
+    if a and b:
+        return (a, b)
+    if bo:
+        po_tip = {}
+        for o in (bo.get("outcomes") or []):
+            t = str(o.get("type") or "")
+            p = str(o.get("participant") or "").strip()
+            if p:
+                po_tip[t] = p
+        if po_tip.get("OT_ONE") and po_tip.get("OT_TWO"):
+            return (po_tip["OT_ONE"], po_tip["OT_TWO"])
+    ime = str(ev.get("name") or "")
+    razd = str(ev.get("nameDelimiter") or " - ")
+    if razd in ime:
+        a, b = ime.split(razd, 1)
+        a, b = a.strip(), b.strip()
+        if a and b:
+            return (a, b)
+    return None
+
+
+def koef_po_tip(bo):
+    """{«1»: коеф, «2»: коеф, «Х»: коеф}. Празно, ако няма разпознати изходи.
+
+    🔴 ПО ТИП, НЕ ПО РЕД. Редът на изходите не е обещан от никого; типът е.
+    """
+    d = {}
+    for o in (bo.get("outcomes") or []):
+        t = str(o.get("type") or "")
+        c = _koef(o)
+        if c is None:
+            continue
+        if t == "OT_ONE":
+            d["1"] = c
+        elif t == "OT_TWO":
+            d["2"] = c
+        elif t in ("OT_CROSS", "OT_DRAW"):
+            d["\u0425"] = c
+    if "1" not in d or "2" not in d:
+        # двуизходен пазар без типове: взима се редът, но само при точно два
+        oc = [o for o in (bo.get("outcomes") or [])
+              if str(o.get("type") or "") not in ("OT_CROSS", "OT_DRAW")]
+        if len(oc) == 2:
+            c1, c2 = _koef(oc[0]), _koef(oc[1])
+            if c1 and c2:
+                d["1"], d["2"] = c1, c2
+    return d
 
 
 def _koef(o):
@@ -259,16 +313,16 @@ def sabitiya(sport, otvarach=None):
             continue
         for e in ((d or {}).get("events") or []):
             ev = e.get("event") or {}
+            dv = imena_ot_sabitie(ev)
             for bo in (e.get("betOffers") or []):
-                dv = _dvoyka_ot_izhodi(bo)
-                if not dv:
+                dv2 = dv or imena_ot_sabitie(ev, bo)
+                if not dv2:
                     continue
-                oc = [o for o in (bo.get("outcomes") or [])
-                      if str(o.get("type") or "") != "OT_DRAW"]
-                c1, c2 = _koef(oc[0]), _koef(oc[1])
-                if not (c1 and c2):
+                k = koef_po_tip(bo)
+                if not (k.get("1") and k.get("2")):
                     continue
-                nam.append((dv[0], dv[1], str(ev.get("start") or ""), c1, c2))
+                nam.append((dv2[0], dv2[1], str(ev.get("start") or ""),
+                            k["1"], k["2"], k.get("\u0425")))
                 break
     if otkazi and not nam:
         return NEPITAN            # всичко падна — това НЕ е «няма мачове»
@@ -288,12 +342,15 @@ def ceni_za(sport, dom, gost, otvarach=None):
     h, a = dumi(dom), dumi(gost)
     if not (h and a):
         return None
-    for A, B, _st, c1, c2 in ev:
+    for zap in ev:
+        A, B, _st, c1, c2 = zap[0], zap[1], zap[2], zap[3], zap[4]
+        raven = zap[5] if len(zap) > 5 else None
         da, db = dumi(A), dumi(B)
         if (h & da) and (a & db):
-            return (c1, c2)
+            return (c1, c2, raven)
         if (h & db) and (a & da):
-            return (c2, c1)       # обърнати страни — връщаме В НАШИЯ ред
+            # обърнати страни — връщаме В НАШИЯ ред; равният си остава равен
+            return (c2, c1, raven)
     return None
 
 
@@ -327,16 +384,47 @@ def selftest():
     check("ударенията се свалят", "genevesarvette" not in dumi("Genève"))
     check("кирилица не дава думи", dumi("Иран") == set())
 
-    _bo = {"outcomes": [{"label": "Iran", "odds": 1050},
-                        {"label": "India", "odds": 9500}]}
-    check("страните идват от изходите", _dvoyka_ot_izhodi(_bo) == ("Iran", "India"))
-    check("равният не се брои за страна",
-          _dvoyka_ot_izhodi({"outcomes": [
-              {"label": "A", "odds": 2000},
-              {"label": "X", "odds": 3000, "type": "OT_DRAW"},
-              {"label": "B", "odds": 2500}]}) == ("A", "B"))
-    check("един изход не прави двойка",
-          _dvoyka_ot_izhodi({"outcomes": [{"label": "A", "odds": 2000}]}) is None)
+    # 🔴 ИМЕНАТА ИДВАТ ОТ СЪБИТИЕТО, НЕ ОТ ИЗХОДИТЕ (08.09.2026).
+    # При 1X2 пазарите `outcome.label` е буквално «1»/«X»/«2» — заради това
+    # хокеят събираше 25 срещи и получаваше НУЛА цени.
+    # 🔴 ТРИТЕ ПЪТЯ НОСЯТ РАЗЛИЧНИ ИМЕНА НАРОЧНО. С еднакви имена махането
+    # на първия път не се вижда — мутацията «чети от label» оставаше зелена.
+    _ev3 = {"homeName": "ПЪРВИ Домакин", "awayName": "ПЪРВИ Гост",
+            "name": "ТРЕТИ Домакин - ТРЕТИ Гост"}
+    _bo3 = {"outcomes": [
+        {"label": "1", "odds": 2330, "type": "OT_ONE",
+         "participant": "ВТОРИ Домакин"},
+        {"label": "X", "odds": 4000, "type": "OT_CROSS"},
+        {"label": "2", "odds": 2700, "type": "OT_TWO",
+         "participant": "ВТОРИ Гост"}]}
+    check("имената идват ПЪРВО от homeName/awayName",
+          imena_ot_sabitie(_ev3, _bo3) == ("ПЪРВИ Домакин", "ПЪРВИ Гост"))
+    check("без тях идва participant",
+          imena_ot_sabitie({"name": "ТРЕТИ Домакин - ТРЕТИ Гост"}, _bo3)
+          == ("ВТОРИ Домакин", "ВТОРИ Гост"))
+    check("и чак накрая името на събитието",
+          imena_ot_sabitie({"name": "ТРЕТИ Домакин - ТРЕТИ Гост"})
+          == ("ТРЕТИ Домакин", "ТРЕТИ Гост"))
+    check("«1» и «X» НЕ минават за имена",
+          "1" not in imena_ot_sabitie(_ev3, _bo3))
+    check("без нищо няма имена", imena_ot_sabitie({}) is None)
+
+    check("коефициентите се четат ПО ТИП, не по ред",
+          koef_po_tip(_bo3) == {"1": 2.33, "2": 2.70, "\u0425": 4.00})
+    # 🔴 ОБЪРНАТ РЕД: тук четенето «по ред» дава ГРЕШНИЯ отговор, а «по тип»
+    # верния. С подредени 1-X-2 двете съвпадат и мутацията остава зелена.
+    _bo_obr = {"outcomes": [
+        {"label": "2", "odds": 2700, "type": "OT_TWO"},
+        {"label": "X", "odds": 4000, "type": "OT_CROSS"},
+        {"label": "1", "odds": 2330, "type": "OT_ONE"}]}
+    check("обърнатият ред НЕ обръща коефициентите",
+          koef_po_tip(_bo_obr) == {"1": 2.33, "2": 2.70, "\u0425": 4.00})
+    _bo2 = {"outcomes": [{"label": "Iran", "odds": 1050},
+                         {"label": "India", "odds": 9500}]}
+    check("двуизходен пазар без типове пак се чете",
+          koef_po_tip(_bo2) == {"1": 1.05, "2": 9.5})
+    check("един изход не дава пазар",
+          not koef_po_tip({"outcomes": [{"label": "A", "odds": 2000}]}))
 
     # --- подложен извор, нула мрежа
     DYRVO = json.dumps({"group": {"termKey": "", "groups": [
@@ -405,12 +493,12 @@ def selftest():
     ev = sabitiya("volleyball", podlozhka)
     check("събитията се събират от ВСИЧКИ турнири", len(ev) == 2)
     check("коефициентите са разделени",
-          any(abs(c1 - 2.65) < 1e-9 for _a, _b, _s, c1, _c2 in ev))
+          any(abs(z[3] - 2.65) < 1e-9 for z in ev))
 
     check("цената се намира по фамилии",
-          ceni_za("volleyball", "Poland", "Serbia", podlozhka) == (2.65, 1.42))
+          ceni_za("volleyball", "Poland", "Serbia", podlozhka) == (2.65, 1.42, None))
     check("обърнатите страни се връщат В НАШИЯ ред",
-          ceni_za("volleyball", "Serbia", "Poland", podlozhka) == (1.42, 2.65))
+          ceni_za("volleyball", "Serbia", "Poland", podlozhka) == (1.42, 2.65, None))
     check("непознат мач дава None",
           ceni_za("volleyball", "Никой", "Другият", podlozhka) is None)
     # 🔴 ЕДНАТА СТРАНА НЕ СТИГА. «Poland» го има, «Brazil» — не. Обща
@@ -425,7 +513,7 @@ def selftest():
     _kesh.clear()
     check("WTT СЕ НАМИРА — заради това е целият модул",
           ceni_za("tabletennis", "Shunsuke Togami", "Simon Gauzy",
-                  podlozhka) == (1.4, 2.72))
+                  podlozhka) == (1.4, 2.72, None))
 
     # 🔴 ПРОВАЛЪТ НЕ Е «НЯМА МАЧОВЕ»
     def padashta(rq, timeout=None):
