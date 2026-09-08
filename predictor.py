@@ -8674,7 +8674,11 @@ def _betano_rezerva(an):
         if not (d and g):
             continue
         try:
-            r = BET.ceni_za(b, d, g, ms)
+            # 🔴 ЛИГАТА СЕ ПОДАВА (08.09.2026). Без нея Betano тегли първите
+            # турнири в реда на дървото си — България, УЕФА, Англия — а
+            # картите ни идват от Копа Либертадорес, MLS, Аржентина, Бразилия.
+            # Измерено: таванът така изхвърляше 1038 от 1191 футболни събития.
+            r = BET.ceni_za(b, d, g, ms, None, str(fx.get("league") or ""))
         except Exception:                                    # noqa: BLE001
             return an
         if r is getattr(BET, "NEPITAN", object()):
@@ -14897,8 +14901,9 @@ def selftest():
         try:
             _b_vidyani = []
 
-            def _b_stub(sport, dom, gost, nachalo=None, otvarach=None):
-                _b_vidyani.append((sport, dom, gost, nachalo))
+            def _b_stub(sport, dom, gost, nachalo=None, otvarach=None,
+                        liga=None):
+                _b_vidyani.append((sport, dom, gost, nachalo, liga))
                 # 🔴 ИЗМИСЛЕНИ ИМЕНА ЗА ПРОВЕРКАТА ПРЕЗ ОБВИВКАТА.
                 # С истински («Tomas Regner») тя падаше, защото това Е
                 # жив мач и `_pazar_surovo` му намира цена от Smarkets —
@@ -14961,6 +14966,20 @@ def selftest():
                              "fx": dict(_bf)})
             check("без известен час се пита БЕЗ час, не с измислен",
                   _b_vidyani and _b_vidyani[0][3] is None)
+
+            # 🔴 И ЛИГАТА. Без нея насочването по лига е мъртва ръчка:
+            # кодът я приема, а никой не я подава.
+            del _b_vidyani[:]
+            _betano_rezerva({"pick": "1 · Т", "bucket": "tabletennis",
+                             "fx": {"home": "Tomas Regner",
+                                    "away": "Adam Svoboda",
+                                    "league": "Чешка професионална лига",
+                                    "extra": {}}})
+            check("ЛИГАТА също стига до българската книга",
+                  any(len(v) > 4 and v[4] for v in _b_vidyani))
+            check("и е точно нашата лига",
+                  any(len(v) > 4 and "Чешка" in str(v[4])
+                      for v in _b_vidyani))
             # 🔴 И СУРОВОТО, И АНГЛИЙСКОТО ИМЕ. Betano пише на кирилица;
             # тук суровото име е кирилско, а латинското идва от extra.
             del _b_vidyani[:]
