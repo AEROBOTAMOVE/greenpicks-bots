@@ -39570,9 +39570,10 @@
   "p": 0.7801,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_done": true
+  "combo_done": true,
+  "opit": 1
  },
  {
   "key": "2026-09-04|tennis|elenarybakina|jessicabouzasmaneiro",
@@ -56381,7 +56382,9 @@
   "p": 0.8494,
   "stars": 2,
   "sample": "ранглиста и 6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-09|football|alnassr|abha",
