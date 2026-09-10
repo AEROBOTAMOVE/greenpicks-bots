@@ -42967,7 +42967,8 @@
   "p": 0.6928,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-05|tabletennis|2130|milankolar|vladimirpostelt",
@@ -43954,7 +43955,8 @@
   "p": 0.7031,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-05|esports|falconsforce|misa",
@@ -44518,7 +44520,8 @@
   "p": 0.5366,
   "stars": 3,
   "sample": "гледани по 62 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-10|amfootball|seattleseahawks|newenglandpatriots",
@@ -44722,7 +44725,8 @@
   "p": 0.6957,
   "stars": 3,
   "sample": "гледани 86 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-06|football|boyacáchicófc|oncecaldas",
@@ -44803,7 +44807,8 @@
   "p": 0.8388,
   "stars": 1,
   "sample": "точки за и против",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-06|tennis|carlosalcaraz|tommypaul",
@@ -44884,7 +44889,8 @@
   "p": 0.5681,
   "stars": 3,
   "sample": "гледани 81 мача на единия и 41 на другия",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-05|tabletennis|1130|janzajicek|erikmares",
@@ -45082,7 +45088,8 @@
   "p": 0.6767,
   "stars": 1,
   "sample": "точки за и против",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-06|hockey|hcdavos|eisbärenberlin",
@@ -45201,7 +45208,8 @@
   "p": 0.783,
   "stars": 1,
   "sample": "точки за и против",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-05|tennis|lajalm|balshawf",
@@ -45608,7 +45616,8 @@
   "p": 0.5662,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-09-05|tabletennis|hinahayata|adrianadiaz",
@@ -60913,7 +60922,12 @@
   "p": 0.9055,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2",
+  "pazar_close": 1.05,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-11|tabletennis|darkojorgic|yuanyuchen",
@@ -61434,7 +61448,12 @@
   "p": 0.9457,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:8",
+  "pazar_close": 1.76,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.4122
  },
  {
   "key": "2026-09-10|tabletennis|tomislavpucar|hugocalderano",
@@ -61984,7 +62003,12 @@
   "p": 0.6569,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0",
+  "pazar_close": 1.41,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-10|esports|fokus|1w",
@@ -62065,7 +62089,12 @@
   "p": 0.9066,
   "stars": 3,
   "sample": "гледани 64 мача на единия и 21 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 1.03,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-10|tabletennis|florianbourrassaud|dimitrijovtcharov",
@@ -62494,7 +62523,12 @@
   "p": 0.8997,
   "stars": 3,
   "sample": "гледани 50 мача на единия и 61 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:0",
+  "pazar_close": 1.07,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0088
  },
  {
   "key": "2026-09-10|football|манчестърюнайтед|sabahfk",
@@ -62532,7 +62566,12 @@
   "p": 0.8963,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:0",
+  "pazar_close": 1.07,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0088
  },
  {
   "key": "2026-09-10|football|estrela|braga",
@@ -62570,7 +62609,12 @@
   "p": 0.6091,
   "stars": 3,
   "sample": "гледани 38 мача на единия и 37 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1",
+  "pazar_close": 1.57,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0124
  },
  {
   "key": "2026-09-10|tabletennis|edouardvalenet|armaandalamal",
@@ -62724,7 +62768,9 @@
   "p": 0.6405,
   "stars": 1,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-09-10|tabletennis|alvarorobles|fanbomeng",
