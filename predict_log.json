@@ -57099,7 +57099,9 @@
   "p": 0.6707,
   "stars": 3,
   "sample": "гледани 34 мача на единия и 44 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-09|volleyball|msen|тайван|тайланд",
@@ -59172,7 +59174,12 @@
   "p": 0.6578,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.37,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0207
  },
  {
   "key": "2026-09-09|tabletennis|hanagoda|brunatakahashi",
@@ -59331,7 +59338,12 @@
   "p": 0.574,
   "stars": 2,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2",
+  "pazar_close": 1.65,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0073
  },
  {
   "key": "2026-09-10|esports|nrg|withoutaroof",
@@ -59369,7 +59381,12 @@
   "p": 0.8338,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.09,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-10|esports|pain|backtoback",
