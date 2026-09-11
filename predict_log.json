@@ -42967,8 +42967,9 @@
   "p": 0.6928,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-05|tabletennis|2130|milankolar|vladimirpostelt",
@@ -43955,8 +43956,9 @@
   "p": 0.7031,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-05|esports|falconsforce|misa",
@@ -44520,8 +44522,9 @@
   "p": 0.5366,
   "stars": 3,
   "sample": "гледани по 62 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-10|amfootball|seattleseahawks|newenglandpatriots",
@@ -44725,8 +44728,9 @@
   "p": 0.6957,
   "stars": 3,
   "sample": "гледани 86 мача на единия и 7 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-06|football|boyacáchicófc|oncecaldas",
@@ -44807,8 +44811,9 @@
   "p": 0.8388,
   "stars": 1,
   "sample": "точки за и против",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-06|tennis|carlosalcaraz|tommypaul",
@@ -44889,8 +44894,9 @@
   "p": 0.5681,
   "stars": 3,
   "sample": "гледани 81 мача на единия и 41 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-05|tabletennis|1130|janzajicek|erikmares",
@@ -45088,8 +45094,9 @@
   "p": 0.6767,
   "stars": 1,
   "sample": "точки за и против",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-06|hockey|hcdavos|eisbärenberlin",
@@ -45208,8 +45215,9 @@
   "p": 0.783,
   "stars": 1,
   "sample": "точки за и против",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-05|tennis|lajalm|balshawf",
@@ -45616,8 +45624,9 @@
   "p": 0.5662,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-05|tabletennis|hinahayata|adrianadiaz",
@@ -59904,7 +59913,9 @@
   "p": 0.6894,
   "stars": 3,
   "sample": "гледани 27 мача на единия и 34 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-09-10|baseball|hanshintigers|hiroshimatoyocarp",
@@ -61410,7 +61421,9 @@
   "p": 0.5591,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-11|baseball|orixbuffaloes|saitamaseibulions",
@@ -63570,7 +63583,9 @@
   "p": 0.7412,
   "stars": 2,
   "sample": "гледани 17 мача на единия и 31 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-09-11|tabletennis|2305|jerzymichalik|michalmachelski",
@@ -63608,7 +63623,9 @@
   "p": 0.6292,
   "stars": 1,
   "sample": "гледани 10 мача на единия и 15 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-11|tennis|rieraj|blinkovaa",
