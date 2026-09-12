@@ -66431,7 +66431,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 36 мача на единия и 80 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:4"
  },
  {
   "key": "2026-09-12|volleyball|msen|румъния|германия",
@@ -67209,7 +67211,9 @@
   "p": 0.578,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-09-12|volleyball|msen|франция|türkiye",
@@ -67593,7 +67597,9 @@
   "p": 0.5952,
   "stars": 2,
   "sample": "гледани 15 мача на единия и 9 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-12|hockey|kookookouvola|dynamopardubice",
@@ -67861,7 +67867,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 124 мача на единия и 55 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:1"
  },
  {
   "key": "2026-09-12|esports|nemiga|b8",
