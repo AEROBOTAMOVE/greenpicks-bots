@@ -67972,7 +67972,9 @@
   "p": 0.8493,
   "stars": 3,
   "sample": "ранглиста и 15 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-09-13|volleyball|wsen|канада|пуерторико",
@@ -68053,7 +68055,12 @@
   "p": 0.5743,
   "stars": 3,
   "sample": "ранглиста и 23 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "pazar_close": 1.69,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-12|tabletennis|miwaharimoto|bernadetteszocs",
@@ -70370,7 +70377,9 @@
   "p": 0.7161,
   "stars": 3,
   "sample": "гледани 91 мача на единия и 69 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-13|volleyball|msen|латвия|франция",
@@ -71341,7 +71350,9 @@
   "p": 0.92,
   "stars": 3,
   "sample": "гледани 31 мача на единия и 35 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-09-16|hockey|hifk|jukurit",
@@ -72444,7 +72455,9 @@
   "p": 0.7619,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-18|hockey|kalpa|ilves",
