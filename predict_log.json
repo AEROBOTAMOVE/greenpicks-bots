@@ -54876,8 +54876,9 @@
   "p": 0.5417,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-08|tabletennis|antonkallberg|manushshah",
