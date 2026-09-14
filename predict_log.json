@@ -72690,7 +72690,9 @@
   "p": 0.76,
   "stars": 2,
   "sample": "гледани 87 мача на единия и 33 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-09-18|amfootball|pittsburghpanthers|syracuseorange",
@@ -73039,7 +73041,12 @@
   "p": 0.8467,
   "stars": 3,
   "sample": "гледани 53 мача на единия и 24 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 1.09,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0325
  },
  {
   "key": "2026-09-14|tennis|paulabadosa|darjasemenistaja",
@@ -73819,7 +73826,12 @@
   "p": 0.8932,
   "stars": 2,
   "sample": "гледани 58 мача на единия и 13 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "pazar_close": 1.06,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0088
  },
  {
   "key": "2026-09-15|tennis|gabrielaknutson|aoiito",
@@ -73895,7 +73907,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-09-19|amfootball|wakeforestdemondeacons|miamihurricanes",
@@ -75097,7 +75111,9 @@
   "p": 0.6476,
   "stars": 2,
   "sample": "гледани 37 мача на единия и 12 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-09-15|tabletennis|junlinxiang|yuxuanlow",
