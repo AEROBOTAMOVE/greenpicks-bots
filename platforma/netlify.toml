@@ -1,0 +1,57 @@
+# The Green Room · Netlify (сървърът е същият доказан като при AERO клиента)
+[build]
+  publish = "."
+  # Платформата живее в папка platforma/ на repo-то на бота, а ботът пише в
+  # repo-то всеки час. Нова версия само когато се е сменила ТАЗИ папка —
+  # иначе безплатните минути на Netlify свършват за нищо.
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
+
+# @netlify/database 2.x изисква Node >= 22.12 (engines в npm регистъра).
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  directory = "netlify/functions"
+
+# Сървърните файлове не се сервират като страници.
+[[redirects]]
+  from = "/netlify/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/node_modules/*"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package-lock.json"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify.toml"
+  to = "/404.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/.gitignore"
+  to = "/404.html"
+  status = 404
+  force = true
+
+# Отговорите на /api никога не се кешират.
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"

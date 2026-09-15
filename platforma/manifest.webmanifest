@@ -1,0 +1,13 @@
+{
+  "name": "The Green Room",
+  "short_name": "Green Room",
+  "description": "Анализи · прогнози · резултати",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07110d",
+  "theme_color": "#07110d",
+  "lang": "bg",
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

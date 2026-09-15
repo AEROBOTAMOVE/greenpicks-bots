@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="The Green Room">
+  <defs>
+    <linearGradient id="sr" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f6f5"/>
+      <stop offset="0.55" stop-color="#b9c2be"/>
+      <stop offset="1" stop-color="#e6ebe8"/>
+    </linearGradient>
+    <linearGradient id="zl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1fa36a"/>
+      <stop offset="1" stop-color="#0c5d3b"/>
+    </linearGradient>
+  </defs>
+  <!-- арката -->
+  <path d="M52 196 V96 a68 68 0 0 1 136 0 V196" fill="none" stroke="url(#sr)" stroke-width="7"/>
+  <path d="M64 196 V98 a56 56 0 0 1 112 0 V196" fill="none" stroke="url(#zl)" stroke-width="4"/>
+  <!-- G -->
+  <path d="M118 104 a30 30 0 1 0 6 44 V128 h-18" fill="none" stroke="url(#zl)" stroke-width="10" stroke-linecap="square"/>
+  <!-- R -->
+  <path d="M126 196 V92 h20 a20 20 0 0 1 0 40 h-18 l30 40" fill="none" stroke="url(#sr)" stroke-width="9" stroke-linejoin="miter"/>
+  <!-- покривът -->
+  <path d="M104 86 L126 64 L148 86" fill="none" stroke="url(#sr)" stroke-width="6"/>
+  <!-- основата -->
+  <path d="M30 198 H210" stroke="url(#sr)" stroke-width="3"/>
+</svg>
