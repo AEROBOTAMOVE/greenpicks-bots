@@ -237,7 +237,7 @@
         <p><b>Сложи The Green Room на телефона</b>Отваря се като приложение, на един допир.</p>
         <button class="btn m" data-pwa="1">Добави</button><button class="x" data-pwa-x="1" aria-label="Скрий">×</button></div>` : "";
     return ramka(null, `
-      <section class="geroi" style="margin-top:16px"><span class="lyk"></span><span class="topka">${TOPKA}</span>
+      <section class="geroi" style="margin-top:16px">
         <h2>Големи мачове.<br>По-добри решения.</h2><p>Всяка прогноза идва с анализ и обяснение защо.</p>
         <button class="btn" data-idi="prognozi">Виж прогнозите ${ico("str")}</button></section>
       ${pwa}
