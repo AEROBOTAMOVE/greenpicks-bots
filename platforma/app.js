@@ -9,8 +9,18 @@
   const TG = "https://t.me/green_picks_info_bot";
   const S = {
     me: null, data: null, tab: "nachalo", sport: null, sportTab: "prog", progTab: "vsichki", progSport: "", q: "",
-    fishTab: "aktivni", rezDen: null, adminRejim: false, admin: null, aF: "vsichki", aQ: "", spQ: "",
+    fishTab: "aktivni", rezDen: null, adminRejim: false, admin: null, aF: "vsichki", aQ: "", spQ: "", spTab: "vsichki",
+    slip: [], suma: 10,
   };
+  /* МОЯТ ФИШ — пази се в браузъра на клиента (нищо не отива на сървъра) */
+  try {
+    S.slip = JSON.parse(localStorage.getItem("gr_fish") || "[]") || [];
+    S.suma = Number(localStorage.getItem("gr_suma")) || 10;
+  } catch (e) { S.slip = []; }
+  const pazi = () => { try { localStorage.setItem("gr_fish", JSON.stringify(S.slip)); localStorage.setItem("gr_suma", String(S.suma)); } catch (e) { /* личен режим */ } };
+  const vFisha = (id) => S.slip.some((x) => x.id === id);
+  const slipKoef = () => (S.slip.length && S.slip.every((x) => x.koef > 1)
+    ? Math.round(S.slip.reduce((a, x) => a * x.koef, 1) * 100) / 100 : null);
 
   const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -143,6 +153,7 @@
       ${k.zashto ? `<p class="pk-zashto">${esc(k.zashto)}</p>` : ""}
       ${pr ? `<div class="pk-uv"><span>Увереност</span><div class="bar"><i style="width:${Math.max(4, Math.min(100, pr))}%"></i></div><b>${esc(pr)}%</b>
         ${k.zvezdi ? `<span class="zv" aria-label="${esc(k.zvezdi)} звезди">${zvezdi(k.zvezdi)}</span>` : ""}</div>` : ""}
+      ${k.koef ? `<button class="pk-dob" data-slip="${esc(k.id)}" aria-pressed="${vFisha(k.id)}">${vFisha(k.id) ? "✓ Във фиша" : "+ Добави във фиша"}</button>` : ""}
     </article>`;
   }
   const znak = (p) => (p === true ? '<span class="znak p">✓ Позната</span>' : p === false ? '<span class="znak n">✗ Непозната</span>' : '<span class="znak v">—</span>');
@@ -184,6 +195,7 @@
         </div>
       </div>
       <nav class="dolu" aria-label="Основно меню"><div class="v">${nav()}</div></nav>
+      ${S.slip.length && !(S.tab === "fishove" && S.fishTab === "moi") && !S.adminRejim ? `<button class="slip-pill" data-moi="1">${ico("fishove")}Моят фиш · ${S.slip.length}${slipKoef() ? `<b>${esc(slipKoef().toFixed(2))}</b>` : ""}</button>` : ""}
     </div>`;
   }
   function statusTxt(m) {
@@ -248,6 +260,8 @@
         <div style="margin-top:14px">${lista}</div>`);
     }
     return ramka(["Всички спортове", "Избери спорт — прогнозите и резултатите му са на едно място."], `
+      <div class="tabs">${[["vsichki", "Всички"], ["populyarni", "Популярни"], ["az", "А-Я"]].map(([v, t]) =>
+        `<button data-sptab="${v}" aria-pressed="${S.spTab === v}">${t}</button>`).join("")}</div>
       <label class="tarsene">${ico("tarsi")}<input id="sp-q" type="search" placeholder="Търси спорт…" value="${esc(S.spQ)}" aria-label="Търси спорт"></label>
       <div class="spisyk kol" id="sp-lista" style="margin-top:12px">${listaSportove()}</div>`);
   }
@@ -257,8 +271,10 @@
     const rz = {};
     for (const k of d.rezultati || []) rz[k.sport] = (rz[k.sport] || 0) + 1;
     const q = S.spQ.trim().toLowerCase();
-    const sp = (d.sportove || []).filter((s) => !q || s.sport_bg.toLowerCase().includes(q))
-      .sort((a, b) => (br[b.sport] || 0) - (br[a.sport] || 0));
+    let sp = (d.sportove || []).filter((s) => !q || s.sport_bg.toLowerCase().includes(q));
+    if (S.spTab === "populyarni") sp = sp.filter((s) => br[s.sport]);
+    sp = S.spTab === "az" ? sp.sort((a, b) => a.sport_bg.localeCompare(b.sport_bg, "bg"))
+      : sp.sort((a, b) => (br[b.sport] || 0) - (br[a.sport] || 0));
     return sp.length ? sp.map((s) => `<button class="red" data-sport="${esc(s.sport)}">${ik(s.sport)}
       <span><b>${esc(s.sport_bg)}</b><span class="pod">${br[s.sport] ? br[s.sport] + " прогнози" : "няма прогнози в момента"}${rz[s.sport] ? " · " + rz[s.sport] + " резултата" : ""}</span></span>
       <span class="str">${ico("str")}</span></button>`).join("") : '<p class="prazno">Няма такъв спорт.</p>';
@@ -300,16 +316,65 @@
   /* ── ФИШОВЕ ── */
   function ekranFishove() {
     const f = (S.data && S.data.fishove) || [];
+    if (S.fishTab === "moi") return ekranMoiFish(f);
     const akt = f.filter((x) => x.status === "v_igra");
     const pri = f.filter((x) => x.status !== "v_igra");
     const x = S.fishTab === "aktivni" ? akt : pri;
     const pozn = pri.filter((y) => y.status === "poznat").length;
     return ramka(["Фишове", "Комбинирани фишове от нашите прогнози — с общ коефициент."], `
       <div class="tabs"><button data-ftab="aktivni" aria-pressed="${S.fishTab === "aktivni"}">В игра · ${akt.length}</button>
-        <button data-ftab="priklyucheni" aria-pressed="${S.fishTab !== "aktivni"}">Приключили · ${pri.length}</button></div>
+        <button data-ftab="priklyucheni" aria-pressed="${S.fishTab === "priklyucheni"}">Приключили · ${pri.length}</button>
+        <button data-ftab="moi" aria-pressed="false">Моят фиш · ${S.slip.length}</button></div>
       ${S.fishTab !== "aktivni" && pri.length ? `<div class="obzor"><div class="pryasten" style="--p:${Math.round((100 * pozn) / pri.length)}"><b>${Math.round((100 * pozn) / pri.length)}%</b></div>
         <p>Познати фишове за 7 дни<br><b>${pozn}</b> от ${pri.length}</p></div>` : ""}
       <div class="karti kol" style="margin-top:14px">${x.length ? x.map(kartaFish).join("") : `<p class="prazno">${S.fishTab === "aktivni" ? "В момента няма фишове в игра." : "Още няма приключили фишове."}</p>`}</div>`);
+  }
+
+  /* ── МОЯТ ФИШ ── */
+  function ekranMoiFish(f) {
+    const akt = f.filter((x) => x.status === "v_igra").length;
+    const pri = f.length - akt;
+    const k = slipKoef();
+    const pech = k ? Math.round(S.suma * k * 100) / 100 : null;
+    const tabs = `<div class="tabs"><button data-ftab="aktivni" aria-pressed="false">В игра · ${akt}</button>
+      <button data-ftab="priklyucheni" aria-pressed="false">Приключили · ${pri}</button>
+      <button data-ftab="moi" aria-pressed="true">Моят фиш · ${S.slip.length}</button></div>`;
+    const gl = ["Моят фиш", "Събери свой фиш от нашите прогнози и виж общия коефициент."];
+    if (!S.slip.length) {
+      return ramka(gl, tabs + `<p class="prazno" style="margin-top:14px">Фишът е празен. Отвори „Прогнози“ и натисни „+ Добави във фиша“ под избора, който харесваш.</p>
+        <div style="text-align:center;margin-top:14px"><button class="btn" data-idi="prognozi">Към прогнозите ${ico("str")}</button></div>`);
+    }
+    return ramka(gl, tabs + `
+      <article class="fs moi" style="margin-top:14px">
+        <header><b>${S.slip.length === 1 ? "Единичен" : "Комбиниран"}</b><span class="den">${S.slip.length} ${S.slip.length === 1 ? "събитие" : "събития"}</span>
+          <button class="btn m v2" data-izchisti="1" style="margin-left:auto">Изчисти</button></header>
+        <ol>${S.slip.map((x) => `<li>${ik(x.sport, "ik s")}<span class="m">${esc(x.dom)} — ${esc(x.gost)}</span>
+          <span class="k">${esc(Number(x.koef).toFixed(2))}<button class="maha" data-maha="${esc(x.id)}" aria-label="Махни от фиша">×</button></span>
+          <span class="i">${esc(izborTxt(x.izbor))} · ${esc(denEt(x.den))}</span></li>`).join("")}</ol>
+        <div class="suma-blok">
+          <div class="red-k"><span>Общ коефициент</span><b>${k ? esc(k.toFixed(2)) : "—"}</b></div>
+          <label class="red-k"><span>Сума (лв)</span><input id="f-suma" type="number" min="1" step="1" inputmode="decimal" value="${esc(S.suma)}"></label>
+          <div class="brzi">${[10, 20, 50, 100].map((v) => `<button class="${S.suma === v ? "on" : ""}" data-suma="${v}">${v} лв</button>`).join("")}</div>
+          <div class="red-k pech"><span>Възможна печалба</span><b id="f-pech">${pech != null ? esc(pech.toFixed(2)) + " лв" : "—"}</b></div>
+          <button class="btn shir" data-kopirai="1">Копирай фиша</button>
+        </div>
+      </article>`);
+  }
+  function toggleSlip(id) {
+    if (vFisha(id)) { S.slip = S.slip.filter((x) => x.id !== id); pazi(); return; }
+    const k = ((S.data && S.data.prognozi) || []).find((x) => x.id === id);
+    if (!k || !k.koef) return;
+    if (S.slip.some((x) => x.dom === k.dom && x.gost === k.gost)) { toast("Този мач вече е във фиша."); return; }
+    S.slip.push({ id: k.id, sport: k.sport, dom: k.dom, gost: k.gost, izbor: k.izbor, koef: k.koef, den: k.den });
+    pazi();
+    toast("Добавено във фиша · " + S.slip.length + (S.slip.length > 1 && slipKoef() ? " · общ коеф. " + slipKoef().toFixed(2) : ""));
+  }
+  async function kopirai() {
+    const k = slipKoef();
+    const t = ["The Green Room · моят фиш",
+      ...S.slip.map((x, i) => `${i + 1}. ${x.dom} — ${x.gost}: ${izborTxt(x.izbor)} @ ${Number(x.koef).toFixed(2)}`),
+      k ? `Общ коефициент: ${k.toFixed(2)}` : ""].filter(Boolean).join("\n");
+    try { await navigator.clipboard.writeText(t); toast("Фишът е копиран."); } catch (e) { prompt("Копирай фиша:", t); }
   }
 
   /* ── РЕЗУЛТАТИ ── */
@@ -501,6 +566,13 @@
     if (ds.psport !== undefined) { S.progSport = ds.psport; return render(); }
     if (ds.ftab) { S.fishTab = ds.ftab; return render(); }
     if (ds.rez) { S.rezDen = ds.rez; return render(); }
+    if (ds.slip) { toggleSlip(ds.slip); return render(); }
+    if (ds.maha) { S.slip = S.slip.filter((x) => x.id !== ds.maha); pazi(); return render(); }
+    if (ds.izchisti) { S.slip = []; pazi(); return render(); }
+    if (ds.suma) { S.suma = Number(ds.suma); pazi(); return render(); }
+    if (ds.kopirai) return kopirai();
+    if (ds.moi) { S.fishTab = "moi"; return idi("fishove"); }
+    if (ds.sptab) { S.spTab = ds.sptab; return render(); }
     if (ds.izhod) return izhod();
     if (ds.admin) { S.adminRejim = true; S.admin = null; render(); window.scrollTo(0, 0); return zarediAdmin(); }
     if (ds.nazad) { S.adminRejim = false; return idi("profil"); }
@@ -527,6 +599,14 @@
     if (id === "p-q") { S.q = e.target.value; document.getElementById("p-lista").innerHTML = listaPrognozi(); }
     else if (id === "sp-q") { S.spQ = e.target.value; document.getElementById("sp-lista").innerHTML = listaSportove(); }
     else if (id === "a-q") { S.aQ = e.target.value; document.getElementById("a-lista").innerHTML = listaPotrebiteli(); }
+    else if (id === "f-suma") {
+      S.suma = Math.max(0, Number(e.target.value) || 0);
+      pazi();
+      const k = slipKoef();
+      const el = document.getElementById("f-pech");
+      if (el) el.textContent = k ? (Math.round(S.suma * k * 100) / 100).toFixed(2) + " лв" : "—";
+      $app.querySelectorAll(".brzi button").forEach((b) => b.classList.toggle("on", Number(b.dataset.suma) === S.suma));
+    }
   });
   $app.addEventListener("submit", async (e) => {
     if (e.target.id !== "f-sazdai") return;
