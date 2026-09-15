@@ -150,7 +150,8 @@
       <div class="pk-mach"><div class="pk-tim">${ekip(k.dom)}<span>${esc(k.dom)}</span></div><div class="pk-vs">VS</div>
         <div class="pk-tim d">${ekip(k.gost)}<span>${esc(k.gost)}</span></div></div>
       <div class="pk-izbor"><div><small>Нашата прогноза</small><b>${esc(izborTxt(k.izbor))}</b></div>
-        ${k.koef ? `<div class="pk-koef"><small>Коеф.</small><b>${esc(k.koef.toFixed(2))}</b></div>` : ""}</div>
+        ${k.koef ? `<div class="pk-koef"><small>Коеф.</small><b>${esc(k.koef.toFixed(2))}</b></div>`
+          : '<div class="pk-koef bez"><small>Коеф.</small><b>—</b></div>'}</div>
       ${k.zashto ? `<p class="pk-zashto">${esc(k.zashto)}</p>` : ""}
       ${pr ? `<div class="pk-uv"><span>Увереност</span><div class="bar"><i style="width:${Math.max(4, Math.min(100, pr))}%"></i></div><b>${esc(pr)}%</b>
         ${k.zvezdi ? `<span class="zv" aria-label="${esc(k.zvezdi)} звезди">${zvezdi(k.zvezdi)}</span>` : ""}</div>` : ""}
