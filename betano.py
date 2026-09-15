@@ -385,8 +385,199 @@ def etiketite_pasvat(nash, tehen):
     return etiket(nash) == etiket(tehen)
 
 
+# ═════════════════════════════════════════ ДЪРЖАВИТЕ СЕ ПРЕВЕЖДАТ
+#
+# 🔴 ЗАТВОРЕН КЛАС -> ТАБЛИЦА. ОТВОРЕН КЛАС -> ПРАВИЛО (08.09.2026).
+#
+# Отборите се раждат и умират: речник по тях е гадаене, затова там остава
+# фонетиката. Държавите са изброим списък и не се менят — за тях таблицата е
+# по-точна от всяко буквено правило, защото двата извора ги ПРЕВЕЖДАТ:
+# «New Zealand» и «Нова Зеландия» нямат обща буква освен случайност.
+#
+# Измерено през `sreshta` преди тази таблица: свързваха се 5 от 23 държави.
+# Живо това остави `South Africa — New Zealand` без цена, макар Бетано да го
+# предлага — «Африка» се хвана, «Зеландия» не, а искаме И ДВЕТЕ страни.
+#
+# 🔴 ТАБЛИЦАТА И РЕЖЕ. Разпознаят ли се двете страни, присъдата е окончателна:
+# различен код = НЕ Е нашият мач. «Ирландия» срещу «Северна Ирландия» вече се
+# отказва ИЗРИЧНО, а не по случайност на буквите.
+DARZHAVI_DVOYKI = (
+    ("ZAF", "South Africa", "Южна Африка"),
+    ("NZL", "New Zealand", "Нова Зеландия"),
+    ("AUS", "Australia", "Австралия"),
+    ("AUT", "Austria", "Австрия"),
+    ("ARG", "Argentina", "Аржентина"),
+    ("DEU", "Germany", "Германия"),
+    ("KOR", "South Korea", "Южна Корея"),
+    ("PRK", "North Korea", "Северна Корея"),
+    ("FRA", "France", "Франция"),
+    ("ITA", "Italy", "Италия"),
+    ("ESP", "Spain", "Испания"),
+    ("ENG", "England", "Англия"),
+    ("SCO", "Scotland", "Шотландия"),
+    ("WAL", "Wales", "Уелс"),
+    ("IRL", "Ireland", "Ирландия"),
+    ("NIR", "Northern Ireland", "Северна Ирландия"),
+    ("JPN", "Japan", "Япония"),
+    ("USA", "United States", "САЩ"),
+    ("NLD", "Netherlands", "Нидерландия"),
+    ("SRB", "Serbia", "Сърбия"),
+    ("GRC", "Greece", "Гърция"),
+    ("TUR", "Turkey", "Турция"),
+    ("POL", "Poland", "Полша"),
+    ("BRA", "Brazil", "Бразилия"),
+    ("PRT", "Portugal", "Португалия"),
+    ("BGR", "Bulgaria", "България"),
+    ("BEL", "Belgium", "Белгия"),
+    ("CHE", "Switzerland", "Швейцария"),
+    ("SWE", "Sweden", "Швеция"),
+    ("NOR", "Norway", "Норвегия"),
+    ("DNK", "Denmark", "Дания"),
+    ("FIN", "Finland", "Финландия"),
+    ("ISL", "Iceland", "Исландия"),
+    ("CZE", "Czechia", "Чехия"),
+    ("SVK", "Slovakia", "Словакия"),
+    ("SVN", "Slovenia", "Словения"),
+    ("HRV", "Croatia", "Хърватия"),
+    ("BIH", "Bosnia and Herzegovina", "Босна и Херцеговина"),
+    ("MNE", "Montenegro", "Черна гора"),
+    ("MKD", "North Macedonia", "Северна Македония"),
+    ("ALB", "Albania", "Албания"),
+    ("ROU", "Romania", "Румъния"),
+    ("HUN", "Hungary", "Унгария"),
+    ("UKR", "Ukraine", "Украйна"),
+    ("BLR", "Belarus", "Беларус"),
+    ("RUS", "Russia", "Русия"),
+    ("GEO", "Georgia", "Грузия"),
+    ("ARM", "Armenia", "Армения"),
+    ("AZE", "Azerbaijan", "Азербайджан"),
+    ("KAZ", "Kazakhstan", "Казахстан"),
+    ("ISR", "Israel", "Израел"),
+    ("EGY", "Egypt", "Египет"),
+    ("MAR", "Morocco", "Мароко"),
+    ("TUN", "Tunisia", "Тунис"),
+    ("DZA", "Algeria", "Алжир"),
+    ("NGA", "Nigeria", "Нигерия"),
+    ("GHA", "Ghana", "Гана"),
+    ("SEN", "Senegal", "Сенегал"),
+    ("CMR", "Cameroon", "Камерун"),
+    ("CIV", "Ivory Coast", "Кот д Ивоар"),
+    ("KEN", "Kenya", "Кения"),
+    ("CHN", "China", "Китай"),
+    ("TPE", "Chinese Taipei", "Китайско Тайпе"),
+    ("IND", "India", "Индия"),
+    ("IDN", "Indonesia", "Индонезия"),
+    ("THA", "Thailand", "Тайланд"),
+    ("VNM", "Vietnam", "Виетнам"),
+    ("PHL", "Philippines", "Филипини"),
+    ("MYS", "Malaysia", "Малайзия"),
+    ("SGP", "Singapore", "Сингапур"),
+    ("IRN", "Iran", "Иран"),
+    ("IRQ", "Iraq", "Ирак"),
+    ("SAU", "Saudi Arabia", "Саудитска Арабия"),
+    ("QAT", "Qatar", "Катар"),
+    ("ARE", "United Arab Emirates", "Обединени арабски емирства"),
+    ("MEX", "Mexico", "Мексико"),
+    ("CAN", "Canada", "Канада"),
+    ("CHL", "Chile", "Чили"),
+    ("COL", "Colombia", "Колумбия"),
+    ("PER", "Peru", "Перу"),
+    ("URY", "Uruguay", "Уругвай"),
+    ("PRY", "Paraguay", "Парагвай"),
+    ("BOL", "Bolivia", "Боливия"),
+    ("ECU", "Ecuador", "Еквадор"),
+    ("VEN", "Venezuela", "Венецуела"),
+    ("CUB", "Cuba", "Куба"),
+    ("DOM", "Dominican Republic", "Доминиканска република"),
+    ("PRI", "Puerto Rico", "Пуерто Рико"),
+    ("JAM", "Jamaica", "Ямайка"),
+    ("FJI", "Fiji", "Фиджи"),
+    ("TON", "Tonga", "Тонга"),
+    ("WSM", "Samoa", "Самоа"),
+    ("NAM", "Namibia", "Намибия"),
+    ("ZWE", "Zimbabwe", "Зимбабве"),
+    ("UZB", "Uzbekistan", "Узбекистан"),
+)
+
+# 🔴 ДОПЪЛНИТЕЛНИТЕ ИЗПИСВАНИЯ. Един и същ код, друг правопис — двата извора
+# невинаги избират едно и също име за една и съща държава.
+DARZHAVI_OSHTE = (
+    ("USA", "USA"), ("USA", "United States of America"), ("USA", "САЩ"),
+    ("CZE", "Czech Republic"), ("CZE", "Чешка република"),
+    ("NLD", "Holland"), ("NLD", "Холандия"),
+    ("KOR", "Korea Republic"), ("PRK", "Korea DPR"),
+    ("TUR", "Turkiye"), ("TUR", "Туркия"),
+    ("CIV", "Cote d Ivoire"), ("CIV", "Кот д’Ивоар"),
+    ("ARE", "UAE"), ("ARE", "ОАЕ"),
+    ("BIH", "Bosnia Herzegovina"), ("BIH", "Босна"),
+    ("MKD", "Macedonia"),
+    ("GBR", "Great Britain"), ("GBR", "Великобритания"),
+    ("TPE", "Taipei"), ("TPE", "Тайпе"),
+)
+
+# Свалят се преди справката: те си имат СВОЙ пазач (`etiketite_pasvat`) и
+# правилото трябва да живее на едно място.
+_DR_ETIKETI = ("zheni", "zhenski", "dami", "damski", "women", "female",
+               "girls", "ladies", "iunosh", "devoik", "youth", "junior",
+               "cadet", "muzhe", "men", "olimpiiski", "olympic", "a",
+               "b", "u15", "u16", "u17", "u18", "u19", "u20", "u21",
+               "u22", "u23", "xv", "vii")
+
+
+def _dr_klyuch(ime):
+    """Името, сведено до сравним ключ: латиница, без етикети и пунктуация."""
+    dumi = []
+    for w in re.split(r"[\s\-\.,/()']+", latinica(ime)):
+        w = "".join(c for c in w if ("a" <= c <= "z") or c.isdigit())
+        if not w or w in _DR_ETIKETI:
+            continue
+        dumi.append(w)
+    return " ".join(dumi)
+
+
+DARZHAVI = {}
+for _k, _en, _bg in DARZHAVI_DVOYKI:
+    for _ime in (_en, _bg):
+        _kl = _dr_klyuch(_ime)
+        if _kl:
+            DARZHAVI[_kl] = _k
+for _k, _ime in DARZHAVI_OSHTE:
+    _kl = _dr_klyuch(_ime)
+    if _kl:
+        DARZHAVI[_kl] = _k
+del _k, _en, _bg, _ime, _kl
+
+
+def darzhava(ime):
+    """Кодът на държавата, ако името Е държава. Инак празен низ."""
+    return DARZHAVI.get(_dr_klyuch(ime), "")
+
+
 def sreshta(a, b):
-    """Едно и също име ли са. Иска отличителна дума, не коя да е."""
+    """Едно и също име ли са. Иска отличителна дума, не коя да е.
+
+    🔴 ДЪРЖАВИТЕ СЕ СЪДЯТ ПЪРВИ И ОКОНЧАТЕЛНО (08.09.2026). Двата извора ги
+    ПРЕВЕЖДАТ, не ги транслитерират, тъй че буквеното правило не може да ги
+    свърже: «New Zealand» и «Нова Зеландия» нямат обща буква освен случайност.
+    Измерено преди таблицата: 5 от 23 държави се свързваха.
+
+    Присъдата е окончателна И В ДВЕТЕ ПОСОКИ: различен код значи ДРУГ мач.
+    Така «Ирландия» срещу «Северна Ирландия» се отказва изрично, вместо да
+    разчита буквите случайно да не си паснат — тоест таблицата прави матчъра
+    по-СТРОГ, не по-хлабав.
+    """
+    ka, kb = darzhava(a), darzhava(b)
+    if ka and kb:
+        # 🔴 И ЕТИКЕТЪТ, НЕ САМО КОДЪТ. `_dr_klyuch` сваля «жени» и «U21», за
+        # да разпознае държавата — но тогава «Уелс» и «Уелс жени» дават един
+        # и същ код. Затова тук се пита и белязаният етикет: същата държава,
+        # същата графа. Иначе таблицата би внесла дупка, каквато преди нея
+        # нямаше.
+        #
+        # Пазачът `etiketite_pasvat` иначе съди по ТУРНИРА; сложи ли Бетано
+        # «жени» само в името на отбора, той не вижда нищо. Тук се вика
+        # СЪЩАТА функция — правилото живее на едно място.
+        return ka == kb and etiketite_pasvat(a, b)
     ra, rb = redica(a), redica(b)
     if not (ra and rb):
         return False
@@ -774,6 +965,70 @@ def selftest():
           skelet("skelleftea") == skelet("shelefteo"))
     check("Skellefteå среща Шелефтео",
           sreshta("Skellefteå AIK", "Шелефтео Аик"))
+
+    # ── 🔴 ДЪРЖАВИТЕ (08.09.2026). Двата извора ги ПРЕВЕЖДАТ.
+    # Измерено преди таблицата през същия път: свързваха се 5 от 23.
+    check("таблицата не е празна", len(DARZHAVI_DVOYKI) >= 90)
+    _dr_lipsa = [en for _k, en, bg in DARZHAVI_DVOYKI if not sreshta(en, bg)]
+    check("всяка държава среща превода си", not _dr_lipsa)
+    check("и това са всичките, не част",
+          sum(1 for _k, en, bg in DARZHAVI_DVOYKI if sreshta(en, bg))
+          == len(DARZHAVI_DVOYKI))
+    # Поименно за двете, които тръгнаха от жива карта.
+    check("New Zealand среща Нова Зеландия",
+          sreshta("New Zealand", "Нова Зеландия"))
+    check("South Africa среща Южна Африка",
+          sreshta("South Africa", "Южна Африка"))
+    # 🔴 И РЕЖЕ. Без този ред горното би минавало и при таблица, която
+    # обявява всичко за една и съща държава.
+    _dr_lazhi = 0
+    _dr_broi = 0
+    _dr_imena = []
+    for _k, _en, _bg in DARZHAVI_DVOYKI:
+        _dr_imena.append((_k, _en))
+        _dr_imena.append((_k, _bg))
+    for _i in range(len(_dr_imena)):
+        for _j in range(_i + 1, len(_dr_imena)):
+            if _dr_imena[_i][0] == _dr_imena[_j][0]:
+                continue
+            _dr_broi += 1
+            if sreshta(_dr_imena[_i][1], _dr_imena[_j][1]):
+                _dr_lazhi += 1
+    check("двойките различни държави са много", _dr_broi > 15000)
+    check("нито две РАЗЛИЧНИ държави не се сливат", _dr_lazhi == 0)
+    # Поименно най-опасните: разликата им е една дума.
+    check("Ирландия НЕ е Северна Ирландия",
+          not sreshta("Ireland", "Северна Ирландия"))
+    check("Южна Корея НЕ е Северна Корея",
+          not sreshta("South Korea", "Северна Корея"))
+    check("Австралия НЕ е Австрия", not sreshta("Australia", "Австрия"))
+    check("Китай НЕ е Китайско Тайпе", not sreshta("China", "Китайско Тайпе"))
+    # 🔴 КЛУБОВЕТЕ НЕ СЕ ПИПАТ. Таблицата пали само когато ДВЕТЕ страни са
+    # държави; отвореният клас си остава на фонетиката.
+    check("клубът си върви по фонетика",
+          sreshta("Skellefteå AIK", "Шелефтео Аик")
+          and sreshta("Milwaukee Brewers", "Милуоки Брюърс"))
+    check("и различните клубове пак не се сливат",
+          not sreshta("Milwaukee Brewers", "Чикаго Къбс"))
+    check("държава срещу клуб не се съди по таблицата",
+          darzhava("Milwaukee Brewers") == "" and darzhava("Германия") != "")
+    check("етикетите не пречат на справката",
+          darzhava("Германия жени") == darzhava("Germany")
+          and darzhava("Уелс U21") == darzhava("Wales"))
+    # 🔴 НО СРЕЩАНЕТО ГИ ИСКА ЕДНАКВИ. Кодът разпознава държавата; етикетът
+    # решава дали е същата графа. Без този ред таблицата отваря дупка:
+    # мъжка карта би взела женска цена, ако Бетано пише «жени» само в името.
+    check("женският отбор НЕ е мъжкият",
+          not sreshta("Wales", "Уелс жени")
+          and not sreshta("Germany", "Германия жени"))
+    check("възрастовият отбор НЕ е мъжкият",
+          not sreshta("Germany", "Германия U21")
+          and not sreshta("Spain", "Испания U19"))
+    check("но еднакво белязаните пак се срещат",
+          sreshta("Germany Women", "Германия жени")
+          and sreshta("Spain U19", "Испания U19"))
+    check("и небелязаните пак се срещат",
+          sreshta("Germany", "Германия"))
     # 🔴 И ОТРИЦАТЕЛНА КОНТРОЛА: «sk» пред ЗАДНА гласна НЕ се пипа.
     check("«sk» пред «a» остава «sk»",
           skelet("skanska").startswith("sk"))

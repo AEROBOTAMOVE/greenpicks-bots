@@ -581,7 +581,26 @@ def _stepen(sport_key, tyahno, nashe):
     return 0
 
 
-def nameri(sport_key, dom, gost, liga=None):
+# 🔴 ЧАСЪТ Е ЧАСТ ОТ МАЧА (15.09.2026). Японската серия: едни и същи отбори
+# три дни подред, а тук се търсеше само по имена — картата за утре взимаше
+# цената на днес. Прозорец 12 ч: серията е през ~24 ч.
+import os as _os_pin
+from datetime import datetime as _dt_pin
+try:
+    PIN_PROZOREC_MIN = max(0, int(_os_pin.environ.get("PREDICT_PIN_PROZOREC") or 720))
+except ValueError:
+    PIN_PROZOREC_MIN = 720
+
+
+def _ms_ot_iso(s):
+    """ISO час на Pinnacle -> милисекунди UTC. None при боклук."""
+    try:
+        return int(_dt_pin.fromisoformat(str(s).replace("Z", "+00:00")).timestamp() * 1000)
+    except (TypeError, ValueError):
+        return None
+
+
+def nameri(sport_key, dom, gost, liga=None, nachalo_ms=None):
     """Номерът на нашия мач при тях. None, ако не се намери.
 
     Три опита, от строгото към хлабавото:
@@ -620,6 +639,11 @@ def nameri(sport_key, dom, gost, liga=None):
         for mid, (a, b, lg, _st) in mm.items():
             if not paswa(a, b):
                 continue
+            # Друг ден от същата серия е ДРУГ мач (15.09.2026).
+            if nachalo_ms and PIN_PROZOREC_MIN:
+                _ms = _ms_ot_iso(_st)
+                if _ms is not None and abs(_ms - int(nachalo_ms)) > PIN_PROZOREC_MIN * 60000:
+                    continue
             tehen = _kanon_pol(lg)
             # Различен пол значи ДРУГ мач, не същият.
             if nash_pol and tehen and nash_pol != tehen:
@@ -730,7 +754,7 @@ def nameri(sport_key, dom, gost, liga=None):
     return None
 
 
-def nomer_strana(sport_key, dom, gost, liga=None):
+def nomer_strana(sport_key, dom, gost, liga=None, nachalo_ms=None):
     """(номер, обърнат) за НАШИТЕ имена. (None, False), ако не се намери.
 
     🔴 ЗАЩО СЪЩЕСТВУВА ОТДЕЛНО (21.08.2026). Дотук номерът се смяташе вътре
@@ -747,7 +771,7 @@ def nomer_strana(sport_key, dom, gost, liga=None):
     имена наново: в дневника името може вече да е на кирилица („Фенербахче"),
     а там знаят само „Fenerbahce".
     """
-    mid = nameri(sport_key, dom, gost, liga)
+    mid = nameri(sport_key, dom, gost, liga, nachalo_ms)
     if not mid:
         return (None, False)
     zapis = machove(sport_key).get(mid)
@@ -779,7 +803,7 @@ def cena_po_nomer(sport_key, mid, obarnat=False):
     return (c[1], c[0], c[2]) if obarnat else c
 
 
-def ceni_za(sport_key, dom, gost, liga=None):
+def ceni_za(sport_key, dom, gost, liga=None, nachalo_ms=None):
     """(цена_дом, цена_гост, цена_равен) за НАШИТЕ имена. Всяка може да е None.
 
     🔴 СТРАНИТЕ СЕ ВРЪЩАТ ПО НАШАТА УГОВОРКА, не по тяхната. Ако Pinnacle
@@ -790,7 +814,7 @@ def ceni_za(sport_key, dom, gost, liga=None):
     цена и опреснената. Два отделни преписа на едно и също правило са начин
     единият да се поправи, а другият да остане крив.
     """
-    mid, obarnat = nomer_strana(sport_key, dom, gost, liga)
+    mid, obarnat = nomer_strana(sport_key, dom, gost, liga, nachalo_ms)
     return cena_po_nomer(sport_key, mid, obarnat)
 
 
@@ -816,6 +840,36 @@ def selftest():
     check("само футболът има равен", TRI_IZHODA == {"football"})
     check("непознат спорт не дава мачове", machove("кърлинг") == {})
     check("непознат спорт не дава пазари", pazari("кърлинг") == {})
+
+    # 🔴 ЧАСЪТ (15.09.2026): друг ден от серията е друг мач.
+    _sid_c = SPORT_ID.get("baseball")
+    _kl_c = ("m", _sid_c)
+    _st_c = _kesh.get(_kl_c)
+    try:
+        _kesh[_kl_c] = {"77": ("Yomiuri Giants", "Hanshin Tigers", "NPB",
+                               "2026-09-16T09:00:00Z")}
+        _dnes = _ms_ot_iso("2026-09-15T09:00:00Z")
+        _utre = _ms_ot_iso("2026-09-16T09:30:00Z")
+        check("часът на Pinnacle се чете",
+              _dnes is not None and _utre - _dnes == 88200000)
+        check("мач от друг ден на серията НЕ се взима",
+              nameri("baseball", "Yomiuri Giants", "Hanshin Tigers", "NPB",
+                     nachalo_ms=_dnes) is None)
+        check("същият ден се взима",
+              nameri("baseball", "Yomiuri Giants", "Hanshin Tigers", "NPB",
+                     nachalo_ms=_utre) == "77")
+        check("без час търсенето е както досега",
+              nameri("baseball", "Yomiuri Giants", "Hanshin Tigers", "NPB") == "77")
+        check("часът стига и до номера",
+              nomer_strana("baseball", "Yomiuri Giants", "Hanshin Tigers", "NPB",
+                           _dnes) == (None, False))
+    finally:
+        if _st_c is None:
+            _kesh.pop(_kl_c, None)
+        else:
+            _kesh[_kl_c] = _st_c
+    check("боклук вместо час не гърми", _ms_ot_iso("абв") is None
+          and _ms_ot_iso(None) is None)
 
     check("фамилията е последната дума", _familiya("Janice Tjen") == "tjen")
     check("тирето не чупи фамилията",

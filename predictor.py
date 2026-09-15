@@ -1971,6 +1971,9 @@ def log_pick(an, now, combo=0):
         # Полето е ДОБАВЪЧНО: нищо не го чете, старите записи си остават
         # без него, и всеки читател трябва да понесе липсата (.get, не []).
         "p_model": an.get("p_model"),
+        # 🔴 15.09.2026: при обърната карта p_model е за ДРУГАТА страна —
+        # без това поле всяко мерене на модела сравнява грешната страна.
+        "obarnata": bool(an.get("obarnata")),
         # 🔴 СИЛАТА — ВТОРИЯТ ЧЛЕН НА КЛЮЧА ЗА ПОДРЕДБА (26.08.2026).
         #
         # Ред 6864 решава КОИ карти излизат:
@@ -1999,6 +2002,10 @@ def log_pick(an, now, combo=0):
         # 🔴 25.08.2026. Без този ключ номерът на Pinnacle стига до паметта, но
         # НЕ и до дневника — тоест оценителят пак няма как да вземе цената.
         "pazar_obarnat": an.get("pazar_obarnat"),
+        # 🇧🇬 15.09.2026: стойността спрямо Бетано — мерилото за гейта.
+        "betano_cena": an.get("betano_cena"),
+        "betano_ev": an.get("betano_ev"),
+        "stoynost": an.get("stoynost"),
         "p": round(float(an.get("p") or 0.0), 4),
         "stars": an.get("stars"),
         "sample": an.get("sample"),
@@ -7030,6 +7037,11 @@ IZTOCHNIK_IME = {"espn": "ESPN", "pinnacle": "pinnacle", "vitrina": "витри�
 # от днес минава (виж бележката в zabraneni.py). Числото е същото — то
 # беше там на 48 от 48 карти и преди това.
 CENA_OPASHKA = "коеф."
+# 🇧🇬 КОЕФИЦИЕНТЪТ НА БЕТАНО НА КАРТАТА (15.09.2026). Числото, което човекът
+# реално ще вземе в българската книга. Портиерите съдят по точната цена.
+# ПЪТ НАЗАД: PREDICT_CENA_BETANO=0.
+CENA_BETANO = (os.environ.get("PREDICT_CENA_BETANO") or "1").strip() in (
+    "1", "true", "yes", "да")
 
 # ➕ ОЩЕ ОТ СЪЩИЯ МАЧ — ИЗКЛЮЧЕН ПО ПОДРАЗБИРАНЕ (01.09.2026).
 #
@@ -7200,6 +7212,14 @@ def cena_red(an):
         c = float(an.get("pazar_cena"))
     except (TypeError, ValueError):
         return ""
+    # 🇧🇬 Бетано, когато го има — това е числото, на което се залага у нас.
+    if CENA_BETANO:
+        try:
+            _bc = float(an.get("betano_cena"))
+            if 1.0 < _bc < 1000.0:
+                c = _bc
+        except (TypeError, ValueError):
+            pass
     # Десетичната цена е строго над 1.00 по устройство. Всичко друго е боклук
     # от чужд отговор и няма право да стигне до читателя.
     if not (1.0 < c < 1000.0):
@@ -7644,8 +7664,13 @@ def header_card(now, count, seen):
     n = int(count or 0)
     kolko = ("Първа карта за деня" if n == 1
              else "Първите <b>" + str(n) + "</b> за деня")
-    return (chr(129504) + " <b>БОТА ПРЕДРИЧА</b> · " + date_bg(now) + NL
-            + kolko + " — идват още.")
+    if KARTA_ZA_NAS:
+        return (chr(129504) + " <b>БОТА ПРЕДРИЧА</b> · " + date_bg(now) + NL
+                + kolko + " — идват още.")
+    # 🔴 ЗА КЛИЕНТА (15.09.2026). «БОТА ПРЕДРИЧА» представяше бота, а
+    # «Първите 14 за деня — идват още» казваше какво излиза кога. Клиентът
+    # има нужда само от деня. Път назад: PREDICT_KARTA_ZA_NAS=1.
+    return "🎯 <b>Прогнозите за днес</b> · " + date_bg(now)
 
 
 def footer_card(seen, thin, weak, sports):
@@ -7663,6 +7688,11 @@ def footer_card(seen, thin, weak, sports):
     НАИСТИНА носи и които нов читател не може да отгатне сам.
     """
     _ = seen, thin, weak, sports
+    # 🔴 ЗА КЛИЕНТА (15.09.2026). Упътване как се чете картата е признание,
+    # че картата не се чете сама; а «върху колко мача стъпваме» е знание на
+    # бота. По подразбиране подписът не излиза. Път назад: KARTA_ZA_NAS.
+    if not KARTA_ZA_NAS:
+        return ""
     return NL.join([
         "📘 <b>Как се чете картата</b>",
         "• Процентът е шансът на избора. Думата до него казва само колко е ясен"
@@ -7683,11 +7713,19 @@ def nothing_card(now, seen, thin, weak):
     минават и трите служебни текста.
     """
     _ = seen, thin, weak
+    if KARTA_ZA_NAS:
+        return NL.join([
+            chr(129504) + " <b>БОТА ПРЕДРИЧА</b> · " + date_bg(now),
+            "",
+            "<b>Днес няма прогнози.</b>",
+            "Числата не дадоха превес никъде. Утре пак.",
+        ])
+    # 🔴 ЗА КЛИЕНТА (15.09.2026). «Числата не дадоха превес» обясняваше как
+    # решава ботът. Фактът стига.
     return NL.join([
-        chr(129504) + " <b>БОТА ПРЕДРИЧА</b> · " + date_bg(now),
+        "🎯 <b>Прогнозите за днес</b> · " + date_bg(now),
         "",
         "<b>Днес няма прогнози.</b>",
-        "Числата не дадоха превес никъде. Утре пак.",
     ])
 
 
@@ -8112,6 +8150,7 @@ def _pazar_surovo(an):
                 an["pazar_izt"] = str(_wt_c.get("izvor") or "kambi")
                 an["pazar_sport"] = "tabletennis"
                 an["pazar_liga"] = str(_wt_c.get("liga") or "")
+                an["_ceni_sur"] = {"1": _wt_pd, "2": _wt_pg}   # 15.09.2026 — виж борсата
                 _wt_p = _wt_c.get("p_dom")
                 try:
                     _wt_p = float(_wt_p)
@@ -8120,6 +8159,7 @@ def _pazar_surovo(an):
                 if _wt_p is not None and 0.0 < _wt_p < 1.0:
                     an["pazar_p"] = round(
                         _wt_p if _wt_nash_dom else 1.0 - _wt_p, 4)
+                    an["pazar_v"] = 2          # 15.09.2026 — виж Kambi
                 return an
 
     _sm_d, _sm_g = ex.get("cena_dom"), ex.get("cena_gost")
@@ -8136,14 +8176,12 @@ def _pazar_surovo(an):
             _sm_dom = not _sm_nash.startswith("2")
             an["pazar_cena"] = _sm_d if _sm_dom else _sm_g
             an["pazar_cena_drug"] = _sm_g if _sm_dom else _sm_d
-            # 📈 ТУК НЯМА РЕД ЗА ТЕФТЕРА НА ЦЕНИТЕ — И ТОВА Е ИЗМЕРЕНО.
-            # Написах го, мутирах го (M16, 02.09.2026) и НУЛА проверки
-            # паднаха: този път има само ДВА изхода и ДВЕТЕ цени вече стоят в
-            # pazar_cena / pazar_cena_drug, тоест резервният път в
-            # zapishi_cena дава СЪЩИТЕ етикети. Ред, който нищо не сменя, е
-            # лъжа за читателя. Ако някой ден тук се появи трети изход или
-            # pazar_cena_drug спре да се пълни, редът трябва да се върне —
-            # заедно с проверката, която доказва, че върши работа.
+            # 📈 ДВЕТЕ ЦЕНИ ПО ИЗХОД (15.09.2026). Старата бележка тук казваше,
+            # че този ред нищо не сменя — вярно за пътя С избор. Доследяването
+            # вика БЕЗ избор и тогава резервата в zapishi_cena не знае коя
+            # цена е «1»: измерено живо — 19 карти от борсата, НУЛА с втора
+            # точка и нула с CLV. Проверката по-долу мери точно този път.
+            an["_ceni_sur"] = {"1": _sm_d, "2": _sm_g}
             an["pazar_izt"] = str(ex.get("cena_izvor") or "smarkets")
             an["pazar_sport"] = "tabletennis"
             _sm_p = ex.get("p_pazar")
@@ -8340,7 +8378,16 @@ def _pazar_surovo(an):
                 # пъти — защото тук се викаше с ТРИ довода и `liga` беше None.
                 # Поправката в pinnacle.py беше цяла и НЕДОСТИЖИМА.
                 _lg = str(fx.get("league") or "")
-                dom, gost, raven = PIN.ceni_za(_b, _d, _g, _lg)
+                # 🔴 ЧАСЪТ СЕ ПОДАВА (15.09.2026). Японската серия: едни и
+                # същи отбори три дни подред, а Pinnacle държи само следващия
+                # мач — картата за УТРЕ взе цената на ДНЕС (94.6% за ~50/50).
+                # TypeError = по-стар pinnacle.py или подложка без часа.
+                _pin_ms = _nachalo_ms(fx)
+                try:
+                    dom, gost, raven = PIN.ceni_za(_b, _d, _g, _lg,
+                                                   nachalo_ms=_pin_ms)
+                except TypeError:
+                    dom, gost, raven = PIN.ceni_za(_b, _d, _g, _lg)
                 if dom or gost:
                     izt = "pinnacle"
                     sport = _b            # маржът се маха по НАШЕТО име
@@ -8351,7 +8398,10 @@ def _pazar_surovo(an):
                     _ns = getattr(PIN, "nomer_strana", None)
                     if _ns is not None:
                         try:
-                            _mid, _ob = _ns(_b, _d, _g)
+                            try:
+                                _mid, _ob = _ns(_b, _d, _g, nachalo_ms=_pin_ms)
+                            except TypeError:
+                                _mid, _ob = _ns(_b, _d, _g)
                             if _mid:
                                 pin_mid, pin_obarnat = str(_mid), bool(_ob)
                         except Exception:                    # noqa: BLE001
@@ -8678,6 +8728,17 @@ def _en_ime(fx, ex, klyuch):
     return _BG2EN.get(suro, suro)
 
 
+# 🔴 МЕСТНИТЕ ЧЕШКИ ЛИГИ — БЕЗ ЦЕНА ОТ KAMBI (15.09.2026). Измерено: 53
+# карти от src=ttligi с цена от Kambi — сбъднато 43.4% при обявено 60.7%, ROI
+# −32.4% [−53..−12]; напред 11 карти, ROI −47.6% [−87..−7]. Същите лиги с цена
+# от борсата: +3.8% на 77. Kambi сдвоява по всяка обща дума от 4+ букви (Jiri,
+# Jakub, Michal…) и слага шаблонна стълбица (1.77/1.87 × 7 различни мача).
+# Без цена картата от местна лига не минава портиера — изпада.
+# ПЪТ НАЗАД: PREDICT_KAMBI_TTLIGI=1.
+KAMBI_TTLIGI = (os.environ.get("PREDICT_KAMBI_TTLIGI") or "0").strip() in (
+    "1", "true", "yes", "да")
+
+
 def _kambi_rezerva(an):
     """Коефициент от Kambi, ако след всичко останало още няма цена.
 
@@ -8696,6 +8757,10 @@ def _kambi_rezerva(an):
         return an
     fx = an.get("fx") or {}
     ex = fx.get("extra") or {}
+    # 🔴 местна чешка лига — виж KAMBI_TTLIGI
+    if (b == "tabletennis" and str(fx.get("src") or "") == "ttligi"
+            and not KAMBI_TTLIGI):
+        return an
     dom, gost = _en_ime(fx, ex, "home"), _en_ime(fx, ex, "away")
     if not (dom and gost):
         return an
@@ -8719,6 +8784,9 @@ def _kambi_rezerva(an):
         c_raven = None
     if c_raven is not None and not (1.0 < c_raven < 1000.0):
         c_raven = None
+    # 🔴 ИСТИНСКИ ПАЗАР (15.09.2026) — виж `cenite_sa_pazar`.
+    if not cenite_sa_pazar(b, c_dom, c_gost, c_raven):
+        return an
     # 🔴 РЕДИЦАТА СЕ ПЪЛНИ И БЕЗ ИЗБОР (08.09.2026) — виж главния път.
     an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "\u0425": c_raven}
     pick = str(an.get("pick") or "")
@@ -8739,10 +8807,94 @@ def _kambi_rezerva(an):
         _pd, _pg, _r = PZ.bez_marzh(b, c_dom, c_gost, None)
         if _pd and _pg:
             an["pazar_p"] = _pd if pick.startswith("1") else _pg
-            an["pazar_v"] = 1.0 / cena
+            # 🔴 ВЕРСИЯ 2 = «вероятност без марж» (15.09.2026). Беше
+            # 1/цена, а отчетите филтрират int(pazar_v) >= 2 — тези
+            # карти изпадаха от ROI и CLV тихо.
+            an["pazar_v"] = 2
     except Exception:                                        # noqa: BLE001
         pass
     return an
+
+
+def _nachalo_ms(fx):
+    """Часът на мача в милисекунди UTC или None. Една сметка за всички книги."""
+    try:
+        w = fx_start(fx or {}, datetime.now(timezone.utc))
+        return int(w.timestamp() * 1000) if w is not None else None
+    except Exception:                                        # noqa: BLE001
+        return None
+
+
+# 🔴 ИСТИНСКИ ПАЗАР ЛИ Е (15.09.2026). Проверката беше само 1 < к < 1000 и
+# пусна карта с 301.0 срещу 41.0 от Kambi — сбор 1/к = 0.028, невъзможен
+# пазар. Една книга винаги има сбор над 1 (маржът); борсата — около 1.00.
+# При футбола и хокея без равен двата изхода сами дават под 1 — там долната
+# граница е 0.5.
+PAZAR_SBOR_GORE = 1.6
+
+
+def cenite_sa_pazar(b, c_dom, c_gost, c_raven=None):
+    try:
+        s = 1.0 / float(c_dom) + 1.0 / float(c_gost)
+        if c_raven:
+            s += 1.0 / float(c_raven)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return False
+    if s > PAZAR_SBOR_GORE:
+        return False
+    dolu = 0.5 if (not c_raven and str(b) in ("football", "hockey")) else 0.995
+    return s >= dolu
+
+
+def _betano_ceni(an):
+    """(дом, гост, равен) от Бетано за мача на картата, или None.
+
+    🔴 ЧАСЪТ СЕ ПОДАВА — адверсарно мерено: без час 9.6% лъжливи съвпадения,
+    с прозорец 1.4%. 🔴 ЛИГАТА СЕ ПОДАВА — без нея таванът изхвърляше 1038
+    от 1191 футболни събития. 🔴 ДВЕТЕ ИЗПИСВАНИЯ НА ИМЕТО.
+    """
+    if BET is None or not getattr(BET, "VKLYUCHENO", False):
+        return None
+    b = str(an.get("bucket") or "")
+    if b not in getattr(BET, "SPORT", {}):
+        return None
+    fx = an.get("fx") or {}
+    ex = fx.get("extra") or {}
+    suro_d, suro_g = str(fx.get("home") or ""), str(fx.get("away") or "")
+    en_d, en_g = _en_ime(fx, ex, "home"), _en_ime(fx, ex, "away")
+    ms = _nachalo_ms(fx)
+    imena = [(suro_d, suro_g)]
+    if (en_d, en_g) != (suro_d, suro_g) and en_d and en_g:
+        imena.append((en_d, en_g))
+    r = None
+    for d, g in imena:
+        if not (d and g):
+            continue
+        try:
+            r = BET.ceni_za(b, d, g, ms, None, str(fx.get("league") or ""))
+        except Exception:                                    # noqa: BLE001
+            return None
+        if r is getattr(BET, "NEPITAN", object()):
+            return None
+        if r:
+            break
+    if not r:
+        return None
+    try:
+        c_dom, c_gost = float(r[0]), float(r[1])
+    except (TypeError, ValueError, IndexError):
+        return None
+    if not (1.0 < c_dom < 1000.0 and 1.0 < c_gost < 1000.0):
+        return None
+    try:
+        c_raven = float(r[2]) if len(r) > 2 and r[2] else None
+    except (TypeError, ValueError):
+        c_raven = None
+    if c_raven is not None and not (1.0 < c_raven < 1000.0):
+        c_raven = None
+    if not cenite_sa_pazar(b, c_dom, c_gost, c_raven):
+        return None
+    return (c_dom, c_gost, c_raven)
 
 
 def _betano_rezerva(an):
@@ -8768,49 +8920,12 @@ def _betano_rezerva(an):
         return an
     fx = an.get("fx") or {}
     ex = fx.get("extra") or {}
-    suro_d, suro_g = str(fx.get("home") or ""), str(fx.get("away") or "")
-    en_d, en_g = _en_ime(fx, ex, "home"), _en_ime(fx, ex, "away")
-    # часът в милисекунди, ако го знаем
-    ms = None
-    try:
-        w = fx_start(fx, datetime.now(timezone.utc))
-        if w is not None:
-            ms = int(w.timestamp() * 1000)
-    except Exception:                                        # noqa: BLE001
-        ms = None
-    imena = [(suro_d, suro_g)]
-    if (en_d, en_g) != (suro_d, suro_g) and en_d and en_g:
-        imena.append((en_d, en_g))
-    r = None
-    for d, g in imena:
-        if not (d and g):
-            continue
-        try:
-            # 🔴 ЛИГАТА СЕ ПОДАВА (08.09.2026). Без нея Betano тегли първите
-            # турнири в реда на дървото си — България, УЕФА, Англия — а
-            # картите ни идват от Копа Либертадорес, MLS, Аржентина, Бразилия.
-            # Измерено: таванът така изхвърляше 1038 от 1191 футболни събития.
-            r = BET.ceni_za(b, d, g, ms, None, str(fx.get("league") or ""))
-        except Exception:                                    # noqa: BLE001
-            return an
-        if r is getattr(BET, "NEPITAN", object()):
-            return an
-        if r:
-            break
+    # 🔴 ТЪРСЕНЕТО Е В `_betano_ceni` (15.09.2026) — един път за двете
+    # употреби: резервната цена и стойността до всяка карта.
+    r = _betano_ceni(an)
     if not r:
         return an
-    try:
-        c_dom, c_gost = float(r[0]), float(r[1])
-    except (TypeError, ValueError, IndexError):
-        return an
-    if not (1.0 < c_dom < 1000.0 and 1.0 < c_gost < 1000.0):
-        return an
-    try:
-        c_raven = float(r[2]) if len(r) > 2 and r[2] else None
-    except (TypeError, ValueError):
-        c_raven = None
-    if c_raven is not None and not (1.0 < c_raven < 1000.0):
-        c_raven = None
+    c_dom, c_gost, c_raven = r
     # 🔴 РЕДИЦАТА СЕ ПЪЛНИ И БЕЗ ИЗБОР (08.09.2026) — виж главния път.
     an["_ceni_sur"] = {"1": c_dom, "2": c_gost, "\u0425": c_raven}
     pick = str(an.get("pick") or "")
@@ -8829,9 +8944,74 @@ def _betano_rezerva(an):
         _pd, _pg, _r = PZ.bez_marzh(b, c_dom, c_gost, None)
         if _pd and _pg:
             an["pazar_p"] = _pd if pick.startswith("1") else _pg
-            an["pazar_v"] = 1.0 / cena
+            # 🔴 ВЕРСИЯ 2 = «вероятност без марж» (15.09.2026). Беше
+            # 1/цена, а отчетите филтрират int(pazar_v) >= 2 — тези
+            # карти изпадаха от ROI и CLV тихо.
+            an["pazar_v"] = 2
     except Exception:                                        # noqa: BLE001
         pass
+    return an
+
+
+# 🇧🇬 СТОЙНОСТТА (15.09.2026, по «ДА» на собственика).
+#
+# Измерено на живия дневник: публикуваното число вече Е пазарното (67.2%
+# обявено → 67.2% сбъднато), CLV ≈ 0, ROI = −маржа. Моделът не бие пазара.
+# Единственият път до положителна очаквана стойност без собствен ръб е
+# ЦЕНАТА: Бетано (българската книга, където се залага) да плаща ПОВЕЧЕ от
+# честната вероятност по най-точния пазар (Pinnacle без марж).
+#
+#     стойност = p_честна · коеф_Бетано − 1   > 0
+#
+# Първо се ПИШЕ за всяка карта (betano_cena, betano_ev, stoynost) — после се
+# мери на резултати. Гейтът е готов, но СПИ: PREDICT_SAMO_STOYNOST=1 пуска
+# само картите със стойност. Пуснат без данни, би отрязал около 60% сляпо.
+SAMO_STOYNOST = (os.environ.get("PREDICT_SAMO_STOYNOST") or "0").strip() in (
+    "1", "true", "yes", "да")
+# Честна цена се взима само от книги с нисък марж или борса. Цена от самия
+# Бетано няма с какво да се сравни.
+STOYNOST_IZTOCHNICI = ("pinnacle", "espn", "smarkets")
+
+
+def stoynost_ev(p_chestna, koef):
+    """Очакваната стойност на залог 1 при честна вероятност и коефициент."""
+    try:
+        p, c = float(p_chestna), float(koef)
+    except (TypeError, ValueError):
+        return None
+    if not (0.0 < p < 1.0 and 1.0 < c < 1000.0):
+        return None
+    return round(p * c - 1.0, 4)
+
+
+def betano_stoynost(an):
+    """Пише до картата коефициента на Бетано и стойността му. Не пипа цената."""
+    if not isinstance(an, dict):
+        return an
+    if str(an.get("pazar_izt") or "") == "betano":
+        an["betano_cena"] = an.get("pazar_cena")
+        return an
+    r = _betano_ceni(an)
+    if not r:
+        return an
+    c_dom, c_gost, c_raven = r
+    pick = str(an.get("pick") or "")
+    if pick.startswith("1"):
+        c = c_dom
+    elif pick.startswith("2"):
+        c = c_gost
+    elif pick[:1] in ("\u0425", "X"):
+        c = c_raven
+    else:
+        c = None
+    if not c:
+        return an
+    an["betano_cena"] = c
+    if str(an.get("pazar_izt") or "") in STOYNOST_IZTOCHNICI:
+        ev = stoynost_ev(an.get("pazar_p"), c)
+        if ev is not None:
+            an["betano_ev"] = ev
+            an["stoynost"] = bool(ev > 0)
     return an
 
 
@@ -9284,8 +9464,20 @@ def presmela_karta(an):
     if not pp:
         # Без цена няма с какво да се мери смелостта. Пуска се както досега.
         return False, ""
+    # 🔴 МЕРИ НАШЕТО ЧИСЛО (15.09.2026). Дотук мереше p, а след
+    # dobavi_pazar то Е пазарното (теглото е 0.00) — тоест разликата беше
+    # нула по конструкция: вратата хвана 1 от 782 карти. Числото на МОДЕЛА
+    # е p_model; при обърната карта то е за другата страна, затова 1 − p_model.
+    # Измерено назад: карти с модел ≥15 т. над пазара — ROI −39% [−65..−12], n=35.
     try:
-        d = float(an.get("p") or 0) - float(pp)
+        _m = an.get("p_model")
+        if _m is not None:
+            _m = float(_m)
+            if an.get("obarnata"):
+                _m = 1.0 - _m
+            d = _m - float(pp)
+        else:
+            d = float(an.get("p") or 0) - float(pp)
     except (TypeError, ValueError):
         return False, ""
     if d >= SMELOST_MAX:
@@ -10159,7 +10351,12 @@ def maybe_footer(state, now, seen, thin, weak):
     fkey = now.strftime("%Y-%m-%d") + "|footer"
     if now.hour < 21 or already_posted(state, fkey) or not posted_today(state, now):
         return False
-    if post_predict(footer_card(seen, thin, weak, len(ACTIVE_SPORTS))):
+    # Празен подпис не се праща: Telegram връща 400 за празен текст и
+    # пращането би се броило за провал.
+    _pod = footer_card(seen, thin, weak, len(ACTIVE_SPORTS))
+    if not _pod:
+        return False
+    if post_predict(_pod):
         mark_posted(state, fkey, now)
         persist(state, now)
         return True
@@ -10528,6 +10725,14 @@ def run():
                   + str((a.get("fx") or {}).get("away"))[:16] + ": "
                   + pct(a.get("p")) + " след пазарното число — под летвата "
                   + pct(dolen_prag(a.get("bucket"))) + ", не излиза.")
+            continue
+        # 🇧🇬 СТОЙНОСТТА — пише се за всяка карта; реже само при ръчката.
+        betano_stoynost(a)
+        if SAMO_STOYNOST and not a.get("stoynost"):
+            otkaz("bez_stoynost")
+            print("   ✖ " + str((a.get("fx") or {}).get("home"))[:18] + " - "
+                  + str((a.get("fx") or {}).get("away"))[:16]
+                  + ": Бетано не плаща над честната цена, не излиза.")
             continue
         txt = card(a, now)
         if post_predict(txt):
@@ -14242,7 +14447,27 @@ def selftest():
     # хазартни думи. Затова сега си има свой пазач.
     _otcheten_trud = ("гледахме", "следихме", "погледнахме", "прегледахме",
                       "разгледахме")
-    _podpis = footer_card(14, 3, 2, 8)
+    # 🔴 15.09.2026: по подразбиране заглавието, подписът и празният ден са
+    # ЗА КЛИЕНТА. Старите твърдения за съдържанието им се мерят при ПУСНАТА
+    # ръчка — върне ли се някой текст, формата му пак е пазена.
+    _glava_nov = header_card(now, 3, 14)
+    _nishto_nov = nothing_card(now, 9, 5, 4)
+    check("подписът по подразбиране не излиза", footer_card(14, 3, 2, 8) == "")
+    check("заглавието не казва какво идва после",
+          "идват още" not in _glava_nov and "Първите" not in _glava_nov)
+    check("заглавието не представя бота", "БОТА" not in _glava_nov)
+    check("заглавието носи деня", date_bg(now) in _glava_nov)
+    check("празният ден не обяснява защо",
+          "Числата" not in _nishto_nov and "Днес няма прогнози" in _nishto_nov)
+    _st_kzg = globals().get("KARTA_ZA_NAS")
+    globals()["KARTA_ZA_NAS"] = True
+    try:
+        _podpis = footer_card(14, 3, 2, 8)
+        _glava_star = header_card(now, 3, 14)
+    finally:
+        globals()["KARTA_ZA_NAS"] = _st_kzg
+    check("ръчката връща старото заглавие", "идват още" in _glava_star)
+    check("и стария подпис", "Как се чете" in _podpis)
     check("подписът не отчита труда на бота",
           not any(w in _podpis.lower() for w in _otcheten_trud))
     # 🔴 ЗВЕЗДИТЕ ОТПАДНАХА 11.08.2026 — виж обяснението при stapka.
@@ -14288,7 +14513,7 @@ def selftest():
     # И ПОВЕДЕНЧЕСКИ: заглавната карта не бива да носи ВТОРО число освен своето.
     # Броят прегледани срещи изчезна от текста; ако се върне, тук гърми.
     check("заглавната карта носи само своето число",
-          sum(c.isdigit() for c in header_card(now, 3, 14).split(NL)[1]) == 1)
+          sum(c.isdigit() for c in _glava_star.split(NL)[1]) == 1)
     check("картата без прогнози не изрежда какво е отпаднало",
           not any(w in nothing_card(now, 9, 5, 4)
                   for w in ("без история", "без превес по числата", "срещи")))
@@ -14925,6 +15150,125 @@ def selftest():
     finally:
         globals()["SMELOST_MAX"] = _sm_staro
     check("💸 и се връща след теста", abs(SMELOST_MAX - _sm_staro) < 1e-9)
+
+    # ── 🔴 15.09.2026: вратата мери НАШЕТО число, не смесеното.
+    _pm = presmela_karta({"p": 0.60, "pazar_p": 0.58, "p_model": 0.80})
+    check("пресмел модел се хваща дори когато p е пазарното", _pm[0] is True)
+    check("обърнатата карта мери другата страна",
+          presmela_karta({"p": 0.60, "pazar_p": 0.58, "p_model": 0.20,
+                          "obarnata": True})[0] is True)
+    check("скромен модел не се реже",
+          presmela_karta({"p": 0.60, "pazar_p": 0.58, "p_model": 0.62})[0] is False)
+    check("без p_model се мери както преди",
+          presmela_karta({"p": 0.80, "pazar_p": 0.58})[0] is True
+          and presmela_karta({"p": 0.60, "pazar_p": 0.58})[0] is False)
+
+    # ── 🔴 15.09.2026: истински пазар ли е.
+    check("301 срещу 41 не е пазар", not cenite_sa_pazar("tennis", 301.0, 41.0))
+    check("нормален двуизходен е пазар", cenite_sa_pazar("tennis", 1.80, 2.00))
+    check("борса с марж 0.3% е пазар", cenite_sa_pazar("tabletennis", 1.99, 2.03))
+    check("футбол с равен е пазар", cenite_sa_pazar("football", 2.50, 3.00, 3.30))
+    check("футбол без равен не се реже", cenite_sa_pazar("football", 2.50, 3.00))
+    check("сбор над 1.6 не е пазар", not cenite_sa_pazar("tennis", 1.10, 1.20))
+
+    # ── 🇧🇬 15.09.2026: стойността.
+    check("стойност: 60% при 1.80 е +8%", abs(stoynost_ev(0.60, 1.80) - 0.08) < 1e-9)
+    check("стойност: 60% при 1.60 е отрицателна", stoynost_ev(0.60, 1.60) < 0)
+    check("стойност: боклук дава None", stoynost_ev(None, 1.8) is None
+          and stoynost_ev(0.6, 0.9) is None)
+    check("гейтът по стойност СПИ по подразбиране", SAMO_STOYNOST is False)
+    _st_bet = globals().get("BET")
+
+    class _BetPodl(object):
+        VKLYUCHENO = True
+        SPORT = {"tennis": "tennis"}
+        NEPITAN = object()
+
+        @staticmethod
+        def ceni_za(b, d, g, ms=None, ot=None, liga=None):
+            return (1.85, 2.05, None)
+
+    try:
+        globals()["BET"] = _BetPodl
+        _sv = betano_stoynost({"bucket": "tennis", "pick": "1 · Синер",
+                               "pazar_izt": "pinnacle", "pazar_p": 0.60,
+                               "pazar_cena": 1.62,
+                               "fx": {"home": "Синер", "away": "Алкарас"}})
+        check("Бетано се пише до картата", _sv.get("betano_cena") == 1.85)
+        check("стойността се смята по честната цена",
+              abs(_sv.get("betano_ev") - round(0.60 * 1.85 - 1, 4)) < 1e-9)
+        check("и се маркира", _sv.get("stoynost") is True)
+        check("цената на картата НЕ се пипа", _sv.get("pazar_cena") == 1.62)
+        _sv2 = betano_stoynost({"bucket": "tennis", "pick": "2 · Алкарас",
+                                "pazar_izt": "pinnacle", "pazar_p": 0.40,
+                                "fx": {"home": "Синер", "away": "Алкарас"}})
+        check("втората страна взима коефициента на госта",
+              _sv2.get("betano_cena") == 2.05 and _sv2.get("stoynost") is False)
+        _sv3 = betano_stoynost({"bucket": "tennis", "pick": "1 · Синер",
+                                "pazar_izt": "kambi", "pazar_p": 0.60,
+                                "fx": {"home": "Синер", "away": "Алкарас"}})
+        check("от Kambi честна цена не се взима",
+              _sv3.get("betano_cena") == 1.85 and "betano_ev" not in _sv3)
+    finally:
+        globals()["BET"] = _st_bet
+    import inspect as _insp_st
+    _lp_src = _insp_st.getsource(log_pick)
+    # ── 🔴 15.09.2026: местните чешки лиги не взимат цена от Kambi.
+    _st_kam, _st_kt = globals().get("KAM"), globals().get("KAMBI_TTLIGI")
+
+    class _KamPodl(object):
+        VKLYUCHENO = True
+        SPORT = {"tabletennis": "table_tennis"}
+        NEPITAN = object()
+
+        @staticmethod
+        def ceni_za(b, d, g, ot=None):
+            return (1.77, 1.87, None)
+
+    def _tt_an(src):
+        return {"bucket": "tabletennis", "pick": "1 · Jiri Ruzicka",
+                "fx": {"home": "Jiri Ruzicka", "away": "Ondrej Svacha", "src": src}}
+    try:
+        globals()["KAM"] = _KamPodl
+        globals()["KAMBI_TTLIGI"] = False
+        check("местна чешка лига НЕ взима цена от Kambi",
+              not _kambi_rezerva(_tt_an("ttligi")).get("pazar_cena"))
+        check("WTT си взима цената от Kambi",
+              _kambi_rezerva(_tt_an("wtt")).get("pazar_cena") == 1.77)
+        globals()["KAMBI_TTLIGI"] = True
+        check("ръчката връща Kambi и за местните",
+              _kambi_rezerva(_tt_an("ttligi")).get("pazar_cena") == 1.77)
+    finally:
+        globals()["KAM"] = _st_kam
+        globals()["KAMBI_TTLIGI"] = _st_kt
+    check("по подразбиране местните са без Kambi", KAMBI_TTLIGI is False)
+    check("и местна лига без цена не минава портиера",
+          ima_pazar({"bucket": "tabletennis",
+                     "fx": {"league": "Czech Liga Pro", "src": "ttligi"}})[0] is False)
+    # ── 🔴 15.09.2026: борсата пише цените по изход — иначе доследяването
+    # (което вика БЕЗ избор) не добавя втора точка и CLV на Smarkets е нула.
+    _sm_an = _pazar_surovo({"bucket": "tabletennis",
+                            "fx": {"src": "ttligi", "home": "Алфа", "away": "Бета",
+                                   "extra": {"cena_dom": 1.80, "cena_gost": 2.00}}})
+    check("борсата пише цените по изход и без избор",
+          _sm_an.get("_ceni_sur") == {"1": 1.80, "2": 2.00})
+    # ── 🇧🇬 15.09.2026: коефициентът на картата е този на Бетано, когато го има.
+    check("картата показва коефициента на Бетано",
+          "1.40" in cena_red({"pazar_cena": 1.48, "betano_cena": 1.40}))
+    check("без Бетано — точната цена", "1.48" in cena_red({"pazar_cena": 1.48}))
+    check("боклук от Бетано не стига до картата",
+          "1.48" in cena_red({"pazar_cena": 1.48, "betano_cena": 0.5}))
+    check("без никаква цена — без ред", cena_red({"betano_cena": 1.40}) == "")
+    _st_cb = globals().get("CENA_BETANO")
+    try:
+        globals()["CENA_BETANO"] = False
+        check("ръчката връща точната цена",
+              "1.48" in cena_red({"pazar_cena": 1.48, "betano_cena": 1.40}))
+    finally:
+        globals()["CENA_BETANO"] = _st_cb
+    check("дневникът пише стойността",
+          '"betano_ev": an.get("betano_ev")' in _lp_src
+          and '"obarnata": bool(an.get("obarnata"))' in _lp_src)
     # 🔴 СВЪРЗВАНЕТО, А НЕ САМО ВРАТАТА (01.09.2026). Мутация доказа, че
     # вратата може да бъде развалена в цикъла, а самопроверката да остане
     # зелена. Затова тук се пуска САМИЯТ цикъл, с подменено търсене на цена —

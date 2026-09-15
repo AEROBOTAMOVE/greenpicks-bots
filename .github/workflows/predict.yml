@@ -189,6 +189,15 @@ jobs:
           # думите, с които се спира нещо, ако съм сбъркал.
           # =1 връща думата «коеф» в забранените (zabraneni.py, 02.09.2026)
           GREENPICKS_ZABRANI_KOEF: ${{ vars.GREENPICKS_ZABRANI_KOEF || '0' }}
+          # =1 пуска само картите, при които Бетано плаща над честната
+          # цена на Pinnacle (predictor.py, betano_stoynost, 15.09.2026)
+          PREDICT_SAMO_STOYNOST: ${{ vars.PREDICT_SAMO_STOYNOST || '0' }}
+          # =1 връща цената от Kambi за местните чешки лиги (там губеше
+          # −32% на 53 карти, predictor.py KAMBI_TTLIGI, 15.09.2026)
+          PREDICT_KAMBI_TTLIGI: ${{ vars.PREDICT_KAMBI_TTLIGI || '0' }}
+          # =0 връща на картата точната цена вместо тази на Бетано
+          # (predictor.py CENA_BETANO, 15.09.2026)
+          PREDICT_CENA_BETANO: ${{ vars.PREDICT_CENA_BETANO || '1' }}
           # =0 спира нормализацията на пазача и се съди по гол подниз
           GREENPICKS_PAZACH: ${{ vars.GREENPICKS_PAZACH || '1' }}
           # =0 спира ЦЯЛОТО сито: юноши, приятелски, резерви, виртуални
@@ -538,6 +547,15 @@ jobs:
           # думите, с които се спира нещо, ако съм сбъркал.
           # =1 връща думата «коеф» в забранените (zabraneni.py, 02.09.2026)
           GREENPICKS_ZABRANI_KOEF: ${{ vars.GREENPICKS_ZABRANI_KOEF || '0' }}
+          # =1 пуска само картите, при които Бетано плаща над честната
+          # цена на Pinnacle (predictor.py, betano_stoynost, 15.09.2026)
+          PREDICT_SAMO_STOYNOST: ${{ vars.PREDICT_SAMO_STOYNOST || '0' }}
+          # =1 връща цената от Kambi за местните чешки лиги (там губеше
+          # −32% на 53 карти, predictor.py KAMBI_TTLIGI, 15.09.2026)
+          PREDICT_KAMBI_TTLIGI: ${{ vars.PREDICT_KAMBI_TTLIGI || '0' }}
+          # =0 връща на картата точната цена вместо тази на Бетано
+          # (predictor.py CENA_BETANO, 15.09.2026)
+          PREDICT_CENA_BETANO: ${{ vars.PREDICT_CENA_BETANO || '1' }}
           # =0 спира нормализацията на пазача и се съди по гол подниз
           GREENPICKS_PAZACH: ${{ vars.GREENPICKS_PAZACH || '1' }}
           # =0 спира ЦЯЛОТО сито: юноши, приятелски, резерви, виртуални
@@ -592,6 +610,23 @@ jobs:
           WINS_THREAD_ID: ${{ vars.WINS_THREAD_ID || '10' }}
         run: python router_bot.py
 
+      # 💎 ЛОВЕЦЪТ НА СТОЙНОСТ, В СЯНКА (15.09.2026). Сдвоява футбола Pinnacle ×
+      # Бетано и ЗАПИСВА изходите, които Бетано надплаща (EV ≥ +2% и по двата
+      # метода за честна цена), после всеки час — затварящата цена на Pinnacle.
+      # Нищо не се праща: няма токен в env-а на тази стъпка. Доказателството
+      # идва без резултати: среден EV спрямо затварящата > 0 при n ≥ 50.
+      # continue-on-error: гръмне ли, мозъкът и рутерът не усещат нищо.
+      # ПЪТ НАЗАД: vars.STOYNOST_VKL=0.
+      - name: Ловецът на стойност (сянка — нищо не се праща)
+        if: ${{ always() && github.event.inputs.dry_run != 'true' }}
+        continue-on-error: true
+        timeout-minutes: 8
+        env:
+          STOYNOST_VKL: ${{ vars.STOYNOST_VKL || '1' }}
+          STOYNOST_SPORTOVE: ${{ vars.STOYNOST_SPORTOVE || 'football' }}
+          STOYNOST_EV_PRAG: ${{ vars.STOYNOST_EV_PRAG || '0.02' }}
+        run: python stoynost.py
+
       # Тефтерът се връща в repo-то. always() е нарочно: predictor.py записва
       # след ВСЯКА пусната карта, тоест ако пускането е умряло на третата
       # среща, първите две вече са в тефтера и ТРЯБВА да се запазят — иначе
@@ -627,7 +662,8 @@ jobs:
           # НИЩО — git отхвърля целия pathspec, щом един файл липсва, а
           # `|| true` крие изход 128. Проверено в истинско repo: stage-нато
           # остава ПРАЗНО и стъпката излиза ЗЕЛЕНА, без да е запазила нищо.
-          for f in router_state.json support_state.json; do
+          # stoynost_log.json = дневникът на ловеца (15.09.2026).
+          for f in router_state.json support_state.json stoynost_log.json; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then

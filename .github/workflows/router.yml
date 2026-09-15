@@ -388,6 +388,15 @@ jobs:
           # думите, с които се спира нещо, ако съм сбъркал.
           # =1 връща думата «коеф» в забранените (zabraneni.py, 02.09.2026)
           GREENPICKS_ZABRANI_KOEF: ${{ vars.GREENPICKS_ZABRANI_KOEF || '0' }}
+          # =1 пуска само картите, при които Бетано плаща над честната
+          # цена на Pinnacle (predictor.py, betano_stoynost, 15.09.2026)
+          PREDICT_SAMO_STOYNOST: ${{ vars.PREDICT_SAMO_STOYNOST || '0' }}
+          # =1 връща цената от Kambi за местните чешки лиги (там губеше
+          # −32% на 53 карти, predictor.py KAMBI_TTLIGI, 15.09.2026)
+          PREDICT_KAMBI_TTLIGI: ${{ vars.PREDICT_KAMBI_TTLIGI || '0' }}
+          # =0 връща на картата точната цена вместо тази на Бетано
+          # (predictor.py CENA_BETANO, 15.09.2026)
+          PREDICT_CENA_BETANO: ${{ vars.PREDICT_CENA_BETANO || '1' }}
           # =0 спира нормализацията на пазача и се съди по гол подниз
           GREENPICKS_PAZACH: ${{ vars.GREENPICKS_PAZACH || '1' }}
           # =0 спира ЦЯЛОТО сито: юноши, приятелски, резерви, виртуални
@@ -508,6 +517,15 @@ jobs:
           # думите, с които се спира нещо, ако съм сбъркал.
           # =1 връща думата «коеф» в забранените (zabraneni.py, 02.09.2026)
           GREENPICKS_ZABRANI_KOEF: ${{ vars.GREENPICKS_ZABRANI_KOEF || '0' }}
+          # =1 пуска само картите, при които Бетано плаща над честната
+          # цена на Pinnacle (predictor.py, betano_stoynost, 15.09.2026)
+          PREDICT_SAMO_STOYNOST: ${{ vars.PREDICT_SAMO_STOYNOST || '0' }}
+          # =1 връща цената от Kambi за местните чешки лиги (там губеше
+          # −32% на 53 карти, predictor.py KAMBI_TTLIGI, 15.09.2026)
+          PREDICT_KAMBI_TTLIGI: ${{ vars.PREDICT_KAMBI_TTLIGI || '0' }}
+          # =0 връща на картата точната цена вместо тази на Бетано
+          # (predictor.py CENA_BETANO, 15.09.2026)
+          PREDICT_CENA_BETANO: ${{ vars.PREDICT_CENA_BETANO || '1' }}
           # =0 спира нормализацията на пазача и се съди по гол подниз
           GREENPICKS_PAZACH: ${{ vars.GREENPICKS_PAZACH || '1' }}
           # =0 спира ЦЯЛОТО сито: юноши, приятелски, резерви, виртуални
