@@ -60936,8 +60936,9 @@
   "p": 0.5707,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-10|baseball|doosanbears|kiwoomheroes",
@@ -63078,8 +63079,9 @@
   "p": 0.6754,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-13|hockey|rögleängelholm|tapparatampere",
@@ -66266,7 +66268,7 @@
   "pazar_close": 1.69,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0294,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-13|tennis|biancaandreescu|cristinabucsa",
@@ -66518,7 +66520,7 @@
   "scored": true,
   "hit": true,
   "score": "6:2",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-12|volleyball|msen|полша|израел",
@@ -72816,7 +72818,7 @@
   "pazar_close": 1.44,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0095,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-14|esports|exrustec|azuolas",
@@ -72860,7 +72862,7 @@
   "pazar_close": 1.36,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0159,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-15|volleyball|wsen|costarica|guatemala",
@@ -72985,7 +72987,7 @@
   "scored": true,
   "hit": true,
   "score": "3:0",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-14|football|internazionale|udinese|total",
@@ -73311,7 +73313,7 @@
   "pazar_close": 1.32,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0057,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-14|football|djurgården|gais",
@@ -73879,7 +73881,9 @@
   "p": 0.6495,
   "stars": 3,
   "sample": "ранглиста и 16 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-14|volleyball|msen|германия|швейцария",
@@ -76065,7 +76069,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-15|baseball|hokkaidonipponhamfighter|chibalottemarines",
@@ -76152,7 +76156,7 @@
   "pazar_close": 1.18,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.041,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-16|volleyball|msen|бразилия|чили",
@@ -76392,7 +76396,7 @@
   "scored": true,
   "hit": true,
   "score": "3:1",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-15|volleyball|msen|севернамакедония|португалия",
@@ -76433,7 +76437,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-15|volleyball|msen|нидерландия|финландия",
@@ -79333,7 +79337,9 @@
   "p": 0.6063,
   "stars": 2,
   "sample": "гледани 8 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-16|tennis|staehelil|gorznys",
