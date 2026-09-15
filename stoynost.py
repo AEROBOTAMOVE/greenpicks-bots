@@ -66,6 +66,9 @@ KEEP_DAYS = 10             # записите се пазят толкова д�
 ZATVARYANE_CHASA = 3.0     # последна точка до толкова часа преди старта = затваряне
 LOG_FILE = (os.environ.get("STOYNOST_LOG_FILE") or "stoynost_log.json").strip()
 IZHODI = ("1", "2", "Х")
+# ⚓ Котвата от betano.py (15.09.2026): +129 футболни мача на цялата оферта,
+# 135/135 прочетени двойки верни. ПЪТ НАЗАД: STOYNOST_KOTVA=0.
+KOTVA_VKL = (os.environ.get("STOYNOST_KOTVA") or "1").strip() in ("1", "true", "yes", "да")
 
 
 # ═════════════════════════════════════════ ЧЕСТНАТА ЦЕНА
@@ -113,7 +116,7 @@ def _sega_tekst(ms):
 
 
 # ═════════════════════════════════════════ СДВОЯВАНЕТО
-def sdvoi(mm, sabitiya, sreshta, sega_ms, pasvat=None):
+def sdvoi(mm, sabitiya, sreshta, sega_ms, pasvat=None, kotva=None, sport="football"):
     """[(mid, (дом, гост, лига, старт_ms), събитие_на_Бетано, обърнато)].
 
     Само предстоящи мачове и само ЕДНОЗНАЧНИ двойки: имената и на двете страни
@@ -149,13 +152,23 @@ def sdvoi(mm, sabitiya, sreshta, sega_ms, pasvat=None):
                     kand.append((e, True))
         if len(kand) == 1:
             out.append((str(mid), (a, b, lg, ms), kand[0][0], kand[0][1]))
+        elif not kand and kotva:
+            # ⚓ КОТВАТА (betano.kotva, 15.09.2026) — само когато строгото е
+            # мълчало напълно; два строги кандидата остават мълчание. Връща
+            # цените В НАШИЯ ред, затова събитието се сглобява необърнато и
+            # се белязва с 9-и елемент «kotva».
+            r = kotva(sport, a, b, ms, lg, sabitiya, sega_ms)
+            if r:
+                out.append((str(mid), (a, b, lg, ms),
+                            (a, b, ms, r[0], r[1], r[2], r[3], r[4], "kotva"), False))
     return out
 
 
-def kandidati(sport, mm, pazari, sabitiya, sreshta, sega_ms, pasvat=None):
+def kandidati(sport, mm, pazari, sabitiya, sreshta, sega_ms, pasvat=None, kotva=None):
     """Изходите, които Бетано надплаща. Всичко в РЕДА НА PINNACLE."""
     out = []
-    for mid, (a, b, lg, ms), e, obr in sdvoi(mm, sabitiya, sreshta, sega_ms, pasvat):
+    for mid, (a, b, lg, ms), e, obr in sdvoi(mm, sabitiya, sreshta, sega_ms, pasvat,
+                                             kotva, sport):
         c = (pazari or {}).get(mid)
         if not c or not c[0] or not c[1]:
             continue
@@ -182,7 +195,8 @@ def kandidati(sport, mm, pazari, sabitiya, sreshta, sega_ms, pasvat=None):
                 "klyuch": sport + "|" + mid + "|" + IZHODI[i], "sport": sport,
                 "mid": mid, "i": i, "izhod": IZHODI[i], "dom": a, "gost": b,
                 "liga": lg, "bet_liga": str(e[6]) if len(e) > 6 else "",
-                "obarnato": bool(obr), "start_ms": ms, "bet": round(bet[i], 3),
+                "obarnato": bool(obr), "kotva": len(e) > 8 and e[8] == "kotva",
+                "start_ms": ms, "bet": round(bet[i], 3),
                 "pin": [round(float(x), 3) for x in pin],
                 "p_prop": round(p_prop[i], 4), "p_pow": round(p_pow[i], 4),
                 "ev": round(min(ev_p, ev_s), 4)})
@@ -359,10 +373,12 @@ def main():
             continue
         pz_po_sport[sport] = pz or {}
         k = kandidati(sport, mm, pz, ev, BET.sreshta, sega_ms,
-                      getattr(BET, "etiketite_pasvat", None))
+                      getattr(BET, "etiketite_pasvat", None),
+                      getattr(BET, "kotva", None) if KOTVA_VKL else None)
         novi = zapishi(log, k, sega_ms)
         diag["sportove"][sport] = {"pinnacle": len(mm or {}), "pinnacle_ceni": len(pz or {}),
-                                   "betano": len(ev or []), "sas_stoynost": len(k), "novi": novi}
+                                   "betano": len(ev or []), "sas_stoynost": len(k), "novi": novi,
+                                   "po_kotva": sum(1 for x in k if x.get("kotva"))}
         print("   %-10s Pinnacle %d мача · Бетано %d · със стойност сега %d · нови %d"
               % (sport, len(mm or {}), len(ev or []), len(k), novi))
     try:
@@ -450,6 +466,31 @@ def selftest():
     check("обърнатият мач сравнява СЪЩИЯ отбор",
           kl.get("football|2|1", {}).get("bet") == 2.95 and "football|2|2" not in kl
           and kl.get("football|2|1", {}).get("obarnato") is True)
+
+    # ── ⚓ котвата (15.09.2026)
+    _kv_pit = []
+
+    def _kv(sp, d, g, ms_, lg_, ev_, sg_):
+        _kv_pit.append((d, g))
+        if (d, g) == ("Rangers", "Celtic"):
+            return (2.5, 2.6, 3.4, "Шотландия / Премиършип", "/rc/")
+        return None
+    mm_k = dict(mm)
+    mm_k["7"] = ("Rangers", "Celtic", "Scotland - Premiership", "2026-09-15T16:00:00Z")
+    rk = [x for x in sdvoi(mm_k, sab, sreshta, sega, None, _kv, "football") if x[0] == "7"]
+    check("котвата допълва, когато строгото мълчи",
+          len(rk) == 1 and tuple(rk[0][2][3:6]) == (2.5, 2.6, 3.4) and rk[0][3] is False)
+    check("котвата НЕ се пита, когато строгото е намерило", ("Lokomotiv", "Nesebar") not in _kv_pit)
+    del _kv_pit[:]
+    sdvoi(mm, sab2, sreshta, sega, None, _kv, "football")
+    check("два строги кандидата = мълчание, без котва", ("Lokomotiv", "Nesebar") not in _kv_pit)
+    kk = {x["klyuch"]: x for x in kandidati("football", mm_k, dict(pz, **{"7": (2.20, 3.40, 3.20)}),
+                                            sab, sreshta, sega, None, _kv)}
+    check("записът по котва е белязан, строгият — не",
+          kk.get("football|7|1", {}).get("kotva") is True
+          and kk.get("football|1|1", {}).get("kotva") is False)
+    check("без котва — старото поведение",
+          "7" not in [x[0] for x in sdvoi(mm_k, sab, sreshta, sega)])
     pz_luda = {"1": (1.68, 5.20, 3.90)}
     sab_luda = [("Lokomotiv", "Nesebar", t16, 1.90, 14.50, 3.60)]
     k2 = kandidati("football", mm, pz_luda, sab_luda, sreshta, sega)
