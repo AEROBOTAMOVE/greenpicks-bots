@@ -377,9 +377,9 @@
           <span class="i">${esc(izborTxt(x.izbor))} · ${esc(denEt(x.den))}</span></li>`).join("")}</ol>
         <div class="suma-blok">
           <div class="red-k"><span>Общ коефициент</span><b>${k ? esc(k.toFixed(2)) : "—"}</b></div>
-          <label class="red-k"><span>Сума (лв)</span><input id="f-suma" type="number" min="1" step="1" inputmode="decimal" value="${esc(S.suma)}"></label>
-          <div class="brzi">${[10, 20, 50, 100].map((v) => `<button class="${S.suma === v ? "on" : ""}" data-suma="${v}">${v} лв</button>`).join("")}</div>
-          <div class="red-k pech"><span>Възможна печалба</span><b id="f-pech">${pech != null ? esc(pech.toFixed(2)) + " лв" : "—"}</b></div>
+          <label class="red-k"><span>Сума (€)</span><input id="f-suma" type="number" min="1" step="1" inputmode="decimal" value="${esc(S.suma)}"></label>
+          <div class="brzi">${[10, 20, 50, 100].map((v) => `<button class="${S.suma === v ? "on" : ""}" data-suma="${v}">${v} €</button>`).join("")}</div>
+          <div class="red-k pech"><span>Възможна печалба</span><b id="f-pech">${pech != null ? esc(pech.toFixed(2)) + " €" : "—"}</b></div>
           <button class="btn shir" data-kopirai="1">Копирай фиша</button>
         </div>
       </article>`);
@@ -652,7 +652,7 @@
       pazi();
       const k = slipKoef();
       const el = document.getElementById("f-pech");
-      if (el) el.textContent = k ? (Math.round(S.suma * k * 100) / 100).toFixed(2) + " лв" : "—";
+      if (el) el.textContent = k ? (Math.round(S.suma * k * 100) / 100).toFixed(2) + " €" : "—";
       $app.querySelectorAll(".brzi button").forEach((b) => b.classList.toggle("on", Number(b.dataset.suma) === S.suma));
     }
   });

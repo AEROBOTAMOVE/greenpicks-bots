@@ -191,7 +191,10 @@ img, svg { max-width: 100%; }
 
 /* ── картата на прогноза ── */
 .karti { display: grid; gap: 12px; }
-.pk { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, .22); }
+.pk { position: relative; background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); padding: 15px 14px; box-shadow: 0 8px 22px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .04); overflow: hidden; }
+.pk::before { content: ""; position: absolute; top: 0; left: 16px; right: 16px; height: 1px; background: linear-gradient(90deg, transparent, rgba(55, 212, 148, .5), transparent); }
+.pk::after { content: ""; position: absolute; top: -40%; right: -20%; width: 180px; height: 180px; pointer-events: none;
+  background: radial-gradient(circle, rgba(55, 212, 148, .1), transparent 68%); }
 .pk-h { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tx3); font-weight: 600; min-width: 0; }
 .pk-h .liga { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pk-h .den { margin-left: auto; white-space: nowrap; color: var(--tx2); }
@@ -200,13 +203,15 @@ img, svg { max-width: 100%; }
 .pk-tim { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; font-size: 14.5px; }
 .pk-tim span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pk-tim.d { flex-direction: row-reverse; text-align: right; }
-.pk-vs { font-size: 11px; font-weight: 800; color: var(--tx3); letter-spacing: .1em; }
-.pk-izbor { display: flex; align-items: center; gap: 12px; background: rgba(5, 12, 9, .45); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.pk-vs { font-size: 10px; font-weight: 800; color: var(--tx2); letter-spacing: .08em; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #1a382b, #0a1a14); border: 1px solid var(--line2); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+.pk-izbor { position: relative; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(55, 212, 148, .16); border-radius: 12px; padding: 11px 12px;
+  background: linear-gradient(180deg, rgba(31, 174, 108, .1), rgba(5, 12, 9, .5)); }
 .pk-izbor small { display: block; font-size: 11.5px; color: var(--tx3); font-weight: 600; }
 .pk-izbor b { font-size: 15px; color: var(--srebro); }
 .pk-koef { margin-left: auto; text-align: center; }
 .pk-koef b { display: block; min-width: 62px; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; color: #03150c;
-  background: linear-gradient(180deg, var(--em2), var(--em)); border-radius: 9px; padding: 5px 10px; }
+  background: linear-gradient(180deg, var(--em2), var(--em)); border-radius: 9px; padding: 6px 10px; box-shadow: 0 4px 14px var(--emglow), inset 0 1px 0 rgba(255, 255, 255, .35); }
 .pk-koef.bez b { font-size: 12.5px; font-weight: 700; color: var(--tx3); background: var(--s3); border: 1px solid var(--line); padding: 6px 10px; }
 .pk-koef small { margin-bottom: 3px; }
 .pk-zashto { margin: 10px 2px 0; font-size: 13.5px; color: var(--tx2); line-height: 1.5; }
@@ -426,6 +431,8 @@ img, svg { max-width: 100%; }
   .pk:hover, .red:hover, .fs:hover, .novina:hover { border-color: rgba(55, 212, 148, .32); }
   .sp-it:hover .ik { transform: translateY(-2px); }
 }
+.sp-it .ik { border: 1px solid rgba(55, 212, 148, .22); }
+.sp-it:hover .ik { border-color: rgba(212, 180, 102, .55); box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 8px 18px rgba(31,174,108,.28); }
 /* издигане при посочване — само на компютър с мишка */
 @media (hover: hover) and (min-width: 1024px) {
   .pk:hover, .fs:hover, .obzor:hover { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(0, 0, 0, .4); }
