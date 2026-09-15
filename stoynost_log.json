@@ -1,1 +1,16 @@
-{}
+{
+"_diag": {
+"betano_proba": "HTTP 403 Forbidden",
+"betano_zayavki": {
+"provali": 1,
+"zayavki": 1
+},
+"koga": "2026-09-15 10:49 UTC",
+"sportove": {
+"football": {
+"betano": "отказ",
+"pinnacle": 903
+}
+}
+}
+}
