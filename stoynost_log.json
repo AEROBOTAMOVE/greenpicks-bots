@@ -2,20 +2,16 @@
 "_diag": {
 "betano_proba": "HTTP 403 Forbidden",
 "betano_zayavki": {
-"provali": 0,
-"snimka_min": 46.4,
-"zabrana": null,
-"zayavki": 0
+"provali": 1,
+"snimka_min": null,
+"zabrana": 403,
+"zayavki": 1
 },
-"koga": "2026-09-15 12:28 UTC",
+"koga": "2026-09-15 13:04 UTC",
 "sportove": {
 "football": {
-"betano": 918,
-"novi": 4,
-"pinnacle": 916,
-"pinnacle_ceni": 922,
-"po_kotva": 3,
-"sas_stoynost": 13
+"betano": "отказ",
+"pinnacle": 913
 }
 }
 },
