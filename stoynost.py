@@ -248,12 +248,14 @@ def ev_zatvaryane(z):
 
 def otchet(log, povtori=3000, seed=20260915):
     """Средният EV при затваряне с 95% интервал. Речник; n=0, ако няма какво."""
+    # Ключ с «_» е бележка (напр. `_diag`), не залог.
+    zap = [z for k, z in log.items() if not str(k).startswith("_") and isinstance(z, dict)]
     vals = []
-    for z in log.values():
+    for z in zap:
         e = ev_zatvaryane(z)
         if e is not None:
             vals.append(e[0])
-    out = {"n": len(vals), "otkriti": len(log)}
+    out = {"n": len(vals), "otkriti": len(zap)}
     if not vals:
         return out
     rnd = random.Random(seed)
@@ -261,13 +263,14 @@ def otchet(log, povtori=3000, seed=20260915):
     out.update({"ev_zatv": sum(vals) / len(vals), "lo": b[int(0.025 * povtori)],
                 "hi": b[int(0.975 * povtori) - 1],
                 "dyal_nad_nula": sum(1 for v in vals if v > 0) / len(vals),
-                "ev_otkrivane": sum(float(z.get("ev") or 0) for z in log.values()) / len(log)})
+                "ev_otkrivane": sum(float(z.get("ev") or 0) for z in zap) / len(zap)})
     return out
 
 
 def pochisti(log, sega_ms):
     granica = sega_ms - KEEP_DAYS * 86400000
-    for k in [k for k, z in log.items() if int(z.get("start_ms") or 0) < granica]:
+    for k in [k for k, z in log.items() if not str(k).startswith("_")
+              and int((z or {}).get("start_ms") or 0) < granica]:
         log.pop(k, None)
     return len(log)
 
@@ -286,6 +289,32 @@ def zapazi(log, path=None):
     with io.open(tmp, "w", encoding="utf-8") as f:
         json.dump(log, f, ensure_ascii=False, indent=0, sort_keys=True)
     os.replace(tmp, path or LOG_FILE)
+
+
+def proba_betano(BET, otvarach=None):
+    """ЕДИН честен въпрос към Бетано: какво отговаря на ТАЗИ машина.
+
+    🔴 ЗАЩО (15.09.2026). От 08.09 наживо НИТО ЕДНА от 622 карти не е взела
+    цена от Бетано, а три пускания на ловеца в GitHub дадоха празен дневник —
+    при 5 находки от първия път на компютъра в София. Дневникът на Actions не
+    се чете отвън, затова отговорът се пише тук: код, байтове или грешка.
+    Подписът е нашият (BET.UA), не преправен браузър.
+    """
+    import urllib.error
+    import urllib.request
+    url = BET.BAZA + "/sport/soccer/" + BET.OPASHKA
+    otv = otvarach or urllib.request.urlopen
+    rq = urllib.request.Request(url, headers={"User-Agent": BET.UA,
+                                              "Accept": "application/json"})
+    try:
+        r = otv(rq, timeout=20)
+        b = r.read()
+        kod = getattr(r, "status", None) or getattr(r, "code", None) or "?"
+        return "HTTP %s · %d байта" % (kod, len(b or b""))
+    except urllib.error.HTTPError as e:
+        return "HTTP %s %s" % (e.code, str(e.reason or "")[:40])
+    except Exception as e:                                   # noqa: BLE001
+        return "грешка %s: %s" % (type(e).__name__, str(e)[:60])
 
 
 # ═════════════════════════════════════════ ПУСКАНЕ
@@ -307,9 +336,14 @@ def main():
     sega_ms = int(time.time() * 1000)
     log = zaredi()
     pz_po_sport = {}
+    # 🔴 БЕЛЕЖКАТА (15.09.2026): какво са казали изворите на ТАЗИ машина.
+    diag = {"koga": _sega_tekst(sega_ms) + " UTC", "sportove": {},
+            "betano_proba": proba_betano(BET)}
+    print("   Бетано отговаря: " + diag["betano_proba"])
     for sport in SPORTOVE:
         if sport not in getattr(PIN, "SPORT_ID", {}) or sport not in getattr(BET, "SPORT", {}):
             print("   %-10s няма го и в двете книги — пропускам" % sport)
+            diag["sportove"][sport] = "няма го в двете книги"
             continue
         try:
             mm = PIN.machove(sport)
@@ -317,18 +351,27 @@ def main():
             ev = BET.sabitiya(sport, None, None)
         except Exception as ex:                              # noqa: BLE001
             print("   %-10s изворът гръмна: %s" % (sport, str(ex)[:80]))
+            diag["sportove"][sport] = "гръмна: " + str(ex)[:80]
             continue
         if ev is getattr(BET, "NEPITAN", object()):
             print("   %-10s Бетано отказа — нищо не се пише за този спорт" % sport)
+            diag["sportove"][sport] = {"pinnacle": len(mm or {}), "betano": "отказ"}
             continue
         pz_po_sport[sport] = pz or {}
         k = kandidati(sport, mm, pz, ev, BET.sreshta, sega_ms,
                       getattr(BET, "etiketite_pasvat", None))
         novi = zapishi(log, k, sega_ms)
+        diag["sportove"][sport] = {"pinnacle": len(mm or {}), "pinnacle_ceni": len(pz or {}),
+                                   "betano": len(ev or []), "sas_stoynost": len(k), "novi": novi}
         print("   %-10s Pinnacle %d мача · Бетано %d · със стойност сега %d · нови %d"
               % (sport, len(mm or {}), len(ev or []), len(k), novi))
+    try:
+        diag["betano_zayavki"] = BET.statistika()
+    except Exception:                                        # noqa: BLE001
+        pass
     ob = obnovi(log, pz_po_sport, sega_ms)
     pochisti(log, sega_ms)
+    log["_diag"] = diag
     try:
         zapazi(log)
     except Exception as ex:                                  # noqa: BLE001
@@ -441,6 +484,36 @@ def selftest():
     o = otchet(log, povtori=200)
     check("отчетът брои измеримите", o["n"] >= 1 and "ev_zatv" in o)
     check("празен дневник не гърми", otchet({})["n"] == 0)
+    # ── бележката _diag (15.09.2026)
+    log_d = dict(log)
+    log_d["_diag"] = {"koga": "x", "betano_proba": "HTTP 403"}
+    check("бележката _diag не се брои за залог",
+          otchet(log_d, povtori=50)["otkriti"] == otchet(log, povtori=50)["otkriti"])
+    pochisti(log_d, sega + 400 * 86400000)
+    check("бележката _diag оцелява чистенето", "_diag" in log_d)
+    check("и залозите пак се чистят", [k for k in log_d if not k.startswith("_")] == [])
+
+    class _Bet(object):
+        BAZA, OPASHKA, UA = "https://www.betano.bg/api", "?x", "greenpicks-bot/1.0 (+test)"
+    _vidyano = {}
+
+    def _otv403(rq, timeout=None):
+        import urllib.error
+        _vidyano["ua"] = rq.get_header("User-agent")
+        raise urllib.error.HTTPError(rq.full_url, 403, "Forbidden", {}, None)
+
+    class _Otg(object):
+        status = 200
+
+        def read(self):
+            return b"{}" * 10
+    check("пробата казва кода на отказа", proba_betano(_Bet, _otv403).startswith("HTTP 403"))
+    check("пробата пита с НАШИЯ подпис", "greenpicks-bot" in str(_vidyano.get("ua")))
+    check("пробата казва и успеха",
+          proba_betano(_Bet, lambda rq, timeout=None: _Otg()) == "HTTP 200 · 20 байта")
+    check("пробата не гърми при мрежова грешка",
+          proba_betano(_Bet, lambda rq, timeout=None: (_ for _ in ()).throw(OSError("няма мрежа")))
+          .startswith("грешка OSError"))
     stari = {"x": {"start_ms": sega - 20 * 86400000}}
     check("стари записи се чистят", pochisti(stari, sega) == 0)
     check("по подразбиране само футбол", SPORTOVE == ["football"]
