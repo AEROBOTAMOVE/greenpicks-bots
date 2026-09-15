@@ -133,7 +133,15 @@ def selftest():
 
 
 if __name__ == "__main__":
-    if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+    # --log ПЪТ: задачата в Windows върви без прозорец (pythonw) — изходът се
+    # дописва във файла, за да се вижда какво е станало всеки час.
+    if "--log" in sys.argv and sys.argv.index("--log") + 1 < len(sys.argv):
+        _f = io.open(sys.argv[sys.argv.index("--log") + 1], "a", encoding="utf-8")
+        sys.stdout = sys.stderr = _f
+        import time as _t
+        print("\n=== " + _t.strftime("%Y-%m-%d %H:%M:%S") + " ===")
+    elif sys.stdout is not None and sys.stdout.encoding and \
+            sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     if "--selftest" in sys.argv:
         sys.exit(selftest())
