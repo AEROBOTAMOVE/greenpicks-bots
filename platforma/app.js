@@ -161,7 +161,7 @@
       ${k.koef ? `<button class="pk-dob" data-slip="${esc(k.id)}" aria-pressed="${vFisha(k.id)}">${vFisha(k.id) ? "✓ Във фиша" : "+ Добави във фиша"}</button>` : ""}
     </article>`;
   }
-  const znak = (p) => (p === true ? '<span class="znak p">✓ Позната</span>' : p === false ? '<span class="znak n">✗ Непозната</span>' : '<span class="znak v">—</span>');
+  const znak = (p) => (p === true ? '<span class="znak p">✓ Спечелена</span>' : p === false ? '<span class="znak n">✗ Загубена</span>' : '<span class="znak v">—</span>');
   function kartaRezultat(k) {
     const sk = String(k.rezultat || "").split(/[:\-–]/).map((x) => x.trim());
     const dva = sk.length === 2;
@@ -172,7 +172,7 @@
     </article>`;
   }
   function kartaFish(f) {
-    const stT = { poznat: "Познат", nepoznat: "Непознат", v_igra: "В игра" }[f.status] || "";
+    const stT = { poznat: "Спечелен", nepoznat: "Загубен", v_igra: "В игра" }[f.status] || "";
     return `<article class="fs">
       <header><b>Фиш №${esc(f.nomer)}</b><span class="den">${esc(denDylag(f.den))}</span><span class="st ${esc(f.status)}">${stT}</span></header>
       <ol>${f.kraka.map((k) => `<li>${ik(k.sport, "ik s")}<span class="m">${esc(k.dom)} — ${esc(k.gost)}</span>
@@ -215,7 +215,7 @@
   }
   function statusTxt(m) {
     if (!m) return "";
-    if (m.admin) return "Администратор";
+    if (m.admin) return "Администратор 👑";
     if (m.status === "active") return `Активен · ${m.days_left} ${m.days_left === 1 ? "ден" : "дни"}`;
     return { expired: "Изтекъл", locked: "Заключен" }[m.status] || "";
   }
@@ -350,7 +350,7 @@
         <button data-ftab="priklyucheni" aria-pressed="${S.fishTab === "priklyucheni"}">Приключили · ${pri.length}</button>
         <button data-ftab="moi" aria-pressed="false">Моят фиш · ${S.slip.length}</button></div>
       ${S.fishTab !== "aktivni" && pri.length ? `<div class="obzor"><div class="pryasten" style="--p:${Math.round((100 * pozn) / pri.length)}"><b>${Math.round((100 * pozn) / pri.length)}%</b></div>
-        <p>Познати фишове за 7 дни<br><b>${pozn}</b> от ${pri.length}</p></div>` : ""}
+        <p>Спечелени фишове за 7 дни<br><b>${pozn}</b> от ${pri.length}</p></div>` : ""}
       <div class="karti kol" style="margin-top:14px">${x.length ? x.map(kartaFish).join("") : `<p class="prazno">${S.fishTab === "aktivni" ? "В момента няма фишове в игра." : "Още няма приключили фишове."}</p>`}</div>`);
   }
 
@@ -435,7 +435,7 @@
       <div class="tabs">${dni.slice(0, 4).map((d) => `<button data-rez="${esc(d)}" aria-pressed="${S.rezDen === d}">${esc(denEt(d))}</button>`).join("")}</div>
       ${dni.length > 4 ? `<div class="chipove">${dni.slice(4).map((d) => `<button class="chip" data-rez="${esc(d)}" aria-pressed="${S.rezDen === d}">${ico("kalendar", "ico")}${esc(denEt(d))}</button>`).join("")}</div>` : ""}
       ${n ? `<div class="obzor"><div class="pryasten" style="--p:${Math.round((100 * p) / n)}"><b>${Math.round((100 * p) / n)}%</b></div>
-        <p>${esc(denDylag(S.rezDen))}<br><b>${p}</b> познати от ${n}</p></div>` : ""}
+        <p>${esc(denDylag(S.rezDen))}<br><b>${p}</b> спечелени от ${n}</p></div>` : ""}
       ${[...po.entries()].map(([kl, g]) => `<div class="liga-glava">${ik(g.s, "ik s")}${esc(kl)}</div><div class="karti kol">${g.ks.map(kartaRezultat).join("")}</div>`).join("")}`
       : '<p class="prazno">Още няма оценени прогнози.</p>');
   }

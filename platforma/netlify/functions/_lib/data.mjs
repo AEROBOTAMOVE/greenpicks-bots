@@ -14,7 +14,7 @@ export const TZ = "Europe/Sofia";
 export const SPORT_BG = Object.freeze({
   football: "Футбол", tennis: "Тенис", basketball: "Баскетбол", tabletennis: "Тенис на маса",
   volleyball: "Волейбол", hockey: "Хокей", baseball: "Бейзбол", mma: "ММА", boxing: "Бокс",
-  esports: "Киберспорт", rugby: "Ръгби", amfootball: "Американски футбол",
+  esports: "Esports", rugby: "Ръгби", amfootball: "Американски футбол",
 });
 export const SPORT_RED = Object.freeze([
   "football", "tennis", "basketball", "tabletennis", "volleyball", "hockey", "baseball",
