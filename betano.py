@@ -139,6 +139,20 @@ OPASHKA = "?req=la,s,stnf,c,mb"
 # 🔴 «НЕ МОЖАХ ДА ПИТАМ» Е ОТГОВОР, РАЗЛИЧЕН ОТ «НЯМА МАЧОВЕ».
 NEPITAN = object()
 
+# 🇧🇬 СНИМКАТА (15.09.2026). Бетано връща 403 на сървърите на GitHub (записано
+# от ловеца: "HTTP 403 Forbidden"), а от компютъра в България — HTTP 200.
+# `betano_snimka.py` там тегли офертата всеки час с нашия подпис и я качва в
+# клона `betano-snimka`; работилницата я сваля и подава пътя тук.
+# 🔴 СНИМКА, ПО-СТАРА ОТ BETANO_SNIMKA_MAX_MIN, НЕ СЕ ПОЛЗВА: застояла цена
+# срещу прясна на Pinnacle фабрикува стойност. Без снимка — живо питане.
+SNIMKA = (os.environ.get("BETANO_SNIMKA") or "").strip()
+try:
+    SNIMKA_MAX_MIN = max(5, min(240, int(
+        (os.environ.get("BETANO_SNIMKA_MAX_MIN") or "90").strip() or 90)))
+except ValueError:
+    SNIMKA_MAX_MIN = 90
+_SNIMKA = {}
+
 # Нашите кошници -> пътищата на Betano. Проверени живо на 08.09.2026:
 # всеки от тях върна поне един турнир.
 SPORT = {
@@ -188,6 +202,7 @@ def statistika():
     """Копие на брояча — за диагностика. `zabrana` = кодът на отказа или None."""
     d = dict(_STAT)
     d["zabrana"] = _ZABRANA["kod"]
+    d["snimka_min"] = _SNIMKA.get("vazrast_min")
     return d
 
 
@@ -774,6 +789,88 @@ def _sabitiya_ot_turnir(put, ime, otvarach=None):
     return vsi
 
 
+def _snimka_sabitiya(d, sport, sega_ms):
+    """Събитията на спорта от ЗАРЕДЕНА снимка, или None: стара, без спорта, боклук."""
+    if not isinstance(d, dict):
+        return None
+    try:
+        koga = int(d.get("koga_ms") or 0)
+    except (TypeError, ValueError):
+        return None
+    vazr = (int(sega_ms) - koga) / 60000.0
+    if koga <= 0 or vazr > SNIMKA_MAX_MIN or vazr < -5:
+        return None
+    ev = (d.get("sportove") or {}).get(sport)
+    if not isinstance(ev, list):
+        return None
+    out = []
+    for e in ev:
+        try:
+            out.append((str(e[0]), str(e[1]), int(e[2] or 0), e[3], e[4],
+                        e[5] if len(e) > 5 else None,
+                        str(e[6]) if len(e) > 6 else "", ""))
+        except (TypeError, ValueError, IndexError):
+            continue
+    _SNIMKA["vazrast_min"] = round(vazr, 1)
+    return out
+
+
+def _ot_snimka(sport, sega_ms=None):
+    """Снимката от файла BETANO_SNIMKA (чете се веднъж за пускането), или None."""
+    if not SNIMKA:
+        return None
+    if "d" not in _SNIMKA:
+        try:
+            with io.open(SNIMKA, encoding="utf-8") as f:
+                _SNIMKA["d"] = json.load(f)
+        except Exception:                                    # noqa: BLE001
+            _SNIMKA["d"] = None
+    sega = int(time.time() * 1000) if sega_ms is None else int(sega_ms)
+    return _snimka_sabitiya(_SNIMKA["d"], sport, sega)
+
+
+def napravi_snimka(sportove, sega_ms=None, otvarach=None, byudzhet=None):
+    """Снимката на офертата — пише я компютърът в България (betano_snimka.py).
+
+    {"v": 1, "koga_ms", "koga", "sportove": {спорт: [[дом, гост, начало_мс,
+    к1, к2, кХ, лига], ...]}, "otkazi": {спорт: "отказ"}, "statistika": {...}}.
+    Само незапочнали мачове. Пишещият НИКОГА не чете снимка. `byudzhet` =
+    заявки по спорт (иначе BETANO_TAVAN_ZAYAVKI).
+    """
+    global SNIMKA, TAVAN_ZAYAVKI
+    sega = int(time.time() * 1000) if sega_ms is None else int(sega_ms)
+    out = {"v": 1, "koga_ms": sega,
+           "koga": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime(sega / 1000.0)),
+           "sportove": {}, "otkazi": {}}
+    staro_sn, staro_tz = SNIMKA, TAVAN_ZAYAVKI
+    SNIMKA = ""
+    try:
+        for sp in sportove:
+            if sp not in SPORT:
+                continue
+            if byudzhet and sp in byudzhet:
+                TAVAN_ZAYAVKI = int(byudzhet[sp])
+            ev = sabitiya(sp, otvarach, None)
+            TAVAN_ZAYAVKI = staro_tz
+            if ev is NEPITAN:
+                out["otkazi"][sp] = "отказ"
+                continue
+            red = []
+            for e in ev:
+                try:
+                    st = int(e[2] or 0)
+                except (TypeError, ValueError):
+                    continue
+                if st <= sega:
+                    continue
+                red.append([e[0], e[1], st, e[3], e[4], e[5], e[6]])
+            out["sportove"][sp] = red
+    finally:
+        SNIMKA, TAVAN_ZAYAVKI = staro_sn, staro_tz
+    out["statistika"] = statistika()
+    return out
+
+
 def sabitiya(sport, otvarach=None, liga=None):
     """[(дом, гост, начало_мс, коеф_дом, коеф_гост, коеф_равен, лига, път)].
 
@@ -788,6 +885,10 @@ def sabitiya(sport, otvarach=None, liga=None):
     🔴 БЮДЖЕТ ПО СПОРТ. `BETANO_TAVAN_ZAYAVKI` казва колко заявки МОЖЕ да
     похарчи този спорт за целия рън. Нула връща старото поведение.
     """
+    # 🇧🇬 Прясна снимка от България — без нито една заявка (виж SNIMKA).
+    sn = _ot_snimka(sport)
+    if sn is not None:
+        return sn
     t = turniri(sport, otvarach)
     if t is NEPITAN:
         return NEPITAN
@@ -1932,6 +2033,84 @@ def selftest():
     check("новото пускане пита отначало", _ZABRANA["kod"] is None)
     _STAT.update(_sv403)
     _kesh.clear()
+
+    # ── 🇧🇬 15.09.2026: СНИМКАТА ОТ БЪЛГАРИЯ
+    _kesh.clear()
+    _HARCH.clear()
+    _sg_s = int(_SEGA_V_TESTA * 1000)
+    _sn = napravi_snimka(["football", "кегли"], sega_ms=_sg_s, otvarach=_mnogo,
+                         byudzhet={"football": 5})
+    _kesh.clear()
+    _HARCH.clear()
+    check("снимката носи футбола", len(_sn["sportove"].get("football") or []) > 0)
+    check("непознат спорт не влиза в снимката", "кегли" not in _sn["sportove"])
+    check("всеки ред е [дом, гост, начало, к1, к2, кХ, лига]",
+          all(len(r) == 7 and r[2] > _sg_s for r in _sn["sportove"]["football"]))
+    check("снимката е JSON", isinstance(json.loads(json.dumps(_sn)), dict))
+    _pr = _snimka_sabitiya(json.loads(json.dumps(_sn)), "football", _sg_s + 60000)
+    check("прочетената снимка дава същите цени",
+          bool(_pr) and [tuple(x[3:5]) for x in _pr]
+          == [tuple(r[3:5]) for r in _sn["sportove"]["football"]])
+    check("стара снимка НЕ се ползва",
+          _snimka_sabitiya(_sn, "football", _sg_s + (SNIMKA_MAX_MIN + 1) * 60000) is None)
+    check("снимка от бъдещето НЕ се ползва",
+          _snimka_sabitiya(_sn, "football", _sg_s - 10 * 60000) is None)
+    check("спорт, който го няма в снимката = живо питане",
+          _snimka_sabitiya(_sn, "tennis", _sg_s) is None)
+    check("боклук не гърми", _snimka_sabitiya("x", "football", _sg_s) is None
+          and _snimka_sabitiya({"koga_ms": "?"}, "football", _sg_s) is None)
+    check("снимка след вече започнал мач го изпуска",
+          napravi_snimka(["football"], sega_ms=1788850800000 + 1, otvarach=_mnogo,
+                         byudzhet={"football": 5})["sportove"].get("football") == [])
+    _kesh.clear()
+    _HARCH.clear()
+    # пишещият НЕ чете снимка, дори ако такава е подадена (иначе би качил
+    # собствената си стара снимка като нова)
+    _st_sn0 = SNIMKA
+    try:
+        globals()["SNIMKA"] = "подадена-снимка"
+        _SNIMKA.clear()
+        _SNIMKA["d"] = {"v": 1, "koga_ms": int(time.time() * 1000), "sportove": {
+            "football": [["Фалшив", "Мач", 1788850800000, 9.0, 9.0, 9.0, "Никъде"]]}}
+        _kesh.clear()
+        _HARCH.clear()
+        _sn2 = napravi_snimka(["football"], sega_ms=_sg_s, otvarach=_mnogo,
+                              byudzhet={"football": 5})
+        check("пишещият не чете собствената си снимка",
+              len(_sn2["sportove"].get("football") or []) > 0
+              and all(r[0] != "Фалшив" for r in _sn2["sportove"]["football"]))
+    finally:
+        globals()["SNIMKA"] = _st_sn0
+        _SNIMKA.clear()
+        _kesh.clear()
+        _HARCH.clear()
+    _st_sn = SNIMKA
+    _sn_pit = []
+
+    def _sn_otv(rq, timeout=None):
+        _sn_pit.append(rq.full_url)
+        raise urllib.request.URLError("не бива да се пита")
+    try:
+        globals()["SNIMKA"] = "файлът-е-подаден"
+        _SNIMKA.clear()
+        _SNIMKA["d"] = dict(_sn, koga_ms=int(time.time() * 1000) - 60000)
+        _ot = sabitiya("football", _sn_otv)
+        check("с прясна снимка Бетано НЕ се пита", isinstance(_ot, list) and len(_ot) > 0
+              and _sn_pit == [])
+        check("статистиката казва възрастта на снимката",
+              statistika().get("snimka_min") is not None)
+        _SNIMKA["d"] = dict(_sn, koga_ms=int(time.time() * 1000) - (SNIMKA_MAX_MIN + 5) * 60000)
+        _SNIMKA.pop("vazrast_min", None)
+        sabitiya("football", _sn_otv)
+        check("със стара снимка се пита живо", len(_sn_pit) >= 1)
+    finally:
+        globals()["SNIMKA"] = _st_sn
+        _SNIMKA.clear()
+        _kesh.clear()
+        _HARCH.clear()
+        _ZABRANA["kod"] = None
+    check("по подразбиране снимка няма (живо питане)", SNIMKA == ""
+          or bool(os.environ.get("BETANO_SNIMKA")))
 
     # ── ръчките
     check("бюджетът е в разумни граници", 0 <= TAVAN_ZAYAVKI <= 400)

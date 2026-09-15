@@ -183,6 +183,20 @@ jobs:
           PREDICT_QUIET_FROM: ${{ vars.PREDICT_QUIET_FROM || '23' }}
         run: python budilnik.py
 
+      # 🇧🇬 СНИМКАТА НА БЕТАНО (15.09.2026). Бетано връща 403 на GitHub, а от
+      # компютъра в България — 200. betano_snimka.py там тегли офертата всеки
+      # час и я качва в клона betano-snimka. Тук тя се сваля; няма ли я или е
+      # по-стара от BETANO_SNIMKA_MAX_MIN — ботът върви само с Pinnacle.
+      - name: Снимката на Бетано
+        continue-on-error: true
+        run: |
+          if git fetch -q --depth 1 origin betano-snimka 2>/dev/null && git show FETCH_HEAD:betano_snimka.json > "$RUNNER_TEMP/sn.json" 2>/dev/null; then
+            mv "$RUNNER_TEMP/sn.json" betano_snimka.json
+            echo "снимка на Бетано: $(wc -c < betano_snimka.json) байта"
+          else
+            echo "няма снимка на Бетано — само Pinnacle"
+          fi
+
       - name: Събуди предсказателя
         if: steps.budilnik.outputs.budim == '1'
         env:
@@ -202,6 +216,9 @@ jobs:
           # Котвата: едната страна сигурна + час до 10 мин = същият мач
           # (betano.py, 15.09.2026). '0' я изключва.
           BETANO_KOTVA: ${{ vars.BETANO_KOTVA || 'football,basketball' }}
+          # Снимката на Бетано от България (стъпката «Снимката на Бетано»).
+          BETANO_SNIMKA: betano_snimka.json
+          BETANO_SNIMKA_MAX_MIN: ${{ vars.BETANO_SNIMKA_MAX_MIN || '90' }}
           # 🎯 KAMBI — коефициенти от масова книга по ТУРНИР (08.09.2026).
           # Модулът е нов и ръчките му не стигаха до нито един workflow —
           # тоест пътят назад, записан в самия файл, НЕ РАБОТЕШЕ.
