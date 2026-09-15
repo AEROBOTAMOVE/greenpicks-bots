@@ -6,7 +6,8 @@
 (() => {
   "use strict";
   const $app = document.getElementById("app");
-  const TG = "https://t.me/green_picks_info_bot";
+  const TG = "https://t.me/green_picks_info_bot";      // съпорт ботът (отговаря + препраща към админа)
+  const TGRUPA = "https://t.me/+_oYsaYaVKU80Yjc0";      // общността / канала в Telegram
   const S = {
     me: null, data: null, tab: "nachalo", sport: null, sportTab: "prog", progTab: "vsichki", progSport: "", q: "",
     fishTab: "aktivni", rezDen: null, adminRejim: false, admin: null, aF: "vsichki", aQ: "", spQ: "", spTab: "vsichki",
@@ -60,6 +61,8 @@
     izhod: '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/>',
     kalendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    tg: '<path d="M21.5 4.3 2.9 11.4c-.9.3-.9 1.6.1 1.9l4.6 1.4 1.8 5.4c.2.7 1.1.9 1.6.3l2.4-2.6 4.6 3.4c.6.4 1.4.1 1.6-.6L22.7 5.4c.2-.8-.5-1.4-1.2-1.1z"/><path d="m7.6 14.7 9-6.2-6.9 6.7"/>',
+    obshtnost: '<circle cx="9" cy="9" r="3"/><path d="M3.5 19c.6-3 3-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="8" r="2.2"/><path d="M15.5 13.6c2.2.2 3.9 1.7 4.5 4"/>',
   };
   const ico = (n, cls = "ico") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICO[n] || ""}</svg>`;
   const TOPKA = '<svg viewBox="0 0 24 24" aria-hidden="true">' + SVG.football + "</svg>";
@@ -255,7 +258,11 @@
           ${nov.length ? `<section class="sekcia"><header><h2>Новини</h2><button class="vsichki" data-idi="novini">Всички</button></header>
             <div class="spisyk">${nov.map((t) => `<div class="novina">${ik(sportOtZaglavie(t), "ik")}<p>${esc(t)}</p></div>`).join("")}</div></section>` : ""}
         </div>
-      </div>`);
+      </div>
+      <a class="tg-banner" href="${TGRUPA}" target="_blank" rel="noopener">
+        <span class="ik">${ico("tg", "ico")}</span>
+        <div><b>Влез в общността в Telegram</b><span>Ежедневни прогнози, разбор и въпроси на живо.</span></div>
+        <span class="str">${ico("str")}</span></a>`);
   }
 
   /* ── СПОРТ ── */
@@ -470,7 +477,8 @@
         ${m.admin ? "" : `<div class="info-red">${ico("kalendar")}<span>Достъп до</span><span>${esc(datBg(m.access_until))}</span></div>`}
         <div class="info-red">${ico("poshta")}<span>Регистриран</span><span>${esc(datBg(m.registered))}</span></div>
         ${m.admin ? `<button data-admin="1">${ico("shtit")}<span>Админ панел</span><span class="str">${ico("str")}</span></button>` : ""}
-        <a href="${TG}" target="_blank" rel="noopener">${ico("pomosht")}<span>Помощ в Telegram</span><span class="str">${ico("str")}</span></a>
+        <a href="${TG}" target="_blank" rel="noopener">${ico("pomosht")}<span>Съпорт в Telegram</span><span class="str">${ico("str")}</span></a>
+        <a href="${TGRUPA}" target="_blank" rel="noopener">${ico("obshtnost")}<span>Нашата общност в Telegram</span><span class="str">${ico("str")}</span></a>
         <button data-izhod="1" class="cherv">${ico("izhod")}<span>Изход</span></button>
       </div></section>`);
   }
