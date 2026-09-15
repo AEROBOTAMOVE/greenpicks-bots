@@ -18,6 +18,7 @@
     S.suma = Number(localStorage.getItem("gr_suma")) || 10;
   } catch (e) { S.slip = []; }
   const pazi = () => { try { localStorage.setItem("gr_fish", JSON.stringify(S.slip)); localStorage.setItem("gr_suma", String(S.suma)); } catch (e) { /* личен режим */ } };
+  const flag = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch (e) { return null; } };
   const vFisha = (id) => S.slip.some((x) => x.id === id);
   const slipKoef = () => (S.slip.length && S.slip.every((x) => x.koef > 1)
     ? Math.round(S.slip.reduce((a, x) => a * x.koef, 1) * 100) / 100 : null);
@@ -188,7 +189,8 @@
       <div>
         <div class="glaven">
           <header class="gore"><div class="marka"><img src="/logo.svg" alt=""><div class="ime"><small>THE</small>GREEN ROOM</div></div>
-            <button class="avatar" data-tab="profil" aria-label="Профил">${esc(inicial(m.email))}</button></header>
+            ${svezhoHtml()}
+            <button class="avatar" data-tab="profil" aria-label="Моят профил">${esc(inicial(m.email))}</button></header>
           ${glava ? `<div class="glava"><h1>${esc(glava[0])}</h1>${glava[1] ? `<p>${esc(glava[1])}</p>` : ""}</div>` : ""}
           ${telo}
           <footer class="podpis"><div class="s">THE GREEN ROOM</div>По-добри играчи. По-умни решения. · 18+</footer>
@@ -197,6 +199,15 @@
       <nav class="dolu" aria-label="Основно меню"><div class="v">${nav()}</div></nav>
       ${S.slip.length && !(S.tab === "fishove" && S.fishTab === "moi") && !S.adminRejim ? `<button class="slip-pill" data-moi="1">${ico("fishove")}Моят фиш · ${S.slip.length}${slipKoef() ? `<b>${esc(slipKoef().toFixed(2))}</b>` : ""}</button>` : ""}
     </div>`;
+  }
+  function svezhoHtml() {
+    const d = S.data;
+    let t = "на линия";
+    if (d && d.fetched_utc) {
+      const min = Math.round((Date.now() - new Date(d.fetched_utc)) / 60000);
+      t = min <= 1 ? "току-що" : min < 60 ? "преди " + min + " мин" : "преди " + Math.round(min / 60) + " ч";
+    }
+    return `<button class="svezhо${S.svezhVarti ? " varti" : ""}" data-svezhi="1" aria-label="Обнови данните" title="Обнови"><span class="tochka"></span>${esc(t)}</button>`;
   }
   function statusTxt(m) {
     if (!m) return "";
@@ -217,10 +228,15 @@
     const fDnes = (d.fishove || []).filter((f) => f.den === d.dnes);
     const rez = (d.rezultati || []).slice(0, 4);
     const nov = (d.novini || []).slice(0, 4);
+    const pwa = !flag("gr_pwa_skrit") && !(matchMedia("(display-mode: standalone)").matches) ? `
+      <div class="pwa-lenta"><span class="ik">${ico("prognozi", "ico")}</span>
+        <p><b>Сложи The Green Room на телефона</b>Отваря се като приложение, на един допир.</p>
+        <button class="btn m" data-pwa="1">Добави</button><button class="x" data-pwa-x="1" aria-label="Скрий">×</button></div>` : "";
     return ramka(null, `
       <section class="geroi" style="margin-top:16px"><span class="lyk"></span><span class="topka">${TOPKA}</span>
         <h2>Големи мачове.<br>По-добри решения.</h2><p>Всяка прогноза идва с анализ и обяснение защо.</p>
         <button class="btn" data-idi="prognozi">Виж прогнозите ${ico("str")}</button></section>
+      ${pwa}
       <div class="plochki" style="margin-top:14px">
         <div class="plochka"><b>${esc(dnes.length)}</b><span>прогнози днес</span></div>
         <div class="plochka"><b>${esc(pr.filter(eTop).length)}</b><span>топ избора</span></div>
@@ -368,6 +384,26 @@
     S.slip.push({ id: k.id, sport: k.sport, dom: k.dom, gost: k.gost, izbor: k.izbor, koef: k.koef, den: k.den });
     pazi();
     toast("Добавено във фиша · " + S.slip.length + (S.slip.length > 1 && slipKoef() ? " · общ коеф. " + slipKoef().toFixed(2) : ""));
+  }
+  /* обновяване НА МЯСТО — без пренасяне на целия екран (скролът остава) */
+  function obnoviDob(b) {
+    const on = b.getAttribute("aria-pressed") === "true";
+    b.setAttribute("aria-pressed", on ? "false" : "true");
+    b.textContent = on ? "+ Добави във фиша" : "✓ Във фиша";
+  }
+  function obnoviPill() {
+    const app = document.querySelector(".app");
+    if (!app) return;
+    let pill = app.querySelector(".slip-pill");
+    const trqbva = S.slip.length && !(S.tab === "fishove" && S.fishTab === "moi") && !S.adminRejim;
+    if (!trqbva) { if (pill) pill.remove(); return; }
+    const html = `${ico("fishove")}Моят фиш · ${S.slip.length}${slipKoef() ? `<b>${esc(slipKoef().toFixed(2))}</b>` : ""}`;
+    if (pill) { pill.innerHTML = html; return; }
+    pill = document.createElement("button");
+    pill.className = "slip-pill";
+    pill.dataset.moi = "1";
+    pill.innerHTML = html;
+    app.appendChild(pill);
   }
   async function kopirai() {
     const k = slipKoef();
@@ -566,13 +602,16 @@
     if (ds.psport !== undefined) { S.progSport = ds.psport; return render(); }
     if (ds.ftab) { S.fishTab = ds.ftab; return render(); }
     if (ds.rez) { S.rezDen = ds.rez; return render(); }
-    if (ds.slip) { toggleSlip(ds.slip); return render(); }
+    if (ds.slip) { toggleSlip(ds.slip); obnoviDob(t); obnoviPill(); return; }
     if (ds.maha) { S.slip = S.slip.filter((x) => x.id !== ds.maha); pazi(); return render(); }
     if (ds.izchisti) { S.slip = []; pazi(); return render(); }
     if (ds.suma) { S.suma = Number(ds.suma); pazi(); return render(); }
     if (ds.kopirai) return kopirai();
     if (ds.moi) { S.fishTab = "moi"; return idi("fishove"); }
+    if (ds.svezhi) return opresni();
     if (ds.sptab) { S.spTab = ds.sptab; return render(); }
+    if (ds.pwa) return pwaInstalirai();
+    if (ds.pwaX) { flag("gr_pwa_skrit", "1"); const el = t.closest(".pwa-lenta"); if (el) el.remove(); return; }
     if (ds.izhod) return izhod();
     if (ds.admin) { S.adminRejim = true; S.admin = null; render(); window.scrollTo(0, 0); return zarediAdmin(); }
     if (ds.nazad) { S.adminRejim = false; return idi("profil"); }
@@ -618,6 +657,71 @@
     if (r.s === 201) { toast("Профилът е създаден."); zarediAdmin(); } else toast(r.j.error || "Грешка " + r.s);
   });
 
+  /* ── опресняване ── */
+  async function opresni() {
+    if (S.svezhVarti) return;
+    S.svezhVarti = true;
+    const b = $app.querySelector(".svezhо");
+    if (b) b.classList.add("varti");
+    const ok = await zarediDanni();
+    S.svezhVarti = false;
+    if (ok) { render(); toast("Обновено."); }
+  }
+
+  /* ── водачът при първо влизане ── */
+  const VODACH = [
+    { ik: "prognozi", h: "Прогнози с обяснение", p: "Всеки мач идва с нашата прогноза, коефициента и кратко „защо“ го избираме. Филтрирай по спорт, ден или гледай само топ избора." },
+    { ik: "fishove", h: "Събери свой фиш", p: "Хареса ли ти избор — натисни „Добави във фиша“. В таб „Фишове → Моят фиш“ виждаш общия коефициент и възможната печалба." },
+    { ik: "rezultati", h: "Виждаш всичко честно", p: "Резултатите показват кои прогнози са познати и успеваемостта по спорт. Нищо скрито — по-добри играчи, по-умни решения." },
+  ];
+  function vodachHtml() {
+    const i = S.vodachI || 0;
+    const s = VODACH[i];
+    return `<div class="vodach" role="dialog" aria-modal="true"><div class="vodach-k">
+      <span class="ik">${ico(s.ik, "ico")}</span><h3>${esc(s.h)}</h3><p>${esc(s.p)}</p>
+      <div class="tochki">${VODACH.map((_, k) => `<i class="${k === i ? "on" : ""}"></i>`).join("")}</div>
+      <div class="redba">${i > 0 ? '<button class="btn v2" data-vodach-naz="1">Назад</button>' : ""}
+        <button class="btn" ${i < VODACH.length - 1 ? 'data-vodach-nap="1"' : 'data-vodach-kraj="1"'}>${i < VODACH.length - 1 ? "Напред" : "Разбрах, започвам!"}</button></div>
+      <button class="propusni" data-vodach-kraj="1">Пропусни</button></div></div>`;
+  }
+  function vodachNode() {
+    const w = document.createElement("div");
+    w.innerHTML = vodachHtml();
+    const el = w.firstElementChild;
+    // водачът е извън #app, затова носи собствен обработчик
+    el.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.vodachNap) vodachStapka(1);
+      else if (b.dataset.vodachNaz) vodachStapka(-1);
+      else if (b.dataset.vodachKraj) { flag("gr_vodach", "1"); el.remove(); }
+    });
+    return el;
+  }
+  function pokazhiVodach() {
+    if (flag("gr_vodach")) return;
+    S.vodachI = 0;
+    document.body.appendChild(vodachNode());
+  }
+  function vodachStapka(d) {
+    S.vodachI = Math.max(0, Math.min(VODACH.length - 1, (S.vodachI || 0) + d));
+    const el = document.querySelector(".vodach");
+    if (el) el.replaceWith(vodachNode());
+  }
+
+  /* ── «сложи на телефона» ── */
+  let pwaEvt = null;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); pwaEvt = e; });
+  async function pwaInstalirai() {
+    if (!pwaEvt) return toast("В менюто на браузъра избери „Добави към началния екран“.");
+    pwaEvt.prompt();
+    try { await pwaEvt.userChoice; } catch (e) { /* */ }
+    pwaEvt = null;
+    flag("gr_pwa_skrit", "1");
+    const el = $app.querySelector(".pwa-lenta");
+    if (el) el.remove();
+  }
+
   async function zarediDanni() {
     const r = await api("GET", "/api/data");
     if (r.s === 200) { S.data = r.j; if (r.j.me) S.me = r.j.me; return true; }
@@ -633,7 +737,8 @@
       S.me = r.j;
     }
     if (!S.me.active) return ekranIzteklo(S.me.message);
-    if (await zarediDanni()) render();
+    $app.innerHTML = ramka(null, '<div class="skelet" style="margin-top:16px"><div class="sk" style="height:186px"></div><div class="sk k"></div><div class="sk"></div><div class="sk"></div></div>');
+    if (await zarediDanni()) { render(); pokazhiVodach(); }
   }
   setInterval(async () => {
     if (document.visibilityState !== "visible" || !S.me || !S.me.active || S.adminRejim) return;
@@ -642,5 +747,8 @@
     if (await zarediDanni()) render();
   }, 5 * 60 * 1000);
 
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+  }
   start();
 })();

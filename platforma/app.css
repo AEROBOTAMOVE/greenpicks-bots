@@ -53,7 +53,27 @@ a { color: var(--em2); text-decoration: none; }
 :focus-visible { outline: 2px solid var(--em2); outline-offset: 2px; border-radius: 6px; }
 img, svg { max-width: 100%; }
 [hidden] { display: none !important; }
-.zarezhda { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; color: var(--tx3); }
+.zarezhda { min-height: 100vh; min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 10px; color: var(--tx3); }
+.zarezhda img { animation: puls 1.6s ease-in-out infinite; }
+@keyframes puls { 0%, 100% { opacity: .55; transform: scale(.98); } 50% { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .zarezhda img { animation: none; } }
+
+/* ── скелет при зареждане на данните ── */
+.skelet { display: grid; gap: 12px; }
+.skelet .sk { height: 118px; border-radius: var(--r2); border: 1px solid var(--line); background:
+  linear-gradient(100deg, var(--s1) 30%, var(--s2) 50%, var(--s1) 70%); background-size: 220% 100%; animation: shim 1.3s linear infinite; }
+.skelet .sk.k { height: 44px; }
+@keyframes shim { to { background-position: -120% 0; } }
+@media (prefers-reduced-motion: reduce) { .skelet .sk { animation: none; } }
+
+/* ── плавен преход между табовете ── */
+@media (prefers-reduced-motion: no-preference) {
+  .glaven > .glava, .glaven > .sekcia, .glaven > .geroi, .glaven > .tabs, .glaven > .chipove,
+  .glaven > .karti, .glaven > .spisyk, .glaven > .plochki, .glaven > .dvoino, .glaven > .prof,
+  .glaven > .fs, .glaven > .obzor, .glaven > .nov-glavna, .glaven > .prazno, .glaven > .meniu,
+  .glaven > .tarsene, .glaven > details, .glaven > #p-lista, .glaven > .liga-glava { animation: vliz .32s ease both; }
+}
+@keyframes vliz { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 /* ── иконите ── */
 .ik { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; flex: 0 0 auto;
@@ -77,7 +97,12 @@ img, svg { max-width: 100%; }
 .marka img { width: 34px; height: 34px; }
 .marka .ime { font-family: var(--f-brand); font-weight: 600; letter-spacing: .07em; font-size: 15px; color: var(--srebro); line-height: 1.05; }
 .marka .ime small { display: block; font-size: 9px; letter-spacing: .42em; color: var(--tx3); font-weight: 600; }
-.avatar { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line2); background: var(--s2); color: var(--srebro); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+.svezhо { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; background: var(--s1); border: 1px solid var(--line2); color: var(--tx2); border-radius: 999px; padding: 6px 11px; font-size: 11.5px; font-weight: 700; }
+.svezhо .tochka { width: 7px; height: 7px; border-radius: 50%; background: var(--em2); box-shadow: 0 0 8px var(--emglow); }
+.svezhо.varti .tochka { animation: mig 1s linear infinite; }
+@keyframes mig { 50% { opacity: .3; } }
+.avatar { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line2); background: var(--s2); color: var(--srebro); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+.gore .avatar { margin-left: 8px; }
 .glava { margin: 18px 0 14px; }
 .glava h1 { font-family: var(--f-disp); font-weight: 400; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: .01em; }
 .glava p { margin: 4px 0 0; color: var(--tx2); font-size: 14px; }
@@ -299,6 +324,27 @@ img, svg { max-width: 100%; }
 .ili::before, .ili::after { content: ""; flex: 1; height: 1px; background: var(--line2); }
 .zabr { background: none; border: 0; color: var(--tx2); font-size: 13px; justify-self: center; }
 .vhod-k .krai { margin-top: 18px; font-size: 12px; color: var(--tx3); letter-spacing: .06em; }
+
+/* ── водачът при първо влизане ── */
+.vodach { position: fixed; inset: 0; z-index: 60; background: rgba(4, 10, 8, .78); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 18px; }
+.vodach-k { width: min(400px, 100%); background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line2); border-radius: var(--r3); padding: 24px 22px; box-shadow: var(--sh); text-align: center; }
+.vodach-k .ik { width: 62px; height: 62px; margin: 0 auto 14px; }
+.vodach-k .ik svg { width: 30px; height: 30px; }
+.vodach-k h3 { font-family: var(--f-disp); font-weight: 400; font-size: 25px; margin: 0 0 8px; letter-spacing: .01em; }
+.vodach-k p { color: var(--tx2); margin: 0 0 20px; line-height: 1.55; }
+.vodach-k .tochki { display: flex; justify-content: center; gap: 7px; margin-bottom: 18px; }
+.vodach-k .tochki i { width: 8px; height: 8px; border-radius: 50%; background: var(--s3); }
+.vodach-k .tochki i.on { background: var(--em2); width: 22px; border-radius: 99px; }
+.vodach-k .redba { display: flex; gap: 10px; }
+.vodach-k .redba .btn { flex: 1; }
+.vodach-k .propusni { background: none; border: 0; color: var(--tx3); font-size: 12.5px; margin-top: 14px; }
+
+/* ── «сложи на телефона» ── */
+.pwa-lenta { display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line2); border-radius: var(--r2); padding: 12px 14px; margin-top: 16px; }
+.pwa-lenta p { margin: 0; font-size: 13px; }
+.pwa-lenta p b { display: block; font-size: 14.5px; }
+.pwa-lenta .btn { margin-left: auto; }
+.pwa-lenta .x { background: none; border: 0; color: var(--tx3); font-size: 20px; padding: 4px; }
 
 .podpis { text-align: center; color: var(--tx3); font-size: 12px; margin-top: 34px; line-height: 1.7; }
 .podpis .s { font-family: var(--f-brand); letter-spacing: .3em; color: var(--tx2); font-size: 12.5px; }
