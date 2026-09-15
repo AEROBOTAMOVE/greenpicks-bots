@@ -232,7 +232,13 @@ team teams esports esport gaming games klub club united sporting sport
 sports real kiti akademiia akademiya women womens men mens junior juniors
 youth reserve reserves national federation liga league kup cup open masters
 series tour hokei futbol basket volei tenis maski zenski
+tovn taun rovers rouvars athletik atletik vanderers uondarars albion albian
+kounti kaunti borough borou boro kalkio kalcho siti iunaited
 """.split())
+# 🔴 ВТОРИЯТ РЕД Е ОТ 15.09.2026. Измерено живо на цялата оферта: «Egham
+# Town» се свързваше с «Hanley Town», «Bristol Rovers» с «Блекбърн Роувърс»,
+# «Wigan Athletic» с «Алоа Атлетик». В събота, когато половин Англия почва в
+# 15:00, два такива мача с обща дума И от двете страни дават ЧУЖДА цена.
 
 
 def latinica(s):
@@ -847,11 +853,150 @@ def ceni_za(sport, dom, gost, nachalo=None, otvarach=None, liga=None,
             kand.append((sila(dom, B) + sila(gost, A),
                          (zap[4], zap[3], zap[5], zap[6], zap[7])))
     if not kand:
-        return None
+        # 🔴 КОТВАТА (15.09.2026) — само когато строгото сдвояване мълчи.
+        return kotva(sport, dom, gost, nachalo, liga, ev, sega_ms)
     kand.sort(key=lambda x: -x[0])
     if len(kand) > 1 and kand[0][0] == kand[1][0] and kand[0][1] != kand[1][1]:
         return None
     return kand[0][1]
+
+
+# ═════════════════════════════════════════ КОТВАТА (15.09.2026)
+#
+# ЕДИН ОТБОР ИГРАЕ ЕДИН МАЧ В ДАДЕН МИГ. Измерено живо на цялата оферта: 156
+# футболни мача, в които Бетано ИМА срещата, а строгото сдвояване я изпуска
+# срещу 374 хванати — Celtic/«Селтик», Valencia/«Валенсия», Genoa/«Дженоа»,
+# Tottenham Hotspur/«Тотнъм», Leeds United/«Лийдс», Lens/«Ланс». Точно
+# големите отбори оставаха без цена на Бетано.
+#
+# Правилото: едната страна е разпозната СИЛНО (отличителна дума, не
+# многоклубова), началото е до KOTVA_MIN минути, другата страна само ПРИЛИЧА,
+# резерви/жени/младежи съвпадат И от двете страни, и кандидатът е ЕДИН.
+# Два кандидата = мълчание. Само за спортовете, в които е мерено.
+# ПЪТ НАЗАД: BETANO_KOTVA=0.
+_KV = (os.environ.get("BETANO_KOTVA") or "football,basketball").strip().lower()
+KOTVA_SPORTOVE = () if _KV in ("0", "false", "не", "no") else tuple(
+    s.strip() for s in _KV.split(",") if s.strip())
+KOTVA_MIN = 10
+# Думи, които носят МНОГО клубове: «Динамо Тбилиси» и «Динамо Батуми» може да
+# играят в един и същи час. Такава дума не е котва и не е прилика.
+#
+# 🔴 СПИСЪКЪТ Е В СУРОВ ВИД И СЕ СВИВА ПРЕЗ `latinica()` — така кирилицата и
+# латиницата дават същите думи, каквито дава `redica()`. Мерено адверсарно
+# (15.09.2026, 2652 опита с часа на друг мач): 4-те лъжи бяха Fortuna
+# (Кьолн/Дюселдорф), Belediyespor и Espanyol/Centro Español — все думи или
+# държави, които носят МНОГО клубове. Строгото сдвояване НЕ ползва този списък.
+KOTVA_OBSHTI = {latinica(_w) for _w in """
+atletico deportivo dinamo dynamo lokomotiv spartak sparta slavia olympique
+olimpik racing torpedo fortuna belediyespor belediye spor hapoel maccabi
+beitar ironi partizan rapid gornik wisla zaglebie stal austria wacker
+borussia eintracht kickers weiss blau saint sankt seint santa estudiantes
+independiente nacional universidad universitario deportes gimnasia huracan
+america botafogo juventud juventude olimpia alianza academica vitoria uniao
+desportivo esporte union cska botev
+атлетико депортиво динамо локомотив спартак спарта славия олимпик расинг
+торпедо фортуна беледиеспор беледие спор хапоел макаби бейтар партизан
+рапид гурник висла заглембе стал аустрия ваккер борусия айнтрахт кикерс
+вайс сент сейнт санта естудиантес индепендиенте насионал универсидад
+химнасия уракан америка ботафого хувентуд жувентуде олимпия алианса
+академика витория юнион цска ботев
+""".split()}
+_REZ = re.compile(r"(?:^|\s)(ii|b|\u0431|u-?\d{2}|\u0434\u043e\s?\d{2})(?=\s|$)", re.I)
+
+
+def _rezerv(ime):
+    """Резерва/възраст В ИМЕТО: «II», «B», «U21», «до 21». «до 21» == «U21»."""
+    return frozenset(
+        m.group(1).lower().replace("-", "").replace(" ", "")
+        .replace("\u0434\u043e", "u").replace("\u0431", "b")
+        for m in _REZ.finditer(str(ime or "")))
+
+
+def _dumi_slabi(s):
+    """Думите за ПРИЛИКА: от 3 букви, без общите, без многоклубовите, без числа."""
+    r = []
+    for w in re.split(r"[\s\-\.,/()]+", latinica(s)):
+        w = "".join(c for c in w if ("a" <= c <= "z") or c.isdigit())
+        if len(w) >= 3 and not w.isdigit() and w not in OBSHTI and w not in KOTVA_OBSHTI:
+            r.append(w)
+    return r
+
+
+def _silno(a, b):
+    """Силно разпознаване за котва: като `sreshta`, но без многоклубовите думи."""
+    if darzhava(a) and darzhava(b):
+        return sreshta(a, b)
+    ra = [w for w in redica(a) if w not in KOTVA_OBSHTI]
+    rb = [w for w in redica(b) if w not in KOTVA_OBSHTI]
+    return any(blizki(x, y) for x in ra for y in rb)
+
+
+def _slabo(a, b):
+    """Прилика — стига САМО до силна котва. «Celtic»/«Селтик», «Lens»/«Ланс»."""
+    for x in _dumi_slabi(a):
+        for y in _dumi_slabi(b):
+            if x == y or x[:3] == y[:3] or skelet(x) == skelet(y) or \
+                    difflib.SequenceMatcher(None, x, y).ratio() >= 0.6:
+                return True
+    return False
+
+
+def _dr_ligi(lg):
+    """Държавата на лига: «England - League 2», «Англия / Лига 2». Иначе ''."""
+    s = str(lg or "")
+    for razd in (" - ", " / ", ", "):
+        if razd in s:
+            for chast in (s.split(razd)[0], s.split(razd)[-1]):
+                k = darzhava(chast)
+                if k:
+                    return k
+    return darzhava(s)
+
+
+def kotva(sport, dom, gost, nachalo, liga, ev, sega_ms):
+    """(коеф_дом, коеф_гост, коеф_равен, лига, път) по котва, или None."""
+    if sport not in KOTVA_SPORTOVE or not nachalo:
+        return None
+    try:
+        n0 = int(nachalo)
+    except (TypeError, ValueError):
+        return None
+    nl = " " + str(liga or "")
+    dn = _dr_ligi(liga)
+    nam = []
+    for zap in ev or ():
+        try:
+            A, B, st = str(zap[0]), str(zap[1]), int(zap[2] or 0)
+        except (TypeError, ValueError, IndexError):
+            continue
+        if not st or abs(st - n0) > KOTVA_MIN * 60000:
+            continue
+        if GRATIS_MIN >= 0 and st < sega_ms - GRATIS_MIN * 60000:
+            continue
+        # Пол/възраст се съдят по ИМЕ + ЛИГА и от двете страни (долу): това
+        # покрива и чистата проверка на лигите, а хваща и «жени» само в името.
+        bl = str(zap[6] or "")
+        # 🔴 РАЗЛИЧНА ДЪРЖАВА = ДРУГ МАЧ. Мълчи, когато някоя лига не казва
+        # държава (УЕФА, приятелски) — тогава съдят часът и имената.
+        db = _dr_ligi(bl)
+        if dn and db and dn != db:
+            continue
+        for x, y, obr in ((A, B, False), (B, A, True)):
+            if not ((_silno(dom, x) and _slabo(gost, y)) or
+                    (_silno(gost, y) and _slabo(dom, x))):
+                continue
+            if _rezerv(dom) != _rezerv(x) or _rezerv(gost) != _rezerv(y):
+                continue
+            if etiket(dom + nl) != etiket(x + " " + bl) or \
+                    etiket(gost + nl) != etiket(y + " " + bl):
+                continue
+            nam.append((zap, obr))
+            break
+    if len(nam) != 1:
+        return None
+    zap, obr = nam[0]
+    return ((zap[4], zap[3], zap[5], zap[6], zap[7]) if obr
+            else (zap[3], zap[4], zap[5], zap[6], zap[7]))
 
 
 def ima_go(sport, dom, gost, nachalo=None, otvarach=None, liga=None,
@@ -1680,6 +1825,80 @@ def selftest():
     check("коефициент 1.001 НЕ е цена", koef_ot_sabitie(_pod) == {})
     _pod["markets"][0]["selections"][0]["price"] = 1.02
     check("а 1.02 е", koef_ot_sabitie(_pod) != {})
+
+    # ── 🔴 15.09.2026: ОБЩИТЕ ДУМИ И КОТВАТА
+    check("Town не свързва два отбора", not sreshta("Egham Town", "Hanley Town"))
+    check("Rovers не свързва два отбора",
+          not sreshta("Bristol Rovers", "Блекбърн Роувърс"))
+    check("Athletic не свързва два отбора", not sreshta("Wigan Athletic", "Алоа Атлетик"))
+    check("отличителната дума пак свързва", sreshta("Grimsby Town", "Гримзби Таун"))
+    _T = 1788850800000
+    _sg = int(_SEGA_V_TESTA * 1000)
+    _L = "Шотландия / Премиършип"
+    _ok = ("Рейнджърс", "Селтик", _T, 2.50, 2.60, 3.40, _L, "/a/")
+    check("строгото сдвояване само НЕ хваща Celtic/Селтик", not sreshta("Celtic", "Селтик"))
+    check("котвата го хваща",
+          kotva("football", "Rangers", "Celtic", _T, "Scotland - Premiership", [_ok], _sg)
+          == (2.50, 2.60, 3.40, _L, "/a/"))
+    _obr = ("Селтик", "Рейнджърс", _T, 2.60, 2.50, 3.40, _L, "/a/")
+    _r = kotva("football", "Rangers", "Celtic", _T, "", [_obr], _sg)
+    check("обърнатият ред връща НАШИЯ ред", bool(_r) and _r[:2] == (2.50, 2.60))
+    check("11 минути разлика = не е котва",
+          kotva("football", "Rangers", "Celtic", _T + 11 * 60000, "", [_ok], _sg) is None)
+    check("и 9 минути е котва",
+          kotva("football", "Rangers", "Celtic", _T + 9 * 60000, "", [_ok], _sg) is not None)
+    _ok2 = ("Рейнджърс", "Селтик", _T, 2.40, 2.70, 3.30, _L, "/b/")
+    check("два кандидата = мълчание",
+          kotva("football", "Rangers", "Celtic", _T, "", [_ok, _ok2], _sg) is None)
+    check("резервният отбор НЕ взима цената на първия",
+          kotva("football", "Real Sociedad II", "Mallorca", _T, "",
+                [("Реал Сосиедад", "Майорка", _T, 2.0, 3.6, 3.3, "Испания / Ла Лига", "/r/")],
+                _sg) is None)
+    check("резерва срещу резерва минава",
+          kotva("football", "Ludogorets Razgrad II", "Fratria Varna", _T, "",
+                [("Лудогорец II", "Фратрия", _T, 1.9, 3.8, 3.4, "България / Втора Лига", "/l/")],
+                _sg) is not None)
+    check("«до 21» е същото като «U21»", _rezerv("Нюкасъл до 21") == _rezerv("Newcastle United U21"))
+    check("женски мач НЕ взима мъжката цена",
+          kotva("football", "Rangers", "Celtic", _T, "Scotland - Women Premier", [_ok], _sg) is None)
+    check("«жени» само в имената на Бетано, без наша лига — не е котва",
+          kotva("football", "Rangers", "Celtic", _T, "",
+                [("Рейнджърс жени", "Селтик жени", _T, 2.5, 2.6, 3.4, _L, "/z/")], _sg) is None)
+    check("обща дума НЕ е котва",
+          kotva("football", "Egham Town", "Harrow Borough", _T, "",
+                [("Hanley Town", "Нортуич 1874", _T, 2.0, 3.0, 3.3, "Англия / Северна Лига", "/n/")],
+                _sg) is None)
+    check("многоклубова дума не е прилика",
+          kotva("football", "Dinamo Tbilisi", "Torpedo Kutaisi", _T, "",
+                [("Динамо Батуми", "Торпедо Кутаиси", _T, 2.0, 3.0, 3.3, "Грузия / Ероврули", "/g/")],
+                _sg) is None)
+    check("Фортуна срещу Фортуна не е прилика",
+          kotva("football", "Jahn Regensburg", "Fortuna Dusseldorf", _T, "",
+                [("Ян Регенсбург", "Фортуна Кьолн", _T, 2.0, 3.0, 3.3, "Германия / Трета Лига", "/f/")],
+                _sg) is None)
+    check("различна държава = не е котва",
+          kotva("football", "Centro Espanol", "Leandro N. Alem", _T, "Argentina - Primera C",
+                [("Еспаньол", "Алавес", _T, 2.0, 3.0, 3.3, "Испания / Ла Лига", "/e/")],
+                _sg) is None)
+    check("една държава на два езика минава", _dr_ligi("Scotland - Premiership") == _dr_ligi(_L) != "")
+    check("започнал мач няма котва",
+          kotva("football", "Rangers", "Celtic", _sg - 3600000, "",
+                [("Рейнджърс", "Селтик", _sg - 3600000, 2.5, 2.6, 3.4, _L, "/a/")], _sg) is None)
+    check("тенисът няма котва",
+          kotva("tennis", "Rangers", "Celtic", _T, "", [_ok], _sg) is None)
+    check("без час няма котва", kotva("football", "Rangers", "Celtic", None, "", [_ok], _sg) is None)
+    _st_kv = KOTVA_SPORTOVE
+    try:
+        globals()["KOTVA_SPORTOVE"] = ()
+        check("ръчката 0 изключва котвата",
+              kotva("football", "Rangers", "Celtic", _T, "", [_ok], _sg) is None)
+    finally:
+        globals()["KOTVA_SPORTOVE"] = _st_kv
+    # 🔴 [1], НЕ [-1]: последното «def ceni_za(» е в ТОЗИ ред и носи търсения
+    # низ — проверката мереше сама себе си (хвана я мутация, 15.09.2026).
+    _cz = _ZP_IZVOR.split("def ceni_za(")[1].split("\ndef ")[0]
+    check("цената минава през котвата, когато строгото мълчи",
+          "return kotva(sport, dom, gost, nachalo, liga, ev, sega_ms)" in _cz)
 
     # ── ръчките
     check("бюджетът е в разумни граници", 0 <= TAVAN_ZAYAVKI <= 400)
