@@ -2,15 +2,341 @@
 "_diag": {
 "betano_proba": "HTTP 403 Forbidden",
 "betano_zayavki": {
-"provali": 1,
-"zayavki": 1
+"provali": 0,
+"snimka_min": 15.2,
+"zabrana": null,
+"zayavki": 0
 },
-"koga": "2026-09-15 10:49 UTC",
+"koga": "2026-09-15 11:28 UTC",
 "sportove": {
 "football": {
-"betano": "отказ",
-"pinnacle": 903
+"betano": 942,
+"novi": 10,
+"pinnacle": 909,
+"pinnacle_ceni": 917,
+"po_kotva": 2,
+"sas_stoynost": 10
 }
 }
+},
+"football|1635786701|2": {
+"bet": 3.45,
+"bet_liga": "Дания / Първа дивизия",
+"dom": "Kolding",
+"ev": 0.0784,
+"gost": "Hillerod Fodbold",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1635786701|2",
+"kotva": false,
+"liga": "Denmark - Division 1",
+"mid": "1635786701",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.3126,
+"p_prop": 0.3146,
+"pin": [
+2.06,
+2.98,
+4.07
+],
+"pin_last": [
+2.06,
+2.98,
+4.07
+],
+"sport": "football",
+"start_ms": 1789750800000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1635980513|1": {
+"bet": 2.85,
+"bet_liga": "Франция / Лига 1",
+"dom": "Le Mans",
+"ev": 0.0215,
+"gost": "Lorient",
+"i": 0,
+"izhod": "1",
+"klyuch": "football|1635980513|1",
+"kotva": true,
+"liga": "France - Ligue 1",
+"mid": "1635980513",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.3591,
+"p_prop": 0.3584,
+"pin": [
+2.7,
+2.68,
+3.45
+],
+"pin_last": [
+2.7,
+2.68,
+3.45
+],
+"sport": "football",
+"start_ms": 1789843500000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636007230|2": {
+"bet": 3.5,
+"bet_liga": "Аржентина / Професионална лига",
+"dom": "Union de Santa Fe",
+"ev": 0.0457,
+"gost": "CA Independiente",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636007230|2",
+"kotva": false,
+"liga": "Argentina - Liga Pro",
+"mid": "1636007230",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.2988,
+"p_prop": 0.3003,
+"pin": [
+2.47,
+3.17,
+3.03
+],
+"pin_last": [
+2.47,
+3.17,
+3.03
+],
+"sport": "football",
+"start_ms": 1789847100000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636062212|1": {
+"bet": 3.75,
+"bet_liga": "Аржентина / Професионална лига",
+"dom": "Barracas Central",
+"ev": 0.099,
+"gost": "Independiente Rivadavia",
+"i": 0,
+"izhod": "1",
+"klyuch": "football|1636062212|1",
+"kotva": false,
+"liga": "Argentina - Liga Pro",
+"mid": "1636062212",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.2931,
+"p_prop": 0.2949,
+"pin": [
+3.23,
+2.45,
+3.01
+],
+"pin_last": [
+3.23,
+2.45,
+3.01
+],
+"sport": "football",
+"start_ms": 1790028000000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636341528|2": {
+"bet": 2.82,
+"bet_liga": "Италия / Серия С",
+"dom": "Sambenedettese",
+"ev": 0.0233,
+"gost": "Atalanta U23",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636341528|2",
+"kotva": false,
+"liga": "Italy - Serie C Group B",
+"mid": "1636341528",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.3652,
+"p_prop": 0.3629,
+"pin": [
+2.57,
+2.54,
+3.31
+],
+"pin_last": [
+2.57,
+2.54,
+3.31
+],
+"sport": "football",
+"start_ms": 1789576200000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636378696|2": {
+"bet": 3.95,
+"bet_liga": "Полша / Екстракласа",
+"dom": "Widzew Lodz",
+"ev": 0.1371,
+"gost": "Wieczysta Krakow",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636378696|2",
+"kotva": false,
+"liga": "Poland - Ekstraklasa",
+"mid": "1636378696",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.2879,
+"p_prop": 0.2909,
+"pin": [
+1.99,
+3.25,
+4.04
+],
+"pin_last": [
+1.99,
+3.25,
+4.04
+],
+"sport": "football",
+"start_ms": 1789747200000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636442695|2": {
+"bet": 1.87,
+"bet_liga": "България / Първа Лига",
+"dom": "Septemvri Sofia",
+"ev": 0.0299,
+"gost": "Botev Plovdiv",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636442695|2",
+"kotva": false,
+"liga": "Bulgaria - First League",
+"mid": "1636442695",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.5679,
+"p_prop": 0.5508,
+"pin": [
+4.6,
+1.69,
+3.77
+],
+"pin_last": [
+4.6,
+1.69,
+3.77
+],
+"sport": "football",
+"start_ms": 1789824600000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636463908|1": {
+"bet": 3.15,
+"bet_liga": "Англия / Чемпиъншип",
+"dom": "Wrexham",
+"ev": 0.0369,
+"gost": "Southampton",
+"i": 0,
+"izhod": "1",
+"klyuch": "football|1636463908|1",
+"kotva": false,
+"liga": "England - Championship",
+"mid": "1636463908",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.3292,
+"p_prop": 0.3295,
+"pin": [
+2.89,
+2.4,
+3.48
+],
+"pin_last": [
+2.89,
+2.4,
+3.48
+],
+"sport": "football",
+"start_ms": 1789826400000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636486521|2": {
+"bet": 2.22,
+"bet_liga": "Франция / Лига 2",
+"dom": "Metz",
+"ev": 0.0493,
+"gost": "Saint-Etienne",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636486521|2",
+"kotva": true,
+"liga": "France - Ligue 2",
+"mid": "1636486521",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.4808,
+"p_prop": 0.4726,
+"pin": [
+3.59,
+2.0,
+3.58
+],
+"pin_last": [
+3.59,
+2.0,
+3.58
+],
+"sport": "football",
+"start_ms": 1789840800000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
+},
+"football|1636569769|2": {
+"bet": 7.2,
+"bet_liga": "Португалия / Примейра лига",
+"dom": "Vitoria Guimaraes",
+"ev": 0.0791,
+"gost": "Moreirense",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636569769|2",
+"kotva": false,
+"liga": "Portugal - Primeira Liga",
+"mid": "1636569769",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.1499,
+"p_prop": 0.1591,
+"pin": [
+1.52,
+5.95,
+4.34
+],
+"pin_last": [
+1.52,
+5.95,
+4.34
+],
+"sport": "football",
+"start_ms": 1789914600000,
+"t0": "2026-09-15 11:28",
+"t0_ms": 1789471691819,
+"t_last_ms": 1789471691819
 }
 }
