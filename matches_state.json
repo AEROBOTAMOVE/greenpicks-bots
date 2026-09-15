@@ -1,9 +1,9 @@
 {
  "chisla": {
   "gledani": 9,
-  "preseti": 27,
+  "preseti": 26,
   "publikuvani": 0,
-  "vzeti": 157
+  "vzeti": 232
  },
  "izhod": 0,
  "izhod_varnat": 0,
@@ -20,36 +20,36 @@
    "grimna": "",
    "prisada": "НАРЕД",
    "provali": 0,
-   "vzeti": 18,
+   "vzeti": 17,
    "zaqvki": 7,
-   "zashto": "18 срещи"
+   "zashto": "17 срещи"
   },
   "football": {
    "grimna": "",
    "prisada": "НАРЕД",
    "provali": 0,
-   "vzeti": 37,
+   "vzeti": 53,
    "zaqvki": 90,
-   "zashto": "37 срещи"
+   "zashto": "53 срещи"
   },
   "tabletennis": {
    "grimna": "",
    "prisada": "НАРЕД",
-   "provali": 2,
-   "vzeti": 89,
+   "provali": 1,
+   "vzeti": 135,
    "zaqvki": 4,
-   "zashto": "89 срещи (но 2 счупени заявки)"
+   "zashto": "135 срещи (но 1 счупени заявки)"
   },
   "volleyball": {
    "grimna": "",
    "prisada": "НАРЕД",
    "provali": 0,
-   "vzeti": 10,
+   "vzeti": 24,
    "zaqvki": 2,
-   "zashto": "10 срещи"
+   "zashto": "24 срещи"
   }
  },
- "koga": "2026-09-14 13:56",
+ "koga": "2026-09-15 13:20",
  "mek": true,
  "prag": 5,
  "v": 1
