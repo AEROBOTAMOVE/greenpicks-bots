@@ -367,8 +367,10 @@ img, svg { max-width: 100%; }
 .pwa-lenta .btn { margin-left: auto; }
 .pwa-lenta .x { background: none; border: 0; color: var(--tx3); font-size: 20px; padding: 4px; }
 
-.tg-banner { display: flex; align-items: center; gap: 14px; margin-top: 26px; padding: 16px 18px; border-radius: 18px; color: var(--tx);
-  background: radial-gradient(300px 160px at 88% 20%, rgba(55,212,148,.2), transparent 70%), linear-gradient(135deg, #0f2c20, #07140f); border: 1px solid var(--line2); box-shadow: var(--sh); }
+.tg-banner { display: flex; align-items: center; gap: 14px; margin-top: 26px; padding: 18px; border-radius: 18px; color: var(--tx); position: relative; overflow: hidden;
+  background: linear-gradient(100deg, rgba(4,11,8,.94) 0%, rgba(5,14,10,.7) 48%, rgba(6,16,11,.32) 100%), url("/img/obshtnost.jpg") center/cover no-repeat, #07140f;
+  border: 1px solid var(--line2); box-shadow: var(--sh); }
+.tg-banner > * { position: relative; }
 .tg-banner .ik { width: 48px; height: 48px; }
 .tg-banner .ik .ico { width: 24px; height: 24px; }
 .tg-banner b { display: block; font-family: var(--f-disp); font-weight: 400; font-size: 19px; letter-spacing: .01em; }
