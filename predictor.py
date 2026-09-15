@@ -8984,6 +8984,26 @@ def stoynost_ev(p_chestna, koef):
     return round(p * c - 1.0, 4)
 
 
+def _betano_zatvoren():
+    """Затворен ли е Бетано в ТОВА пускане (15.09.2026).
+
+    🔴 СТРАЖЪТ НА ГЕЙТА. Бетано връща 403 на сървърите на GitHub. Включен
+    тогава, PREDICT_SAMO_STOYNOST би отрязал ВСИЧКИ карти — нито една няма
+    стойност, защото няма цена на Бетано. Затворен = без модул, изрична
+    забрана (401/403/451) или всяка заявка провалена. Още непитан = отворен.
+    """
+    if BET is None:
+        return True
+    try:
+        s = BET.statistika() or {}
+    except Exception:                                        # noqa: BLE001
+        return True
+    if s.get("zabrana"):
+        return True
+    z = int(s.get("zayavki") or 0)
+    return z > 0 and int(s.get("provali") or 0) >= z
+
+
 def betano_stoynost(an):
     """Пише до картата коефициента на Бетано и стойността му. Не пипа цената."""
     if not isinstance(an, dict):
@@ -10728,7 +10748,7 @@ def run():
             continue
         # 🇧🇬 СТОЙНОСТТА — пише се за всяка карта; реже само при ръчката.
         betano_stoynost(a)
-        if SAMO_STOYNOST and not a.get("stoynost"):
+        if SAMO_STOYNOST and not _betano_zatvoren() and not a.get("stoynost"):
             otkaz("bez_stoynost")
             print("   ✖ " + str((a.get("fx") or {}).get("home"))[:18] + " - "
                   + str((a.get("fx") or {}).get("away"))[:16]
@@ -15177,6 +15197,33 @@ def selftest():
     check("стойност: боклук дава None", stoynost_ev(None, 1.8) is None
           and stoynost_ev(0.6, 0.9) is None)
     check("гейтът по стойност СПИ по подразбиране", SAMO_STOYNOST is False)
+    # ── 🔴 15.09.2026: Бетано отказва на GitHub (403) — гейтът не бива да мълчи
+    _st_bz = globals().get("BET")
+    try:
+        class _BZ(object):
+            def __init__(self, s):
+                self._s = s
+
+            def statistika(self):
+                return dict(self._s)
+        globals()["BET"] = _BZ({"zayavki": 2, "provali": 1, "zabrana": 403})
+        check("изрична забрана 403 = Бетано затворен", _betano_zatvoren() is True)
+        globals()["BET"] = _BZ({"zayavki": 5, "provali": 1, "zabrana": None})
+        check("отговарящ Бетано = отворен", _betano_zatvoren() is False)
+        globals()["BET"] = _BZ({"zayavki": 3, "provali": 3})
+        check("всички заявки провалени = затворен", _betano_zatvoren() is True)
+        globals()["BET"] = _BZ({"zayavki": 0, "provali": 0})
+        check("още непитан = отворен (гейтът съди)", _betano_zatvoren() is False)
+        globals()["BET"] = None
+        check("без модул Бетано = затворен", _betano_zatvoren() is True)
+    finally:
+        globals()["BET"] = _st_bz
+    try:
+        _src_g = open(os.path.abspath(__file__), encoding="utf-8-sig").read()
+    except Exception:                                        # noqa: BLE001
+        _src_g = ""
+    check("гейтът пита дали Бетано е затворен, преди да реже",
+          ("SAMO_STOYNOST and not _betano_" + "zatvoren() and not a.get") in _src_g)
     _st_bet = globals().get("BET")
 
     class _BetPodl(object):

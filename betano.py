@@ -167,6 +167,11 @@ SPORT = {
 
 _kesh = {}
 _STAT = {"zayavki": 0, "provali": 0}
+# 🔴 ОТКАЗЪТ СЕ УВАЖАВА (15.09.2026). Бетано връща 403 на сървърите на GitHub
+# (записано от ловеца в stoynost_log.json: "HTTP 403 Forbidden"; от София —
+# HTTP 200). След първия 401/403/451 в едно пускане не се пита повече:
+# чукането по заключена врата не е достъп, а шум. Ново пускане — нов опит.
+_ZABRANA = {"kod": None}
 # Колко заявки е похарчил всеки спорт за този рън. Отделно от _STAT, защото
 # бюджетът е ПО СПОРТ, а _STAT брои всичко.
 _HARCH = {}
@@ -175,12 +180,15 @@ _HARCH = {}
 def _nulirai_stat():
     _STAT["zayavki"] = 0
     _STAT["provali"] = 0
+    _ZABRANA["kod"] = None
     _HARCH.clear()
 
 
 def statistika():
-    """Копие на брояча — за диагностика, не за решения."""
-    return dict(_STAT)
+    """Копие на брояча — за диагностика. `zabrana` = кодът на отказа или None."""
+    d = dict(_STAT)
+    d["zabrana"] = _ZABRANA["kod"]
+    return d
 
 
 def _vzemi(url, otvarach=None):
@@ -194,8 +202,15 @@ def _vzemi(url, otvarach=None):
 
 def _json(url, otvarach=None):
     """Разчетеният отговор, или NEPITAN при какъвто и да е отказ."""
+    if _ZABRANA["kod"]:
+        return NEPITAN                  # вратата каза «не» — не чукаме пак
     try:
         b = _vzemi(url, otvarach)
+    except urllib.request.HTTPError as e:
+        _STAT["provali"] += 1
+        if getattr(e, "code", None) in (401, 403, 451):
+            _ZABRANA["kod"] = e.code
+        return NEPITAN
     except Exception:                                        # noqa: BLE001
         _STAT["provali"] += 1
         return NEPITAN
@@ -1899,6 +1914,24 @@ def selftest():
     _cz = _ZP_IZVOR.split("def ceni_za(")[1].split("\ndef ")[0]
     check("цената минава през котвата, когато строгото мълчи",
           "return kotva(sport, dom, gost, nachalo, liga, ev, sega_ms)" in _cz)
+
+    # ── 🔴 15.09.2026: 403 се уважава — след него не се пита до края на пускането
+    _ZABRANA["kod"] = None
+    _kesh.clear()
+    _403_pit = []
+
+    def _otv403(rq, timeout=None):
+        _403_pit.append(rq.full_url)
+        raise urllib.request.HTTPError(rq.full_url, 403, "Forbidden", {}, None)
+    check("403 дава «не можах да питам»", turniri("football", _otv403) is NEPITAN)
+    check("след 403 Бетано НЕ се пита повече",
+          turniri("basketball", _otv403) is NEPITAN and len(_403_pit) == 1)
+    check("броячът казва забраната", statistika().get("zabrana") == 403)
+    _sv403 = dict(_STAT)
+    _nulirai_stat()
+    check("новото пускане пита отначало", _ZABRANA["kod"] is None)
+    _STAT.update(_sv403)
+    _kesh.clear()
 
     # ── ръчките
     check("бюджетът е в разумни граници", 0 <= TAVAN_ZAYAVKI <= 400)
