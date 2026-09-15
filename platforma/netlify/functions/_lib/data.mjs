@@ -72,6 +72,32 @@ export function kartaZaKlient(r) {
   };
 }
 
+/** «Защо тази прогноза» — едно-две изречения от това, което ботът знае
+    (вид на избора, сила, колко мача са гледани). Нищо вътрешно. */
+export function zashto(r) {
+  const s = String(r.pick || "").trim();
+  const p = num(r.p);
+  const pct = p ? Math.round(p * 100) : 0;
+  let a;
+  const m = /^([12])\s*·\s*(.+)$/.exec(s);
+  if (m) {
+    a = "Очакваме победа за " + m[2].trim().replace(/^победа\s+(за\s+)?/i, "") + (pct >= 72 ? " — ясен фаворит по форма и ниво."
+      : pct >= 60 ? " — има предимство по форма и ниво." : " — равностоен мач с лек превес.");
+  } else if (/^Над\s/i.test(s)) a = "Очакваме открит мач: " + s.charAt(0).toLowerCase() + s.slice(1) + ".";
+  else if (/^Под\s/i.test(s)) a = "Очакваме затворен мач: " + s.charAt(0).toLowerCase() + s.slice(1) + ".";
+  else if (/^(1[ХX]|[ХX]2|12)(\s|·|$)/.test(s)) a = "Двоен шанс — по-сигурният избор за този мач.";
+  else if (/^[ХX](\s|·|$)/.test(s)) a = "Очакваме равностоен мач, който завършва наравно.";
+  else a = "Нашият избор е „" + s + "“.";
+  // Основата се показва САМО ако е за гледани мачове/боеве — без «пазар»,
+  // «надценка», «индекс» или признания, че история няма.
+  const sm0 = String(r.sample || "").trim().replace(/\.$/, "");
+  const sm = /мача|боя/.test(sm0) && !/пазар|надценк|индекс|не сме|без история/i.test(sm0) ? sm0 : "";
+  const zv = r.stars === 3 ? "Три звезди — сред най-силните избори за деня."
+    : r.stars === 2 ? "Две звезди — стабилен избор." : r.stars === 1 ? "Една звезда — по-смел избор." : "";
+  const b = [sm ? sm.charAt(0).toUpperCase() + sm.slice(1) + "." : "", zv].filter(Boolean).join(" ");
+  return (a + (b ? " " + b : "")).trim();
+}
+
 /** Пакетът от суровия дневник. Чиста функция — тества се без мрежа. */
 export function napraviPaket(log, zaglavia, sega = Date.now()) {
   const dnes = denSofia(sega);
@@ -82,8 +108,27 @@ export function napraviPaket(log, zaglavia, sega = Date.now()) {
 
   const prognozi = zapisi
     .filter((r) => !r.scored && String(r.day || "") >= vchera)
-    .map(kartaZaKlient)
+    .map((r) => ({ ...kartaZaKlient(r), zashto: zashto(r) }))
     .sort((a, b) => (a.den + a.pusnata).localeCompare(b.den + b.pusnata));
+
+  // ФИШОВЕТЕ: краката с един и същ номер в един и същ ден (последните 7 дни)
+  const fm = new Map();
+  for (const r of zapisi) {
+    const n = Number(r.combo) || 0;
+    if (!n || String(r.day || "") < predi7) continue;
+    const kl = r.day + "#" + n;
+    if (!fm.has(kl)) fm.set(kl, { den: String(r.day), nomer: n, kraka: [] });
+    const k = { ...kartaZaKlient(r), zashto: zashto(r) };
+    if (r.scored) { k.poznata = r.hit === true ? true : r.hit === false ? false : null; k.rezultat = String(r.score || ""); }
+    fm.get(kl).kraka.push(k);
+  }
+  const fishove = [...fm.values()].filter((f) => f.kraka.length >= 2).map((f) => {
+    const ks = f.kraka.map((k) => k.koef);
+    const koefF = ks.length && ks.every((x) => x > 1) ? Math.round(ks.reduce((a, b) => a * b, 1) * 100) / 100 : null;
+    const status = f.kraka.some((k) => k.poznata === false) ? "nepoznat"
+      : f.kraka.every((k) => k.poznata === true) ? "poznat" : "v_igra";
+    return { ...f, koef: koefF, status };
+  }).sort((a, b) => (b.den + String(b.nomer).padStart(3, "0")).localeCompare(a.den + String(a.nomer).padStart(3, "0")));
 
   const rez = zapisi
     .filter((r) => r.scored && String(r.day || "") >= predi7)
@@ -113,6 +158,7 @@ export function napraviPaket(log, zaglavia, sega = Date.now()) {
   return {
     dnes,
     prognozi,
+    fishove,
     rezultati: rez,
     statistika,
     obshto: { n: vsichki, poznati, uspeh: vsichki ? Math.round((100 * poznati) / vsichki) : null, dni: 30 },

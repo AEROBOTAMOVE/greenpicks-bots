@@ -1,161 +1,324 @@
-/* The Green Room · платформата. Една тъмна тема по дизайна на собственика. */
+/* ─────────────────────────────────────────────────────────────
+   The Green Room · платформата — дизайнът по макета на собственика
+   Тъмно зелено, сребърна марка, изумруден акцент. Една тема.
+   Шрифтове: Forum (класическа римска антиква С КИРИЛИЦА) за заглавията,
+   Cinzel само за латинското «GREEN ROOM», Manrope за всичко останало.
+   ───────────────────────────────────────────────────────────── */
 :root {
-  --bg: #07110d;
-  --bg2: #0a1813;
-  --karta: #0e1f18;
-  --karta2: #12281f;
-  --liniya: #1c3a2c;
-  --tx: #e8efeb;
-  --tx2: #9fb4aa;
-  --tx3: #6f8a7d;
-  --acc: #1faa6b;
-  --acc2: #2fd08a;
-  --srebro: #dfe5e2;
-  --zlato: #d8b35c;
-  --dobre: #2fd08a;
-  --zle: #e8675c;
-  --r: 14px;
-  --shir: 640px;
-  --serif: "Cinzel", "Times New Roman", serif;
-  --sans: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --bg: #050c09;
+  --s1: #0b1813;
+  --s2: #0f2019;
+  --s3: #142a21;
+  --line: rgba(150, 205, 178, .10);
+  --line2: rgba(150, 205, 178, .18);
+  --tx: #ecf3ef;
+  --tx2: #a9bdb3;
+  --tx3: #6f887c;
+  --em: #1fae6c;
+  --em2: #37d494;
+  --emglow: rgba(55, 212, 148, .28);
+  --zlato: #d4b466;
+  --cherv: #e2665b;
+  --srebro: #e4e9e6;
+  --r1: 10px;
+  --r2: 16px;
+  --r3: 22px;
+  --sh: 0 14px 34px rgba(0, 0, 0, .38);
+  --f-ui: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-disp: "Forum", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --f-brand: "Cinzel", "Forum", Georgia, serif;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: var(--bg); color: var(--tx); font: 15px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
-body { background:
-  radial-gradient(1200px 500px at 50% -120px, rgba(31,170,107,.16), transparent 70%),
-  var(--bg); min-height: 100vh; }
-button, input { font: inherit; color: inherit; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; background: var(--bg); color: var(--tx); font: 15px/1.55 var(--f-ui); -webkit-font-smoothing: antialiased; }
+body {
+  background:
+    radial-gradient(900px 480px at 50% -180px, rgba(31, 174, 108, .20), transparent 70%),
+    radial-gradient(600px 400px at 110% 40%, rgba(31, 174, 108, .07), transparent 70%),
+    radial-gradient(600px 400px at -10% 90%, rgba(31, 174, 108, .06), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
-:focus-visible { outline: 2px solid var(--acc2); outline-offset: 2px; }
-img { max-width: 100%; }
+a { color: var(--em2); text-decoration: none; }
+:focus-visible { outline: 2px solid var(--em2); outline-offset: 2px; border-radius: 6px; }
+img, svg { max-width: 100%; }
 [hidden] { display: none !important; }
+.zarezhda { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 10px; color: var(--tx3); }
 
-.zarezhda { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 8px; color: var(--tx2); }
+/* ── иконите ── */
+.ik { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; flex: 0 0 auto;
+  background: radial-gradient(circle at 30% 25%, #1d3a2e, #0d1d16 70%); border: 1px solid var(--line2); color: var(--em2); }
+.ik svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ik.s { width: 22px; height: 22px; border: 0; background: none; color: var(--tx3); }
+.ik.s svg { width: 16px; height: 16px; }
+.ik.l { width: 52px; height: 52px; }
+.ik.l svg { width: 26px; height: 26px; }
+.ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+.ekip { width: 34px; height: 34px; border-radius: 50%; display: inline-grid; place-items: center; flex: 0 0 auto; font-size: 11.5px; font-weight: 800; letter-spacing: .02em;
+  background: radial-gradient(circle at 30% 25%, hsl(var(--h) 32% 28%), hsl(var(--h) 34% 15%)); color: hsl(var(--h) 55% 84%); border: 1px solid hsl(var(--h) 35% 38% / .55); }
 
 /* ── рамката ── */
-.ramka { max-width: var(--shir); margin: 0 auto; padding-inline: 16px; padding-block: 0 96px; }
-.gorna { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding-block: 12px;
-  background: linear-gradient(var(--bg) 70%, rgba(7,17,13,0)); }
-.gorna img { width: 34px; height: 34px; }
-.gorna .marka { font-family: var(--serif); font-weight: 600; letter-spacing: .06em; font-size: 15px; color: var(--srebro); line-height: 1.1; }
-.gorna .marka small { display: block; font-family: var(--sans); font-size: 10px; letter-spacing: .28em; color: var(--tx3); font-weight: 600; }
-.gorna .dyasno { margin-left: auto; font-size: 12px; color: var(--tx3); }
-h1.zaglavie { font-size: 24px; font-weight: 800; margin: 8px 0 12px; letter-spacing: -.01em; }
-h2.podz { font-size: 16px; font-weight: 700; margin: 22px 0 10px; display: flex; align-items: baseline; gap: 8px; }
-h2.podz .vizh { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--acc2); background: none; border: 0; padding: 0; }
+.app { min-height: 100vh; }
+.side { display: none; }
+.glaven { max-width: 620px; margin: 0 auto; padding-inline: 16px; padding-block: 0 104px; }
+.gore { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; padding-block: 10px; margin-inline: -16px; padding-inline: 16px;
+  background: linear-gradient(rgba(5, 12, 9, .92), rgba(5, 12, 9, .75)); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.marka { display: flex; align-items: center; gap: 9px; }
+.marka img { width: 34px; height: 34px; }
+.marka .ime { font-family: var(--f-brand); font-weight: 600; letter-spacing: .07em; font-size: 15px; color: var(--srebro); line-height: 1.05; }
+.marka .ime small { display: block; font-size: 9px; letter-spacing: .42em; color: var(--tx3); font-weight: 600; }
+.avatar { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line2); background: var(--s2); color: var(--srebro); font-weight: 800; font-size: 13px; display: grid; place-items: center; }
+.glava { margin: 18px 0 14px; }
+.glava h1 { font-family: var(--f-disp); font-weight: 400; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: .01em; }
+.glava p { margin: 4px 0 0; color: var(--tx2); font-size: 14px; }
+.sekcia { margin-top: 26px; }
+.sekcia > header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.sekcia > header h2 { font-size: 17px; font-weight: 800; margin: 0; letter-spacing: -.005em; }
+.sekcia > header .vsichki { margin-left: auto; background: none; border: 0; color: var(--em2); font-size: 13px; font-weight: 700; padding: 0; }
+.prazno { color: var(--tx3); text-align: center; padding: 30px 12px; border: 1px dashed var(--line2); border-radius: var(--r2); }
 .tiho { color: var(--tx2); }
-.prazno { color: var(--tx3); text-align: center; padding: 28px 8px; border: 1px dashed var(--liniya); border-radius: var(--r); }
 
-/* ── чипове ── */
-.chipove { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+/* ── превключвател и чипове ── */
+.tabs { display: flex; background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; }
+.tabs button { flex: 1; border: 0; background: none; color: var(--tx2); font-weight: 700; font-size: 13.5px; padding: 9px 6px; border-radius: 10px; }
+.tabs button[aria-pressed="true"] { background: linear-gradient(180deg, var(--em2), var(--em)); color: #03150c; box-shadow: 0 6px 16px var(--emglow); }
+.chipove { display: flex; gap: 8px; overflow-x: auto; padding-block: 2px 4px; scrollbar-width: none; margin-top: 12px; }
 .chipove::-webkit-scrollbar { display: none; }
-.chip { flex: 0 0 auto; border: 1px solid var(--liniya); background: var(--karta); color: var(--tx2); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; }
-.chip[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: #04150d; }
+.chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line2); background: var(--s1); color: var(--tx2); border-radius: 999px; padding: 6px 12px 6px 8px; font-size: 13px; font-weight: 700; }
+.chip .ik.s { color: inherit; }
+.chip[aria-pressed="true"] { border-color: var(--em); color: var(--em2); background: rgba(31, 174, 108, .12); }
+.tarsene { position: relative; margin-top: 12px; }
+.tarsene .ico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--tx3); }
+.tarsene input { width: 100%; background: var(--s1); border: 1px solid var(--line2); border-radius: 14px; padding: 12px 14px 12px 42px; outline: none; }
+.tarsene input:focus { border-color: var(--em); }
+.den-glava { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--tx3); margin: 20px 0 10px; display: flex; align-items: center; gap: 10px; }
+.den-glava::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
-/* ── герой ── */
-.geroi { position: relative; overflow: hidden; border-radius: 18px; padding: 22px 20px; border: 1px solid var(--liniya);
-  background: radial-gradient(420px 220px at 90% 20%, rgba(47,208,138,.22), transparent 70%), linear-gradient(135deg, #0f2a1f, #081510); }
-.geroi h2 { font-family: var(--serif); font-size: 26px; line-height: 1.15; margin: 0 0 14px; letter-spacing: .02em; text-wrap: balance; }
-.btn { border: 0; border-radius: 12px; padding: 12px 18px; font-weight: 700; background: var(--acc); color: #04150d; }
-.btn:hover { background: var(--acc2); }
-.btn.vtori { background: transparent; color: var(--tx); border: 1px solid var(--liniya); }
-.btn.malak { padding: 7px 11px; font-size: 13px; border-radius: 10px; }
-.btn.zle { background: transparent; color: var(--zle); border: 1px solid rgba(232,103,92,.4); }
+/* ── героят ── */
+.geroi { position: relative; overflow: hidden; border-radius: var(--r3); border: 1px solid var(--line2); padding: 24px 22px 22px; min-height: 186px;
+  background:
+    radial-gradient(260px 200px at 82% 45%, rgba(55, 212, 148, .30), transparent 70%),
+    linear-gradient(115deg, rgba(4, 12, 9, .0) 40%, rgba(255, 255, 255, .04) 41%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(135deg, #0f2c20 0%, #07140f 70%); box-shadow: var(--sh); }
+.geroi .lyk { position: absolute; top: -40px; right: 28%; width: 60px; height: 260px; transform: rotate(28deg); background: linear-gradient(rgba(255, 255, 255, .10), transparent); filter: blur(6px); }
+.geroi .topka { position: absolute; right: -26px; bottom: -30px; width: 190px; height: 190px; color: rgba(228, 233, 230, .9); filter: drop-shadow(0 0 28px rgba(55, 212, 148, .45)); }
+.geroi .topka svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.1; }
+.geroi h2 { position: relative; font-family: var(--f-disp); font-weight: 400; font-size: 31px; line-height: 1.08; margin: 0 0 8px; letter-spacing: .02em; text-transform: uppercase; max-width: 70%; }
+.geroi p { position: relative; margin: 0 0 16px; color: var(--tx2); max-width: 64%; font-size: 14px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 13px; padding: 12px 18px; font-weight: 800; font-size: 14.5px;
+  background: linear-gradient(180deg, var(--em2), var(--em)); color: #03150c; box-shadow: 0 8px 20px var(--emglow); position: relative; }
+.btn:hover { filter: brightness(1.06); }
+.btn.v2 { background: transparent; color: var(--tx); border: 1px solid var(--line2); box-shadow: none; }
+.btn.m { padding: 7px 11px; font-size: 12.5px; border-radius: 10px; box-shadow: none; }
+.btn.cherv { background: transparent; color: var(--cherv); border: 1px solid rgba(226, 102, 91, .38); box-shadow: none; }
+.btn.shir { width: 100%; }
 
-/* ── спорт иконки ── */
-.sportove { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; }
-.sportche { display: grid; justify-items: center; gap: 6px; padding: 12px 6px; border-radius: var(--r); background: var(--karta); border: 1px solid var(--liniya); color: var(--tx); font-size: 12px; font-weight: 600; text-align: center; }
-.sportche .ik { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--karta2); font-size: 20px; }
-.sportche .br { color: var(--tx3); font-weight: 500; font-size: 11px; }
+/* ── плочки ── */
+.plochki { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.plochka { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 10px; text-align: center; }
+.plochka b { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.plochka b.em { color: var(--em2); }
+.plochka span { font-size: 11.5px; color: var(--tx3); font-weight: 600; }
 
+/* ── спортовете ── */
+.sp-red { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+.sp-red::-webkit-scrollbar { display: none; }
+.sp-it { flex: 0 0 auto; display: grid; justify-items: center; gap: 6px; background: none; border: 0; color: var(--tx2); font-size: 11.5px; font-weight: 700; width: 64px; }
+.sp-it .ik { width: 52px; height: 52px; }
+.sp-it .ik svg { width: 24px; height: 24px; }
 .spisyk { display: grid; gap: 8px; }
-.red-sport { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r); background: var(--karta); border: 1px solid var(--liniya); color: var(--tx); text-align: left; width: 100%; }
-.red-sport .ik { font-size: 22px; width: 36px; text-align: center; }
-.red-sport b { display: block; font-size: 15px; }
-.red-sport span.pod { color: var(--tx3); font-size: 12px; }
-.red-sport .str { margin-left: auto; color: var(--tx3); font-size: 18px; }
+.red { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r2); background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); color: var(--tx); text-align: left; width: 100%; }
+.red b { display: block; font-size: 15px; }
+.red .pod { color: var(--tx3); font-size: 12.5px; }
+.red .str { margin-left: auto; color: var(--tx3); }
 
-/* ── картата ── */
-.karti { display: grid; gap: 10px; }
-.karta { background: var(--karta); border: 1px solid var(--liniya); border-radius: var(--r); padding: 14px; }
-.k-gore { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tx3); }
-.k-gore .liga { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.k-gore .koga { margin-left: auto; white-space: nowrap; }
-.k-mach { font-weight: 700; font-size: 15px; margin: 6px 0 10px; }
-.k-dolu { display: flex; align-items: center; gap: 10px; }
-.k-et { font-size: 12px; color: var(--tx3); }
-.k-izbor { font-weight: 700; color: var(--srebro); }
-.k-koef { margin-left: auto; min-width: 58px; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums;
-  background: rgba(31,170,107,.14); color: var(--acc2); border: 1px solid rgba(47,208,138,.35); border-radius: 10px; padding: 6px 10px; }
-.k-bar { margin-top: 12px; height: 5px; background: var(--karta2); border-radius: 99px; overflow: hidden; }
-.k-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--acc), var(--acc2)); border-radius: 99px; }
-.k-uv { margin-top: 5px; font-size: 12px; color: var(--tx3); display: flex; gap: 6px; }
-.k-uv .zv { color: var(--zlato); margin-left: auto; letter-spacing: 2px; }
-.znak { width: 26px; height: 26px; border-radius: 8px; display: inline-grid; place-items: center; font-weight: 800; font-size: 13px; flex: 0 0 auto; }
-.znak.p { background: rgba(47,208,138,.16); color: var(--dobre); }
-.znak.n { background: rgba(232,103,92,.14); color: var(--zle); }
-.znak.v { background: var(--karta2); color: var(--tx3); }
-.rez-ch { font-variant-numeric: tabular-nums; color: var(--tx2); font-weight: 700; }
-.fish { font-size: 11px; color: var(--zlato); border: 1px solid rgba(216,179,92,.35); border-radius: 6px; padding: 0 6px; }
+/* ── картата на прогноза ── */
+.karti { display: grid; gap: 12px; }
+.pk { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, .22); }
+.pk-h { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--tx3); font-weight: 600; min-width: 0; }
+.pk-h .liga { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-h .den { margin-left: auto; white-space: nowrap; color: var(--tx2); }
+.pk-h .fish { color: var(--zlato); border: 1px solid rgba(212, 180, 102, .35); border-radius: 6px; padding: 0 6px; font-size: 11px; white-space: nowrap; }
+.pk-mach { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin: 12px 0; }
+.pk-tim { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; font-size: 14.5px; }
+.pk-tim span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-tim.d { flex-direction: row-reverse; text-align: right; }
+.pk-vs { font-size: 11px; font-weight: 800; color: var(--tx3); letter-spacing: .1em; }
+.pk-izbor { display: flex; align-items: center; gap: 12px; background: rgba(5, 12, 9, .45); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.pk-izbor small { display: block; font-size: 11.5px; color: var(--tx3); font-weight: 600; }
+.pk-izbor b { font-size: 15px; color: var(--srebro); }
+.pk-koef { margin-left: auto; text-align: center; }
+.pk-koef b { display: block; min-width: 62px; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; color: #03150c;
+  background: linear-gradient(180deg, var(--em2), var(--em)); border-radius: 9px; padding: 5px 10px; }
+.pk-koef small { margin-bottom: 3px; }
+.pk-zashto { margin: 10px 2px 0; font-size: 13.5px; color: var(--tx2); line-height: 1.5; }
+.pk-zashto::before { content: "Защо: "; color: var(--em2); font-weight: 700; }
+.pk-uv { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 12px; color: var(--tx3); font-weight: 600; }
+.pk-uv .bar { flex: 1; height: 6px; background: var(--s3); border-radius: 99px; overflow: hidden; }
+.pk-uv .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--em), var(--em2)); box-shadow: 0 0 10px var(--emglow); }
+.pk-uv b { color: var(--tx); font-variant-numeric: tabular-nums; }
+.pk-uv .zv { color: var(--zlato); letter-spacing: 1px; font-size: 13px; }
 
-/* ── статистика ── */
-.tabla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.plochka { background: var(--karta); border: 1px solid var(--liniya); border-radius: var(--r); padding: 12px; text-align: center; }
-.plochka b { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
-.plochka span { font-size: 12px; color: var(--tx3); }
+/* ── резултатът ── */
+.rz { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 14px; }
+.rz-t { display: flex; align-items: center; gap: 8px; font-weight: 700; min-width: 0; }
+.rz-t span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rz-t .ekip { width: 26px; height: 26px; font-size: 10px; }
+.rz-sk { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; font-size: 16px; }
+.rz-dolu { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--tx2); }
+.znak { margin-left: auto; min-width: 30px; height: 26px; border-radius: 8px; display: inline-grid; place-items: center; font-weight: 800; font-size: 12px; padding-inline: 8px; }
+.znak.p { background: rgba(55, 212, 148, .16); color: var(--em2); border: 1px solid rgba(55, 212, 148, .35); }
+.znak.n { background: rgba(226, 102, 91, .13); color: var(--cherv); border: 1px solid rgba(226, 102, 91, .32); }
+.znak.v { background: var(--s3); color: var(--tx3); }
+.liga-glava { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--tx2); margin: 16px 0 8px; }
+.obzor { display: flex; align-items: center; gap: 16px; background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px 16px; margin-top: 12px; }
+.pryasten { --p: 0; width: 64px; height: 64px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center;
+  background: conic-gradient(var(--em2) calc(var(--p) * 1%), var(--s3) 0); }
+.pryasten b { width: 50px; height: 50px; border-radius: 50%; background: var(--s1); display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+.obzor p { margin: 0; color: var(--tx2); font-size: 13.5px; }
+.obzor p b { color: var(--tx); font-size: 18px; }
 
-/* ── новини ── */
-.novina { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; background: var(--karta); border: 1px solid var(--liniya); border-radius: var(--r); }
-.novina .t { width: 8px; height: 8px; border-radius: 50%; background: var(--acc2); margin-top: 7px; flex: 0 0 auto; }
+/* ── фишът ── */
+.fs { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line2); border-radius: var(--r2); overflow: hidden; box-shadow: 0 6px 18px rgba(0, 0, 0, .22); }
+.fs > header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.fs > header b { font-family: var(--f-disp); font-weight: 400; font-size: 19px; letter-spacing: .02em; }
+.fs > header .den { color: var(--tx3); font-size: 12.5px; font-weight: 600; }
+.st { margin-left: auto; font-size: 11.5px; font-weight: 800; border-radius: 999px; padding: 3px 10px; }
+.st.poznat { background: rgba(55, 212, 148, .15); color: var(--em2); }
+.st.nepoznat { background: rgba(226, 102, 91, .13); color: var(--cherv); }
+.st.v_igra { background: rgba(212, 180, 102, .13); color: var(--zlato); }
+.fs ol { list-style: none; margin: 0; padding: 4px 14px; }
+.fs li { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.fs li:last-child { border-bottom: 0; }
+.fs li .m { font-weight: 700; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fs li .i { grid-column: 2; font-size: 12.5px; color: var(--tx2); }
+.fs li .k { grid-row: 1 / span 2; grid-column: 3; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fs li .k .znak { display: flex; margin: 4px 0 0 auto; }
+.fs > footer { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(5, 12, 9, .5); border-top: 1px solid var(--line); }
+.fs > footer span { color: var(--tx2); font-size: 13px; font-weight: 600; }
+.fs > footer b { margin-left: auto; font-size: 20px; font-weight: 800; color: var(--em2); font-variant-numeric: tabular-nums; }
+
+/* ── новините ── */
+.nov-glavna { position: relative; overflow: hidden; border-radius: var(--r3); border: 1px solid var(--line2); padding: 20px; min-height: 170px; display: flex; flex-direction: column; justify-content: flex-end;
+  background: radial-gradient(300px 220px at 85% 20%, rgba(55, 212, 148, .22), transparent 70%), linear-gradient(160deg, #10271d, #06110c); box-shadow: var(--sh); }
+.nov-glavna .ik { position: absolute; top: 18px; right: 18px; width: 58px; height: 58px; }
+.nov-glavna .etiket { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--em2); margin-bottom: 8px; }
+.nov-glavna h3 { font-family: var(--f-disp); font-weight: 400; font-size: 23px; line-height: 1.2; margin: 0; max-width: 88%; text-wrap: balance; }
+.novina { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); }
+.novina p { margin: 0; font-weight: 600; font-size: 14px; line-height: 1.4; }
+
+/* ── профил ── */
+.prof { display: grid; justify-items: center; gap: 6px; padding: 22px 16px 18px; border-radius: var(--r3); border: 1px solid var(--line2);
+  background: radial-gradient(320px 180px at 50% 0%, rgba(55, 212, 148, .18), transparent 70%), linear-gradient(180deg, var(--s2), var(--s1)); text-align: center; }
+.prof .av { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; font-weight: 800; color: var(--srebro);
+  background: radial-gradient(circle at 30% 25%, #2a4a3c, #0f2019); border: 2px solid rgba(212, 180, 102, .55); }
+.prof h2 { margin: 6px 0 0; font-size: 17px; overflow-wrap: anywhere; }
+.znachka { font-size: 12px; font-weight: 800; border-radius: 999px; padding: 3px 12px; }
+.znachka.admin { background: rgba(212, 180, 102, .15); color: var(--zlato); }
+.znachka.active { background: rgba(55, 212, 148, .15); color: var(--em2); }
+.znachka.expired, .znachka.locked { background: rgba(226, 102, 91, .13); color: var(--cherv); }
+.meniu { display: grid; border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; background: var(--s1); }
+.meniu > * { display: flex; align-items: center; gap: 12px; padding: 14px; background: none; border: 0; border-bottom: 1px solid var(--line); color: var(--tx); text-align: left; width: 100%; font-weight: 600; }
+.meniu > *:last-child { border-bottom: 0; }
+.meniu .str { margin-left: auto; color: var(--tx3); }
+.meniu .cherv { color: var(--cherv); }
+.info-red { display: flex; gap: 10px; }
+.info-red span:last-child { margin-left: auto; color: var(--tx2); text-align: right; }
+
+/* ── админ ── */
+.potr { background: linear-gradient(180deg, var(--s2), var(--s1)); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 14px; }
+.potr .g { display: flex; align-items: center; gap: 10px; }
+.potr .g .av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--s3); font-weight: 800; font-size: 13px; color: var(--srebro); flex: 0 0 auto; }
+.potr .g b { overflow-wrap: anywhere; font-size: 14.5px; }
+.potr .g .znachka { margin-left: auto; }
+.potr .meta { font-size: 12px; color: var(--tx3); margin: 6px 0 10px; }
+.deistvia { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.deistvia input[type="date"] { background: var(--s1); border: 1px solid var(--line2); border-radius: 10px; padding: 5px 8px; color-scheme: dark; font-size: 12.5px; }
+.nov-potr { border: 1px solid var(--line2); border-radius: var(--r2); background: var(--s1); }
+.nov-potr summary { cursor: pointer; padding: 12px 14px; font-weight: 800; list-style: none; display: flex; align-items: center; gap: 8px; }
+.nov-potr summary::-webkit-details-marker { display: none; }
+.nov-potr form { display: grid; gap: 10px; padding: 0 14px 14px; }
+.pole { display: grid; gap: 6px; text-align: left; }
+.pole > span { font-size: 12.5px; color: var(--tx2); font-weight: 600; }
+.pole .vhod-p { position: relative; }
+.pole .vhod-p .ico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--tx3); }
+.pole input { width: 100%; background: rgba(11, 24, 19, .9); border: 1px solid var(--line2); border-radius: 13px; padding: 13px 14px 13px 42px; outline: none; }
+.pole input.bez { padding-left: 14px; }
+.pole input:focus { border-color: var(--em); box-shadow: 0 0 0 3px rgba(31, 174, 108, .15); }
+.oko { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: var(--tx3); padding: 6px; }
+.suob { position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); background: var(--s3); border: 1px solid var(--line2); color: var(--tx); padding: 11px 16px; border-radius: 13px; z-index: 50; max-width: calc(100% - 32px); box-shadow: var(--sh); font-weight: 600; font-size: 14px; }
 
 /* ── вход ── */
-.vhod { min-height: 100vh; display: grid; place-content: center; padding-inline: 16px; padding-block: 32px; }
-.vhod-kutia { width: min(400px, 100%); text-align: center; }
-.vhod-kutia .logo-g { width: 150px; height: 150px; margin: 0 auto -6px; display: block; }
-.vhod-kutia .the { font-family: var(--serif); letter-spacing: .3em; font-size: 12px; color: var(--tx2); }
-.vhod-kutia .ime { font-family: var(--serif); font-size: 34px; font-weight: 600; letter-spacing: .05em; color: var(--srebro); line-height: 1.1; margin-bottom: 18px; }
-.vhod-kutia h1 { font-size: 22px; margin: 6px 0 4px; }
-.pole { display: grid; gap: 6px; text-align: left; margin-top: 12px; }
-.pole span { font-size: 13px; color: var(--tx2); }
-.pole input { width: 100%; background: var(--karta); border: 1px solid var(--liniya); border-radius: 12px; padding: 12px 14px; outline: none; }
-.pole input:focus { border-color: var(--acc); }
-.vhod-kutia .btn { width: 100%; margin-top: 16px; }
-.greshka { color: var(--zle); font-size: 14px; min-height: 20px; margin-top: 10px; }
-.vryzka { background: none; border: 0; color: var(--acc2); font-weight: 600; margin-top: 14px; }
-.malko { font-size: 12px; color: var(--tx3); margin-top: 18px; }
+.vhod { min-height: 100vh; display: grid; place-items: center; padding-inline: 16px; padding-block: 28px; position: relative; overflow: hidden;
+  background:
+    radial-gradient(500px 300px at 50% 0%, rgba(55, 212, 148, .20), transparent 70%),
+    radial-gradient(260px 520px at 15% -10%, rgba(255, 255, 255, .06), transparent 70%),
+    radial-gradient(260px 520px at 85% -10%, rgba(255, 255, 255, .06), transparent 70%),
+    var(--bg); }
+.vhod-k { width: min(420px, 100%); text-align: center; position: relative; }
+.vhod-k .logo-g { width: 150px; height: 150px; display: block; margin: 0 auto -8px; filter: drop-shadow(0 10px 30px rgba(55, 212, 148, .25)); }
+.vhod-k .the { font-family: var(--f-brand); letter-spacing: .5em; font-size: 12px; color: var(--tx2); }
+.vhod-k .gr { font-family: var(--f-brand); font-weight: 600; font-size: 36px; letter-spacing: .06em; line-height: 1.05;
+  background: linear-gradient(180deg, #ffffff, #b9c3bf 60%, #e9eeeb); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.vhod-k .motto { font-family: var(--f-disp); letter-spacing: .14em; text-transform: uppercase; color: var(--tx2); font-size: 13px; margin: 6px 0 22px; }
+.vhod-kutia { background: linear-gradient(180deg, rgba(15, 32, 25, .92), rgba(11, 24, 19, .92)); border: 1px solid var(--line2); border-radius: var(--r3); padding: 22px 18px; box-shadow: var(--sh); text-align: left; }
+.vhod-kutia h1 { font-family: var(--f-disp); font-weight: 400; font-size: 27px; text-align: center; margin: 0; }
+.vhod-kutia > p { text-align: center; color: var(--tx2); margin: 4px 0 14px; font-size: 14px; }
+.vhod-kutia form { display: grid; gap: 12px; }
+.greshka { color: var(--cherv); font-size: 13.5px; min-height: 18px; text-align: center; }
+.ili { display: flex; align-items: center; gap: 10px; color: var(--tx3); font-size: 12px; margin: 14px 0; }
+.ili::before, .ili::after { content: ""; flex: 1; height: 1px; background: var(--line2); }
+.zabr { background: none; border: 0; color: var(--tx2); font-size: 13px; justify-self: center; }
+.vhod-k .krai { margin-top: 18px; font-size: 12px; color: var(--tx3); letter-spacing: .06em; }
 
-/* ── профил / админ ── */
-.redove { display: grid; gap: 1px; background: var(--liniya); border-radius: var(--r); overflow: hidden; border: 1px solid var(--liniya); }
-.redove > div { background: var(--karta); padding: 12px 14px; display: flex; gap: 10px; }
-.redove > div span:last-child { margin-left: auto; color: var(--tx2); text-align: right; }
-.status { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
-.status.active { background: rgba(47,208,138,.15); color: var(--dobre); }
-.status.expired { background: rgba(216,179,92,.15); color: var(--zlato); }
-.status.locked { background: rgba(232,103,92,.15); color: var(--zle); }
-.status.admin { background: rgba(223,229,226,.12); color: var(--srebro); }
-.potr { background: var(--karta); border: 1px solid var(--liniya); border-radius: var(--r); padding: 12px 14px; }
-.potr .gore { display: flex; align-items: center; gap: 8px; }
-.potr .gore b { overflow-wrap: anywhere; }
-.potr .gore .status { margin-left: auto; }
-.potr .info { font-size: 12px; color: var(--tx3); margin: 4px 0 10px; }
-.deistvia { display: flex; flex-wrap: wrap; gap: 6px; }
-.forma-red { display: grid; grid-template-columns: 1fr; gap: 8px; }
-@media (min-width: 520px) { .forma-red { grid-template-columns: 2fr 1.4fr .8fr auto; align-items: end; } }
-.forma-red input { width: 100%; background: var(--karta); border: 1px solid var(--liniya); border-radius: 10px; padding: 9px 12px; }
-.suobshtenie { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--karta2); border: 1px solid var(--liniya); color: var(--tx); padding: 10px 16px; border-radius: 12px; z-index: 30; max-width: calc(100% - 32px); }
+.podpis { text-align: center; color: var(--tx3); font-size: 12px; margin-top: 34px; line-height: 1.7; }
+.podpis .s { font-family: var(--f-brand); letter-spacing: .3em; color: var(--tx2); font-size: 12.5px; }
 
-/* ── долната лента ── */
-.lenta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(8,18,14,.96); border-top: 1px solid var(--liniya);
-  padding-bottom: env(safe-area-inset-bottom); backdrop-filter: blur(8px); }
-.lenta nav { max-width: var(--shir); margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); }
-.lenta button { background: none; border: 0; color: var(--tx3); display: grid; justify-items: center; gap: 2px; padding: 9px 2px 8px; font-size: 10.5px; font-weight: 600; }
-.lenta button svg { width: 22px; height: 22px; }
-.lenta button[aria-current="page"] { color: var(--acc2); }
-.podpis { text-align: center; color: var(--tx3); font-size: 12px; margin-top: 28px; }
-.podpis .ser { font-family: var(--serif); letter-spacing: .25em; color: var(--tx2); }
+/* ── долната лента (телефон) ── */
+.dolu { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: rgba(6, 14, 11, .96); border-top: 1px solid var(--line2);
+  padding-bottom: env(safe-area-inset-bottom); backdrop-filter: blur(10px); }
+.dolu .v { max-width: 620px; margin: 0 auto; display: grid; grid-template-columns: repeat(7, 1fr); }
+.dolu button { position: relative; background: none; border: 0; color: var(--tx3); display: grid; justify-items: center; gap: 3px; padding: 9px 0 8px; font-size: 10px; font-weight: 700; letter-spacing: -.01em; }
+.dolu button .ico { width: 21px; height: 21px; }
+.dolu button[aria-current="page"] { color: var(--em2); }
+.dolu button[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 28%; right: 28%; height: 2px; border-radius: 2px; background: var(--em2); box-shadow: 0 0 12px var(--emglow); }
 
+/* ── компютър: странично меню + колони ── */
+@media (min-width: 1024px) {
+  .app { display: grid; grid-template-columns: 250px 1fr; }
+  .side { display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; padding: 22px 16px; border-right: 1px solid var(--line); background: rgba(6, 14, 11, .72); backdrop-filter: blur(8px); }
+  .side .marka { margin: 0 6px 26px; }
+  .side .marka img { width: 42px; height: 42px; }
+  .side .marka .ime { font-size: 17px; }
+  .side nav { display: grid; gap: 4px; }
+  .side nav button { display: flex; align-items: center; gap: 12px; background: none; border: 0; color: var(--tx2); padding: 11px 12px; border-radius: 12px; font-weight: 700; font-size: 14.5px; text-align: left; }
+  .side nav button:hover { background: var(--s1); color: var(--tx); }
+  .side nav button[aria-current="page"] { background: rgba(31, 174, 108, .13); color: var(--em2); box-shadow: inset 3px 0 0 var(--em2); }
+  .side .az { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--s1); }
+  .side .az .av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--s3); font-weight: 800; font-size: 13px; }
+  .side .az div { min-width: 0; font-size: 12.5px; }
+  .side .az b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+  .side .az span { color: var(--tx3); }
+  .gore, .dolu { display: none; }
+  .glaven { max-width: 1120px; padding-inline: 32px; padding-block: 8px 48px; }
+  .glava h1 { font-size: 38px; }
+  .karti.kol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .karti.kol3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .spisyk.kol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .geroi { min-height: 240px; padding: 34px 34px 30px; }
+  .geroi h2 { font-size: 44px; }
+  .geroi .topka { width: 260px; height: 260px; right: 20px; bottom: -40px; }
+  .dvoino { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .podpis { margin-top: 48px; }
+  .suob { bottom: 28px; }
+}
+@media (min-width: 1440px) { .karti.kol { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: no-preference) {
-  .karta, .red-sport, .sportche { transition: border-color .15s; }
-  .karta:hover, .red-sport:hover, .sportche:hover { border-color: #2a5a44; }
+  .pk, .red, .rz, .fs, .novina, .sp-it .ik { transition: border-color .15s, transform .15s; }
+  .pk:hover, .red:hover, .fs:hover { border-color: rgba(55, 212, 148, .32); }
+  .sp-it:hover .ik { transform: translateY(-2px); border-color: var(--em); }
 }
