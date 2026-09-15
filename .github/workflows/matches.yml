@@ -45,8 +45,8 @@ jobs:
     # 25, не 15: стъпката „Изчакай news-bot“ може да чака до 10 мин.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       # Мостът към news-bot. Ако news.yml още върви (или чака ред), изчакваме

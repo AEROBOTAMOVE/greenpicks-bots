@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Пълна история, за да може rebase-ът долу да работи спокойно.
           fetch-depth: 0
@@ -59,7 +59,7 @@ jobs:
       - name: Дръпни последното (checkout-ът може да е застоял)
         run: git pull --ff-only origin ${{ github.ref_name }} || echo "не превъртя чисто — карам с това, което имам"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 

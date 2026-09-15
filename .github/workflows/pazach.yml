@@ -38,14 +38,14 @@ jobs:
   pazach:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Състоянието (кога сме казали коя тревога) живее в хранилището.
       # Застоял checkout значи забравена почивка и повторена тревога.
       - name: Дръпни последното
         run: git pull --ff-only origin ${{ github.ref_name }} || echo "не превъртя чисто — карам с това, което имам"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 

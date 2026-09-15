@@ -20,7 +20,8 @@ on:
         default: false
 
 permissions:
-  contents: read
+  # write: паметта на канала се връща в хранилището (виж последната стъпка)
+  contents: write
 
 concurrency:
   group: content-seed
@@ -31,8 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -65,3 +66,29 @@ jobs:
           GROUP_LINK: "${{ vars.GROUP_LINK || 'https://t.me/+_oYsaYaVKU80Yjc0' }}"
           CHANNEL_SEED_DRY: ${{ github.event.inputs.dry_run }}
         run: python channel_seed.py
+
+      # 🔴 ПАМЕТТА НА КАНАЛА СЕ ВРЪЩА В ХРАНИЛИЩЕТО (15.09.2026). Без тази
+      # стъпка channel_seed_state.json умираше с рънъра: всяко ръчно пускане
+      # «не помнеше» приветствието и пращаше НОВО — така се появи второ.
+      # always(): записаното преди евентуален срив също трябва да се върне.
+      - name: Запази паметта на канала
+        if: ${{ always() && github.event.inputs.dry_run != 'true' && (github.event.inputs.target == 'channel' || github.event.inputs.target == 'both') }}
+        run: |
+          git config user.name "greenpicks-bot"
+          git config user.email "bot@greenpicks"
+          [ -f channel_seed_state.json ] && git add channel_seed_state.json
+          if git diff --cached --quiet; then
+            echo "Паметта на канала е без промяна."
+            exit 0
+          fi
+          git commit -m "channel state"
+          for i in 1 2 3 4 5; do
+            if git push; then
+              echo "Паметта на канала е запазена."
+              exit 0
+            fi
+            git pull --rebase --autostash || git rebase --abort || true
+            sleep $((RANDOM % 6 + 3))
+          done
+          echo "ЧЕРВЕНО: паметта на канала НЕ се върна. Следващото пускане ще осинови закачения пост."
+          exit 1

@@ -30,8 +30,8 @@ jobs:
           echo "СПРЯНО, нищо не е пипано: createForumTopic създава НОВИ стаи при всяко пускане."
           echo "Ако НАИСТИНА искаш да създадеш стаи, пусни пак и напиши SUZDAI-STAI в полето confirm."
           exit 1
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Create forum topics

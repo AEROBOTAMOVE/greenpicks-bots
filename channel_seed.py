@@ -370,6 +370,54 @@ def is_same(res):
     return "message is not modified" in errtext(res)
 
 
+def _prav_red(text):
+    """Първият непразен ред като ГОЛ текст — както Telegram го връща."""
+    import html as _html
+    import re as _re
+    for ln in str(text or "").split(NL):
+        t = _html.unescape(_re.sub(r"<[^>]+>", "", ln)).strip()
+        if t:
+            return t
+    return ""
+
+
+def nashiyat_zakachen(res, item):
+    """id на закачения пост, ако Е нашето приветствие (по първия ред). Иначе None.
+
+    🔴 ЗАЩО (15.09.2026). Паметта живееше само в рънъра: content.yml не я
+    връщаше в хранилището, тъй че всяко ръчно пускане «не помнеше» поста и
+    пращаше НОВ — така се появи второ приветствие в канала. Bot API не
+    изброява стари съобщения, но `getChat` казва кой е закаченият: ако е
+    нашият, го осиновяваме и го РЕДАКТИРАМЕ, вместо да пращаме трети.
+
+    🔴 ЦЕЛИЯТ ТЕКСТ, НЕ ПЪРВИЯТ РЕД. Центърът (setup_hub.HUB) се закачва в
+    СЪЩИЯ канал всеки ден в 06:30 и също започва с «🟢 THE GREEN ROOM» —
+    сравнение по първи ред щеше да го вземе за приветствие и да го ПРЕЗАПИШЕ.
+    """
+    import difflib as _dl
+    if not isinstance(res, dict) or not res.get("ok"):
+        return None
+    p = (res.get("result") or {}).get("pinned_message") or {}
+    try:
+        mid = int(p.get("message_id"))
+    except (TypeError, ValueError):
+        return None
+    nash = _gol_tekst(item["text"])
+    tehen = _gol_tekst(p.get("text") or p.get("caption") or "")
+    if nash and tehen and _dl.SequenceMatcher(None, nash, tehen).ratio() >= 0.85:
+        return mid
+    return None
+
+
+def _gol_tekst(text):
+    """Целият текст като ГОЛ текст, ред по ред — както го връща Telegram."""
+    import html as _html
+    import re as _re
+    redove = [_html.unescape(_re.sub(r"<[^>]+>", "", ln)).strip()
+              for ln in str(text or "").split(NL)]
+    return NL.join(r for r in redove if r)
+
+
 def clip(text):
     if len(text) <= TG_HARD:
         return text
@@ -459,6 +507,28 @@ def run_one(state):
     rec = chan(state)["posts"].get(WELCOME_KEY)
     cur = digest(item)
     print(NL + "▶ " + item["name"] + " · " + str(len(item["text"])) + " знака")
+
+    # 🔴 БЕЗ ПАМЕТ — ПЪРВО ПИТАЙ КАНАЛА (15.09.2026). Виж `nashiyat_zakachen`.
+    if not rec and not DRY and BOT_TOKEN and not FORCE:
+        r = api("getChat", chat_id=CHANNEL_ID)
+        if not r.get("ok"):
+            print("   🔴 няма памет и не мога да прочета канала — НЕ пращам, за да не дублирам.")
+            return 0
+        mid = nashiyat_zakachen(r, item)
+        if mid:
+            print("   🔎 няма памет, но закаченият пост (id " + str(mid)
+                  + ") Е нашето приветствие — осиновявам го, НЕ правя нов.")
+            KNOWN_MIDS.add(int(mid))
+            chan(state)["posts"][WELCOME_KEY] = {"mid": int(mid), "hash": "",
+                                                "sent": now_str(), "pin": bool(item["pin"])}
+            save_state(state)
+            rec = chan(state)["posts"][WELCOME_KEY]
+        else:
+            # Приветствието ВЕЧЕ е в канала от предишни пускания; без памет
+            # нов пост е почти сигурно дубликат. Нов — само с FORCE.
+            print("   ⛔ няма памет и закаченият пост не е нашето приветствие —")
+            print("      НЕ пращам без памет. Нов пост само с CHANNEL_SEED_FORCE=1.")
+            return 0
 
     if not rec:
         print("   ➕ няма го в паметта — публикувам го за пръв път.")
@@ -637,6 +707,46 @@ def selftest():
                        "banChatMember", "leaveChat"):
         if bad_method in ALLOWED_METHODS or bad_method in READ_METHODS:
             problems.append("ключалката пропуска " + bad_method)
+
+    # 6) ОСИНОВЯВАНЕТО (15.09.2026) — без памет не се праща втори пост
+    _it = POSTS[0]
+    _gol = _prav_red(_it["text"])
+    if not _gol or "<" in _gol:
+        problems.append("първият ред на приветствието не е гол текст: " + _gol[:40])
+    _nash_gol = _gol_tekst(_it["text"])
+    if nashiyat_zakachen({"ok": True, "result": {"pinned_message": {
+            "message_id": 77, "text": _nash_gol}}}, _it) != 77:
+        problems.append("закаченото НАШЕ приветствие не се осиновява")
+    if nashiyat_zakachen({"ok": True, "result": {"pinned_message": {
+            "message_id": 78, "text": "Чужд закачен пост"}}}, _it) is not None:
+        problems.append("осиновява ЧУЖД закачен пост")
+    # 🔴 ЦЕНТЪРЪТ започва със същия ред «🟢 THE GREEN ROOM» и се закачва в
+    # същия канал всеки ден — НЕ бива да се вземе за приветствие.
+    try:
+        import setup_hub as _sh
+        _hub = _sh.HUB
+    except Exception:                                        # noqa: BLE001
+        _hub = ("🟢 <b>THE GREEN ROOM</b>" + NL + NL
+                + "Показваме кой мач как стои по числата. Честно.")
+    if nashiyat_zakachen({"ok": True, "result": {"pinned_message": {
+            "message_id": 79, "text": _gol_tekst(_hub)}}}, _it) is not None:
+        problems.append("осиновява ЦЕНТЪРА (HUB) като приветствие — би го презаписал")
+    if nashiyat_zakachen({"ok": True, "result": {}}, _it) is not None:
+        problems.append("осиновява без закачен пост")
+    if nashiyat_zakachen({"ok": False, "result": {"pinned_message": {
+            "message_id": 80, "text": _nash_gol}}}, _it) is not None:
+        problems.append("осиновява при отказ на Telegram")
+    try:
+        _src = open(os.path.abspath(__file__), encoding="utf-8-sig").read()
+        _ro = _src.split("def run_one(")[1].split(NL + "def ")[0]
+        if "nashiyat_zakachen(r, item)" not in _ro:
+            problems.append("run_one не пита кой е закаченият, преди да прати нов")
+        if "НЕ пращам, за да не дублирам" not in _ro:
+            problems.append("run_one праща нов пост и когато не може да прочете канала")
+        if "НЕ пращам без памет" not in _ro:
+            problems.append("run_one праща нов пост без памет, когато закаченият не е наш")
+    except Exception as e:
+        problems.append("не мога да прочета собствения си код: " + str(e)[:60])
 
     if MODE not in MODES:
         problems.append("непознат режим: " + str(MODE))

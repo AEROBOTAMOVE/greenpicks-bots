@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Пълна история, за да може rebase-ът долу да работи спокойно.
           fetch-depth: 0
@@ -37,7 +37,7 @@ jobs:
       # --ff-only: ако не може да превърти чисто, спираме, вместо да гадаем.
       - name: Дръпни последното (checkout-ът може да е застоял)
         run: git pull --ff-only origin ${{ github.ref_name }} || echo "не превъртя чисто — карам с това, което имам"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       # 🔴 ДОБАВЕНО 11.08.2026. Рутерът беше ЕДИНСТВЕНИЯТ жив бот без

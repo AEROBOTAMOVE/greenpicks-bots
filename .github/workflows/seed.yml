@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # 🔴 ДОБАВЕНО 12.08.2026. checkout@v4 сваля github.sha — върха от мига, в
       # който рънът е СЪЗДАДЕН, не когато е тръгнал. Concurrency групата държи
       # рънове да чакат; измерено върху 424 ръна, 39 (9.2%) са създадени,
@@ -58,7 +58,7 @@ jobs:
       - name: Дръпни последното (checkout-ът може да е застоял)
         run: git pull --ff-only origin ${{ github.ref_name }} || echo "не превъртя чисто — карам с това, което имам"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
