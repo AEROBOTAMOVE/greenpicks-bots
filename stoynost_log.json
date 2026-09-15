@@ -3,19 +3,19 @@
 "betano_proba": "HTTP 403 Forbidden",
 "betano_zayavki": {
 "provali": 0,
-"snimka_min": 28.7,
+"snimka_min": 46.4,
 "zabrana": null,
 "zayavki": 0
 },
-"koga": "2026-09-15 11:41 UTC",
+"koga": "2026-09-15 12:28 UTC",
 "sportove": {
 "football": {
-"betano": 942,
-"novi": 1,
-"pinnacle": 910,
-"pinnacle_ceni": 919,
-"po_kotva": 2,
-"sas_stoynost": 11
+"betano": 918,
+"novi": 4,
+"pinnacle": 916,
+"pinnacle_ceni": 922,
+"po_kotva": 3,
+"sas_stoynost": 13
 }
 }
 },
@@ -31,7 +31,7 @@
 "kotva": false,
 "liga": "Denmark - Division 1",
 "mid": "1635786701",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.3126,
 "p_prop": 0.3146,
@@ -41,15 +41,47 @@
 4.07
 ],
 "pin_last": [
-2.07,
-2.97,
-4.09
+2.04,
+3.03,
+4.13
 ],
 "sport": "football",
 "start_ms": 1789750800000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
+},
+"football|1635909115|1": {
+"bet": 4.2,
+"bet_liga": "Полша / Първа лига",
+"dom": "Pogon Siedlce",
+"ev": 0.035,
+"gost": "Arka Gdynia",
+"i": 0,
+"izhod": "1",
+"klyuch": "football|1635909115|1",
+"kotva": false,
+"liga": "Poland - 1st Liga",
+"mid": "1635909115",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.2464,
+"p_prop": 0.252,
+"pin": [
+3.71,
+1.96,
+3.45
+],
+"pin_last": [
+3.71,
+1.96,
+3.45
+],
+"sport": "football",
+"start_ms": 1789907400000,
+"t0": "2026-09-15 12:28",
+"t0_ms": 1789475318370,
+"t_last_ms": 1789475318370
 },
 "football|1635980513|1": {
 "bet": 2.85,
@@ -63,7 +95,7 @@
 "kotva": true,
 "liga": "France - Ligue 1",
 "mid": "1635980513",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.3591,
 "p_prop": 0.3584,
@@ -81,7 +113,7 @@
 "start_ms": 1789843500000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 },
 "football|1636007230|2": {
 "bet": 3.5,
@@ -95,7 +127,7 @@
 "kotva": false,
 "liga": "Argentina - Liga Pro",
 "mid": "1636007230",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.2988,
 "p_prop": 0.3003,
@@ -113,7 +145,7 @@
 "start_ms": 1789847100000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 },
 "football|1636062212|1": {
 "bet": 3.75,
@@ -127,7 +159,7 @@
 "kotva": false,
 "liga": "Argentina - Liga Pro",
 "mid": "1636062212",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.2931,
 "p_prop": 0.2949,
@@ -145,7 +177,7 @@
 "start_ms": 1790028000000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 },
 "football|1636216733|2": {
 "bet": 4.5,
@@ -179,6 +211,70 @@
 "t0_ms": 1789472502221,
 "t_last_ms": 1789472502221
 },
+"football|1636267493|2": {
+"bet": 2.22,
+"bet_liga": "Словакия / Купа",
+"dom": "Spartak Myjava",
+"ev": 0.0279,
+"gost": "Slovan Galanta",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636267493|2",
+"kotva": false,
+"liga": "Slovakia - Cup",
+"mid": "1636267493",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.48,
+"p_prop": 0.463,
+"pin": [
+3.15,
+1.92,
+3.49
+],
+"pin_last": [
+3.15,
+1.92,
+3.49
+],
+"sport": "football",
+"start_ms": 1789486200000,
+"t0": "2026-09-15 12:28",
+"t0_ms": 1789475318370,
+"t_last_ms": 1789475318370
+},
+"football|1636293957|1": {
+"bet": 2.67,
+"bet_liga": "Англия / Истимиън Лига - Дивизия 1 Юг Център",
+"dom": "Stoneham",
+"ev": 0.0887,
+"gost": "Ashford Town",
+"i": 0,
+"izhod": "1",
+"klyuch": "football|1636293957|1",
+"kotva": false,
+"liga": "England - Isthmian Division 1 South Central",
+"mid": "1636293957",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.4165,
+"p_prop": 0.4078,
+"pin": [
+2.18,
+2.46,
+3.85
+],
+"pin_last": [
+2.18,
+2.46,
+3.85
+],
+"sport": "football",
+"start_ms": 1789497900000,
+"t0": "2026-09-15 12:28",
+"t0_ms": 1789475318370,
+"t_last_ms": 1789475318370
+},
 "football|1636341528|2": {
 "bet": 2.82,
 "bet_liga": "Италия / Серия С",
@@ -191,7 +287,7 @@
 "kotva": false,
 "liga": "Italy - Serie C Group B",
 "mid": "1636341528",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.3652,
 "p_prop": 0.3629,
@@ -201,15 +297,15 @@
 3.31
 ],
 "pin_last": [
-2.57,
-2.54,
-3.31
+2.66,
+2.47,
+3.3
 ],
 "sport": "football",
 "start_ms": 1789576200000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 },
 "football|1636378696|2": {
 "bet": 3.95,
@@ -223,7 +319,7 @@
 "kotva": false,
 "liga": "Poland - Ekstraklasa",
 "mid": "1636378696",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.2879,
 "p_prop": 0.2909,
@@ -241,7 +337,7 @@
 "start_ms": 1789747200000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 },
 "football|1636442695|2": {
 "bet": 1.87,
@@ -255,7 +351,7 @@
 "kotva": false,
 "liga": "Bulgaria - First League",
 "mid": "1636442695",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.5679,
 "p_prop": 0.5508,
@@ -273,7 +369,7 @@
 "start_ms": 1789824600000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 },
 "football|1636463908|1": {
 "bet": 3.15,
@@ -287,7 +383,7 @@
 "kotva": false,
 "liga": "England - Championship",
 "mid": "1636463908",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.3292,
 "p_prop": 0.3295,
@@ -305,7 +401,39 @@
 "start_ms": 1789826400000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
+},
+"football|1636483855|2": {
+"bet": 2.37,
+"bet_liga": "Дания / Суперлига",
+"dom": "Sonderjyske",
+"ev": 0.022,
+"gost": "Randers",
+"i": 1,
+"izhod": "2",
+"klyuch": "football|1636483855|2",
+"kotva": true,
+"liga": "Denmark - Superliga",
+"mid": "1636483855",
+"n": 1,
+"obarnato": false,
+"p_pow": 0.436,
+"p_prop": 0.4312,
+"pin": [
+3.01,
+2.21,
+3.78
+],
+"pin_last": [
+3.01,
+2.21,
+3.78
+],
+"sport": "football",
+"start_ms": 1789905600000,
+"t0": "2026-09-15 12:28",
+"t0_ms": 1789475318370,
+"t_last_ms": 1789475318370
 },
 "football|1636486521|2": {
 "bet": 2.22,
@@ -319,7 +447,7 @@
 "kotva": true,
 "liga": "France - Ligue 2",
 "mid": "1636486521",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.4808,
 "p_prop": 0.4726,
@@ -337,7 +465,7 @@
 "start_ms": 1789840800000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 },
 "football|1636569769|2": {
 "bet": 7.2,
@@ -351,7 +479,7 @@
 "kotva": false,
 "liga": "Portugal - Primeira Liga",
 "mid": "1636569769",
-"n": 2,
+"n": 3,
 "obarnato": false,
 "p_pow": 0.1499,
 "p_prop": 0.1591,
@@ -369,6 +497,6 @@
 "start_ms": 1789914600000,
 "t0": "2026-09-15 11:28",
 "t0_ms": 1789471691819,
-"t_last_ms": 1789472502221
+"t_last_ms": 1789475318370
 }
 }
