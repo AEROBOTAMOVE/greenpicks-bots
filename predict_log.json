@@ -66268,7 +66268,7 @@
   "pazar_close": 1.69,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0294,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-13|tennis|biancaandreescu|cristinabucsa",
@@ -66520,7 +66520,7 @@
   "scored": true,
   "hit": true,
   "score": "6:2",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-12|volleyball|msen|полша|израел",
@@ -75998,7 +75998,8 @@
   "score": "2:0",
   "pazar_close": 1.44,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0095
+  "pazar_clv": 0.0095,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-15|football|alain|alnassr",
@@ -76041,7 +76042,8 @@
   "score": "4:0",
   "pazar_close": 2.0,
   "pazar_close_izt": "kniga",
-  "pazar_clv": -0.1329
+  "pazar_clv": -0.1329,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-15|tabletennis|alibishomanov|yeongminma",
@@ -76082,7 +76084,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-15|baseball|hokkaidonipponhamfighter|chibalottemarines",
@@ -76126,7 +76128,7 @@
   "pazar_close": 1.43,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0049,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-15|basketball|promitheaspatrasbc|bcvienna",
@@ -76170,7 +76172,7 @@
   "pazar_close": 1.18,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.041,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-16|volleyball|msen|бразилия|чили",
@@ -76248,7 +76250,12 @@
   "p": 0.5881,
   "stars": 3,
   "sample": "гледани 41 мача на единия и 49 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.48,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0659
  },
  {
   "key": "2026-09-15|tabletennis|honmingli|juiyangchang",
@@ -76289,7 +76296,7 @@
   "scored": true,
   "hit": true,
   "score": "2:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-15|baseball|hokkaidonipponhamfighter|chibalottemarines|total",
@@ -76413,7 +76420,7 @@
   "scored": true,
   "hit": true,
   "score": "3:1",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-15|volleyball|msen|севернамакедония|португалия",
@@ -76454,7 +76461,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-15|volleyball|msen|нидерландия|финландия",
@@ -76495,7 +76502,7 @@
   "scored": true,
   "hit": true,
   "score": "2:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-16|baseball|pittsburghpirates|milwaukeebrewers",
@@ -76539,7 +76546,7 @@
   "pazar_close": 1.46,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0397,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-16|baseball|cincinnatireds|losangelesdodgers",
@@ -76582,7 +76589,8 @@
   "score": "0:4",
   "pazar_close": 1.39,
   "pazar_close_izt": "kniga",
-  "pazar_clv": 0.0201
+  "pazar_clv": 0.0201,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-16|baseball|coloradorockies|sandiegopadres",
@@ -76620,7 +76628,13 @@
   "p": 0.6567,
   "stars": 1,
   "sample": "гледани 171 мача на единия и 172 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "9:3",
+  "pazar_close": 1.5,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0045,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-15|tabletennis|yuxuanlow|thunyatornmeekaew",
@@ -76660,7 +76674,8 @@
   "sample": "гледани 8 мача на единия и 48 на другия",
   "scored": true,
   "hit": false,
-  "score": "3:1"
+  "score": "3:1",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-16|baseball|stlouiscardinals|sanfranciscogiants",
@@ -76698,7 +76713,13 @@
   "p": 0.5995,
   "stars": 1,
   "sample": "гледани 171 мача на единия и 175 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:10",
+  "pazar_close": 1.53,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0247,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-16|volleyball|wsen|канада|nicaragua",
@@ -76856,7 +76877,9 @@
   "p": 0.6765,
   "stars": 3,
   "sample": "гледани 93 мача на единия и 68 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3"
  },
  {
   "key": "2026-09-16|baseball|coloradorockies|sandiegopadres|total",
@@ -76894,7 +76917,9 @@
   "p": 0.5321,
   "stars": 1,
   "sample": "гледани 171 мача на единия и 172 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "9:3"
  },
  {
   "key": "2026-09-15|tennis|laurasamson|lucijaciricbagaric",
@@ -77535,7 +77560,12 @@
   "p": 0.5995,
   "stars": 2,
   "sample": "гледани 172 мача на единия и 173 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:2",
+  "pazar_close": 1.6,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0039
  },
  {
   "key": "2026-09-15|esports|blackphoenix|justplayers",
@@ -77712,7 +77742,12 @@
   "p": 0.5644,
   "stars": 1,
   "sample": "гледани 174 мача на единия и 175 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:6",
+  "pazar_close": 1.69,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-15|baseball|samsunglions|lottegiants",
@@ -78151,7 +78186,12 @@
   "p": 0.604,
   "stars": 1,
   "sample": "гледани 175 мача на единия и 173 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1",
+  "pazar_close": 1.59,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.004
  },
  {
   "key": "2026-09-16|volleyball|msen|сащ|доминиканскарепублика",
@@ -78419,7 +78459,12 @@
   "p": 0.6373,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1",
+  "pazar_close": 1.52,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0178
  },
  {
   "key": "2026-09-16|football|londrina|pontepreta",
@@ -78870,7 +78915,9 @@
   "p": 0.81,
   "stars": 2,
   "sample": "гледани 221 мача на единия и 39 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-16|tabletennis|mehdibouloussa|gorkemocal",
@@ -78912,7 +78959,9 @@
   "p": 0.765,
   "stars": 2,
   "sample": "гледани 29 мача на единия и 146 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-09-16|tabletennis|yunentsai|tianeryu",
@@ -78954,7 +79003,9 @@
   "p": 0.6122,
   "stars": 2,
   "sample": "гледани 51 мача на единия и 67 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-15|tabletennis|maksimgrebnev|hechenli",
@@ -79686,7 +79737,12 @@
   "p": 0.608,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1",
+  "pazar_close": 1.66,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0779
  },
  {
   "key": "2026-09-16|volleyball|msen|guatemala|curaçao",
@@ -80190,7 +80246,9 @@
   "p": 0.6614,
   "stars": 2,
   "sample": "гледани 19 мача на единия и 23 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-16|volleyball|msen|венецуела|чили",
@@ -80318,7 +80376,9 @@
   "p": 0.5718,
   "stars": 1,
   "sample": "гледани по 171 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:8"
  },
  {
   "key": "2026-09-16|tabletennis|ryuuseikawakami|hiromukobayashi",
@@ -80402,7 +80462,9 @@
   "p": 0.6219,
   "stars": 2,
   "sample": "гледани 32 мача на единия и 15 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-16|baseball|minnesotatwins|newyorkyankees|total",
@@ -80444,7 +80506,9 @@
   "p": 0.4936,
   "stars": 1,
   "sample": "гледани по 171 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:8"
  },
  {
   "key": "2026-09-16|tabletennis|2255|schanielkrzysztof|jakubpruszkowski",
@@ -80530,7 +80594,9 @@
   "p": 0.8972,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-17|tennis|taylortownsend|martakostyuk",
@@ -80614,7 +80680,9 @@
   "p": 0.7727,
   "stars": 2,
   "sample": "гледани 30 мача на единия и 36 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-16|tabletennis|daryagamova|mariiatailakova",
@@ -80698,7 +80766,9 @@
   "p": 0.7144,
   "stars": 2,
   "sample": "гледани 38 мача на единия и 97 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-09-16|tabletennis|danyangshi|hyukkwon",
@@ -80740,7 +80810,9 @@
   "p": 0.6617,
   "stars": 2,
   "sample": "гледани 10 мача на единия и 143 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-17|tennis|liudmilasamsonova|kayladay",
@@ -80824,7 +80896,9 @@
   "p": 0.722,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-09-16|esports|sparta|baks",
@@ -80866,7 +80940,9 @@
   "p": 0.5785,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-16|baseball|doosanbears|samsunglions",
@@ -80950,7 +81026,9 @@
   "p": 0.7742,
   "stars": 2,
   "sample": "гледани 87 мача на единия и 40 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-09-16|volleyball|msen|франция|румъния",
@@ -81034,7 +81112,12 @@
   "p": 0.7137,
   "stars": 2,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0",
+  "pazar_close": 1.34,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-16|esports|cybershoke|nemiga",
@@ -81118,7 +81201,9 @@
   "p": 0.7533,
   "stars": 2,
   "sample": "гледани 45 мача на единия и 14 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-16|tabletennis|xianchangchen|jiamuwawu",
@@ -81160,7 +81245,9 @@
   "p": 0.72,
   "stars": 2,
   "sample": "гледани 34 мача на единия и 14 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-16|esports|alka|turmadopagode",
@@ -81496,7 +81583,9 @@
   "p": 0.6281,
   "stars": 2,
   "sample": "гледани 20 мача на единия и 31 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-09-16|esports|quazar|exrustec",
@@ -81622,7 +81711,9 @@
   "p": 0.7403,
   "stars": 2,
   "sample": "гледани 38 мача на единия и 107 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-09-16|football|alrayyan|alfaisaly",
