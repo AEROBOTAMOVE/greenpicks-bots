@@ -1,0 +1,39 @@
+name: Живо (API-Football)
+
+# Тегли живите футболни резултати на всеки 20 минути (72 заявки/ден < 100 таван)
+# и качва zhivo_futbol.json в repo-то — платформата го чете. Върви на GitHub 24/7,
+# безплатно, независимо от компютъра на собственика (API-Football не е гео-заключен).
+#
+# 🔑 ИСКА ТАЙНА: Settings → Secrets → Actions → New: API_FOOTBALL_KEY = ключът.
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zhivo
+  cancel-in-progress: false
+
+jobs:
+  zhivo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Тегли живите
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+        run: python sportni_danni.py
+      - name: Качи zhivo_futbol.json
+        run: |
+          git config user.name "green-room-bot"
+          git config user.email "bot@thegreenroom.local"
+          git add zhivo_futbol.json
+          git diff --cached --quiet || git commit -m "живо: обновени резултати на живо"
+          git push
