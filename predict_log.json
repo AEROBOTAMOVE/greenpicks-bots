@@ -66021,9 +66021,10 @@
   "p": 0.6222,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_opiti": 1
+  "combo_opiti": 1,
+  "opit": 1
  },
  {
   "key": "2026-09-12|tabletennis|yujhunli|yunentsai",
@@ -68292,8 +68293,9 @@
   "p": 0.6316,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-12|esports|nemiga|justplayers",
