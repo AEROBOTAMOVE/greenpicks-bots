@@ -73208,9 +73208,10 @@
   "p": 0.8474,
   "stars": 2,
   "sample": "ранглиста и 7 скорошни мача",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_opiti": 1
+  "combo_opiti": 1,
+  "opit": 1
  },
  {
   "key": "2026-09-14|volleyball|msen|словения|гърция",
@@ -75647,8 +75648,9 @@
   "p": 0.6397,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-14|football|iksirius|degerforsif|total",
@@ -79665,7 +79667,8 @@
   "sample": "гледани 31 мача на единия и 25 на другия",
   "scored": true,
   "hit": false,
-  "score": "0:3"
+  "score": "0:3",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-16|football|spartakmoscow|fakelvoronezh",
@@ -79712,7 +79715,8 @@
   "score": "1:0",
   "pazar_close": 1.34,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0055
+  "pazar_clv": 0.0055,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-19|hockey|ässät|kespoo",
@@ -79847,7 +79851,13 @@
   "p": 0.8173,
   "stars": 2,
   "sample": "следени 6 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.2,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0141,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-16|esports|ence|blackphoenix",
@@ -79940,7 +79950,8 @@
   "sample": "гледани 65 мача на единия и 23 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-16|football|atléticomadrid|osasuna",
@@ -80031,7 +80042,8 @@
   "sample": "ранглиста и 10 скорошни мача",
   "scored": true,
   "hit": false,
-  "score": "1:2"
+  "score": "1:2",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-17|baseball|tampabayrays|athletics|total",
@@ -80122,7 +80134,8 @@
   "score": "2:0",
   "pazar_close": 1.05,
   "pazar_close_izt": "kniga",
-  "pazar_clv": 0.0752
+  "pazar_clv": 0.0752,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-20|mma|gigachikadze|joandersonbrito",
@@ -80164,7 +80177,13 @@
   "p": 0.7702,
   "stars": 2,
   "sample": "следени 8 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.24,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0065,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-16|volleyball|msen|полша|българия",
@@ -80208,7 +80227,8 @@
   "sample": "гледани 68 мача на единия и 53 на другия",
   "scored": true,
   "hit": false,
-  "score": "2:3"
+  "score": "2:3",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-20|mma|patriciopitbull|doohochoi",
@@ -87339,7 +87359,7 @@
   "pazar_close": 1.12,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-19|volleyball|msen|куба|доминиканскарепублика",
@@ -87384,7 +87404,7 @@
   "scored": true,
   "hit": true,
   "score": "3:0",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-19|football|vilanova|américamineiro",
@@ -87432,7 +87452,8 @@
   "pazar_close": 1.43,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.015,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-18|tabletennis|hitomisato|mariaxiao",
@@ -87477,7 +87498,7 @@
   "scored": true,
   "hit": true,
   "score": "3:0",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-19|baseball|cincinnatireds|chicagocubs",
@@ -87569,7 +87590,8 @@
   "pazar_close": 1.28,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-18|volleyball|msen|канада|мексико",
@@ -87614,7 +87636,8 @@
   "scored": true,
   "hit": true,
   "score": "3:0",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-19|basketball|minnesotalynx|newyorkliberty",
@@ -87662,7 +87685,8 @@
   "pazar_close": 1.45,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0403,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-18|football|vflwolfsburg|svdarmstadt98",
@@ -87933,7 +87957,7 @@
   "pazar_close": 1.06,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0505,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-18|esports|magic|mibr",
@@ -87981,7 +88005,8 @@
   "pazar_close": 1.38,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-18|tabletennis|mariiatailakova|jiananyuan",
@@ -88026,7 +88051,8 @@
   "scored": true,
   "hit": false,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-18|tabletennis|filippabergand|miyuukihara",
@@ -88071,7 +88097,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-18|esports|mouz|natusvincere",
@@ -90983,7 +91010,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-19|esports|imperial|bestia",
@@ -91031,7 +91058,7 @@
   "pazar_close": 1.35,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-19|volleyball|msen|бразилия|венецуела",
@@ -91293,7 +91320,7 @@
   "pazar_close": 2.28,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.1983,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-19|volleyball|msen|ghana|chad",
@@ -91659,7 +91686,7 @@
   "pazar_close": 1.2,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0641,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-19|tabletennis|dariusmovileanu|kanakjha",
@@ -91707,7 +91734,7 @@
   "pazar_close": 1.26,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-19|basketball|melbourneunited|adelaide36ers",
@@ -91755,7 +91782,7 @@
   "pazar_close": 1.4,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.021,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-19|esports|luminosity|bbl",
@@ -91847,7 +91874,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-19|tabletennis|2230|bartoszsulkowski|mikolajlukaszewski",
@@ -93939,7 +93966,12 @@
   "p": 0.7685,
   "stars": 1,
   "sample": "гледани 6 мача на единия и 15 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1",
+  "pazar_close": 1.19,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-19|football|atléticomadrid|duxlogroño",
@@ -94206,7 +94238,12 @@
   "p": 0.5556,
   "stars": 3,
   "sample": "гледани 38 мача на единия и 48 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 1.68,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-23|hockey|hifk|kärpät",
@@ -94647,7 +94684,9 @@
   "p": 0.7017,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-09-20|tabletennis|2200|dawidpyrek|michalguzik",
@@ -94689,7 +94728,9 @@
   "p": 0.8052,
   "stars": 1,
   "sample": "гледани 7 мача на единия и 10 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-20|volleyball|wsen|виетнам|китай",
@@ -95361,7 +95402,9 @@
   "p": 0.77,
   "stars": 2,
   "sample": "гледани 10 мача на единия и 15 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-09-20|football|levadiakos|олимпиакос",
@@ -95655,7 +95698,9 @@
   "p": 0.6946,
   "stars": 1,
   "sample": "гледани 7 мача на единия и 5 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-20|baseball|chunichidragons|hiroshimatoyocarp",
@@ -95823,6 +95868,258 @@
   "p": 0.5156,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-09-20|tennis|pachecomendezr|simakini",
+  "combo": 0,
+  "posted": "2026-09-20 02:32",
+  "day": "2026-09-20",
+  "bucket": "tennis",
+  "home": "Pacheco Mendez R.",
+  "away": "Simakin I.",
+  "home_id": "",
+  "away_id": "",
+  "league": "Phan Thiet 4 (Vietnam) · Challenger",
+  "slug": null,
+  "src": "itf",
+  "itf_id": "xS1NkPHc",
+  "igra": null,
+  "pick": "2 · Simakin I.",
+  "pazar_cena": 1.69,
+  "pazar_cena_drug": 2.26,
+  "pazar_p": 0.5722,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.69,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-09-20 02:37",
+  "p_model": 0.5886267647631396,
+  "obarnata": false,
+  "strength": 0.17725352952627904,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1637045486",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": false,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.5886,
+  "stars": 2,
+  "sample": "гледани по 50 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-09-20|baseball|yomiurigiants|tokyoyakultswallows",
+  "combo": 0,
+  "posted": "2026-09-20 02:32",
+  "day": "2026-09-20",
+  "bucket": "baseball",
+  "home": "Yomiuri Giants",
+  "away": "Tokyo Yakult Swallows",
+  "home_id": "",
+  "away_id": "",
+  "league": "Япония NPB",
+  "slug": null,
+  "src": "azia",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · Yomiuri Giants",
+  "pazar_cena": 1.69,
+  "pazar_cena_drug": 2.28,
+  "pazar_p": 0.5743,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.69,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-09-20 02:37",
+  "p_model": 0.6413939262260896,
+  "obarnata": false,
+  "strength": 0.2827878524521792,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "pinnacle",
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.5743,
+  "stars": 2,
+  "sample": "гледани по 25 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-09-20|volleyball|msen|франция|португалия",
+  "combo": 0,
+  "posted": "2026-09-20 02:32",
+  "day": "2026-09-20",
+  "bucket": "volleyball",
+  "home": "Франция",
+  "away": "Португалия",
+  "home_id": "FRA",
+  "away_id": "POR",
+  "league": "CEV EuroVolley 2026 | Men",
+  "slug": null,
+  "src": "fivb",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · победа Франция",
+  "pazar_cena": 1.03,
+  "pazar_cena_drug": 10.0,
+  "pazar_p": 0.9066,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.03,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-09-20 02:37",
+  "p_model": 0.8451510461289241,
+  "obarnata": false,
+  "strength": 0.6903020922578482,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "vitrina",
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.9066,
+  "stars": 3,
+  "sample": "гледани 58 мача на единия и 27 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-09-20|tabletennis|yidiwang|hitomisato",
+  "combo": 0,
+  "posted": "2026-09-20 02:32",
+  "day": "2026-09-20",
+  "bucket": "tabletennis",
+  "home": "Yidi WANG",
+  "away": "Hitomi SATO",
+  "home_id": "124110",
+  "away_id": "122261",
+  "league": "WTT Star Contender Astana 2026 - President’s Cup Presented By Nomad Table Tennis Academy · Women's Singles",
+  "slug": null,
+  "src": "wtt",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Hitomi SATO",
+  "pazar_cena": null,
+  "pazar_cena_drug": null,
+  "pazar_p": null,
+  "dvizhenie": null,
+  "dvizhenie_ot": null,
+  "dvizhenie_n": null,
+  "dvizhenie_koga": null,
+  "p_model": null,
+  "obarnata": false,
+  "strength": 0.10793933987511173,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.554,
+  "stars": 2,
+  "sample": "гледани 77 мача на единия и 100 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-09-21|baseball|tohokurakutengoldeneagle|fukuokasoftbankhawks",
+  "combo": 0,
+  "posted": "2026-09-20 02:32",
+  "day": "2026-09-21",
+  "bucket": "baseball",
+  "home": "Tohoku Rakuten Golden Eagles",
+  "away": "Fukuoka Softbank Hawks",
+  "home_id": "",
+  "away_id": "",
+  "league": "Япония NPB",
+  "slug": null,
+  "src": "azia",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Fukuoka Softbank Hawks",
+  "pazar_cena": 1.55,
+  "pazar_cena_drug": 2.43,
+  "pazar_p": 0.6106,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.55,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-09-20 02:37",
+  "p_model": 0.5956468523342255,
+  "obarnata": false,
+  "strength": 0.19129370466845108,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "kambi",
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.5956,
+  "stars": 2,
+  "sample": "гледани по 25 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-09-20|tabletennis|alexislebrun|qihaozhou",
+  "combo": 0,
+  "posted": "2026-09-20 02:32",
+  "day": "2026-09-20",
+  "bucket": "tabletennis",
+  "home": "Alexis LEBRUN",
+  "away": "Qihao ZHOU",
+  "home_id": "132992",
+  "away_id": "119533",
+  "league": "WTT Star Contender Astana 2026 - President’s Cup Presented By Nomad Table Tennis Academy · Men's Singles",
+  "slug": null,
+  "src": "wtt",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · Alexis LEBRUN",
+  "pazar_cena": 1.52,
+  "pazar_cena_drug": 2.35,
+  "pazar_p": 0.6072,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.52,
+  "dvizhenie_n": 2,
+  "dvizhenie_koga": "2026-09-20 01:04",
+  "p_model": 0.5511002444987775,
+  "obarnata": false,
+  "strength": 0.10220048899755496,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "kambi",
+  "pazar_sport": "tabletennis",
+  "pazar_liga": "WTT Star Contender Astana",
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.6072,
+  "stars": 2,
+  "sample": "гледани 70 мача на единия и 51 на другия",
   "scored": false
  }
 ]
