@@ -79668,7 +79668,7 @@
   "scored": true,
   "hit": false,
   "score": "0:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-16|football|spartakmoscow|fakelvoronezh",
@@ -79716,7 +79716,7 @@
   "pazar_close": 1.34,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0055,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-19|hockey|ässät|kespoo",
@@ -79857,7 +79857,7 @@
   "pazar_close": 1.2,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0141,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-16|esports|ence|blackphoenix",
@@ -79951,7 +79951,7 @@
   "scored": true,
   "hit": true,
   "score": "3:0",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-16|football|atléticomadrid|osasuna",
@@ -80043,7 +80043,7 @@
   "scored": true,
   "hit": false,
   "score": "1:2",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-17|baseball|tampabayrays|athletics|total",
@@ -80135,7 +80135,7 @@
   "pazar_close": 1.05,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0752,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-20|mma|gigachikadze|joandersonbrito",
@@ -80183,7 +80183,7 @@
   "pazar_close": 1.24,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0065,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-16|volleyball|msen|полша|българия",
@@ -80228,7 +80228,7 @@
   "scored": true,
   "hit": false,
   "score": "2:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-20|mma|patriciopitbull|doohochoi",
@@ -80312,7 +80312,12 @@
   "p": 0.6896,
   "stars": 1,
   "sample": "следени 7 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0",
+  "pazar_close": 1.57,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0773
  },
  {
   "key": "2026-09-20|mma|alonzomenifield|iwobaraniewski",
@@ -80396,7 +80401,12 @@
   "p": 0.6682,
   "stars": 2,
   "sample": "следени 9 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0",
+  "pazar_close": 1.5,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0278
  },
  {
   "key": "2026-09-16|tabletennis|dmitriivinogradov|mukhammadalikurbantayev",
@@ -87359,7 +87369,8 @@
   "pazar_close": 1.12,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-19|volleyball|msen|куба|доминиканскарепублика",
@@ -87404,7 +87415,8 @@
   "scored": true,
   "hit": true,
   "score": "3:0",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-19|football|vilanova|américamineiro",
@@ -87498,7 +87510,8 @@
   "scored": true,
   "hit": true,
   "score": "3:0",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-19|baseball|cincinnatireds|chicagocubs",
@@ -87957,7 +87970,8 @@
   "pazar_close": 1.06,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0505,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-18|esports|magic|mibr",
@@ -91010,7 +91024,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-19|esports|imperial|bestia",
@@ -91058,7 +91073,7 @@
   "pazar_close": 1.35,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-09-19|volleyball|msen|бразилия|венецуела",
@@ -91102,7 +91117,8 @@
   "sample": "гледани 73 мача на единия и 26 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-20|basketball|atlantadream|chicagosky",
@@ -91144,7 +91160,13 @@
   "p": 0.8469,
   "stars": 3,
   "sample": "гледани 88 мача на единия и 85 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "106:81",
+  "pazar_close": 1.08,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.041,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-20|baseball|clevelandguardians|athletics",
@@ -91186,7 +91208,13 @@
   "p": 0.6207,
   "stars": 2,
   "sample": "гледани 175 мача на единия и 177 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "12:6",
+  "pazar_close": 1.53,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0042,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-19|tennis|joellelillysophiesteur|claraburel",
@@ -91320,7 +91348,8 @@
   "pazar_close": 2.28,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.1983,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-19|volleyball|msen|ghana|chad",
@@ -91367,7 +91396,8 @@
   "score": "3:0",
   "pazar_close": 1.08,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0
+  "pazar_clv": 0.0,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-19|esports|mibr|nrg",
@@ -91414,7 +91444,8 @@
   "score": "1:0",
   "pazar_close": 1.52,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0
+  "pazar_clv": 0.0,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-20|baseball|sandiegopadres|miamimarlins",
@@ -91500,7 +91531,8 @@
   "sample": "гледани 68 мача на единия и 8 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-19|tabletennis|alexislebrun|kaystumper",
@@ -91686,7 +91718,7 @@
   "pazar_close": 1.2,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0641,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-09-19|tabletennis|dariusmovileanu|kanakjha",
@@ -91734,7 +91766,7 @@
   "pazar_close": 1.26,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-09-19|basketball|melbourneunited|adelaide36ers",
@@ -91782,7 +91814,7 @@
   "pazar_close": 1.4,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.021,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-09-19|esports|luminosity|bbl",
@@ -91829,7 +91861,8 @@
   "score": "1:0",
   "pazar_close": 1.48,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0221
+  "pazar_clv": 0.0221,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-19|tabletennis|xiaotongwang|honokahashimoto",
@@ -91874,7 +91907,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-19|tabletennis|2230|bartoszsulkowski|mikolajlukaszewski",
@@ -92051,7 +92085,12 @@
   "p": 0.6358,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 54 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.43,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0201
  },
  {
   "key": "2026-09-19|tennis|yasminekabbaj|aliciaherrerolinana",
@@ -92140,7 +92179,9 @@
   "p": 0.5454,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 54 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1"
  },
  {
   "key": "2026-09-19|basketball|dallaswings|phoenixmercury|total",
@@ -92943,7 +92984,9 @@
   "p": 0.5702,
   "stars": 2,
   "sample": "гледани 92 мача на единия и 93 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-09-19|tennis|sharipovm|barbiryukovp",
@@ -93303,7 +93346,12 @@
   "p": 0.7406,
   "stars": 3,
   "sample": "ранглиста и 16 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.32,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0058
  },
  {
   "key": "2026-09-19|tabletennis|1100|paweladamus|witoldbuczynski",
@@ -94460,7 +94508,12 @@
   "p": 0.6574,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 54 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.34,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0268
  },
  {
   "key": "2026-09-20|baseball|hokkaidonipponhamfighter|orixbuffaloes",
@@ -95656,7 +95709,9 @@
   "p": 0.5867,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-09-20|tabletennis|2310|dawidpyrek|henryktkaczyk",
