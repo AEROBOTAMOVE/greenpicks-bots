@@ -755,28 +755,92 @@
   }
 
   /* ── SCENARIO LAB ── */
+  // ── РЕАЛЕН IN-PLAY POISSON ДВИГАТЕЛ (Сценарии) ──
+  function poissonPmf(lam, k) {
+    if (lam <= 0) return k === 0 ? 1 : 0;
+    let p = Math.exp(-lam);
+    for (let i = 1; i <= k; i++) p *= lam / i;
+    return p;
+  }
+  function inplayHDA(lamH, lamG, minute, gh, gg, red) {
+    const f = Math.max(0, (90 - minute) / 90);
+    let lh = lamH * f, lg = lamG * f;
+    if (red === "dom") { lh *= 0.72; lg *= 1.10; }
+    else if (red === "gost") { lg *= 0.72; lh *= 1.10; }
+    const MAX = 10, ph = [], pg = [];
+    for (let i = 0; i <= MAX; i++) { ph[i] = poissonPmf(lh, i); pg[i] = poissonPmf(lg, i); }
+    let H = 0, D = 0, A = 0;
+    for (let i = 0; i <= MAX; i++) for (let j = 0; j <= MAX; j++) {
+      const p = ph[i] * pg[j], fh = gh + i, fg = gg + j;
+      if (fh > fg) H += p; else if (fh === fg) D += p; else A += p;
+    }
+    const s = H + D + A || 1;
+    return { h: H / s, d: D / s, a: A / s };
+  }
+  function fitLambdas(outcome, procent, mu) {
+    const target = Math.min(0.94, Math.max(0.06, (procent || 55) / 100));
+    if (outcome === "X") {
+      let lo = 0.6, hi = 3.4;
+      for (let it = 0; it < 34; it++) { const mid = (lo + hi) / 2; (inplayHDA(mid / 2, mid / 2, 0, 0, 0, null).d < target) ? hi = mid : lo = mid; }
+      const m = (lo + hi) / 2; return { lh: m / 2, lg: m / 2 };
+    }
+    const key = outcome === "2" ? "a" : "h", inc = key === "h";
+    let lo = 0.2, hi = 6.0;
+    for (let it = 0; it < 40; it++) { const r = (lo + hi) / 2; const pv = inplayHDA(mu * r / (1 + r), mu / (1 + r), 0, 0, 0, null)[key]; ((pv < target) === inc) ? lo = r : hi = r; }
+    const r = (lo + hi) / 2; return { lh: mu * r / (1 + r), lg: mu / (1 + r) };
+  }
+  function pickOutcome(p) {
+    const s = String((p && (p.izhod != null ? p.izhod : p.izbor)) || "").trim();
+    if (/^2([·.\s]|$)/.test(s)) return "2";
+    if (/^[XХ]([·.\s]|$)/.test(s)) return "X";
+    return "1";
+  }
+  function scenMach() {
+    const d = S.data || {};
+    if (S.machK && S.machK.sport === "football" && S.machK.dom) return S.machK;
+    const pool = (d.prognozi || []).concat(d.dnes || []);
+    return pool.find((p) => p && p.sport === "football" && p.dom && p.gost) || S.machK || (d.prognozi || [])[0] || null;
+  }
+  function kratkoIme(s) { s = String(s || ""); const w = s.split(/\s+/); return (w[0] && w[0].length <= 12) ? w[0] : s.slice(0, 11); }
+  function scenView(m, sc) {
+    if (sc.red) { const t = sc.red === "dom" ? m.gost : m.dom; return "Червен картон мени силите — " + kratkoIme(t) + " с човек повече поема инициативата."; }
+    if (sc.gh > sc.gg) return kratkoIme(m.dom) + " води; с оставащото време преднината тежи все повече.";
+    if (sc.gg > sc.gh) return kratkoIme(m.gost) + " води на чужд терен — обрат се иска все по-бързо.";
+    if (sc.minute >= 70) return "Равенство в последните минути — реми става все по-вероятно.";
+    if (sc.minute >= 45) return "Второто полувреме тръгва равно; всеки гол мени картината рязко.";
+    return "Изчислено от силите на отборите преди начало.";
+  }
   function ekranScenario() {
-    const scen = [["1", "⚽", "Real вкарва първи", true], ["2", "🔵", "Barça вкарва първи", false], ["0:0", "", "0:0 до 60’", false], ["", "🟥", "Червен картон", false]];
+    const m = scenMach();
+    if (!m || !m.dom) return ramka(["Сценарии", "Симулирай мача."], '<p class="prazno">Няма футболен мач за симулация в момента.</p>');
+    const mid = m.id || (m.dom + m.gost);
+    if (!S.scen || S.scen.id !== mid) S.scen = { id: mid, gh: 0, gg: 0, red: null, minute: 0 };
+    const sc = S.scen, outcome = pickOutcome(m);
+    const { lh, lg } = fitLambdas(outcome, m.procent, 2.7);
+    const pr = inplayHDA(lh, lg, sc.minute, sc.gh, sc.gg, sc.red);
+    let H = Math.round(pr.h * 100), D = Math.round(pr.d * 100), A = Math.round(pr.a * 100);
+    const fix = 100 - (H + D + A), mx = Math.max(H, D, A); if (H === mx) H += fix; else if (A === mx) A += fix; else D += fix;
     const gauge = (p, lbl) => `<div class="gauge"><div class="ring" style="--p:${p}"><b>${p}%</b></div><span>${esc(lbl)}</span></div>`;
+    const scB = [["gol-dom", "⚽", "Гол " + kratkoIme(m.dom)], ["gol-gost", "⚽", "Гол " + kratkoIme(m.gost)],
+      ["red-dom", "🟥", "Червен " + kratkoIme(m.dom), sc.red === "dom"], ["red-gost", "🟥", "Червен " + kratkoIme(m.gost), sc.red === "gost"]];
+    const mins = [0, 15, 30, 45, 60, 75, 85];
     return ramka(null, `
       <div class="hero">
         <div class="hero-fig" style="background-image:url('/img/scenario-zar.png')"></div>
-        <div class="hero-copy"><p class="eyebrow">Симулация</p><h1>Сценарии</h1><p class="pod">Разгледай сценарии и виж как се менят вероятностите.</p></div>
+        <div class="hero-copy"><p class="eyebrow">Симулация · реален разчет</p><h1>Сценарии</h1><p class="pod">Промени случките и виж как моделът мени вероятностите.</p></div>
       </div>
-      <article class="pk"><div class="pk-h">${ik("football", "ik s")}<span class="liga">Ла Лига · Днес · 22:00</span></div>
-        <div class="pk-mach"><div class="pk-tim">${ekip("Real Madrid")}<span>Real Madrid</span></div><div class="pk-vs">VS</div><div class="pk-tim d">${ekip("Barcelona")}<span>Barcelona</span></div></div></article>
-      <section class="sekcia"><header><h2>Избери сценарий</h2></header>
-        <div class="scen-grid">${scen.map(([v, e, t, on]) => `<button class="scen-b${on ? " on" : ""}">${e ? `<span class="scen-e">${e}</span>` : v ? `<span class="scen-v">${esc(v)}</span>` : ""}<b>${esc(t)}</b></button>`).join("")}</div></section>
-      <section class="sekcia"><header><h2>Минута</h2><span class="scen-min">30’</span></header>
-        <div class="slider"><span style="width:38%"></span><i style="left:38%"></i></div></section>
+      <article class="pk"><div class="pk-h">${ik("football", "ik s")}<span class="liga">${esc(m.sport_bg || "Футбол")}${m.liga ? " · " + esc(m.liga) : ""}</span></div>
+        <div class="pk-mach"><div class="pk-tim">${ekip(m.dom)}<span>${esc(kratkoIme(m.dom))}</span></div>
+          <div class="scen-tablo"><b>${sc.gh} : ${sc.gg}</b><span>${sc.minute}′${sc.red ? " · 🟥" : ""}</span></div>
+          <div class="pk-tim d">${ekip(m.gost)}<span>${esc(kratkoIme(m.gost))}</span></div></div></article>
       <section class="sekcia"><header><h2>Вероятности за краен резултат</h2></header>
-        <div class="gauges">${gauge(64, "Real")}${gauge(22, "Равен")}${gauge(14, "Barça")}</div></section>
-      <div class="dvoino2">
-        <div class="view-c">${ico("prognozi", "ico")}<div><b>Green Room View</b><span>Темпото се отваря. Пространствата стават по-важни.</span></div></div>
-        <div class="risk-c"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg><div><b>Риск</b><span>Повишена несигурност</span><div class="risk-bar on2"><i></i><i></i><i></i><i></i></div></div></div>
-      </div>
-      <div class="scen-act"><button class="btn full">Сравни резултатите</button></div>
-      <p class="demo-note">Илюстративни стойности, не реален модел.</p>`);
+        <div class="gauges">${gauge(H, kratkoIme(m.dom))}${gauge(D, "Равен")}${gauge(A, kratkoIme(m.gost))}</div></section>
+      <section class="sekcia"><header><h2>Случки в мача</h2><button class="vsichki" data-scen="reset">Нулирай</button></header>
+        <div class="scen-grid">${scB.map(([a, e, t, on]) => `<button class="scen-b${on ? " on" : ""}" data-scen="${a}"><span class="scen-e">${e}</span><b>${esc(t)}</b></button>`).join("")}</div></section>
+      <section class="sekcia"><header><h2>Минута</h2><span class="scen-min">${sc.minute}′</span></header>
+        <div class="chipove">${mins.map((x) => `<button class="chip" data-scen="min:${x}" aria-pressed="${sc.minute === x}">${x}′</button>`).join("")}</div></section>
+      <div class="view-c">${ico("prognozi", "ico")}<div><b>Green Room View</b><span>${esc(scenView(m, sc))}</span></div></div>
+      <p class="scen-note">Разчетът е по Поасон върху оставащото време, стъпил на реалната ни прогноза${m.procent ? " (" + esc(m.procent) + "% за " + esc(izborTxt(m.izbor || outcome)) + ")" : ""}. Реален модел, не илюстрация.</p>`);
   }
 
   /* ── MATCH ROOM ── */
@@ -976,6 +1040,17 @@
     if (ds.stab) { S.sportTab = ds.stab; return render(); }
     if (ds.nsport !== undefined) { S.novSport = ds.nsport; return render(); }
     if (ds.pkview) { S.pkView = ds.pkview; return render(); }
+    if (ds.scen) {
+      if (!S.scen) return render();
+      const a = ds.scen;
+      if (a === "reset") S.scen = { id: S.scen.id, gh: 0, gg: 0, red: null, minute: 0 };
+      else if (a === "gol-dom") S.scen.gh = Math.min(9, S.scen.gh + 1);
+      else if (a === "gol-gost") S.scen.gg = Math.min(9, S.scen.gg + 1);
+      else if (a === "red-dom") S.scen.red = S.scen.red === "dom" ? null : "dom";
+      else if (a === "red-gost") S.scen.red = S.scen.red === "gost" ? null : "gost";
+      else if (a.slice(0, 4) === "min:") S.scen.minute = parseInt(a.slice(4), 10) || 0;
+      return render();
+    }
     if (ds.ptab) { S.progTab = ds.ptab; return render(); }
     if (ds.psort) { S.progSort = ds.psort; return render(); }
     if (ds.lfav) { S.samoLyubimi = !S.samoLyubimi; return render(); }

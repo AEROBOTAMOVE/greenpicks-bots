@@ -770,3 +770,9 @@ img, svg { max-width: 100%; }
 .prazno-live b { font-family: var(--f-disp); font-size: 18px; color: var(--tx); }
 .prazno-live p { font-size: 12.5px; color: var(--tx2); line-height: 1.5; max-width: 300px; margin: 0; }
 .prazno-live .btn { margin-top: 6px; max-width: 260px; }
+
+/* ── СЦЕНАРИИ (реален in-play разчет) ── */
+.scen-tablo { text-align: center; padding: 0 8px; min-width: 78px; }
+.scen-tablo b { display: block; font-family: var(--f-disp); font-size: 27px; color: var(--gold); font-variant-numeric: tabular-nums; line-height: 1; }
+.scen-tablo span { font-size: 11px; color: var(--tx2); }
+.scen-note { text-align: center; color: var(--tx3); font-size: 11px; line-height: 1.5; margin: 14px 0 0; }
