@@ -964,6 +964,64 @@ def pct(p):
     return str(int(round(float(p) * 100.0))) + "%"
 
 
+# 🔴 ЧЕСТНОСТ В ПРОЦЕНТИТЕ (22.09.2026). Спорт, който ОБЯВЯВА повече, отколкото
+# СБЪДВА (пазачът го хваща: хокей 66%→56%, ММА «надценява се»), сваля ПОКАЗАНИЯ
+# на картата процент към реалната си успеваемост. Вътрешното `p` НЕ се пипа — то
+# храни гейта и стойността; тук се коригира само числото, което чете човекът.
+# Празен KALIBR = старото поведение (пълни се само в run(); самопроверката сменя
+# дневника с малки макети и НЕ го пълни → остава непокътната). Праг: ≥20 отсъдени
+# и надценка ≥4 пункта, за да не гони шум. Същата сметка като в платформата
+# (data.mjs). Път назад: изтрий KALIBR/zaredi_kalibr/pct_k и върни pct() на трите
+# места (compact-картата, стайната карта, крака на фиша).
+KALIBR = {}
+
+
+def zaredi_kalibr(rows=None, dni=30):
+    """За всеки спорт: колко се надценява (обявено p срещу сбъднато) за последните
+    `dni` дни. Пълни KALIBR с коефициент за свиване ≤1. Празно = не пипаме."""
+    global KALIBR
+    if rows is None:
+        try:
+            with open(PICKLOG_FILE, encoding="utf-8-sig") as f:
+                rows = json.load(f)
+        except (OSError, ValueError):
+            rows = []
+    if not isinstance(rows, list):
+        rows = []
+    granica = (datetime.now(timezone.utc).date() - timedelta(days=dni)).isoformat()
+    agg = {}
+    for r in rows:
+        if not isinstance(r, dict) or not r.get("scored") or r.get("hit") not in (True, False):
+            continue
+        if str(r.get("day") or "")[:10] < granica:
+            continue
+        a = agg.setdefault(r.get("bucket") or "drugi", [0, 0, 0.0])  # n, познати, сума p
+        a[0] += 1
+        a[2] += float(r.get("p") or 0.0)
+        if r.get("hit") is True:
+            a[1] += 1
+    k = {}
+    for s, (n, poz, sp) in agg.items():
+        if n < 20:
+            continue
+        u = poz / n
+        pbar = sp / n
+        if pbar > 0 and pbar - u >= 0.04:
+            k[s] = max(0.6, min(1.0, u / pbar))
+    KALIBR = k
+    return k
+
+
+def pct_k(an):
+    """pct(), но свито към реалната успеваемост на спорта (виж zaredi_kalibr)."""
+    try:
+        p = float(an.get("p") or 0.0)
+    except (TypeError, ValueError):
+        p = 0.0
+    f = KALIBR.get(an.get("bucket"), 1.0)
+    return pct(min(0.99, p * f))
+
+
 def to_num(x):
     try:
         if x is None or str(x).strip() == "":
@@ -2221,7 +2279,7 @@ def staya_tekst(an, cyala, now):
     if izbor:
         parts.append("🎯 <b>" + esc(izbor) + "</b>")
     try:
-        parts.append("<b>" + pct(an.get("p")) + "</b>")
+        parts.append("<b>" + pct_k(an) + "</b>")
     except (TypeError, ValueError):
         pass
     red = " · ".join(x for x in parts if x)
@@ -7408,7 +7466,7 @@ def card(an, now):
     _pod = (int(round(float(an.get("p") or 0.0) * 100.0)) / 100.0) < _letva
     lines += ["",
               "🎯 <b>" + esc(an["pick"]) + "</b>",
-              "<b>" + pct(an["p"]) + "</b>" + (" · " + duma if duma else "")
+              "<b>" + pct_k(an) + "</b>" + (" · " + duma if duma else "")
               + (" · под нашата летва" if _pod else "")]
 
     # Тотал-картата казва СА́МА какво е. Без този ред читателят вижда втора карта
@@ -9662,7 +9720,7 @@ def combo_card(idx, legs, now):
                     _kc = " · " + ("%.2f" % _v)
             except (TypeError, ValueError):
                 _kc = ""
-        lines.append("    🎯 " + esc(a["pick"]) + " · <b>" + pct(a["p"]) + "</b>" + _kc)
+        lines.append("    🎯 " + esc(a["pick"]) + " · <b>" + pct_k(a) + "</b>" + _kc)
     # 💰 ОБЩАТА ЦЕНА. Стои ПРЕДИ думата за риска, защото думата съди
     # вероятността, а цената е другата ѝ страна — човекът иска и двете
     # наведнъж, не на два реда разстояние.
@@ -10431,6 +10489,13 @@ def run():
         print("Мачовете не се губят — сутрешното пускане ги поема.")
         return
     state = load_state()
+    # 🔴 Честните проценти: чете дневника и решава кой спорт се надценява, преди
+    # да се сглоби която и да е карта. Празно, ако дневникът липсва — тогава
+    # картите носят суровото p, както преди.
+    zaredi_kalibr()
+    if KALIBR:
+        print("Калибрация (свити спортове): "
+              + ", ".join(s + " ×" + ("%.2f" % f) for s, f in sorted(KALIBR.items())))
     print("Спортове: " + ", ".join(ACTIVE_SPORTS))
     buckets = collect_all(now)
     pool = build_pool(buckets)

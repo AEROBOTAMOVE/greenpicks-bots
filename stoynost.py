@@ -61,6 +61,11 @@ try:
 except ValueError:
     EV_PRAG = 0.02
 EV_TAVAN = 0.15            # над това = грешно сдвояване или застояла линия
+try:
+    KELLY_FRAC = float(os.environ.get("STOYNOST_KELLY_FRAC") or 0.25)   # частичен Кели (¼)
+except ValueError:
+    KELLY_FRAC = 0.25
+KELLY_TAVAN = 0.05         # никога над 5% от банката на един изход
 PROZOREC_MIN = 30          # сдвояване по час: ± минути
 KEEP_DAYS = 10             # записите се пазят толкова дни след мача
 ZATVARYANE_CHASA = 3.0     # последна точка до толкова часа преди старта = затваряне
@@ -102,6 +107,20 @@ def chestni(koef):
 def ev_dvata(p_prop, p_pow, koef):
     """(EV пропорционално, EV степенно) за коефициент koef."""
     return p_prop * koef - 1.0, p_pow * koef - 1.0
+
+
+def kely(ev, koef, frac=None):
+    """Частичен Кели: препоръчан дял от банката за залог с този EV и коефициент.
+
+    Пълният Кели за залог е EV / (к − 1); умножаваме по FRAC (¼ по подразбиране,
+    по-плавно и по-устойчиво на грешна оценка), режем на 0 отдолу и на тавана
+    отгоре. ev трябва да е ПО-ЛОШИЯТ от двата метода (същата предпазливост).
+    """
+    frac = KELLY_FRAC if frac is None else frac
+    b = float(koef) - 1.0
+    if b <= 0 or ev <= 0:
+        return 0.0
+    return round(max(0.0, min(KELLY_TAVAN, frac * (ev / b))), 4)
 
 
 def _ms_ot_iso(s):
@@ -199,7 +218,8 @@ def kandidati(sport, mm, pazari, sabitiya, sreshta, sega_ms, pasvat=None, kotva=
                 "start_ms": ms, "bet": round(bet[i], 3),
                 "pin": [round(float(x), 3) for x in pin],
                 "p_prop": round(p_prop[i], 4), "p_pow": round(p_pow[i], 4),
-                "ev": round(min(ev_p, ev_s), 4)})
+                "ev": round(min(ev_p, ev_s), 4),
+                "kely": kely(min(ev_p, ev_s), bet[i])})
     return out
 
 
@@ -350,6 +370,7 @@ def main():
     sega_ms = int(time.time() * 1000)
     log = zaredi()
     pz_po_sport = {}
+    vsi_k = []
     # 🔴 БЕЛЕЖКАТА (15.09.2026): какво са казали изворите на ТАЗИ машина.
     diag = {"koga": _sega_tekst(sega_ms) + " UTC", "sportove": {},
             "betano_proba": proba_betano(BET)}
@@ -376,6 +397,7 @@ def main():
                       getattr(BET, "etiketite_pasvat", None),
                       getattr(BET, "kotva", None) if KOTVA_VKL else None)
         novi = zapishi(log, k, sega_ms)
+        vsi_k.extend(k)
         diag["sportove"][sport] = {"pinnacle": len(mm or {}), "pinnacle_ceni": len(pz or {}),
                                    "betano": len(ev or []), "sas_stoynost": len(k), "novi": novi,
                                    "po_kotva": sum(1 for x in k if x.get("kotva"))}
@@ -400,6 +422,13 @@ def main():
                  100 * o["dyal_nad_nula"], 100 * o["ev_otkrivane"]))
     else:
         print("💎 още няма мачове със затваряща цена — присъдата чака")
+    if vsi_k:
+        top = sorted(vsi_k, key=lambda x: x.get("kely") or 0, reverse=True)[:3]
+        print("   💰 препоръчан залог (¼ Кели, макс 5%%):")
+        for x in top:
+            print("      %s %s−%s · Бетано %.2f · EV %+.1f%% · заложи %.1f%% от банката"
+                  % (x["izhod"], str(x["dom"])[:16], str(x["gost"])[:16], x["bet"],
+                     100 * x["ev"], 100 * (x.get("kely") or 0)))
     return 0
 
 
@@ -495,6 +524,13 @@ def selftest():
     sab_luda = [("Lokomotiv", "Nesebar", t16, 1.90, 14.50, 3.60)]
     k2 = kandidati("football", mm, pz_luda, sab_luda, sreshta, sega)
     check("над +15% не се записва", "football|1|2" not in {x["klyuch"] for x in k2})
+
+    # ── частичният Кели
+    check("Кели е 0 при неположителен EV", kely(-0.01, 2.0) == 0 and kely(0.0, 2.0) == 0)
+    check("Кели расте с EV", kely(0.10, 2.0) > kely(0.04, 2.0) > 0)
+    check("Кели = FRAC · EV/(к−1)", abs(kely(0.08, 2.0, 0.25) - 0.02) < 1e-9)
+    check("Кели никога над тавана", kely(0.14, 1.10) <= KELLY_TAVAN and kely(5.0, 2.0) == KELLY_TAVAN)
+    check("всяка находка носи препоръчан залог", bool(k) and all("kely" in x and x["kely"] >= 0 for x in k))
 
     # дневникът
     log = {}
