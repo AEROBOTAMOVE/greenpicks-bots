@@ -10137,6 +10137,18 @@ DVIZH_TEZHEST = float((os.environ.get("PREDICT_DVIZH_TEZHEST") or "1000").strip(
                       or 1000)
 # Колко пускания трябва да са видели цената. Една точка не е движение.
 DVIZH_MIN_N = env_int("PREDICT_DVIZH_MIN_N", 2, 1, 20)
+# 🔴 ГРАДАЦИЯ ПО СИЛА (22.09.2026). Мерено ТАЗИ СЕСИЯ на 3 нива лиги
+# (топ-5 / extra / долни) × три цени (отваряне/среда/затваряне):
+#   движение ≥5% → +9.4% ROI дори при СРЕДНАТА цена (@mid) — най-издръжливо;
+#   движение 3–5% → +6.1..7.7% @mid — по-слабо и по-близо до прага (шум).
+# И трите нива дадоха еднаква форма: @mid винаги +, @close винаги −. Тоест
+# ръбът е в СКОРОСТТА, не в лигата. Затова силното движение тежи КОЛКОТО
+# ЗВЕЗДА (пълната мярка), слабото — по-малко. ТАВАНЪТ ОСТАВА ЕДНА ЗВЕЗДА:
+# `DVIZH_TEZHEST` не мърда, чуждата извадка пак не бие нашия дневник.
+DVIZH_PRAG_SILNO = float((os.environ.get("PREDICT_DVIZH_PRAG_SILNO")
+                          or "0.05").strip() or 0.05)
+DVIZH_TEZHEST_SLAB = float((os.environ.get("PREDICT_DVIZH_TEZHEST_SLAB")
+                            or "700").strip() or 700)
 
 
 def dvizh_tezhest(an):
@@ -10168,10 +10180,16 @@ def dvizh_tezhest(an):
         d = float(d)
     except (TypeError, ValueError):
         return 0.0
-    if d >= DVIZH_PRAG:
+    # 🔴 ГРАДАЦИЯ: силно (≥5%) = пълната звезда; слабо (3–5%) = по-малко.
+    # Таванът остава `DVIZH_TEZHEST` (= една звезда, = наказанието за коеф.).
+    if d >= DVIZH_PRAG_SILNO:
         return DVIZH_TEZHEST
-    if d <= -DVIZH_PRAG:
+    if d >= DVIZH_PRAG:
+        return DVIZH_TEZHEST_SLAB
+    if d <= -DVIZH_PRAG_SILNO:
         return -DVIZH_TEZHEST
+    if d <= -DVIZH_PRAG:
+        return -DVIZH_TEZHEST_SLAB
     return 0.0
 
 
@@ -12116,6 +12134,19 @@ def selftest():
     # НАШИЯ дневник; това — на чужда извадка.
     check("не бие измереното у нас",
           abs(DVIZH_TEZHEST - KOEF_SHTAFA) < 1e-9)
+    # 🔴 ГРАДАЦИЯ ПО СИЛА (22.09.2026) — силният steam стои НАД слабия.
+    check("силно движение (≥5%) тежи повече от слабо (3–5%)",
+          dvizh_tezhest({"dvizhenie": 0.06, "dvizhenie_n": 2})
+          > dvizh_tezhest({"dvizhenie": 0.035, "dvizhenie_n": 2}) > 0)
+    check("силното е точно колкото звезда, не повече",
+          abs(dvizh_tezhest({"dvizhenie": 0.06, "dvizhenie_n": 2})
+              - DVIZH_TEZHEST) < 1e-9)
+    check("слабото е под звездата",
+          0 < dvizh_tezhest({"dvizhenie": 0.035, "dvizhenie_n": 2})
+          < DVIZH_TEZHEST)
+    check("знакът важи и при градацията (нагоре срещу надолу)",
+          dvizh_tezhest({"dvizhenie": -0.06, "dvizhenie_n": 2})
+          < dvizh_tezhest({"dvizhenie": -0.035, "dvizhenie_n": 2}) < 0)
     # ── и ръчката го гаси
     _st_dvp = DVIZH_PRAG
     try:
