@@ -102,15 +102,20 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
   });
 
   /* ── POST /api/login ── */
-  const login = guard(async (req) => {
+  const login = guard(async (req, ctx) => {
     const p = await postJson(req);
     if (p.res) return p.res;
     const email = normEmail(p.body.email);
     const pw = typeof p.body.password === "string" ? p.body.password : "";
     if (!validEmail(email) || !pw || pw.length > PASSWORD_MAX) return json(401, { error: MSG.badLogin });
     const n = now();
+    /* Ключът е по (IP + имейл), а НЕ само по имейл: така някой не може да
+       заключи чужд акаунт, като нарочно бърка паролата му от свой адрес —
+       жертвата влиза спокойно от своя адрес. Без IP (рядко) → резерва по имейл. */
+    const ip = ctx && ctx.ip ? String(ctx.ip) : "";
+    const sub = ip ? ip + "|" + email : email;
     /* опитът се записва ПРЕДИ проверката на паролата; успешният вход го чисти */
-    if (!(await takeSlot(email, "login", new Date(n.getTime() - LOGIN_WINDOW_MS), LOGIN_MAX_FAILS, n))) {
+    if (!(await takeSlot(sub, "login", new Date(n.getTime() - LOGIN_WINDOW_MS), LOGIN_MAX_FAILS, n))) {
       return json(429, { error: MSG.loginTooMany }, { "Retry-After": "900" });
     }
     const user = await repo.getUserByEmail(email);
@@ -118,7 +123,7 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
     if (user) ok = await verifyPassword(pw, user.pass_hash);
     else await verifyPassword(pw, await dummy()); // същото време с и без такъв имейл
     if (!ok) return json(401, { error: MSG.badLogin }); // опитът вече е записан от takeSlot
-    await repo.clearAttempts(email, "login");
+    await repo.clearAttempts(sub, "login");
     await repo.touchLogin(user.id, n);
     await repo.cleanup(n);
     const cookie = await startSession(user, n);
@@ -235,6 +240,7 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
       }
       case "delete":
         if (email === normEmail(a.user.email)) return json(400, { error: MSG.noSelfDelete });
+        if (a.set.has(email)) return json(400, { error: MSG.adminNoDelete }); // админ не се трие
         await repo.deleteUser(target.id);
         await repo.clearAttempts(email, "login");
         return json(200, { ok: true, action, deleted: email });
