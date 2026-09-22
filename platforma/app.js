@@ -741,20 +741,17 @@
     const realni = zh.map((z, i) => liveKarta(z.liga || "Футбол", z.dom, z.gost,
       (z.gol_dom != null ? z.gol_dom : "") + " : " + (z.gol_gost != null ? z.gol_gost : ""),
       z.status === "HT" ? "Почивка" : (z.minuta != null ? z.minuta + "'" : "LIVE"), "", false, i)).join("");
-    const demo = [
-      ["NBA · Q3 · 04:12", "Lakers", "Celtics", "86 : 82", "Разлика в точки", "+4"],
-      ["ATP · 3-ти сет", "Sinner", "Alcaraz", "1 : 1", "Точки в сета", "4 - 3"],
-      ["UFC · R2 · 02:18", "Pereira", "Ankalaev", "— : —", "Значими удари", "24 - 18"],
-    ].map((r, i) => liveKarta(r[0], r[1], r[2], r[3], r[4], r[5], true, i + 3)).join("");
+    const broy = zh.length;
     return ramka(null, `
       <div class="hero">
         <div class="hero-fig" style="background-image:url('/img/live-stadion.png')"></div>
         <div class="hero-copy"><p class="eyebrow">Усети всеки момент</p><h1>Център на живо</h1></div>
       </div>
-      <div class="chipove">${chips.map((t, i) => `<button class="chip" aria-pressed="${i === 0}">${esc(t)}</button>`).join("")}</div>
-      <div class="karti kol" style="margin-top:14px">${realni}${demo}</div>
-      <button class="multiview">${ico("multi", "ico")}<div><b>Мултиизглед</b><span>Следи няколко мача едновременно</span></div><span class="str">${ico("str")}</span></button>
-      <p class="demo-note">Демо режим · данните са илюстративни.</p>`);
+      ${broy ? `<div class="chipove"><span class="chip on"><span class="tochka"></span>${broy} ${broy === 1 ? "мач" : "мача"} на живо сега</span></div>
+      <div class="karti kol" style="margin-top:14px">${realni}</div>
+      <button class="multiview">${ico("multi", "ico")}<div><b>Мултиизглед</b><span>Следи няколко мача едновременно</span></div><span class="str">${ico("str")}</span></button>`
+      : `<div class="prazno-live">${ico("live", "ico big")}<b>В момента няма мачове на живо</b><p>Върни се по-късно — тук ще виждаш резултата и моментума на течащите мачове в реално време.</p>
+        <button class="btn v2 shir" data-idi="prognozi">Виж днешните прогнози</button></div>`}`);
   }
 
   /* ── SCENARIO LAB ── */
