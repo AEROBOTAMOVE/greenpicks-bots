@@ -1811,6 +1811,62 @@ def write_titles(titles):
         print("WARN: не мога да запиша " + TITLES_FILE + ":", e)
 
 
+NEWS_FULL_FILE = "news_full.json"          # 🖼️ богат мост към платформата (със снимки)
+NEWS_FULL_KEEP = 40
+_prevod_kesh = {}
+
+
+def _ima_kirilica(s):
+    return any("Ѐ" <= c <= "ӿ" for c in (s or ""))
+
+
+def prevedi_bg(text):
+    """🇧🇬 Превежда на български, АКО текстът не е вече кирилски. При грешка/лимит
+    връща оригинала — НИКОГА не чупи тръбата. Кешира, за да не превежда двойно."""
+    t = (text or "").strip()
+    if not t or _ima_kirilica(t):
+        return t
+    if t in _prevod_kesh:
+        return _prevod_kesh[t]
+    out = t
+    try:
+        from deep_translator import MyMemoryTranslator
+        time.sleep(0.4)
+        out = MyMemoryTranslator(source="en-GB", target="bg-BG").translate(t[:480]) or t
+    except Exception:
+        try:
+            from deep_translator import GoogleTranslator
+            time.sleep(1.0)
+            out = GoogleTranslator(source="auto", target="bg").translate(t[:480]) or t
+        except Exception as e:
+            print("   (превод пропуснат: " + type(e).__name__ + ")")
+    _prevod_kesh[t] = out
+    return out
+
+
+def write_news_full(chosen):
+    """Богат мост към платформата на клиента: заглавие + СНИМКА + линк + източник +
+    спорт + резюме. Снимките идват ДИРЕКТНО от самите новини (RSS/og:image) — нищо
+    не се генерира. Платформата ги показва като статии-карти."""
+    out = []
+    for c in chosen[:NEWS_FULL_KEEP]:
+        imgs = c.get("imgs") or []
+        sport = classify(c.get("title", "")) or classify_link(c.get("link")) or ""
+        if sport == "combat":
+            sport = "mma"
+        out.append({"title": prevedi_bg(c.get("title", "")), "image": (imgs[0] if imgs else ""),
+                    "link": c.get("link", ""), "source": publisher(c.get("source", "")),
+                    "sport": sport, "summary": (c.get("summary") or "")[:220]})
+    try:
+        with open(NEWS_FULL_FILE, "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, indent=0)
+        s_img = sum(1 for x in out if x["image"])
+        print("Богат мост към платформата: " + str(len(out)) + " статии (" + str(s_img) + " със снимка) в " + NEWS_FULL_FILE + ".")
+    except OSError as e:
+        print("WARN: не мога да запиша " + NEWS_FULL_FILE + ":", e)
+    return len(out)
+
+
 # ══════════════════════════════ 🚨 ПАЗАЧ НА ИЗТОЧНИЦИТЕ (добавен 01.09.2026) ══
 #
 # ДВАТА МЪЛЧАЛИВИ ПРОВАЛА, заради които го има:
@@ -2373,6 +2429,7 @@ def main():
         return izhod
 
     got_og = fill_og_images(chosen)
+    write_news_full(chosen)
     with_img = sum(1 for c in chosen if c.get("imgs"))
     multi = sum(1 for c in chosen if (c.get("nsrc") or 1) >= 2)
     print("Избрани " + str(len(chosen)) + " новини; със снимка: " + str(with_img) +

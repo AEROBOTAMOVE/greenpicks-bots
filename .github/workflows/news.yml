@@ -42,6 +42,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - name: Преводачът (БГ новини) — по избор, не чупи рън-а
+        run: pip install --quiet deep-translator || echo "преводачът не се инсталира — новините остават на оригиналния език"
       # 🔴 ПОРТИЕРЪТ ЛИПСВАШЕ (добавен 11.08.2026).
       #
       # news_bot.py има 155 самопроверки — най-много след предсказателя. Те не
@@ -107,7 +109,7 @@ jobs:
           # 🔴 news_trevoga_state.json ПАЗИ ПОЧИВКАТА. Рънърът е нов всеки
           # път — без запазване почивката не съществува и тревогата вика на
           # всеки рън.
-          for f in sent_news.json last_news_titles.json news_trevoga_state.json; do
+          for f in sent_news.json last_news_titles.json news_trevoga_state.json news_full.json; do
             [ -f "$f" ] && git add "$f"
           done
           if git diff --cached --quiet; then
