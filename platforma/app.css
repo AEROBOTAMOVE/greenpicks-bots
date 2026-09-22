@@ -717,3 +717,49 @@ img, svg { max-width: 100%; }
   .pk:hover, .fs:hover, .obzor:hover { transform: translateY(-3px); box-shadow: 0 16px 34px rgba(0, 0, 0, .4); }
   .btn:hover { transform: translateY(-1px); }
 }
+
+/* ── ТРАК-РЕКОРД (прозрачност: общо + успех по спорт) ── */
+.rekord { margin-bottom: 18px; }
+.rk-glava { display: flex; gap: 16px; align-items: center; background: var(--s1); border: 1px solid var(--line2); border-radius: 18px; padding: 16px 18px; box-shadow: 0 10px 26px rgba(0,0,0,.28); }
+.rk-krug { --p: 0; width: 96px; height: 96px; flex: 0 0 96px; border-radius: 50%; display: grid; place-items: center; text-align: center; position: relative;
+  background: conic-gradient(var(--em2) calc(var(--p) * 1%), rgba(255,255,255,.07) 0); }
+.rk-krug::before { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 12px var(--emglow); }
+.rk-krug b { position: relative; font-family: var(--f-disp); font-size: 30px; color: var(--gold); line-height: 1; }
+.rk-krug b i { font-size: 15px; font-style: normal; }
+.rk-krug span { position: relative; font-size: 10px; color: var(--tx2); letter-spacing: .1em; text-transform: uppercase; margin-top: 3px; }
+.rk-chisla { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.rk-chisla div { text-align: center; padding: 4px 2px; }
+.rk-chisla div + div { border-left: 1px solid var(--line2); }
+.rk-chisla b { display: block; font-family: var(--f-disp); font-size: 22px; color: var(--tx); font-variant-numeric: tabular-nums; }
+.rk-chisla span { font-size: 10.5px; color: var(--tx2); }
+.rk-sport { margin-top: 12px; background: var(--s1); border: 1px solid var(--line2); border-radius: 18px; padding: 15px 18px; }
+.rk-sport-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.rk-sport-h b { font-size: 14.5px; font-family: var(--f-disp); }
+.rk-sport-h span { font-size: 11px; color: var(--tx2); }
+.rk-bar { display: grid; grid-template-columns: 116px 1fr 50px; align-items: center; gap: 10px; padding: 5px 0; }
+.rk-ime { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--tx); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rk-track { height: 9px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
+.rk-fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, rgba(31,193,126,.55), var(--em2)); }
+.rk-fill.top { background: linear-gradient(90deg, var(--em2), var(--gold)); }
+.rk-fill.nisko { background: linear-gradient(90deg, #4f5f56, #718075); }
+.rk-pct { text-align: right; }
+.rk-pct b { font-family: var(--f-disp); font-size: 15px; color: var(--tx); font-variant-numeric: tabular-nums; }
+.rk-pct small { display: block; font-size: 10px; color: var(--tx2); }
+.rk-legenda { margin-top: 11px; font-size: 10.5px; color: var(--tx2); line-height: 1.45; }
+
+/* ── СТОЙНОСТ (value bets, EV+коеф) ── */
+.stoynost-sek { margin-top: 14px; }
+.stoynost-sek > header { display: flex; align-items: center; gap: 8px; }
+.st-broy { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--gold); color: #1a1204; font-weight: 800; font-size: 12px; }
+.st-lead { font-size: 11.5px; color: var(--tx2); margin: 4px 0 10px; line-height: 1.45; }
+.st-redica { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.st-redica::-webkit-scrollbar { height: 0; }
+.st-karta { flex: 0 0 210px; scroll-snap-align: start; background: var(--s1); border: 1px solid var(--line2); border-radius: 14px; padding: 12px 13px; display: flex; flex-direction: column; gap: 6px; }
+.st-karta:hover { border-color: var(--gold); }
+.st-top { display: flex; align-items: center; gap: 6px; }
+.st-liga { font-size: 10.5px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-izbor { font-family: var(--f-disp); font-size: 16px; color: var(--tx); line-height: 1.15; }
+.st-mach { font-size: 11px; color: var(--tx2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-dolu { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.st-koef { font-family: var(--f-disp); font-size: 18px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.st-ev { margin-left: auto; font-size: 11.5px; font-weight: 800; color: var(--em2); background: rgba(31, 193, 126, .12); border: 1px solid rgba(31, 193, 126, .3); border-radius: 999px; padding: 3px 9px; }

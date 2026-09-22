@@ -477,6 +477,20 @@
     return [...po.entries()].map(([den, ks]) => `<div class="den-glava" role="heading" aria-level="3">${esc(denDylag(den))} · ${ks.length}</div>
       <div class="karti kol">${ks.slice().sort(sf).map(kartaPrognoza).join("")}</div>`).join("");
   }
+  function valueSekcia(d) {
+    const v = ((d && d.stoynost) || []).filter((x) => x && x.koef && x.ev != null).sort((a, b) => (b.ev || 0) - (a.ev || 0)).slice(0, 8);
+    if (!v.length) return "";
+    const karti = v.map((x) => `<div class="st-karta">
+      <div class="st-top">${ik(x.sport, "ik s")}<span class="st-liga">${esc(x.liga || x.sport_bg || "")}</span></div>
+      <b class="st-izbor">${esc(x.izbor || x.izhod)}</b>
+      <div class="st-mach">${esc(x.dom || "")}${x.gost ? " — " + esc(x.gost) : ""}</div>
+      <div class="st-dolu"><span class="st-koef">${esc(Number(x.koef).toFixed(2))}</span>
+        <span class="st-ev">EV +${esc((x.ev * 100).toFixed(1))}%</span></div></div>`).join("");
+    return `<section class="sekcia stoynost-sek">
+      <header><h2>Стойност днес</h2><span class="st-broy">${v.length}</span></header>
+      <p class="st-lead">Залози, при които коефициентът е над реалната ни вероятност — там е дългосрочното предимство.</p>
+      <div class="st-redica">${karti}</div></section>`;
+  }
   function ekranPrognozi() {
     markSeen();
     const d = S.data || {};
@@ -491,6 +505,7 @@
         <div class="hero-copy"><p class="eyebrow">Анализ · Селекция · Перспектива</p><h1>Green Room Прогнози</h1></div>
       </div>
       <button class="scen-entry" data-idi="scenario"><span class="scen-entry-ik">🎲</span><div><b>Сценарии</b><span>Симулирай мача · виж вероятностите</span></div><span class="str">${ico("str")}</span></button>
+      ${valueSekcia(d)}
       <div class="tabs" style="margin-top:14px">${tb.map(([v, t]) => `<button data-ptab="${v}" aria-pressed="${S.progTab === v}">${t}</button>`).join("")}</div>
       <div class="chipove"><button class="chip lfav" data-lfav="1" aria-pressed="${S.samoLyubimi}">${ico("zvezda", "zv-ik")}Любими<b class="lfav-c">${nl ? " · " + nl : ""}</b></button>
         <button class="chip" data-psport="" aria-pressed="${!S.progSport}">Всички спортове</button>
@@ -635,14 +650,34 @@
     const n = x.filter((k) => k.poznata === true || k.poznata === false).length;
     const po = new Map();
     for (const k of x) { const kl = k.sport_bg + (k.liga ? " · " + k.liga : ""); if (!po.has(kl)) po.set(kl, { s: k.sport, ks: [] }); po.get(kl).ks.push(k); }
-    return ramka(["Резултати", "Как завършиха нашите прогнози."], dni.length ? `
+    // ── ТРАК-РЕКОРД (общо + успех по спорт) — прозрачност за клиента ──
+    const ob = (S.data && S.data.obshto) || {};
+    const st = ((S.data && S.data.statistika) || []).filter((s) => s && s.n >= 10).sort((a, b) => (b.uspeh || 0) - (a.uspeh || 0));
+    const maxU = Math.max(60, ...st.map((s) => s.uspeh || 0));
+    const rekordHtml = ob.n ? `<section class="rekord">
+      <div class="rk-glava">
+        <div class="rk-krug" style="--p:${esc(ob.uspeh || 0)}"><b>${esc(ob.uspeh)}<i>%</i></b><span>успех</span></div>
+        <div class="rk-chisla">
+          <div><b>${esc(ob.n)}</b><span>прогнози</span></div>
+          <div><b>${esc(ob.poznati)}</b><span>познати</span></div>
+          <div><b>${esc(ob.dni)}</b><span>дни</span></div>
+        </div>
+      </div>
+      ${st.length ? `<div class="rk-sport"><div class="rk-sport-h"><b>Успех по спорт</b><span>цялата история</span></div>
+        ${st.map((s) => `<div class="rk-bar"><span class="rk-ime">${ik(s.sport, "ik s")}${esc(s.sport_bg)}</span>
+          <span class="rk-track"><i class="rk-fill${(s.uspeh || 0) >= 55 ? " top" : (s.uspeh || 0) < 50 ? " nisko" : ""}" style="width:${Math.max(6, Math.round((100 * (s.uspeh || 0)) / maxU))}%"></i></span>
+          <span class="rk-pct"><b>${esc(s.uspeh)}%</b><small>${esc(s.n)}</small></span></div>`).join("")}
+        <div class="rk-legenda">Числото до всеки спорт е броят оценени прогнози. Печалбата тръгва около 53%.</div></div>` : ""}
+    </section>` : "";
+    const daily = dni.length ? `
       ${formaHtml}
       <div class="tabs">${dni.slice(0, 4).map((d) => `<button data-rez="${esc(d)}" aria-pressed="${S.rezDen === d}">${esc(denEt(d))}</button>`).join("")}</div>
       ${dni.length > 4 ? `<div class="chipove">${dni.slice(4).map((d) => `<button class="chip" data-rez="${esc(d)}" aria-pressed="${S.rezDen === d}">${ico("kalendar", "ico")}${esc(denEt(d))}</button>`).join("")}</div>` : ""}
       ${n ? `<div class="obzor"><div class="pryasten" style="--p:${Math.round((100 * p) / n)}"><b>${Math.round((100 * p) / n)}%</b></div>
         <p>${esc(denDylag(S.rezDen))}<br><b>${p}</b> спечелени от ${n}</p></div>` : ""}
       ${[...po.entries()].map(([kl, g]) => `<div class="liga-glava">${ik(g.s, "ik s")}${esc(kl)}</div><div class="karti kol">${g.ks.map(kartaRezultat).join("")}</div>`).join("")}`
-      : '<p class="prazno">Още няма оценени прогнози.</p>');
+      : (rekordHtml ? "" : '<p class="prazno">Още няма оценени прогнози.</p>');
+    return ramka(["Резултати", "Как завършиха нашите прогнози."], rekordHtml + daily);
   }
 
   /* ── НОВИНИ ── */
