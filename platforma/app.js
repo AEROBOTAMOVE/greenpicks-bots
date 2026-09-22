@@ -729,18 +729,21 @@
   function ekranLive() {
     const d = S.data || {};
     const zh = d.zhivo || [];
-    const chips = ["Всички", "Футбол", "Баскетбол", "Тенис", "ММА"];
-    const mom = (a) => `<div class="mom">${Array.from({ length: 16 }, (_, i) =>
-      `<i style="height:${28 + Math.round(Math.abs(Math.sin((i + a) * 1.15)) * 68)}%;background:${i < 6 ? "var(--em)" : i < 10 ? "var(--gold)" : "var(--line2)"}"></i>`).join("")}</div>`;
-    const liveKarta = (lg, dm, gs, rz, mk, vl, demo, i) => `<article class="live-k">
-      <div class="live-top"><span class="live-badge"><i></i>НА ЖИВО</span><span class="live-liga">${esc(lg)}</span>${demo ? '<span class="demo-b">ДЕМО</span>' : ""}</div>
+    // Реален индикатор за хода на мача (минута/90 от истинската minuta) — не декор.
+    const napredak = (min, status) => {
+      const pct = status === "HT" ? 50 : Math.max(2, Math.min(100, Math.round(((min || 0) / 90) * 100)));
+      return `<div class="live-progres"><span class="lp-track"><i style="width:${pct}%"></i><span class="lp-ht"></span></span>
+        <div class="lp-meta"><span>Ход на мача</span><b>${status === "HT" ? "Полувреме" : (min != null ? min + "′" : "На живо")}</b></div></div>`;
+    };
+    const liveKarta = (lg, dm, gs, rz, min, status) => `<article class="live-k">
+      <div class="live-top"><span class="live-badge"><i></i>НА ЖИВО</span><span class="live-liga">${esc(lg)}</span></div>
       <div class="live-mach"><div class="live-tim">${ekip(dm)}<b>${esc(dm)}</b></div>
         <div class="live-rez">${esc(rz)}</div>
         <div class="live-tim d">${ekip(gs)}<b>${esc(gs)}</b></div></div>
-      <div class="live-mom">${mom(i)}<div class="mom-meta"><span>${esc(mk || "Моментум")}</span>${vl ? `<b>${esc(vl)}</b>` : ""}</div></div></article>`;
-    const realni = zh.map((z, i) => liveKarta(z.liga || "Футбол", z.dom, z.gost,
+      ${napredak(min, status)}</article>`;
+    const realni = zh.map((z) => liveKarta(z.liga || "Футбол", z.dom, z.gost,
       (z.gol_dom != null ? z.gol_dom : "") + " : " + (z.gol_gost != null ? z.gol_gost : ""),
-      z.status === "HT" ? "Почивка" : (z.minuta != null ? z.minuta + "'" : "LIVE"), "", false, i)).join("");
+      z.minuta, z.status)).join("");
     const broy = zh.length;
     return ramka(null, `
       <div class="hero">

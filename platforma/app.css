@@ -776,3 +776,12 @@ img, svg { max-width: 100%; }
 .scen-tablo b { display: block; font-family: var(--f-disp); font-size: 27px; color: var(--gold); font-variant-numeric: tabular-nums; line-height: 1; }
 .scen-tablo span { font-size: 11px; color: var(--tx2); }
 .scen-note { text-align: center; color: var(--tx3); font-size: 11px; line-height: 1.5; margin: 14px 0 0; }
+
+/* ── LIVE: реален ход на мача (не декор) ── */
+.live-progres { margin-top: 12px; }
+.lp-track { position: relative; display: block; height: 7px; border-radius: 999px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.lp-track > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--em), var(--em2)); box-shadow: 0 0 10px var(--emglow); }
+.lp-ht { position: absolute; top: -2px; left: 50%; width: 1px; height: 11px; background: var(--line2); transform: translateX(-50%); }
+.lp-meta { display: flex; justify-content: space-between; align-items: baseline; margin-top: 6px; }
+.lp-meta span { font-size: 10.5px; color: var(--tx2); }
+.lp-meta b { font-family: var(--f-disp); font-size: 13px; color: var(--gold); font-variant-numeric: tabular-nums; }
