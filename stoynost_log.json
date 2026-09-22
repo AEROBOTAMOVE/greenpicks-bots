@@ -1,21 +1,21 @@
 {
 "_diag": {
-"betano_proba": "HTTP 200 · 52890 байта",
+"betano_proba": "HTTP 403 Forbidden",
 "betano_zayavki": {
 "provali": 0,
-"snimka_min": null,
+"snimka_min": 47.7,
 "zabrana": null,
-"zayavki": 81
+"zayavki": 0
 },
-"koga": "2026-09-22 03:44 UTC",
+"koga": "2026-09-22 06:06 UTC",
 "sportove": {
 "football": {
-"betano": 528,
+"betano": 796,
 "novi": 0,
-"pinnacle": 571,
-"pinnacle_ceni": 550,
-"po_kotva": 1,
-"sas_stoynost": 6
+"pinnacle": 583,
+"pinnacle_ceni": 0,
+"po_kotva": 0,
+"sas_stoynost": 0
 }
 }
 },
