@@ -8,6 +8,7 @@
   "theme_color": "#07110d",
   "lang": "bg",
   "icons": [
-    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/img/app-icon.png", "sizes": "192x192 512x512 1024x1024", "type": "image/png", "purpose": "any" }
   ]
 }

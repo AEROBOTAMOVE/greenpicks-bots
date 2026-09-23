@@ -253,6 +253,37 @@ async function tegli(fetchImpl, pat, timeoutMs, stamp) {
   return JSON.parse(await r.text());
 }
 
+// Класиране от football-data.org (БЕЗПЛАТЕН план, 10 заявки/мин). Токенът е в
+// env FOOTBALL_DATA_TOKEN — без него връща [] и секцията в клиента се скрива.
+const FD_LIGI = [
+  ["PL", "Англия · Висша лига", 5, 18], ["PD", "Испания · Ла Лига", 5, 18],
+  ["SA", "Италия · Серия А", 5, 18], ["BL1", "Германия · Бундеслига", 5, 16],
+  ["FL1", "Франция · Лига 1", 5, 16],
+];
+async function tegliKlasirane(fetchImpl, token, timeoutMs) {
+  if (!token) return [];
+  const out = [];
+  for (const [kod, ime, evro, izpad] of FD_LIGI) {
+    try {
+      const r = await fetchImpl("https://api.football-data.org/v4/competitions/" + kod + "/standings",
+        { headers: { "X-Auth-Token": token }, signal: AbortSignal.timeout(timeoutMs) });
+      if (!r.ok) continue;
+      const j = JSON.parse(await r.text());
+      const tab = ((j.standings || []).find((s) => s.type === "TOTAL") || {}).table || [];
+      if (!tab.length) continue;
+      out.push({
+        liga: ime, liga_kod: kod, zoni: { evro: evro, izpadane: izpad },
+        otbori: tab.map((t) => ({
+          poz: t.position, ime: (t.team && (t.team.shortName || t.team.name)) || "",
+          igri: t.playedGames, t: t.points, gr: t.goalDifference,
+          forma: String(t.form || "").split(",").map((x) => x.trim()).filter(Boolean),
+        })),
+      });
+    } catch (e) { /* пропусни лигата, не чупи данните */ }
+  }
+  return out;
+}
+
 /** get() → { ...пакет, fetched_utc, cached, age_ms, stale? } */
 export function makeDataSource({
   fetchImpl = (...a) => fetch(...a),
@@ -267,14 +298,16 @@ export function makeDataSource({
 
   async function load() {
     const stamp = clock();
-    const [log, zag, svog, zhivo, nfull] = await Promise.all([
+    const fdToken = (typeof process !== "undefined" && process.env && process.env.FOOTBALL_DATA_TOKEN) || "";
+    const [log, zag, svog, zhivo, nfull, klasirane] = await Promise.all([
       tegli(fetchImpl, "predict_log.json", timeoutMs, stamp),
       tegli(fetchImpl, "last_news_titles.json", timeoutMs, stamp).catch(() => []),
       tegli(fetchImpl, "stoynost_log.json", timeoutMs, stamp).catch(() => ({})),
       tegli(fetchImpl, "zhivo_futbol.json", timeoutMs, stamp).catch(() => ({})),
       tegli(fetchImpl, "news_full.json", timeoutMs, stamp).catch(() => []),
+      tegliKlasirane(fetchImpl, fdToken, timeoutMs).catch(() => []),
     ]);
-    return { ...napraviPaket(log, zag, stamp, svog, zhivo, nfull), fetched_utc: new Date(stamp).toISOString() };
+    return { ...napraviPaket(log, zag, stamp, svog, zhivo, nfull), klasirane: klasirane, fetched_utc: new Date(stamp).toISOString() };
   }
 
   return {

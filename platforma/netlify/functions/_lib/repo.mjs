@@ -103,5 +103,82 @@ export function makeRepo(sql) {
       await sql`DELETE FROM sessions WHERE expires_at < ${ts(now)}::timestamptz`;
       await sql`DELETE FROM login_attempts WHERE at < ${ts(new Date(now.getTime() - 86400000))}::timestamptz`;
     },
+
+    /* ── ТУРНИР „Зелен фиш" ── */
+    async zapishiPredskazanie(userId, matchKey, den, sport, izbor) {
+      await sql`
+        INSERT INTO predictions (user_id, match_key, den, sport, izbor)
+        VALUES (${userId}, ${matchKey}, ${den}::date, ${sport}, ${izbor})
+        ON CONFLICT (user_id, match_key)
+        DO UPDATE SET izbor = ${izbor}
+        WHERE predictions.scored = FALSE`;
+    },
+    async moitePredskazania(userId, denOt) {
+      return await sql`
+        SELECT match_key, izbor, scored, points
+        FROM predictions
+        WHERE user_id = ${userId} AND den >= ${denOt}::date`;
+    },
+    async neschetenite(userId, keys) {
+      if (!keys || !keys.length) return [];
+      return await sql`
+        SELECT id, match_key, izbor FROM predictions
+        WHERE user_id = ${userId} AND scored = FALSE AND match_key = ANY(${keys})`;
+    },
+    async otbelezhi(id, points) {
+      await sql`UPDATE predictions SET scored = TRUE, points = ${points} WHERE id = ${id}`;
+    },
+    async tълpa(keys) {
+      if (!keys || !keys.length) return [];
+      return await sql`
+        SELECT match_key, izbor, COUNT(*)::int AS n FROM predictions
+        WHERE match_key = ANY(${keys}) GROUP BY match_key, izbor`;
+    },
+    async turnirTabla(limit) {
+      return await sql`
+        SELECT u.email,
+               COALESCE(SUM(p.points), 0)::int AS points,
+               COUNT(*) FILTER (WHERE p.scored)::int AS obshto,
+               COUNT(*) FILTER (WHERE p.points > 0)::int AS tochni
+        FROM predictions p JOIN users u ON u.id = p.user_id
+        GROUP BY u.id, u.email
+        HAVING COUNT(*) FILTER (WHERE p.scored) > 0
+        ORDER BY points DESC, tochni DESC
+        LIMIT ${limit}`;
+    },
+    async mojtRedNaTablata(userId) {
+      const r = one(await sql`
+        WITH t AS (
+          SELECT user_id, COALESCE(SUM(points),0)::int AS points,
+                 COUNT(*) FILTER (WHERE scored)::int AS obshto,
+                 COUNT(*) FILTER (WHERE points > 0)::int AS tochni
+          FROM predictions GROUP BY user_id
+        ), r AS (SELECT user_id, points, obshto, tochni,
+                 RANK() OVER (ORDER BY points DESC)::int AS rank FROM t)
+        SELECT rank, points, obshto, tochni FROM r WHERE user_id = ${userId}`);
+      return r;
+    },
+
+    /* ── РЕФЕРАЛИ ── */
+    async refKod(userId) {
+      const r = one(await sql`SELECT ref_code FROM users WHERE id = ${userId}`);
+      return r ? r.ref_code : null;
+    },
+    async zadaiRefKod(userId, code) {
+      await sql`UPDATE users SET ref_code = ${code} WHERE id = ${userId} AND ref_code IS NULL`;
+    },
+    async potrebitelPoRefKod(code) {
+      return one(await sql`SELECT id, access_until FROM users WHERE ref_code = ${code}`);
+    },
+    async zapishiReferal(newUserId, referrerId) {
+      await sql`UPDATE users SET referred_by = ${referrerId} WHERE id = ${newUserId} AND referred_by IS NULL`;
+    },
+
+    /* ── PUSH абонаменти ── */
+    async zapishiAbonament(userId, endpoint, sub) {
+      await sql`
+        INSERT INTO push_subs (user_id, endpoint, sub) VALUES (${userId}, ${endpoint}, ${sub}::jsonb)
+        ON CONFLICT (endpoint) DO UPDATE SET user_id = ${userId}, sub = ${sub}::jsonb`;
+    },
   };
 }

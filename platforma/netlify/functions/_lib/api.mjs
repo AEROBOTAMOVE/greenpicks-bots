@@ -96,9 +96,24 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
     const passHash = await hashPassword(p.body.password);
     const user = await repo.insertUser({ email, passHash, createdAt: n, accessUntil: registrationUntil(n) });
     if (!user) return json(409, { error: MSG.emailTaken });
-    await repo.touchLogin(user.id, n);
-    const cookie = await startSession(user, n);
-    return json(201, { ok: true, ...mePayload(user, admins(), n) }, { "Set-Cookie": cookie });
+    // Реферал: атрибуция + бонус дни за двамата (наградата е дни достъп)
+    let regUser = user;
+    const refVhod = String((p.body.ref || "")).trim().toUpperCase().slice(0, 12);
+    if (refVhod) {
+      try {
+        const referrer = await repo.potrebitelPoRefKod(refVhod);
+        if (referrer && referrer.id !== user.id) {
+          await repo.zapishiReferal(user.id, referrer.id);
+          regUser = (await repo.setAccessUntil(user.id, extendUntil(user.access_until, REF_BONUS, n))) || user;
+          if (referrer.access_until) await repo.setAccessUntil(referrer.id, extendUntil(new Date(referrer.access_until), REF_BONUS, n));
+        }
+      } catch (e) { /* реферал не бива да чупи регистрацията */ }
+    }
+    // собствен код за новия
+    try { for (let i = 0; i < 5 && !(await repo.refKod(regUser.id)); i++) { const k = genRefKod(); if (!(await repo.potrebitelPoRefKod(k))) await repo.zadaiRefKod(regUser.id, k); } } catch (e) { /* игнор */ }
+    await repo.touchLogin(regUser.id, n);
+    const cookie = await startSession(regUser, n);
+    return json(201, { ok: true, ...mePayload(regUser, admins(), n) }, { "Set-Cookie": cookie });
   });
 
   /* ── POST /api/login ── */
@@ -249,5 +264,128 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
     }
   });
 
-  return { register, login, logout, me, data: dataEp, adminUsers, adminUser };
+  /* ── PUSH известия (VAPID ключове в env; изпращането е от бота) ── */
+  const envGet = (name) => { try { return (globalThis.Netlify && globalThis.Netlify.env && globalThis.Netlify.env.get(name)) || (typeof process !== "undefined" && process.env && process.env[name]) || ""; } catch (e) { return ""; } };
+  const pushKeyEp = guard(async (req) => {
+    const bad = onlyMethod(req, "GET"); if (bad) return bad;
+    return json(200, { key: envGet("VAPID_PUBLIC") });
+  });
+  const pushAboniraiEp = guard(async (req) => {
+    const bad = onlyMethod(req, "POST"); if (bad) return bad;
+    const n = now();
+    const user = await currentUser(req, n);
+    if (!user) return json(401, { error: MSG.notLogged, logged_in: false });
+    if (!isJsonRequest(req)) return json(415, { error: MSG.needJson });
+    const b = await readJsonBody(req); if (b.error) return b.error;
+    const sub = b.value && b.value.sub;
+    if (!sub || !sub.endpoint) return json(400, { error: "Липсва абонамент." });
+    await repo.zapishiAbonament(user.id, String(sub.endpoint).slice(0, 500), JSON.stringify(sub));
+    return json(200, { ok: true });
+  });
+
+  /* ── РЕФЕРАЛИ ── */
+  const REF_BONUS = 7;
+  const genRefKod = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; let s = ""; for (let i = 0; i < 6; i++) s += a[Math.floor(Math.random() * a.length)]; return s; };
+  const refEp = guard(async (req) => {
+    const bad = onlyMethod(req, "GET"); if (bad) return bad;
+    const n = now();
+    const user = await currentUser(req, n);
+    if (!user) return json(401, { error: MSG.notLogged, logged_in: false });
+    let kod = await repo.refKod(user.id);
+    for (let i = 0; i < 5 && !kod; i++) { const k = genRefKod(); if (!(await repo.potrebitelPoRefKod(k))) { await repo.zadaiRefKod(user.id, k); kod = await repo.refKod(user.id); } }
+    return json(200, { kod: kod || "", bonus: REF_BONUS });
+  });
+
+  /* ── ТУРНИР „Зелен фиш" + Модел срещу Тълпата ── */
+  const isoDen = (d) => { try { return d.toISOString().slice(0, 10); } catch (e) { return ""; } };
+  const maskEmail = (e) => { const s = String(e || ""); const i = s.indexOf("@"); if (i < 1) return "играч"; return s[0] + "***" + s.slice(i); };
+  const izhodOtRez = (rez) => {
+    const m = /^(\d+)\s*[:\-]\s*(\d+)/.exec(String(rez || "")); if (!m) return null;
+    const a = +m[1], b = +m[2]; return a > b ? "1" : a < b ? "2" : "X";
+  };
+  const izborKod = (s) => { const t = String(s || "").trim(); if (/^1([·.\s]|$)/.test(t)) return "1"; if (/^2([·.\s]|$)/.test(t)) return "2"; if (/^[XХ]([·.\s]|$)/.test(t)) return "X"; return null; };
+  const tournirMachove = (bundle) => {
+    const pool = (bundle.prognozi || []).concat(bundle.dnes || []);
+    const vid = new Set(); const out = [];
+    for (const p of pool) {
+      if (!p || !p.id || !p.dom || !p.gost || vid.has(p.id)) continue;
+      vid.add(p.id);
+      out.push({ match_key: p.id, den: p.den || "", sport: p.sport || "", sport_bg: p.sport_bg || "", dom: p.dom, gost: p.gost, liga: p.liga || "", nash: izborKod(p.izbor) });
+      if (out.length >= 12) break;
+    }
+    return out;
+  };
+  const tournirRez = (bundle) => {
+    const map = {};
+    for (const r of (bundle.rezultati || [])) { if (r && r.id && r.rezultat) { const o = izhodOtRez(r.rezultat); if (o) map[r.id] = o; } }
+    return map;
+  };
+  const turnirEp = guard(async (req) => {
+    const bad = onlyMethod(req, "GET"); if (bad) return bad;
+    const n = now();
+    const user = await currentUser(req, n);
+    if (!user) return json(401, { error: MSG.notLogged, logged_in: false });
+    const st = accessState(user, admins(), n);
+    if (!st.active) return json(403, { error: MSG.expired, status: st.status, active: false });
+    let bundle; try { bundle = await data.get(); } catch (e) { return json(503, { error: "Данните се обновяват. Опитай пак." }); }
+    const mach = tournirMachove(bundle);
+    const rez = tournirRez(bundle);
+    const keys = Object.keys(rez);
+    for (const p of await repo.neschetenite(user.id, keys)) { const w = rez[p.match_key]; if (w) await repo.otbelezhi(p.id, p.izbor === w ? 3 : 0); }
+    const denOt = isoDen(new Date(n.getTime() - 7 * 86400000));
+    const moiMap = {}; for (const m of await repo.moitePredskazania(user.id, denOt)) moiMap[m.match_key] = { izbor: m.izbor, scored: m.scored, points: m.points };
+    const tk = mach.map((m) => m.match_key);
+    const tълpa = {}; for (const r of await repo.tълpa(tk)) { const c = (tълpa[r.match_key] = tълpa[r.match_key] || { "1": 0, "X": 0, "2": 0 }); if (c[r.izbor] != null) c[r.izbor] = r.n; }
+    const tabla = (await repo.turnirTabla(20)).map((t, i) => ({ ime: maskEmail(t.email), poz: i + 1, points: t.points, tochni: t.tochni, obshto: t.obshto }));
+    const az = await repo.mojtRedNaTablata(user.id);
+    return json(200, {
+      mach: mach.map((m) => ({ ...m, moi: moiMap[m.match_key] || null, tълpa: tълpa[m.match_key] || { "1": 0, "X": 0, "2": 0 } })),
+      tabla, az: az || { rank: null, points: 0, tochni: 0, obshto: 0 },
+    });
+  });
+  const predskazhiEp = guard(async (req) => {
+    const bad = onlyMethod(req, "POST"); if (bad) return bad;
+    const n = now();
+    const user = await currentUser(req, n);
+    if (!user) return json(401, { error: MSG.notLogged, logged_in: false });
+    const st = accessState(user, admins(), n);
+    if (!st.active) return json(403, { error: MSG.expired, status: st.status, active: false });
+    if (!isJsonRequest(req)) return json(415, { error: MSG.needJson });
+    const b = await readJsonBody(req); if (b.error) return b.error;
+    const v = b.value || {};
+    if (!v.match_key || !v.den || !["1", "X", "2"].includes(v.izbor)) return json(400, { error: "Липсва мач или избор." });
+    await repo.zapishiPredskazanie(user.id, String(v.match_key).slice(0, 200), String(v.den).slice(0, 10), String(v.sport || "").slice(0, 40), v.izbor);
+    return json(200, { ok: true });
+  });
+
+  /* ── GET /api/preview — БЕЗ вход. Витрината на честността: реалният трак-рекорд +
+     ЕДИН безплатен пик на деня. Останалото стои зад стената (пази бизнеса). ── */
+  const previewEp = async (req) => {
+    try {
+      const bad = onlyMethod(req, "GET"); if (bad) return bad;
+      let bundle; try { bundle = await data.get(); } catch (e) { return json(503, { error: "Данните се обновяват. Опитай пак." }); }
+      const pr = Array.isArray(bundle.prognozi) ? bundle.prognozi : [];
+      const dnes = bundle.dnes || "";
+      const dnesPr = pr.filter((k) => k.den === dnes);
+      const pool = (dnesPr.length ? dnesPr : pr).slice().sort((a, b) => (b.procent || 0) - (a.procent || 0));
+      const f = pool[0] || null;
+      const free = f ? { dom: f.dom, gost: f.gost, sport: f.sport, sport_bg: f.sport_bg, liga: f.liga || "", den: f.den, izbor: f.izbor, koef: f.koef, procent: f.procent, zvezdi: f.zvezdi || 0, zashto: f.zashto || "" } : null;
+      const stat = (Array.isArray(bundle.statistika) ? bundle.statistika : [])
+        .filter((s) => s && s.uspeh != null && (s.n || 0) >= 5)
+        .sort((a, b) => (b.n || 0) - (a.n || 0)).slice(0, 4)
+        .map((s) => ({ sport_bg: s.sport_bg, uspeh: s.uspeh, n: s.n }));
+      const o = bundle.obshto || {};
+      return json(200, {
+        guest: true,
+        track: { uspeh: o.uspeh != null ? o.uspeh : null, n: o.n || 0, dni: o.dni || 30 },
+        statistika: stat,
+        free,
+        broy_dnes: dnesPr.length,
+        sporta_dnes: new Set(dnesPr.map((k) => k.sport)).size,
+        obshto_prognozi: pr.length,
+      }, { "Cache-Control": "public, max-age=120" });
+    } catch (e) { return json(500, { error: MSG.internal }); }
+  };
+
+  return { register, login, logout, me, data: dataEp, adminUsers, adminUser, turnir: turnirEp, predskazhi: predskazhiEp, ref: refEp, pushKey: pushKeyEp, pushAbonirai: pushAboniraiEp, preview: previewEp };
 }
