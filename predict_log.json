@@ -102159,7 +102159,7 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-09-22|tabletennis|2210|mateuszbaran|kacperkwiatkowski",
@@ -102204,7 +102204,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-22|tabletennis|2235|konradstaszczyk|kamilkostyk",
@@ -102249,7 +102249,7 @@
   "scored": true,
   "hit": true,
   "score": "3:1",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-09-22|volleyball|wsen|тайван|индонезия",
@@ -102297,7 +102297,7 @@
   "pazar_close": 1.3,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0438,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-23|basketball|washingtonmystics|connecticutsun",
@@ -102345,7 +102345,7 @@
   "pazar_close": 1.04,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0441,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-22|football|fraserburgh|coverangers",
@@ -102393,7 +102393,7 @@
   "pazar_close": 1.47,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0497,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-23|baseball|chicagocubs|miamimarlins",
@@ -102441,7 +102441,7 @@
   "pazar_close": 1.47,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-23|basketball|lasvegasaces|losangelessparks",
@@ -102486,7 +102486,7 @@
   "scored": true,
   "hit": true,
   "score": "89:79",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-22|football|eastkilbride|celticb",
@@ -102534,7 +102534,7 @@
   "pazar_close": 1.21,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0134,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-23|baseball|detroittigers|washingtonnationals",
@@ -102582,7 +102582,7 @@
   "pazar_close": 1.64,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0114,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-09-23|basketball|chicagosky|torontotempo",
@@ -102630,7 +102630,7 @@
   "pazar_close": 1.48,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0188,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-23|basketball|portlandfire|goldenstatevalkyries",
@@ -102678,7 +102678,7 @@
   "pazar_close": 1.11,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.008,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-22|football|barnsley|leedsunitedu21",
@@ -102726,7 +102726,7 @@
   "pazar_close": 1.45,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.1103,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-22|football|leicestercity|fulhamu21",
@@ -102774,7 +102774,7 @@
   "pazar_close": 1.15,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0292,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-22|tabletennis|2250|miroslawwarzecha|arturkubiak",
@@ -102951,7 +102951,9 @@
   "p": 0.8717,
   "stars": 2,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-09-22|esports|virtuspro|bbl",
@@ -104160,7 +104162,9 @@
   "p": 0.5916,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-23|tabletennis|2200|milanklement|viktorvejvoda",
@@ -105919,7 +105923,9 @@
   "p": 0.766,
   "stars": 2,
   "sample": "гледани 108 мача на единия и 34 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-09-27|mma|vanessademopoulos|yazminjauregui",
@@ -106479,7 +106485,9 @@
   "p": 0.6431,
   "stars": 2,
   "sample": "гледани 18 мача на единия и 13 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-09-27|mma|christianedwards|rodolfobellato",
@@ -106647,7 +106655,9 @@
   "p": 0.585,
   "stars": 1,
   "sample": "гледани 8 мача на единия и 6 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:0"
  },
  {
   "key": "2026-09-24|football|américadecali|águilasdoradas",
@@ -106990,7 +107000,9 @@
   "p": 0.6338,
   "stars": 2,
   "sample": "гледани 47 мача на единия и 26 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-09-23|esports|sparta|justplayers",
@@ -107074,7 +107086,9 @@
   "p": 0.6205,
   "stars": 2,
   "sample": "гледани 28 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-09-23|tennis|federicocina|nikolozbasilashvili",
@@ -107465,7 +107479,9 @@
   "p": 0.7885,
   "stars": 2,
   "sample": "гледани 45 мача на единия и 31 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-09-23|baseball|yokohamabaystars|chunichidragons",
@@ -107551,7 +107567,9 @@
   "p": 0.6404,
   "stars": 2,
   "sample": "гледани 22 мача на единия и 21 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-09-23|football|birminghamlegionfc|brooklynfc",
@@ -108183,7 +108201,9 @@
   "p": 0.6833,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-23|tabletennis|franciszekkolodziejczyk|sungchen",
@@ -108435,7 +108455,9 @@
   "p": 0.7347,
   "stars": 2,
   "sample": "гледани 20 мача на единия и 30 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3"
  },
  {
   "key": "2026-09-23|esports|playingducks|bluejaysde",
@@ -108519,7 +108541,9 @@
   "p": 0.5972,
   "stars": 2,
   "sample": "гледани 5 мача на единия и 30 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-09-23|tennis|shih|aksua",
