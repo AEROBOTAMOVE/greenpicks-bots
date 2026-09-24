@@ -93217,8 +93217,9 @@
   "p": 0.7731,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-20|baseball|lgtwins|hanwhaeagles",
@@ -93577,8 +93578,9 @@
   "p": 0.5644,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-19|tabletennis|1215|waldemarjozala|witoldbuczynski",
@@ -93987,8 +93989,9 @@
   "p": 0.7288,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-19|esports|eternalfire|nicetry",
@@ -94030,8 +94033,9 @@
   "p": 0.8254,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-19|football|molde|aalesund",
@@ -94352,8 +94356,9 @@
   "p": 0.8491,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-20|volleyball|wsen|аржентина|колумбия",
@@ -94577,8 +94582,9 @@
   "p": 0.7106,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-20|football|charlestonbattery|montereybay",
