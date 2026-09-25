@@ -111883,7 +111883,12 @@
   "p": 0.7976,
   "stars": 3,
   "sample": "гледани 80 мача на единия и 56 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3",
+  "pazar_close": 1.06,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0887
  },
  {
   "key": "2026-09-25|baseball|hiroshimatoyocarp|yomiurigiants",
@@ -113506,7 +113511,9 @@
   "p": 0.7582,
   "stars": 2,
   "sample": "гледани 13 мача на единия и 16 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2"
  },
  {
   "key": "2026-09-25|tabletennis|2255|kamilklocek|dominiksolilo",
@@ -113548,7 +113555,9 @@
   "p": 0.6724,
   "stars": 2,
   "sample": "гледани 8 мача на единия и 23 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-09-25|tabletennis|2300|michalvedmoch|danieltuma",
@@ -113590,7 +113599,9 @@
   "p": 0.6247,
   "stars": 2,
   "sample": "гледани 13 мача на единия и 24 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-09-26|baseball|sanfranciscogiants|losangelesdodgers",
@@ -114094,7 +114105,9 @@
   "p": 0.7541,
   "stars": 2,
   "sample": "гледани 8 мача на единия и 17 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-09-27|hockey|ilves|tps",
