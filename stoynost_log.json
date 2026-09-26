@@ -7,46 +7,13 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-09-26 18:22 UTC",
+"koga": "2026-09-26 19:10 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 895
+"pinnacle": 876
 }
 }
-},
-"football|1635458184|Х": {
-"bet": 4.25,
-"bet_liga": "Англия / ЕФЛ Къп",
-"dom": "Fleetwood Town",
-"ev": 0.0209,
-"gost": "Sheffield United",
-"i": 2,
-"izhod": "Х",
-"kely": 0.0016,
-"klyuch": "football|1635458184|Х",
-"kotva": false,
-"liga": "England - EFL Cup",
-"mid": "1635458184",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.2402,
-"p_prop": 0.2454,
-"pin": [
-5.03,
-1.69,
-3.89
-],
-"pin_last": [
-5.03,
-1.69,
-3.89
-],
-"sport": "football",
-"start_ms": 1789584300000,
-"t0": "2026-09-16 04:51",
-"t0_ms": 1789534316615,
-"t_last_ms": 1789536795734
 },
 "football|1636486480|1": {
 "bet": 2.62,
