@@ -106188,7 +106188,12 @@
   "p": 0.883,
   "stars": 2,
   "sample": "следени 6 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.11,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0165
  },
  {
   "key": "2026-09-23|basketball|cairnstaipans|tasmaniajackjumpers",
@@ -113438,7 +113443,7 @@
   "pazar_close": 1.11,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0082,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-25|volleyball|msen|словения|полша",
@@ -113486,7 +113491,7 @@
   "pazar_close": 1.22,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0371,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-25|tabletennis|learakovac|ninaskerbinz",
@@ -113531,7 +113536,7 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-26|baseball|chicagowhitesox|coloradorockies",
@@ -113714,7 +113719,7 @@
   "pazar_close": 1.26,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0103,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-25|tabletennis|tatianakukulkova|deboravivarelli",
@@ -116993,7 +116998,7 @@
   "scored": true,
   "hit": true,
   "score": "1:0",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-26|esports|procyon|turmadopagode",
@@ -117038,7 +117043,7 @@
   "scored": true,
   "hit": false,
   "score": "1:0",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-26|esports|gremio|yawara",
@@ -117082,7 +117087,8 @@
   "sample": "цената на пазара, без надценката",
   "scored": true,
   "hit": true,
-  "score": "0:1"
+  "score": "0:1",
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-26|tabletennis|2300|radekbartunek|kyryldarin",
@@ -117129,7 +117135,8 @@
   "score": "0:3",
   "pazar_close": 1.4828,
   "pazar_close_izt": "redica",
-  "pazar_clv": -0.0502
+  "pazar_clv": -0.0502,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-26|tennis|dietrichd|searleh",
@@ -117271,7 +117278,7 @@
   "pazar_close": 1.47,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0444,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-26|football|quilmes|güemes",
@@ -117313,7 +117320,13 @@
   "p": 0.6401,
   "stars": 3,
   "sample": "гледани 64 мача на единия и 63 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.4,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0101,
+  "combo_opiti": 1
  },
  {
   "key": "2026-09-27|baseball|milwaukeebrewers|stlouiscardinals",
@@ -117403,7 +117416,7 @@
   "pazar_close": 1.29,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0185,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-26|football|quilmes|güemes|total",
@@ -117445,7 +117458,9 @@
   "p": 0.5443,
   "stars": 3,
   "sample": "гледани 64 мача на единия и 63 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-09-27|baseball|milwaukeebrewers|stlouiscardinals|total",
@@ -118018,7 +118033,12 @@
   "p": 0.7111,
   "stars": 3,
   "sample": "гледани 61 мача на единия и 72 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "pazar_close": 1.28,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.012
  },
  {
   "key": "2026-09-26|baseball|ktwiz|kiwoomheroes",
@@ -120601,7 +120621,9 @@
   "p": 0.5556,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-27|tabletennis|2200|grzegorzmucha|cezarypawlik",
