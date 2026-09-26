@@ -1,19 +1,19 @@
 [
 {
-"title": "„Понякога започва с бухалка за тенис на маса“ – общностната група се разширява",
-"image": "https://www.tabletennisengland.co.uk/content/uploads/2026/09/Handsworth-O50BM-Forum.jpg",
-"link": "https://www.tabletennisengland.co.uk/news/2026/sometimes-it-begins-with-a-table-tennis-bat-community-group-expands/",
+"title": "Представяне на Академията за технически служители",
+"image": "https://www.tabletennisengland.co.uk/content/uploads/2026/09/TOA-V2800-x-450-px.png",
+"link": "https://www.tabletennisengland.co.uk/news/2026/introducing-technical-officials-academy/",
 "source": "ttengland",
 "sport": "tabletennis",
-"summary": "Over 50s Black Men Forum (O50BM) officially launched its new O5BM Birmingham Community Table Tennis Centre at Handsworth Wellbeing Centre this month."
+"summary": "Designed to help develop and guide officials throughout their journey. The seven Technical Officials Academies will help steer newly qualified officials from level one qualification to officiating at events and along the"
 },
 {
-"title": "Сензацията на ЕвроВолей 2026 срещна олимпийския шампион и се сбогува с мечтата си за финал",
-"image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/26/3487b680381a0d1ed297b8212387e7f7_2643537_1920x1080.jpg",
-"link": "https://www.actualno.com/volleyball/senzacijata-na-evrovolej-2026-sreshtna-olimpijskija-shampion-i-se-sboguva-s-mechtata-si-za-final-news_2643537.html",
+"title": "Раздадоха бронзовите медали на Европейското първенство по волейбол",
+"image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/26/1a0d21af11d1a31ba5986bc48fb4c6de_2643704_1920x1080.jpg",
+"link": "https://www.actualno.com/volleyball/razdadoha-bronzovite-medali-na-evropejskoto-pyrvenstvo-po-volejbol-news_2643704.html",
 "source": "actualno",
 "sport": "volleyball",
-"summary": "Големият финал на Европейското първенство по волейбол е ясен! Действащият олимпийски шампион Франция победи сензацията н..."
+"summary": "Приятната изненада на Европейското първенство по волейбол завоюва бронзовите медали! Отборът на Финландия спечели третот..."
 },
 {
 "title": "Преговорите за договор между Карл и Антъни Таунс показват колко трудно ще бъде за Никс да запази ядрото на титлата заедно",
@@ -24,6 +24,14 @@
 "summary": "Towns, a centerpiece of the Knicks' championship run, is entering the final guaranteed year of his deal"
 },
 {
+"title": "Дерек Уилис от Партизан остана настрани за няколко седмици с контузия в глезена",
+"image": "https://images.eurohoops.net/2026/09/7ba7e54e-willis.jpg",
+"link": "https://www.eurohoops.net/en/euroleague/2012613/partizans-derek-willis-sidelined-for-several-weeks-with-ankle-injury/",
+"source": "eurohoops",
+"sport": "basketball",
+"summary": "The forward will undergo further tests in three to four weeks before a return timeline is confirmed"
+},
+{
 "title": "Проблеми за Реал Мадрид: Контузията на Килиан Мбапе изглежда сериозна, отпадна от състава на Зидан",
 "image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/26/0499ccc9b2e0db8d0ea67fae4e0fcc89_2643603_1920x1080.jpg",
 "link": "https://www.actualno.com/football/problemi-za-real-madrid-kontuzijata-na-kilian-mbape-izglejda-seriozna-otpadna-ot-systava-na-zidan-news_2643603.html",
@@ -32,51 +40,43 @@
 "summary": "Суперзвездата Килиан Мбапе притесни всички в Реал Мадрид, след като се контузи по време на мач на националния отбор на Ф..."
 },
 {
-"title": "Чиликов: Продължаваме напред, доволен съм от контролата (ВИДЕО)",
-"image": "https://dsport.bg/media/383/1032436.m.webp",
-"link": "https://dsport.bg/chilikov-prodalzavame-napred-dovolen-sam-ot-kontrolata~240777.html",
+"title": "Теодор Иванов: Допуснахме два лесни гола, а не използвахме нашите шансове",
+"image": "https://dsport.bg/media/383/1032503.m.webp",
+"link": "https://dsport.bg/teodor-ivanov-dopusnahme-dva-lesni-gola-a-ne-izpolzvahme-nashite-shansove~240797.html",
 "source": "dsport",
 "sport": "",
-"summary": "Завърналият се в Дунав Русе - Георги Чиликов , говори след загубата с 0:1 в контрола от Черно море. „Много съм доволен от контролата, имахме нужда за играчите, които не са играли много. Имаме голям проблем с футболната д"
+"summary": "Теодор Иванов посочи допуснатите грешки в защита и пропуснатите възможности като основната причина за загубата на България . Националът подчерта, че отборът трябва бързо да анализира случилото се и да се насочи към следв"
 },
 {
-"title": "Йовичевич се завърна в Разград и отсече: Лудогорец разполага с качеството, за да се спечели титлата",
-"image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/26/0660724f565f1875eedaebf19e50dbea_2643622_1920x1080.jpg",
-"link": "https://www.actualno.com/bgfootball/jovichevich-se-zavyrna-v-razgrad-i-otseche-ludogorec-razpolaga-s-kachestvoto-za-da-se-specheli-titlata-news_2643622.html",
+"title": "В групата на България: Исландия и Естония пратиха \"лъвовете\" на дъното",
+"image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/26/a2635479b1a65175f0353be2c12ae4c5_2643717_1920x1080.jpg",
+"link": "https://www.actualno.com/football/v-grupata-na-bylgarija-islandija-i-estonija-pratiha-lyvovete-na-dynoto-news_2643717.html",
 "source": "actualno",
 "sport": "football",
-"summary": "Хърватският специалист Игор Йовичевич бе официално представен като новия треньор на Лудогорец. Той се завръща в Разград,..."
+"summary": "Националният отбор на България стартира участието си в новото издание на Лигата на нациите по кошмарен начин. ..."
 },
 {
-"title": "Европейският шампион на България разкри как спечели първата си титла пред родна публика",
-"image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/25/e1c7666e9c3ad51102242e08b20a92a2_2643522_1920x1080.jpg",
-"link": "https://www.actualno.com/moresport/evropejskijat-shampion-na-bylgarija-razkri-kak-specheli-pyrvata-si-titla-pred-rodna-publika-news_2643522.html",
+"title": "Огромен успех за България! 60 медала и 9 титли от Световното първенство по кикбокс",
+"image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/26/134134a15d209bd5442d40df3e1781be_2643596_1920x1080.jpg",
+"link": "https://www.actualno.com/moresport/ogromen-uspeh-za-bylgarija-60-medala-i-9-titli-ot-svetovnoto-pyrvenstvo-po-kikboks-news_2643596.html",
 "source": "actualno",
-"sport": "",
-"summary": "Българският боксьор Радослав Росенов е новият европейски шампион в категория до 60 килограма при мъжете. Родният състеза..."
-},
-{
-"title": "Франк Уорън реагира на освобождаването на световната титла от Хамза Шираз, вместо да се изправи срещу Янибек Алимханули",
-"image": "https://cdn-img.boxingnewsonline.net/uploads/content/1790422421021545847/warren-sheeraz.jpg",
-"link": "https://boxingnewsonline.net/news/frank-warren-on-hamzah-sheeraz-vacating/",
-"source": "boxingnewsonline",
 "sport": "mma",
-"summary": "Frank Warren believes Hamzah Sheeraz has been wrongfully advised to vacate his WBO title and avoid facing leading contender Janibek Alimkhanuly. The saga began with Alimkhanuly becoming the sanctioning body’s mandatory c"
+"summary": "Огромен успех за България на Световното първенство по кикбокс за деца, кадети, юноши и девойки в Йезоло, Итали..."
 },
 {
-"title": "Давид Бенавидес свързан с борбата срещу бившия шампион в тежка категория за декември",
-"image": "https://cdn-img.boxingnewsonline.net/uploads/content/1790415190057408011/david-benavidez-up-close.jpg",
-"link": "https://boxingnewsonline.net/news/david-benavidez-move-to-heavyweight/",
-"source": "boxingnewsonline",
-"sport": "mma",
-"summary": "The uncertainty surrounding Tyson Fury vs Anthony Joshua could, rather unexpectedly, present with a major opportunity at heavyweight. There has, indeed, been much talk about Benavidez joining the big boys, with the Mexic"
-},
-{
-"title": "Подиум за Никола Цолов в Баку! Основният му конкурент за титлата грабна победата",
-"image": "https://cdn.actualno.eu/actualno_2013/upload/news/2026/09/26/b4b118d35d49be2e72ccdb598ca0bb12_2643585_1920x1080.jpg",
-"link": "https://www.actualno.com/moresport/podium-za-nikola-colov-v-baku-osnovnijat-mu-konkurent-za-titlata-grabna-pobedata-news_2643585.html",
-"source": "actualno",
+"title": "Ландо Норис казва, че Колапинто „не трябва да бъде във Формула 1 “, след като катастрофата сложи край на надеждите за титлата",
+"image": "https://i.guim.co.uk/img/media/d46758987756f3d74b444c06ae94181c205f8bf2/1000_0_5000_4000/master/5000.jpg?width=700&quality=85&auto=format&fit=max&s=92eaab424a1508b9db045a4afec88a52",
+"link": "https://www.theguardian.com/sport/2026/sep/26/norris-some-drivers-shouldnt-be-in-f1-colapinto-title-hopes",
+"source": "guardian",
 "sport": "",
-"summary": "Огромна драма във второто основно състезание за Гран При на Азербайджан! Никола Цолов успя да се качи на подиу..."
+"summary": "Briton forced to retire from Azerbaijan GP when eighth Colapinto given a grid drop at the next round in Malaysia Lando Norris has issued a scathing criticism of Franco Colapinto, saying the Alpine driver does not deserve"
+},
+{
+"title": "Подвиквания „Оставка“ за Сашо Димитров",
+"image": "https://dsport.bg/media/383/1032473~1.m.webp",
+"link": "https://dsport.bg/podvikvania-ostavka-za-sasho-dimitrov~240795.html",
+"source": "dsport",
+"sport": "",
+"summary": "Малкото публика на стадион „Христо Ботев“ започна викове „Оставка“ по адрес на селекционера Александър Димитров . Възгласите дойдоха след позорната загуба с 1:2 от Люксембург на „Колежа“. Националите поведоха, но допусна"
 }
 ]
