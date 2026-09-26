@@ -95113,12 +95113,13 @@
   "sample": "цената на пазара, без надценката",
   "scored": true,
   "hit": true,
-  "combo_opiti": 4,
+  "combo_opiti": 5,
   "opit": 1,
   "score": "1:0",
   "pazar_close": 1.42,
   "pazar_close_izt": "redica",
-  "pazar_clv": -0.005
+  "pazar_clv": -0.005,
+  "combo_done": true
  },
  {
   "key": "2026-09-24|hockey|lukko|tappara",
@@ -95547,7 +95548,8 @@
   "pazar_close": 1.27,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0411,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-20|volleyball|msen|венецуела|колумбия",
@@ -95592,7 +95594,8 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-20|basketball|indianafever|washingtonmystics",
@@ -95640,7 +95643,8 @@
   "pazar_close": 1.4,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0101,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-20|tabletennis|2250|michalguzik|jakubskorupa",
@@ -98627,7 +98631,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-21|tabletennis|2135|mateuszsikon|sebastianszostok",
@@ -98819,7 +98824,8 @@
   "pazar_close": 1.04,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-21|baseball|hokkaidonipponhamfighter|orixbuffaloes",
@@ -98913,7 +98919,8 @@
   "pazar_close": 1.25,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0547,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-22|basketball|phoenixmercury|dallaswings",
@@ -99010,7 +99017,8 @@
   "pazar_close": 1.3,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0085,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-21|baseball|chunichidragons|hiroshimatoyocarp",
@@ -106620,7 +106628,8 @@
   "pazar_close": 1.57,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0773,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-23|tabletennis|salemalsuwailem|botondvarga",
@@ -106665,7 +106674,8 @@
   "scored": true,
   "hit": true,
   "score": "2:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-23|tabletennis|christopherkraemer|eitayshushan",
@@ -106710,7 +106720,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-27|mma|christianedwards|rodolfobellato",
@@ -113413,7 +113424,7 @@
   "pazar_close": 1.11,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0082,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-25|volleyball|msen|словения|полша",
@@ -113461,7 +113472,7 @@
   "pazar_close": 1.22,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0371,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-25|tabletennis|learakovac|ninaskerbinz",
@@ -113506,7 +113517,7 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-26|baseball|chicagowhitesox|coloradorockies",
@@ -113689,7 +113700,7 @@
   "pazar_close": 1.26,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0103,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-09-25|tabletennis|tatianakukulkova|deboravivarelli",
@@ -119211,7 +119222,9 @@
   "p": 0.5933,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-09-26|tennis|dilekd|cengizb",
