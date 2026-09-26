@@ -7,11 +7,11 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-09-26 15:34 UTC",
+"koga": "2026-09-26 16:57 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 1039
+"pinnacle": 963
 }
 }
 },
@@ -77,39 +77,6 @@
 ],
 "sport": "football",
 "start_ms": 1789584300000,
-"t0": "2026-09-16 04:51",
-"t0_ms": 1789534316615,
-"t_last_ms": 1789536795734
-},
-"football|1636333056|1": {
-"bet": 2.15,
-"bet_liga": "Италия / Серия D",
-"dom": "AC Milan II",
-"ev": 0.0722,
-"gost": "Brusaporto",
-"i": 0,
-"izhod": "1",
-"kely": 0.0157,
-"klyuch": "football|1636333056|1",
-"kotva": false,
-"liga": "Italy - Serie D",
-"mid": "1636333056",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.5211,
-"p_prop": 0.4987,
-"pin": [
-1.78,
-3.66,
-3.43
-],
-"pin_last": [
-1.78,
-3.66,
-3.43
-],
-"sport": "football",
-"start_ms": 1789574400000,
 "t0": "2026-09-16 04:51",
 "t0_ms": 1789534316615,
 "t_last_ms": 1789536795734
