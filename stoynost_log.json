@@ -7,46 +7,13 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-09-26 16:57 UTC",
+"koga": "2026-09-26 17:48 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 963
+"pinnacle": 944
 }
 }
-},
-"football|1635414329|Х": {
-"bet": 3.15,
-"bet_liga": "Испания / Ла Лига",
-"dom": "Deportivo La Coruna",
-"ev": 0.0223,
-"gost": "Sevilla",
-"i": 2,
-"izhod": "Х",
-"kely": 0.0026,
-"klyuch": "football|1635414329|Х",
-"kotva": false,
-"liga": "Spain - La Liga",
-"mid": "1635414329",
-"n": 1,
-"obarnato": false,
-"p_pow": 0.3246,
-"p_prop": 0.3248,
-"pin": [
-2.66,
-3.11,
-2.98
-],
-"pin_last": [
-2.66,
-3.11,
-2.98
-],
-"sport": "football",
-"start_ms": 1789578000000,
-"t0": "2026-09-16 05:33",
-"t0_ms": 1789536795734,
-"t_last_ms": 1789536795734
 },
 "football|1635458184|Х": {
 "bet": 4.25,
