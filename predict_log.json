@@ -110502,8 +110502,9 @@
   "p": 0.7876,
   "stars": 2,
   "sample": "ранглиста и 7 скорошни мача",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-24|esports|fnatic|justplayers",
@@ -112403,8 +112404,9 @@
   "p": 0.6077,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-24|tabletennis|eitayshushan|nishantlebaka",
@@ -113039,8 +113041,9 @@
   "p": 0.5658,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-24|esports|lph|wbt",
@@ -113082,8 +113085,9 @@
   "p": 0.6406,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-24|tabletennis|1900|zbynekpagac|romanhudeczek",
