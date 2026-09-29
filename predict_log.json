@@ -127694,7 +127694,12 @@
   "p": 0.5852,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0",
+  "pazar_close": 1.62,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0038
  },
  {
   "key": "2026-09-28|tabletennis|1845|jakubpruszkowski|lukaszoracz",
@@ -129501,7 +129506,12 @@
   "p": 0.612,
   "stars": 2,
   "sample": "гледани 20 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 1.49,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-29|tabletennis|1530|vladimiradamczyk|daniellanger",
@@ -129543,7 +129553,12 @@
   "p": 0.6423,
   "stars": 2,
   "sample": "гледани 7 мача на единия и 20 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3",
+  "pazar_close": 1.42,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-30|tabletennis|2230|jiriplachy|vladimirpostelt",
@@ -130532,7 +130547,9 @@
   "p": 0.746,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-09-29|esports|exrustec|nexus",
@@ -130616,7 +130633,12 @@
   "p": 0.7982,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0",
+  "pazar_close": 1.18,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0297
  },
  {
   "key": "2026-09-30|tennis|lucavanassche|arthurfils",
@@ -130784,7 +130806,9 @@
   "p": 0.662,
   "stars": 1,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-09-29|tabletennis|1420|olivervincenec|pawelpolok",
@@ -130826,7 +130850,9 @@
   "p": 0.6459,
   "stars": 2,
   "sample": "гледани 16 мача на единия и 30 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-09-29|tabletennis|1800|sebastiankasnik|jirilouda",
@@ -130994,7 +131020,9 @@
   "p": 0.687,
   "stars": 2,
   "sample": "гледани 10 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:3"
  },
  {
   "key": "2026-09-29|esports|borracheiros|metanoiawolves",
@@ -131204,7 +131232,9 @@
   "p": 0.7001,
   "stars": 2,
   "sample": "гледани 20 мача на единия и 9 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-10-04|hockey|pittsburghpenguins|montréalcanadiens",
