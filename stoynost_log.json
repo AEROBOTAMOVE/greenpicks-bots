@@ -7,11 +7,11 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-09-30 13:12 UTC",
+"koga": "2026-09-30 14:22 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 801
+"pinnacle": 797
 }
 }
 },
@@ -47,39 +47,6 @@
 "t0": "2026-09-16 04:51",
 "t0_ms": 1789534316615,
 "t_last_ms": 1790048691724
-},
-"football|1636569764|1": {
-"bet": 3.0,
-"bet_liga": "Испания / Сегунда Дивисион",
-"dom": "Ceuta",
-"ev": 0.0238,
-"gost": "Real Valladolid",
-"i": 0,
-"izhod": "1",
-"kely": 0.003,
-"klyuch": "football|1636569764|1",
-"kotva": true,
-"liga": "Spain - Segunda Division",
-"mid": "1636569764",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.3415,
-"p_prop": 0.3413,
-"pin": [
-2.79,
-2.52,
-3.39
-],
-"pin_last": [
-2.79,
-2.52,
-3.39
-],
-"sport": "football",
-"start_ms": 1789913700000,
-"t0": "2026-09-16 04:51",
-"t0_ms": 1789534316615,
-"t_last_ms": 1789536795734
 },
 "football|1636709484|2": {
 "bet": 5.5,
