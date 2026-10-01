@@ -120001,8 +120001,9 @@
   "p": 0.5959,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-26|esports|saw|mouznxt",
@@ -120268,8 +120269,9 @@
   "p": 0.8407,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-29|hockey|jokerit|hpk",
@@ -128282,7 +128284,8 @@
   "scored": true,
   "hit": true,
   "score": "3:2",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-29|volleyball|msen|hongkongchina|виетнам",
@@ -128330,7 +128333,8 @@
   "pazar_close": 1.11,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-30|football|botafogosp|pontepreta",
@@ -128378,7 +128382,8 @@
   "pazar_close": 1.25,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0197,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-29|baseball|atlantabraves|philadelphiaphillies",
@@ -128618,7 +128623,8 @@
   "pazar_close": 1.45,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0146,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-09-29|football|forestgreenrovers|wealdstone|total",
@@ -137745,7 +137751,12 @@
   "p": 0.5888,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1",
+  "pazar_close": 1.6,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0077
  },
  {
   "key": "2026-10-01|tabletennis|connorgreen|youssefabdelaziz",
@@ -139009,7 +139020,9 @@
   "p": 0.5896,
   "stars": 2,
   "sample": "гледани 17 мача на единия и 14 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-10-02|tennis|mushikamio|kitaharay",
