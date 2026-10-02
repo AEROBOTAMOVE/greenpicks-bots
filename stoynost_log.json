@@ -7,11 +7,11 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-10-02 18:12 UTC",
+"koga": "2026-10-02 19:14 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 1137
+"pinnacle": 1123
 }
 }
 },
@@ -46,105 +46,6 @@
 "start_ms": 1791640800000,
 "t0": "2026-09-16 04:51",
 "t0_ms": 1789534316615,
-"t_last_ms": 1790048691724
-},
-"football|1636709484|2": {
-"bet": 5.5,
-"bet_liga": "Англия / Южна лига - Висша централна дивизия",
-"dom": "Bury Town",
-"ev": 0.0385,
-"gost": "Hitchin Town",
-"i": 1,
-"izhod": "2",
-"kely": 0.0021,
-"klyuch": "football|1636709484|2",
-"kotva": true,
-"liga": "England - Southern Premier League Central",
-"mid": "1636709484",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.1888,
-"p_prop": 0.2051,
-"pin": [
-1.47,
-4.41,
-5.04
-],
-"pin_last": [
-1.47,
-4.41,
-5.04
-],
-"sport": "football",
-"start_ms": 1790102700000,
-"t0": "2026-09-22 03:37",
-"t0_ms": 1790048240557,
-"t_last_ms": 1790048691724
-},
-"football|1636866459|2": {
-"bet": 4.55,
-"bet_liga": "Шотландия / Чалъндж къп",
-"dom": "Stirling Albion",
-"ev": 0.033,
-"gost": "Cumbernauld Colts",
-"i": 1,
-"izhod": "2",
-"kely": 0.0023,
-"klyuch": "football|1636866459|2",
-"kotva": false,
-"liga": "Scotland - Challenge Cup",
-"mid": "1636866459",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.227,
-"p_prop": 0.2404,
-"pin": [
-1.55,
-3.76,
-5.12
-],
-"pin_last": [
-1.55,
-3.76,
-5.12
-],
-"sport": "football",
-"start_ms": 1790102700000,
-"t0": "2026-09-22 03:37",
-"t0_ms": 1790048240557,
-"t_last_ms": 1790048691724
-},
-"football|1636906778|1": {
-"bet": 3.25,
-"bet_liga": "Шотландия / Чалъндж къп",
-"dom": "Banks O´Dee",
-"ev": 0.0421,
-"gost": "Aberdeen B",
-"i": 0,
-"izhod": "1",
-"kely": 0.0047,
-"klyuch": "football|1636906778|1",
-"kotva": false,
-"liga": "Scotland - Challenge Cup",
-"mid": "1636906778",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.3207,
-"p_prop": 0.3233,
-"pin": [
-2.8,
-1.97,
-4.17
-],
-"pin_last": [
-2.8,
-1.97,
-4.17
-],
-"sport": "football",
-"start_ms": 1790102700000,
-"t0": "2026-09-22 03:37",
-"t0_ms": 1790048240557,
 "t_last_ms": 1790048691724
 },
 "football|1637086549|Х": {
