@@ -106900,9 +106900,10 @@
   "p": 0.594,
   "stars": 1,
   "sample": "следени 7 техни боя",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_opiti": 1
+  "combo_opiti": 1,
+  "opit": 1
  },
  {
   "key": "2026-09-23|tabletennis|clemencechevallier|sampadabhiwandkar",
@@ -122827,8 +122828,9 @@
   "p": 0.7397,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-27|baseball|sanfranciscogiants|losangelesdodgers",
@@ -123910,8 +123912,9 @@
   "p": 0.8437,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-27|esports|imperial|pain",
