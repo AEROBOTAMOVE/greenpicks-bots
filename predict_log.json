@@ -124132,8 +124132,9 @@
   "p": 0.5949,
   "stars": 3,
   "sample": "ранглиста и 16 скорошни мача",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-28|baseball|yokohamabaystars|hiroshimatoyocarp",
@@ -126714,8 +126715,9 @@
   "p": 0.7086,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-29|tennis|berfucengiz|teodorakostovic",
