@@ -132223,7 +132223,12 @@
   "p": 0.8179,
   "stars": 2,
   "sample": "следени 8 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.18,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-09-30|esports|thechampiongg|sinqurehti",
@@ -134828,7 +134833,8 @@
   "sample": "гледани 34 мача на единия и 49 на другия",
   "scored": true,
   "hit": false,
-  "score": "1:3"
+  "score": "1:3",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-01|tabletennis|yashaswinighorpade|nithyamani",
@@ -134872,7 +134878,8 @@
   "sample": "гледани 62 мача на единия и 28 на другия",
   "scored": true,
   "hit": false,
-  "score": "3:2"
+  "score": "3:2",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-01|tabletennis|wimverdonschot|vladislavursu",
@@ -135007,7 +135014,13 @@
   "p": 0.6671,
   "stars": 2,
   "sample": "следени 12 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0",
+  "pazar_close": 1.42,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0146,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-05|hockey|vancouvercanucks|vegasgoldenknights",
@@ -138508,7 +138521,7 @@
   "pazar_close": 1.29,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0061,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-06|hockey|hcpilsen|skellefteåaik",
@@ -138595,7 +138608,7 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-02|esports|b8|fnatic",
@@ -138692,7 +138705,7 @@
   "pazar_close": 1.42,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0673,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-02|tabletennis|wimverdonschot|harmeetdesai",
@@ -138958,7 +138971,7 @@
   "pazar_close": 1.07,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-02|volleyball|msen|пакистан|иран",
@@ -139006,7 +139019,7 @@
   "pazar_close": 1.11,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.008,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-02|volleyball|msen|виетнам|индонезия",
@@ -139191,7 +139204,7 @@
   "scored": true,
   "hit": false,
   "score": "3:2",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-02|tabletennis|2300|michalregner|sebastiankasnik",
@@ -142039,7 +142052,8 @@
   "score": "0:3",
   "pazar_close": 1.22,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0504
+  "pazar_clv": 0.0504,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-03|tennis|shih|yuanc",
@@ -142475,7 +142489,8 @@
   "sample": "гледани 59 мача на единия и 92 на другия",
   "scored": true,
   "hit": false,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-04|football|clubatléticomorelia|tlaxcalafc|total",
@@ -142691,7 +142706,8 @@
   "sample": "гледани 38 мача на единия и 49 на другия",
   "scored": true,
   "hit": true,
-  "score": "0:3"
+  "score": "0:3",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-03|baseball|losangelesdodgers|atlantabraves",
@@ -142733,7 +142749,13 @@
   "p": 0.662,
   "stars": 1,
   "sample": "гледани 184 мача на единия и 189 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:3",
+  "pazar_close": 1.47,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0142,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-03|tabletennis|2330|karelbrozik|petrzmuda",
@@ -142954,7 +142976,9 @@
   "p": 0.5168,
   "stars": 1,
   "sample": "гледани 184 мача на единия и 189 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:3"
  },
  {
   "key": "2026-10-03|tabletennis|2330|kamilkowalski|adamruszkiewicz",
@@ -145524,7 +145548,12 @@
   "p": 0.7338,
   "stars": 3,
   "sample": "гледани 88 мача на единия и 69 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0",
+  "pazar_close": 1.21,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.039
  },
  {
   "key": "2026-10-05|football|cdfas|incaaruba",
@@ -146802,6 +146831,90 @@
   "itf_id": null,
   "igra": null,
   "pick": "1 · победа Carolina Hurricanes",
+  "pazar_cena": null,
+  "pazar_cena_drug": null,
+  "pazar_p": null,
+  "dvizhenie": null,
+  "dvizhenie_ot": null,
+  "dvizhenie_n": null,
+  "dvizhenie_koga": null,
+  "p_model": null,
+  "obarnata": false,
+  "strength": 0.0,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.55,
+  "stars": 1,
+  "sample": "без история",
+  "scored": false
+ },
+ {
+  "key": "2026-10-07|hockey|redbullsalzburg|eisbärenberlin",
+  "combo": 0,
+  "posted": "2026-10-04 03:23",
+  "day": "2026-10-07",
+  "bucket": "hockey",
+  "home": "Red Bull Salzburg",
+  "away": "Eisbären Berlin",
+  "home_id": "Red Bull Salzburg",
+  "away_id": "Eisbären Berlin",
+  "league": "Шампионска хокейна лига",
+  "slug": "chl",
+  "src": "chl",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · победа Red Bull Salzburg (в мача)",
+  "pazar_cena": null,
+  "pazar_cena_drug": null,
+  "pazar_p": null,
+  "dvizhenie": null,
+  "dvizhenie_ot": null,
+  "dvizhenie_n": null,
+  "dvizhenie_koga": null,
+  "p_model": null,
+  "obarnata": false,
+  "strength": 0.6421045393877223,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": null,
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.8211,
+  "stars": 3,
+  "sample": "гледани 84 мача на единия и 60 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-10-09|hockey|montréalcanadiens|nashvillepredators",
+  "combo": 0,
+  "posted": "2026-10-04 03:23",
+  "day": "2026-10-09",
+  "bucket": "hockey",
+  "home": "Montréal Canadiens",
+  "away": "Nashville Predators",
+  "home_id": "MTL",
+  "away_id": "NSH",
+  "league": "НХЛ",
+  "slug": null,
+  "src": "nhl",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · победа Montréal Canadiens",
   "pazar_cena": null,
   "pazar_cena_drug": null,
   "pazar_p": null,
