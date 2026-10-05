@@ -125925,8 +125925,9 @@
   "p": 0.627,
   "stars": 3,
   "sample": "ранглиста и 17 скорошни мача",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-28|tabletennis|1630|jirilouda|michalregner",
@@ -126825,8 +126826,9 @@
   "p": 0.6,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-29|tennis|andreyrublev|daniilmedvedev",
@@ -131760,7 +131762,7 @@
   "pazar_close": 1.14,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0225,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-01|hockey|coloradoavalanche|losangeleskings",
@@ -131850,7 +131852,7 @@
   "pazar_close": 1.32,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0276,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-03|mma|andreypulyaev|damianpinas",
@@ -131898,7 +131900,7 @@
   "pazar_close": 1.18,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-30|esports|thechampiongg|sinqurehti",
@@ -131988,7 +131990,7 @@
   "pazar_close": 1.64,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0396,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-09-30|football|ciencianodelcusco|loschankas|total",
@@ -134505,7 +134507,8 @@
   "scored": true,
   "hit": false,
   "score": "1:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-01|tabletennis|yashaswinighorpade|nithyamani",
@@ -134550,7 +134553,8 @@
   "scored": true,
   "hit": false,
   "score": "3:2",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-01|tabletennis|wimverdonschot|vladislavursu",
@@ -134691,7 +134695,8 @@
   "pazar_close": 1.42,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0146,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-05|hockey|vancouvercanucks|vegasgoldenknights",
@@ -141683,7 +141688,7 @@
   "pazar_close": 1.4072,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0037,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-03|volleyball|msen|катар|корея",
@@ -141731,7 +141736,8 @@
   "pazar_close": 1.22,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0504,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-03|tennis|shih|yuanc",
@@ -141779,7 +141785,7 @@
   "pazar_close": 1.11,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0165,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-03|basketball|melbourneunited|cairnstaipans",
@@ -141827,7 +141833,7 @@
   "pazar_close": 1.19,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0207,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-04|football|clubatléticomorelia|tlaxcalafc",
@@ -141875,7 +141881,7 @@
   "pazar_close": 1.43,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0144,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-04|baseball|milwaukeebrewers|sandiegopadres",
@@ -141923,7 +141929,7 @@
   "pazar_close": 1.46,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0047,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-03|esports|legacy|pvision",
@@ -142052,7 +142058,7 @@
   "scored": true,
   "hit": false,
   "score": "2:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-03|baseball|ncdinos|ssglanders",
@@ -142144,7 +142150,7 @@
   "scored": true,
   "hit": false,
   "score": "2:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-03|tabletennis|baldwinchan|jingkaihung",
@@ -142189,7 +142195,8 @@
   "scored": true,
   "hit": false,
   "score": "3:0",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-04|football|clubatléticomorelia|tlaxcalafc|total",
@@ -142410,7 +142417,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-03|baseball|losangelesdodgers|atlantabraves",
@@ -142458,7 +142466,8 @@
   "pazar_close": 1.47,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0142,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-03|tabletennis|2330|karelbrozik|petrzmuda",
@@ -145381,7 +145390,7 @@
   "scored": true,
   "hit": true,
   "score": "2:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-04|basketball|atlantadream|newyorkliberty",
@@ -145429,7 +145438,7 @@
   "pazar_close": 1.52,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.025,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-04|tabletennis|omarassar|woojinjang",
@@ -145697,7 +145706,7 @@
   "pazar_close": 1.56,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0041,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-05|football|cdfas|incaaruba|total",
@@ -145834,7 +145843,7 @@
   "pazar_close": 1.25,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0063,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-04|tabletennis|elizabetasamara|jiananyuan",
@@ -145879,7 +145888,7 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-04|tabletennis|miyunagasaki|hinahayata",
@@ -145927,7 +145936,7 @@
   "pazar_close": 1.23,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.013,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-04|tabletennis|yujiehuang|ichingcheng",
@@ -147560,7 +147569,12 @@
   "p": 0.5985,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 52 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.53,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-05|tennis|aliaksandrasasnovich|yaoxinxin",
@@ -148529,7 +148543,12 @@
   "p": 0.5436,
   "stars": 3,
   "sample": "гледани 20 мача на единия и 26 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3",
+  "pazar_close": 1.54,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0359
  },
  {
   "key": "2026-10-05|tabletennis|mozhang|hitomisato",
@@ -149339,6 +149358,174 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
+  "scored": false
+ },
+ {
+  "key": "2026-10-05|tabletennis|0130|kamilkowalski|piotrgumulinski",
+  "combo": 0,
+  "posted": "2026-10-05 04:16",
+  "day": "2026-10-05",
+  "bucket": "tabletennis",
+  "home": "Kamil Kowalski",
+  "away": "Piotr Gumulinski",
+  "home_id": null,
+  "away_id": null,
+  "league": "TT Elite Series",
+  "slug": "45357176",
+  "src": "ttligi",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Piotr Gumulinski",
+  "pazar_cena": 1.1702,
+  "pazar_cena_drug": 6.9686,
+  "pazar_p": 0.8562,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.1702,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-10-05 04:21",
+  "p_model": 0.6518608142143372,
+  "obarnata": false,
+  "strength": 0.30372162842867423,
+  "pazar_v": null,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "smarkets",
+  "pazar_sport": "tabletennis",
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.8562,
+  "stars": 2,
+  "sample": "гледани 14 мача на единия и 24 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-10-05|tabletennis|dangqiu|yihsinfeng",
+  "combo": 0,
+  "posted": "2026-10-05 04:16",
+  "day": "2026-10-05",
+  "bucket": "tabletennis",
+  "home": "Dang QIU",
+  "away": "Yi-Hsin FENG",
+  "home_id": "114715",
+  "away_id": "122727",
+  "league": "China Smash 2026 Presented by Beijing Shijingshan Culture & Tourism Group · Men's Singles",
+  "slug": null,
+  "src": "wtt",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · Dang QIU",
+  "pazar_cena": 1.27,
+  "pazar_cena_drug": 3.4,
+  "pazar_p": 0.7281,
+  "dvizhenie": 0.0169,
+  "dvizhenie_ot": 1.3,
+  "dvizhenie_n": 8,
+  "dvizhenie_koga": "2026-10-04 17:47",
+  "p_model": 0.7368321395493386,
+  "obarnata": false,
+  "strength": 0.47366427909867714,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "kambi",
+  "pazar_sport": "tabletennis",
+  "pazar_liga": "WTT China Smash",
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.7368,
+  "stars": 2,
+  "sample": "гледани 76 мача на единия и 61 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-10-05|tabletennis|alexislebrun|miloszredzimski",
+  "combo": 0,
+  "posted": "2026-10-05 04:16",
+  "day": "2026-10-05",
+  "bucket": "tabletennis",
+  "home": "Alexis LEBRUN",
+  "away": "Milosz REDZIMSKI",
+  "home_id": "132992",
+  "away_id": "135019",
+  "league": "China Smash 2026 Presented by Beijing Shijingshan Culture & Tourism Group · Men's Singles",
+  "slug": null,
+  "src": "wtt",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · Alexis LEBRUN",
+  "pazar_cena": 1.07,
+  "pazar_cena_drug": 6.8,
+  "pazar_p": 0.864,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.07,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-10-05 04:21",
+  "p_model": 0.7360226144702368,
+  "obarnata": false,
+  "strength": 0.4720452289404735,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "kambi",
+  "pazar_sport": "tabletennis",
+  "pazar_liga": "WTT China Smash",
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.864,
+  "stars": 2,
+  "sample": "гледани 73 мача на единия и 39 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-10-05|tabletennis|xingtongchen|yixu",
+  "combo": 0,
+  "posted": "2026-10-05 04:16",
+  "day": "2026-10-05",
+  "bucket": "tabletennis",
+  "home": "Xingtong CHEN",
+  "away": "Yi XU",
+  "home_id": "121403",
+  "away_id": "137465",
+  "league": "China Smash 2026 Presented by Beijing Shijingshan Culture & Tourism Group · Women's Singles",
+  "slug": null,
+  "src": "wtt",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · Xingtong CHEN",
+  "pazar_cena": 1.2,
+  "pazar_cena_drug": 4.0,
+  "pazar_p": 0.7692,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.2,
+  "dvizhenie_n": 9,
+  "dvizhenie_koga": "2026-10-04 16:35",
+  "p_model": 0.7082092778673833,
+  "obarnata": false,
+  "strength": 0.4164185557347666,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "kambi",
+  "pazar_sport": "tabletennis",
+  "pazar_liga": "WTT China Smash",
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.7692,
+  "stars": 2,
+  "sample": "гледани 77 мача на единия и 31 на другия",
   "scored": false
  }
 ]
