@@ -1796,6 +1796,43 @@ def already_posted(state, key):
     return key in (state.get("posted") or {})
 
 
+# 🔴 06.10.2026 — ЕДИН МАЧ = ЕДНА КАРТА И МЕЖДУ ПУСКАНИЯТА.
+# Ключът носи ДЕНЯ на мача; щом източник даде друг ден (без час, през полунощ,
+# друга зона), същият мач получава втори ключ. Дневникът: 82 записа (2.2%) са
+# същият мач с по-късен ден, 25 двойки са на ПРОТИВОПОЛОЖНАТА страна (който
+# следва и двете — губи едната сигурно); тенис: 29 от 29 двойки с еднакъв
+# резултат. Изключение: бейзболните серии (същите отбори ден след ден) — втора
+# карта само с ИСТИНСКИ час и по-късен ден. ПЪТ НАЗАД: PREDICT_EDIN_MACH=0.
+EDIN_MACH = (os.environ.get("PREDICT_EDIN_MACH") or "1").strip().lower() not in (
+    "0", "false", "no", "не")
+EDIN_MACH_SERII = ("baseball",)
+
+
+def dvoinik(state, key, fx, now):
+    """Вярно, ако същата двойка отбори вече е пусната под съседен ден."""
+    if not EDIN_MACH or not key or "|" not in key:
+        return False
+    den, pair = key.split("|", 1)
+    try:
+        d0 = datetime.strptime(den, "%Y-%m-%d").date()
+    except ValueError:
+        return False
+    for pk in (state.get("posted") or {}):
+        if pk == key or "|" not in pk or pk.split("|", 1)[1] != pair:
+            continue
+        try:
+            pd = datetime.strptime(pk.split("|", 1)[0], "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        if abs((d0 - pd).days) > 1:
+            continue
+        if (str(fx.get("bucket")) in EDIN_MACH_SERII and d0 > pd
+                and fx_start(fx, now) is not None):
+            continue                    # следващ мач от серията — истински час, по-късен ден
+        return True
+    return False
+
+
 def mark_posted(state, key, now):
     state.setdefault("posted", {})[key] = now.strftime("%Y-%m-%d %H:%M")
 
@@ -8826,7 +8863,12 @@ def _kambi_rezerva(an):
     if not (dom and gost):
         return an
     try:
-        r = KAM.ceni_za(b, dom, gost)
+        # 06.10.2026: с часа на нашия мач — иначе утрешният мач от серията
+        # (бейзбол) взема цената на днешния, вече текущ мач.
+        try:
+            r = KAM.ceni_za(b, dom, gost, koga=fx_start(fx, datetime.now(timezone.utc)))
+        except TypeError:                # подпис без час (подмяна в проверките) — както преди
+            r = KAM.ceni_za(b, dom, gost)
     except Exception:                                        # noqa: BLE001
         return an
     if r is None or r is getattr(KAM, "NEPITAN", object()):
@@ -10152,6 +10194,19 @@ DVIZH_PRAG_SILNO = float((os.environ.get("PREDICT_DVIZH_PRAG_SILNO")
                           or "0.05").strip() or 0.05)
 DVIZH_TEZHEST_SLAB = float((os.environ.get("PREDICT_DVIZH_TEZHEST_SLAB")
                             or "700").strip() or 700)
+# 🔴 06.10.2026 — ДВИЖЕНИЕТО ТЕЖИ САМО ТАМ, КЪДЕТО Е МЕРЕНО: ФУТБОЛА.
+# Ръбът е мерен на 61 156 футболни мача (@mid). Нашият дневник (3737 отсъдени):
+# извън футбола d≥0.03 → 54.5% познати при обявени 64.8%, доход −22.2%±12.9
+# (n=33); d≥0.05 → −35.5%±15.6 (n=21), и в двете половини отрицателно.
+# Карта без спорт (старите проверки) не се реже. ПЪТ НАЗАД: PREDICT_DVIZH_SPORTOVE=all.
+_dv_sp = (os.environ.get("PREDICT_DVIZH_SPORTOVE") or "football").strip().lower()
+DVIZH_SPORTOVE = set() if _dv_sp in ("all", "всички", "*") else {
+    x.strip() for x in _dv_sp.split(",") if x.strip()}
+# 🔴 ТАВАН: |d| над него е ТЕЧ, не движение — цена от друга игра или по време
+# на мача (бейзбол 1.87→1.02, футбол 2.15→1.27 за 47 мин). И седемте карти с
+# |d|>0.15 в дневника са такива; движението след тях се връща (r=−0.51).
+# ПЪТ НАЗАД: PREDICT_DVIZH_TAVAN=0.
+DVIZH_TAVAN = float((os.environ.get("PREDICT_DVIZH_TAVAN") or "0.15").strip() or 0)
 
 
 def dvizh_tezhest(an):
@@ -10183,6 +10238,11 @@ def dvizh_tezhest(an):
         d = float(d)
     except (TypeError, ValueError):
         return 0.0
+    if DVIZH_TAVAN > 0 and abs(d) > DVIZH_TAVAN:
+        return 0.0                      # теч, не движение (виж DVIZH_TAVAN)
+    _b = an.get("bucket")
+    if DVIZH_SPORTOVE and _b and _b not in DVIZH_SPORTOVE:
+        return 0.0                      # мерено само при футбола (DVIZH_SPORTOVE)
     # 🔴 ГРАДАЦИЯ: силно (≥5%) = пълната звезда; слабо (3–5%) = по-малко.
     # Таванът остава `DVIZH_TEZHEST` (= една звезда, = наказанието за коеф.).
     if d >= DVIZH_PRAG_SILNO:
@@ -10532,6 +10592,10 @@ def run():
         k = match_key(fx, now)
         if already_posted(state, k):
             print("   ⏭ вече е пусната: " + str(fx.get("home")) + " - " + str(fx.get("away")))
+            continue
+        if dvoinik(state, k, fx, now):
+            print("   ⏭ същият мач вече е пуснат под съседен ден: "
+                  + str(fx.get("home")) + " - " + str(fx.get("away")))
             continue
         # Двойката отбори БЕЗ датата. Бейзболът играе по два мача в един ден
         # срещу същия съперник (а сериите вървят и през полунощ по българско),
@@ -11411,6 +11475,14 @@ def selftest():
         check("непусната среща не е в тефтера", not already_posted(st, k))
         mark_posted(st, k, now)
         check("пусната среща се помни", already_posted(st, k))
+        # 06.10.2026: същата двойка под съседен ден е двойник; след 2 дни — не.
+        if EDIN_MACH:
+            _dp = k.split("|", 1)
+            _d1 = (datetime.strptime(_dp[0], "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+            _d3 = (datetime.strptime(_dp[0], "%Y-%m-%d") + timedelta(days=3)).strftime("%Y-%m-%d")
+            check("същият мач под съседен ден е двойник",
+                  dvoinik(st, _d1 + "|" + _dp[1], {"bucket": "tennis"}, now))
+            check("след 3 дни не е двойник", not dvoinik(st, _d3 + "|" + _dp[1], {"bucket": "tennis"}, now))
 
         check("тефтерът се записва", save_state(st, now))
         check("тефтерът се чете обратно", already_posted(load_state(), k))
@@ -12137,6 +12209,16 @@ def selftest():
     # НАШИЯ дневник; това — на чужда извадка.
     check("не бие измереното у нас",
           abs(DVIZH_TEZHEST - KOEF_SHTAFA) < 1e-9)
+    # 🔴 06.10.2026: движението тежи само там, където е мерено, и с таван за теч.
+    if DVIZH_SPORTOVE == {"football"}:
+        check("движението тежи при футбола, не при бейзбола",
+              dvizh_tezhest({"dvizhenie": 0.06, "dvizhenie_n": 2, "bucket": "football"}) == DVIZH_TEZHEST
+              and dvizh_tezhest({"dvizhenie": 0.06, "dvizhenie_n": 2, "bucket": "baseball"}) == 0.0
+              and dvizh_tezhest({"dvizhenie": -0.06, "dvizhenie_n": 2, "bucket": "tabletennis"}) == 0.0)
+    if DVIZH_TAVAN > 0:
+        check("|движение| над тавана е теч — нула",
+              dvizh_tezhest({"dvizhenie": DVIZH_TAVAN + 0.2, "dvizhenie_n": 3, "bucket": "football"}) == 0.0
+              and dvizh_tezhest({"dvizhenie": -(DVIZH_TAVAN + 0.2), "dvizhenie_n": 3, "bucket": "football"}) == 0.0)
     # 🔴 ГРАДАЦИЯ ПО СИЛА (22.09.2026) — силният steam стои НАД слабия.
     check("силно движение (≥5%) тежи повече от слабо (3–5%)",
           dvizh_tezhest({"dvizhenie": 0.06, "dvizhenie_n": 2})

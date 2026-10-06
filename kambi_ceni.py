@@ -51,6 +51,7 @@ import os
 import re
 import sys
 import unicodedata
+from datetime import datetime
 import urllib.error
 import urllib.request
 
@@ -330,7 +331,23 @@ def sabitiya(sport, otvarach=None):
     return nam
 
 
-def ceni_za(sport, dom, gost, otvarach=None):
+# 🔴 06.10.2026: събитие на повече от толкова часа от нашия мач е ДРУГ мач
+# (бейзболните серии играят същите отбори ден след ден). ПЪТ НАЗАД: KAMBI_CHAS_PROZOREC=0.
+CHAS_PROZOREC = float((os.environ.get("KAMBI_CHAS_PROZOREC") or "6").strip() or 0)
+
+
+def _cas_ok(st, koga):
+    """Вярно, ако часът на събитието е близо до нашия (или няма как да се сравни)."""
+    if koga is None or not st or CHAS_PROZOREC <= 0:
+        return True
+    try:
+        t = datetime.fromisoformat(str(st).replace("Z", "+00:00"))
+        return abs((t - koga).total_seconds()) <= CHAS_PROZOREC * 3600
+    except (TypeError, ValueError):
+        return True
+
+
+def ceni_za(sport, dom, gost, otvarach=None, koga=None):
     """(коеф_дом, коеф_гост) или None. NEPITAN, ако изворът е отказал.
 
     🔴 СЪВПАДЕНИЕТО ИСКА И ДВЕТЕ СТРАНИ. Една обща фамилия е свързала чужд
@@ -345,6 +362,8 @@ def ceni_za(sport, dom, gost, otvarach=None):
     for zap in ev:
         A, B, _st, c1, c2 = zap[0], zap[1], zap[2], zap[3], zap[4]
         raven = zap[5] if len(zap) > 5 else None
+        if not _cas_ok(_st, koga):
+            continue                    # същите отбори, друг ден — друг мач
         da, db = dumi(A), dumi(B)
         if (h & da) and (a & db):
             return (c1, c2, raven)
