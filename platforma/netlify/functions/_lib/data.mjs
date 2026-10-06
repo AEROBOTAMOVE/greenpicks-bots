@@ -72,6 +72,32 @@ export function kartaZaKlient(r) {
   };
 }
 
+/* 📈 СИГНАЛЪТ — движението на линията, ЕДИНСТВЕНИЯТ измерен ръб (22 333 мача:
+   ≥5% движение към нас → +9.4% ROI @mid; 3–5% → +6..7.7%). Праговете са СЪЩИТЕ
+   като в мозъка (DVIZH_PRAG / DVIZH_PRAG_SILNO / DVIZH_MIN_N в predictor.py).
+   «dvizhenie» = промяна в имплицитната вероятност на НАШИЯ изход спрямо първата
+   видяна цена; + значи, че пазарът идва при нас. Една видяна цена не е движение. */
+export const DV_PRAG = 0.03, DV_SILNO = 0.05, DV_MIN_N = 2;
+export function signalOt(r) {
+  const n = Number(r && r.dvizhenie_n) || 0, d = num(r && r.dvizhenie);
+  if (n < DV_MIN_N || d == null) return "";
+  if (d >= DV_SILNO) return "silno";
+  if (d >= DV_PRAG) return "da";
+  if (d <= -DV_PRAG) return "anti";
+  return "";
+}
+export function dvKlient(r) {
+  const n = Number(r && r.dvizhenie_n) || 0, d = num(r && r.dvizhenie);
+  if (n < DV_MIN_N || d == null) return {};
+  const ot = num(r.dvizhenie_ot), sega = num(r.pazar_cena);
+  return {
+    dv: Math.round(d * 1000) / 1000, dv_n: n,
+    dv_ot: ot && ot > 1 && ot < 1000 ? Math.round(ot * 100) / 100 : null,
+    dv_sega: sega && sega > 1 && sega < 1000 ? Math.round(sega * 100) / 100 : null,
+    signal: signalOt(r),
+  };
+}
+
 /** Показаният процент на клиента — суровата вероятност на мозъка, СВИТА към
     реалната успеваемост на спорта, ако спортът се надценява (виж napraviPaket).
     Без карта за калибрация (kalibr) връща суровия процент — старото поведение. */
@@ -156,7 +182,7 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
 
   const prognozi = zapisi
     .filter((r) => !r.scored && String(r.day || "") >= vchera)
-    .map((r) => ({ ...kartaZaKlient(r), procent: pokazanProcent(r, kalibr), zashto: zashto(r, kalibr) }))
+    .map((r) => ({ ...kartaZaKlient(r), procent: pokazanProcent(r, kalibr), zashto: zashto(r, kalibr), ...dvKlient(r) }))
     .sort((a, b) => (a.den + a.pusnata).localeCompare(b.den + b.pusnata));
 
   // ФИШОВЕТЕ: краката с един и същ номер в един и същ ден (последните 7 дни)
@@ -180,7 +206,7 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
 
   const rez = zapisi
     .filter((r) => r.scored && String(r.day || "") >= predi7)
-    .map((r) => ({ ...kartaZaKlient(r), procent: pokazanProcent(r, kalibr), poznata: r.hit === true ? true : r.hit === false ? false : null, rezultat: String(r.score || "") }))
+    .map((r) => ({ ...kartaZaKlient(r), procent: pokazanProcent(r, kalibr), poznata: r.hit === true ? true : r.hit === false ? false : null, rezultat: String(r.score || ""), ...dvKlient(r) }))
     .sort((a, b) => (b.den + b.pusnata).localeCompare(a.den + a.pusnata))
     .slice(0, 400);                     // пакетът да остане лек (7 дни, най-много 400)
 
@@ -232,17 +258,107 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
   const zhivo = (zhivoLog && Array.isArray(zhivoLog.zhivo))
     ? zhivoLog.zhivo.filter((z) => z && z.dom && z.gost).slice(0, 30) : [];
 
+  // ── ОТСЪДЕНИТЕ ЗА 30 ДНИ (една фиш-нога = една прогноза; дубликатите по key се махат) ──
+  const vidyan = new Set();
+  const ots30 = [];
+  for (const r of zapisi) {
+    if (!r.scored || (r.hit !== true && r.hit !== false) || String(r.day || "") < predi30) continue;
+    const k = String(r.key || "") + "|" + String(r.pick || "");
+    if (vidyan.has(k)) continue;
+    vidyan.add(k); ots30.push(r);
+  }
+  const ed = (r) => { const k = koef(r); return k ? (r.hit === true ? k - 1 : -1) : null; }; // юнити при равен залог
+  const kofa = () => ({ n: 0, poznati: 0, ed: 0, ed_n: 0 });
+  const dobavi = (o, r) => { o.n += 1; if (r.hit === true) o.poznati += 1; const e = ed(r); if (e != null) { o.ed += e; o.ed_n += 1; } };
+  const zatvori = (o) => ({ n: o.n, poznati: o.poznati, uspeh: o.n ? Math.round((100 * o.poznati) / o.n) : null,
+    edinici: o.ed_n ? Math.round(o.ed * 10) / 10 : null, dohod: o.ed_n >= 10 ? Math.round((1000 * o.ed) / o.ed_n) / 10 : null });
+
+  // 🏟️ ЛИГИТЕ — успех по лига за 30 дни (само лиги с ≥5 отсъдени, за да не гони шум)
+  const lg = {};
+  for (const r of ots30) {
+    const L = String(r.league || "").trim(); if (!L) continue;
+    const k = (r.bucket || "") + "|" + L;
+    if (!lg[k]) lg[k] = { liga: L, sport: String(r.bucket || ""), sport_bg: SPORT_BG[r.bucket] || String(r.bucket || ""), o: kofa() };
+    dobavi(lg[k].o, r);
+  }
+  const ligi = Object.values(lg).filter((x) => x.o.n >= 5)
+    .map((x) => ({ liga: x.liga, sport: x.sport, sport_bg: x.sport_bg, ...zatvori(x.o) }))
+    .sort((a, b) => b.n - a.n).slice(0, 80);
+
+  // 📋 ФОРМАТА — последните до 6 резултата на всеки отбор от ПРЕДСТОЯЩИТЕ мачове
+  // (от мачовете в нашия архив за 60 дни; счетът е «домакин:гост»).
+  const timove = new Set();
+  for (const k of prognozi) { timove.add(k.dom); timove.add(k.gost); }
+  const predi60 = plusDni(dnes, -60);
+  const forma = {};
+  const vidyanM = new Set();
+  const sSchet = zapisi.filter((r) => r.scored && /^\s*\d+\s*:\s*\d+\s*$/.test(String(r.score || "")) && String(r.day || "") >= predi60)
+    .sort((a, b) => String(b.day || "").localeCompare(String(a.day || "")));
+  for (const r of sSchet) {
+    const mk = String(r.key || r.home + r.away + r.day);
+    if (vidyanM.has(mk)) continue;
+    vidyanM.add(mk);
+    const [a, b] = String(r.score).split(":").map((x) => parseInt(x, 10));
+    for (const [ime, moi, chuzh, vs, doma] of [[r.home, a, b, r.away, true], [r.away, b, a, r.home, false]]) {
+      if (!timove.has(ime)) continue;
+      const arr = forma[ime] = forma[ime] || [];
+      if (arr.length >= 6) continue;
+      arr.push({ r: moi > chuzh ? "W" : moi < chuzh ? "L" : "D", s: moi + ":" + chuzh, vs: String(vs).slice(0, 40), den: String(r.day || ""), d: doma ? 1 : 0 });
+    }
+  }
+
+  // 🔬 АНАЛИЗЪТ — нашият запис, разрязан честно (30 дни). Само показване на вече
+  // отсъденото; нищо не се смята наново в мозъка.
+  const pBand = [[50, 60], [60, 70], [70, 80], [80, 90], [90, 101]];
+  const kBand = [[1.0, 1.5, "до 1.50"], [1.5, 2.0, "1.50–1.99"], [2.0, 3.0, "2.00–2.99"], [3.0, 1000, "3.00+"]];
+  const zv = { 1: kofa(), 2: kofa(), 3: kofa() };
+  const pb = pBand.map(() => ({ ...kofa(), sp: 0 }));
+  const kb = kBand.map(() => kofa());
+  const sg = { silno: kofa(), da: kofa(), anti: kofa(), "": kofa() };
+  const strana = { "1": kofa(), "X": kofa(), "2": kofa(), drugo: kofa() };
+  let clvN = 0, clvBie = 0, clvSum = 0;
+  for (const r of ots30) {
+    if (zv[r.stars]) dobavi(zv[r.stars], r);
+    const pp = pokazanProcent(r, kalibr);
+    if (pp != null) { const i = pBand.findIndex(([lo, hi]) => pp >= lo && pp < hi); if (i >= 0) { dobavi(pb[i], r); pb[i].sp += pp; } }
+    const kk = koef(r);
+    if (kk) { const j = kBand.findIndex(([lo, hi]) => kk >= lo && kk < hi); if (j >= 0) dobavi(kb[j], r); }
+    dobavi(sg[signalOt(r)] || sg[""], r);
+    const s0 = String(r.pick || "").trim().split(/[\s·]/)[0];
+    dobavi(s0 === "1" ? strana["1"] : s0 === "2" ? strana["2"] : /^[XХ]$/.test(s0) ? strana["X"] : strana.drugo, r);
+    const c = num(r.pazar_clv);
+    if (c != null) { clvN += 1; clvSum += c; if (c > 0) clvBie += 1; }
+  }
+  const analiz = {
+    n: ots30.length,
+    zvezdi: [1, 2, 3].map((z) => ({ zvezdi: z, ...zatvori(zv[z]) })),
+    kalibraciya: pBand.map(([lo, hi], i) => ({ et: lo + "–" + (hi > 100 ? 99 : hi - 1) + "%", ...zatvori(pb[i]),
+      obyaveno: pb[i].n ? Math.round(pb[i].sp / pb[i].n) : null })).filter((x) => x.n >= 5),
+    koef: kBand.map(([, , et], i) => ({ et, ...zatvori(kb[i]) })).filter((x) => x.n >= 5),
+    signal: [["silno", "Силно движение към нас (≥5%)"], ["da", "Движение към нас (3–5%)"], ["", "Без движение"], ["anti", "Пазарът бяга от нас"]]
+      .map(([k, et]) => ({ k, et, ...zatvori(sg[k]) })),
+    strana: [["1", "Победа домакин"], ["X", "Равен"], ["2", "Победа гост"], ["drugo", "Голове / други"]]
+      .map(([k, et]) => ({ k, et, ...zatvori(strana[k]) })).filter((x) => x.n >= 3),
+    clv: clvN >= 20 ? { n: clvN, bie: Math.round((100 * clvBie) / clvN), sredno: Math.round((1000 * clvSum) / clvN) / 10 } : null,
+  };
+  // доходност (юнити при равен залог) към статистиката по спорт
+  const sportEd = {};
+  for (const r of ots30) { const s = r.bucket || "drugi"; sportEd[s] = sportEd[s] || kofa(); dobavi(sportEd[s], r); }
+
   return {
     dnes,
     prognozi,
     fishove,
     rezultati: rez,
-    statistika,
+    statistika: statistika.map((s) => (sportEd[s.sport] ? { ...s, edinici: zatvori(sportEd[s.sport]).edinici, dohod: zatvori(sportEd[s.sport]).dohod } : s)),
     obshto: { n: vsichki, poznati, uspeh: vsichki ? Math.round((100 * poznati) / vsichki) : null, dni: 30 },
     novini,
     novini_full,
     stoynost,
     zhivo,
+    ligi,
+    forma,
+    analiz,
     sportove: SPORT_RED.map((s) => ({ sport: s, sport_bg: SPORT_BG[s] })),
   };
 }

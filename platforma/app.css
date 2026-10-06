@@ -104,7 +104,7 @@ img, svg { max-width: 100%; }
 .marka img { width: 34px; height: 34px; }
 .marka .ime { font-family: var(--f-brand); font-weight: 600; letter-spacing: .07em; font-size: 15px; color: var(--srebro); line-height: 1.05; }
 .marka .ime small { display: block; font-size: 9px; letter-spacing: .42em; color: var(--tx3); font-weight: 600; }
-.svezhо { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; background: var(--s1); border: 1px solid var(--line2); color: var(--tx2); border-radius: 999px; padding: 6px 11px; font-size: 11.5px; font-weight: 700; }
+.svezhо { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; background: var(--s1); border: 1px solid var(--line2); color: var(--tx2); border-radius: 999px; padding: 6px 11px; font-size: 11.5px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
 .svezhо .tochka { width: 7px; height: 7px; border-radius: 50%; background: var(--em2); box-shadow: 0 0 8px var(--emglow); }
 .svezhо.varti .tochka { animation: mig 1s linear infinite; }
 @keyframes mig { 50% { opacity: .3; } }
@@ -1233,3 +1233,264 @@ body.dostap .pk, body.dostap .st-karta, body.dostap .klas-tabl { border-width: 1
 .gost-cta .cta-sub { font-size: 11.5px; font-weight: 600; opacity: .85; letter-spacing: .02em; }
 .gost-fine { text-align: center; font-size: 11.5px; color: var(--tx3); margin: 4px 0 0; letter-spacing: .02em; }
 @media (max-width: 380px) { .gost-rekord { flex-direction: column; gap: 10px; } .gtb { grid-template-columns: 78px 1fr auto; } .gtb small { display: none; } }
+
+/* ═════════════════ УЛТРА СТАИТЕ (06.10) ═════════════════ */
+.zl { color: var(--zlato); }
+/* ── геройската лента: компактна, информация отляво, фигурата цяла отдясно ── */
+.hb { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(118px, 36%); align-items: stretch; min-height: 228px; margin: 10px 0 6px; border-radius: var(--r3); border: 1px solid var(--line2); overflow: hidden;
+  background: radial-gradient(120% 140% at 88% 40%, rgba(31, 193, 126, .2), transparent 58%), radial-gradient(90% 120% at 0% 100%, rgba(214, 180, 90, .1), transparent 60%), linear-gradient(160deg, #0d2a1e, #05140d 70%); box-shadow: var(--sh); isolation: isolate; }
+.hb::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 1px 0 rgba(236, 210, 140, .18); }
+.hb-art { grid-column: 2; grid-row: 1; background: right bottom/contain no-repeat; margin: 10px 8px 0 0; filter: drop-shadow(0 18px 30px rgba(0, 0, 0, .55)); transition: transform .25s ease-out; transform-origin: 50% 90%;
+  -webkit-mask-image: radial-gradient(130% 100% at 60% 60%, #000 66%, transparent 100%); mask-image: radial-gradient(130% 100% at 60% 60%, #000 66%, transparent 100%); }
+.hb-copy { grid-column: 1; grid-row: 1; position: relative; z-index: 1; padding: 18px 4px 16px 18px; display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; }
+.hb-eye { margin: 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--zlato); font-weight: 700; }
+.hb-h { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: clamp(25px, 6.4vw, 38px); line-height: 1.04; text-wrap: balance; }
+.hb-sub { margin: 0; color: var(--tx2); font-size: 13.5px; line-height: 1.45; max-width: 46ch; }
+.hb-sub b { color: var(--tx); }
+.hb-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 7px; margin-top: 6px; }
+.hk { padding: 8px 9px 7px; border-radius: 11px; background: rgba(4, 19, 13, .62); border: 1px solid var(--line); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); min-width: 0; }
+.hk b { display: block; font-size: 18px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hk.zl b { color: var(--zlato); }
+.hk span { display: block; font-size: 10.5px; color: var(--tx3); line-height: 1.25; margin-top: 2px; }
+.hb-cta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.hb-cta .btn { padding: 9px 14px; font-size: 13px; }
+/* вариант „корица": широка сцена отзад, текст отпред */
+.hb-cover { grid-template-columns: minmax(0, 1fr); min-height: 236px; }
+.hb-art.cover { grid-column: 1; margin: 0; background-size: cover; background-position: 70% 40%; opacity: .72; filter: none; -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 52%); mask-image: linear-gradient(90deg, transparent 0%, #000 52%); }
+.hb-cover .hb-copy { padding-right: 18px; max-width: 640px; }
+@media (max-width: 520px) {
+  .hb { grid-template-columns: minmax(0, 1fr) 34%; min-height: 210px; margin-inline: -4px; }
+  .hb-cover { grid-template-columns: minmax(0, 1fr); }
+  .hb-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hb-copy { padding: 16px 0 14px 14px; }
+  .hb-cover .hb-copy { padding-right: 14px; }
+}
+@media (min-width: 1024px) { .hb { min-height: 270px; grid-template-columns: minmax(0, 1fr) minmax(220px, 34%); } .hb-cover { grid-template-columns: minmax(0, 1fr); } .hb-copy { padding: 26px 8px 24px 30px; } .hb-cover .hb-copy { padding-right: 30px; } .hb-kpi { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 620px; } .hk b { font-size: 21px; } }
+@media (prefers-reduced-motion: no-preference) { .hb-copy > * { animation: vliz .5s cubic-bezier(.2, .7, .3, 1) both; } .hb-copy > *:nth-child(2) { animation-delay: .05s; } .hb-copy > *:nth-child(3) { animation-delay: .1s; } .hb-copy > *:nth-child(4) { animation-delay: .15s; } }
+.sek-pod { margin: -4px 0 12px; color: var(--tx3); font-size: 12.5px; line-height: 1.5; }
+
+/* ── сигналът на пазара ── */
+.sg { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; letter-spacing: .02em; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.sg-silno { color: #05130c; background: linear-gradient(180deg, var(--sin2), var(--sin)); box-shadow: 0 4px 14px rgba(214, 180, 90, .3); }
+.sg-da { color: var(--zlato); background: rgba(227, 197, 116, .12); border: 1px solid rgba(227, 197, 116, .4); }
+.sg-anti { color: #ff9a8f; background: rgba(226, 101, 92, .12); border: 1px solid rgba(226, 101, 92, .38); }
+.pk-sg { margin: 8px 0 -2px; }
+.pk.ima-signal { border-color: rgba(214, 180, 90, .55); box-shadow: 0 0 0 1px rgba(214, 180, 90, .18), 0 14px 34px rgba(214, 180, 90, .1); }
+.dv-red { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--tx2); }
+.dv-red b { color: var(--zlato); font-variant-numeric: tabular-nums; }
+.dv-red small { margin-left: auto; color: var(--tx3); font-size: 11px; }
+.nav-nov.sg { background: linear-gradient(180deg, var(--sin2), var(--sin)); color: #05130c; padding: 0 5px; letter-spacing: 0; box-shadow: none; }
+
+/* ── картата: отборите кликаеми + път към стаята на мача ── */
+button.pk-tim, button.mach-tim { background: none; border: 0; color: inherit; font: inherit; padding: 0; cursor: pointer; text-align: inherit; }
+button.pk-tim:hover span, button.mach-tim:hover b { color: var(--em2); text-decoration: underline; text-underline-offset: 3px; }
+.pk-akcii { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.pk-akcii .pk-dob { margin-top: 0; }
+.pk-staya { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid var(--line2); background: rgba(214, 180, 90, .06); color: var(--zlato); border-radius: 11px; padding: 9px; font-weight: 800; font-size: 13px; cursor: pointer; }
+.pk-staya .ico { width: 14px; height: 14px; }
+.pk-staya:hover { background: rgba(214, 180, 90, .14); }
+.pk-akcii > :only-child { grid-column: 1 / -1; }
+
+/* ── честните таблици ── */
+.t-tabl { display: grid; gap: 2px; border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; background: rgba(6, 20, 13, .45); }
+.t-red { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(48px, 1fr) 52px 46px 56px; align-items: center; gap: 10px; padding: 10px 12px; font-size: 13px; background: rgba(15, 46, 32, .3); width: 100%; }
+.t-glava { background: rgba(4, 19, 13, .7); color: var(--tx3); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; padding-block: 8px; }
+.t-et { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.t-ime { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.t-et .ik { flex: 0 0 auto; }
+.t-bar { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.t-glava .t-bar { background: none; }
+.t-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgba(214, 180, 90, .55), var(--zlato)); }
+.t-bar i.top, .t-bar i.dobre { background: linear-gradient(90deg, var(--em), var(--em2)); box-shadow: 0 0 8px var(--emglow); }
+.t-bar i.nisko { background: rgba(226, 101, 92, .6); }
+.t-u { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.t-u.top, .t-u.dobre { color: var(--em2); }
+.t-u.nisko { color: #ff9a8f; }
+.t-n { color: var(--tx3); text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+.t-d { text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--tx3); }
+.t-d.poz { color: var(--em2); } .t-d.neg { color: #ff9a8f; }
+.t-glava .t-u, .t-glava .t-n, .t-glava .t-d { color: var(--tx3); font-weight: 700; }
+button.t-link { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+button.t-link:hover .t-red { background: rgba(31, 193, 126, .1); }
+@media (max-width: 420px) { .t-red { grid-template-columns: minmax(0, 1.4fr) 48px 40px 52px; } .t-bar { display: none; } }
+.liga-glava .lg-n { margin-left: auto; font-size: 11px; color: var(--tx3); font-weight: 700; background: rgba(255, 255, 255, .05); border-radius: 999px; padding: 1px 8px; }
+
+/* ── плочки „днес по спортове" ── */
+.sp-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.spt { display: grid; gap: 4px; justify-items: start; text-align: left; padding: 12px 12px 11px; border-radius: var(--r2); border: 1px solid var(--line); background: linear-gradient(170deg, rgba(31, 193, 126, .08), rgba(6, 20, 13, .6)); color: var(--tx); cursor: pointer; transition: border-color .15s, transform .15s; font: inherit; }
+.spt:hover { border-color: var(--line2); transform: translateY(-2px); }
+.spt-ik .ik { width: 26px; height: 26px; }
+.spt b { font-size: 14.5px; }
+.spt-n { font-size: 12px; color: var(--zlato); font-weight: 700; }
+.spt-u { position: relative; display: block; width: 100%; height: 18px; border-radius: 6px; background: rgba(255, 255, 255, .05); overflow: hidden; margin-top: 4px; }
+.spt-u i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, rgba(214, 180, 90, .4), rgba(214, 180, 90, .7)); }
+.spt-u.top i, .spt-u.dobre i { background: linear-gradient(90deg, rgba(31, 193, 126, .45), rgba(47, 206, 137, .8)); }
+.spt-u.nisko i { background: rgba(226, 101, 92, .45); }
+.spt-u em { position: relative; font-style: normal; font-size: 10.5px; font-weight: 700; padding: 0 7px; line-height: 18px; color: var(--tx); }
+.spp-u { font-size: 11px; font-weight: 800; color: var(--zlato); }
+.spp-u.top, .spp-u.dobre { color: var(--em2); }
+.spp-u.nisko { color: #ff9a8f; }
+
+/* ── карусел „лента" (телефон: плъзгаш; компютър: решетка) ── */
+.lenta { display: grid; grid-auto-flow: column; grid-auto-columns: min(84%, 340px); gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; margin-inline: -16px; padding-inline: 16px; scrollbar-width: thin; }
+.lenta > * { scroll-snap-align: start; }
+@media (min-width: 1024px) { .lenta { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; margin-inline: 0; padding-inline: 0; } }
+@media (min-width: 1440px) { .lenta { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ── „Казваме ли истината?" ── */
+.kak-st { display: flex; gap: 16px; align-items: center; margin-top: 26px; padding: 16px; border-radius: var(--r2); border: 1px solid var(--line2); background: linear-gradient(160deg, rgba(31, 193, 126, .1), rgba(6, 20, 13, .7)); }
+.ks-krug { --p: 0; flex: 0 0 92px; width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; text-align: center; background: conic-gradient(var(--em2) calc(var(--p) * 1%), rgba(255, 255, 255, .07) 0); position: relative; }
+.ks-krug::before { content: ""; position: absolute; inset: 8px; border-radius: 50%; background: #071a12; }
+.ks-krug b, .ks-krug span { position: relative; }
+.ks-krug b { font-family: var(--f-disp); font-size: 24px; font-weight: 400; display: block; line-height: 1; }
+.ks-krug span { font-size: 10px; color: var(--tx3); }
+.ks-txt b { font-family: var(--f-disp); font-weight: 400; font-size: 18px; }
+.ks-txt p { margin: 4px 0 10px; font-size: 13px; color: var(--tx2); line-height: 1.5; }
+.ks-txt p b { font-family: var(--f-ui); font-size: inherit; font-weight: 800; color: var(--tx); }
+.ks-akcii { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── умен фиш ── */
+.um-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.um-k { padding: 14px; border-radius: var(--r2); border: 1px solid var(--line2); background: linear-gradient(180deg, rgba(214, 180, 90, .08), rgba(6, 20, 13, .65)); display: flex; flex-direction: column; gap: 10px; }
+.um-k header { display: flex; align-items: center; justify-content: space-between; }
+.um-k header b { font-family: var(--f-disp); font-weight: 400; font-size: 17px; }
+.um-ko { font-size: 22px; font-weight: 800; color: var(--zlato); font-variant-numeric: tabular-nums; }
+.um-k ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.um-k li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 12.5px; }
+.um-k li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.um-k li small { display: block; color: var(--tx3); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.um-k li b { color: var(--tx); font-variant-numeric: tabular-nums; }
+.um-p { display: flex; justify-content: space-between; align-items: baseline; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--tx2); margin-top: auto; }
+.um-p b { color: var(--em2); font-size: 17px; }
+
+/* ── „Нашият ден" ── */
+.nd { display: grid; gap: 6px; }
+.nd-red { display: grid; grid-template-columns: 26px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(15, 46, 32, .35); color: var(--tx); text-align: left; width: 100%; font: inherit; }
+button.nd-red { cursor: pointer; }
+button.nd-red:hover { border-color: var(--line2); }
+.nd-st { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 13px; background: rgba(255, 255, 255, .06); color: var(--tx3); }
+.nd-red.p .nd-st { background: rgba(31, 193, 126, .18); color: var(--em2); }
+.nd-red.n .nd-st { background: rgba(226, 101, 92, .16); color: #ff9a8f; }
+.nd-red.n { opacity: .82; }
+.nd-m { min-width: 0; }
+.nd-m b { display: block; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nd-m small { display: block; font-size: 11.5px; color: var(--tx3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nd-m em { font-style: normal; }
+.nd-r { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--tx2); font-size: 13px; }
+.nd-red.chaka .nd-r { color: var(--zlato); }
+
+/* ── сигнали: обяснение и празно състояние ── */
+.sg-kak { margin-top: 24px; padding: 16px; border-radius: var(--r2); border: 1px solid var(--line2); background: linear-gradient(160deg, rgba(214, 180, 90, .08), rgba(6, 20, 13, .7)); }
+.sg-kak > b { font-family: var(--f-disp); font-weight: 400; font-size: 18px; }
+.sg-kak p { margin: 6px 0 0; font-size: 13.5px; color: var(--tx2); line-height: 1.6; }
+.sg-kak p b { font-weight: 800; color: var(--tx); }
+.prazno-kart { margin-top: 18px; display: grid; justify-items: center; gap: 8px; text-align: center; padding: 26px 18px; border-radius: var(--r2); border: 1px dashed var(--line2); background: rgba(8, 25, 16, .45); }
+.prazno-kart .ico.big { width: 40px; height: 40px; color: var(--zlato); fill: none; stroke: currentColor; stroke-width: 1.5; }
+.prazno-kart b { font-family: var(--f-disp); font-weight: 400; font-size: 19px; }
+.prazno-kart p { margin: 0; color: var(--tx3); font-size: 13px; max-width: 46ch; line-height: 1.55; }
+.prazno-kart.sm { padding: 18px 16px; margin-top: 0; }
+.sg-anti-sek > header h2::before { background: #e2655c; }
+
+/* ── калибрацията: казаното срещу сбъднатото ── */
+.kb { display: grid; gap: 10px; padding: 14px; border-radius: var(--r2); border: 1px solid var(--line); background: rgba(6, 20, 13, .45); }
+.kb-red { display: grid; grid-template-columns: 112px minmax(0, 1fr) 92px; align-items: center; gap: 12px; font-size: 13px; }
+.kb-et { color: var(--tx2); }
+.kb-et b { color: var(--tx); }
+.kb-track { position: relative; height: 12px; border-radius: 999px; background: rgba(255, 255, 255, .06); }
+.kb-obq { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, rgba(214, 180, 90, .35), rgba(214, 180, 90, .65)); }
+.kb-akt { position: absolute; top: -5px; width: 3px; height: 22px; margin-left: -1.5px; border-radius: 2px; background: var(--em2); box-shadow: 0 0 10px var(--emglow); }
+.kb-val { text-align: right; color: var(--tx2); }
+.kb-val b { color: var(--em2); font-size: 15px; }
+.kb-val small { display: block; color: var(--tx3); font-size: 10.5px; }
+@media (max-width: 420px) { .kb-red { grid-template-columns: 92px minmax(0, 1fr) 76px; gap: 8px; } }
+.dvoino-an { display: grid; gap: 0 24px; }
+@media (min-width: 1024px) { .dvoino-an { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.an-note { margin: 22px 0 0; font-size: 12px; color: var(--tx3); line-height: 1.55; }
+
+/* ── стаите на отбор и лига ── */
+.ot-hero { display: flex; gap: 16px; align-items: center; margin: 10px 0 6px; padding: 18px; border-radius: var(--r3); border: 1px solid var(--line2); background: radial-gradient(120% 140% at 0% 0%, rgba(31, 193, 126, .16), transparent 60%), linear-gradient(160deg, #0d2a1e, #05140d); box-shadow: var(--sh); }
+.ot-hero > .ekip { flex: 0 0 auto; width: 76px; height: 76px; font-size: 24px; }
+.ot-ik { flex: 0 0 auto; width: 70px; height: 70px; display: grid; place-items: center; border-radius: 20px; background: rgba(214, 180, 90, .1); border: 1px solid var(--line2); }
+.ot-ik .ik { width: 38px; height: 38px; }
+.ot-copy { min-width: 0; flex: 1; display: grid; gap: 6px; justify-items: start; }
+.ot-copy .hb-h { font-size: clamp(22px, 5.4vw, 32px); }
+.ot-copy .hb-kpi { width: 100%; }
+.ot-forma { display: grid; gap: 6px; }
+.of-red { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 11px; border: 1px solid var(--line); background: rgba(15, 46, 32, .32); font-size: 13px; }
+.of-r { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; font-style: normal; font-weight: 900; font-size: 12px; color: #05130c; }
+.of-vs { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tx2); }
+.of-vs b { color: var(--tx); }
+.of-s { font-variant-numeric: tabular-nums; }
+.of-red small { color: var(--tx3); font-size: 11px; }
+
+/* ── мач: сигнал и запис в лигата ── */
+.mach-sg { margin-top: 14px; padding: 14px; border-radius: var(--r2); border: 1px solid rgba(214, 180, 90, .45); background: linear-gradient(160deg, rgba(214, 180, 90, .12), rgba(6, 20, 13, .7)); }
+.mach-sg.anti { border-color: rgba(226, 101, 92, .4); background: linear-gradient(160deg, rgba(226, 101, 92, .1), rgba(6, 20, 13, .7)); }
+.mach-sg p { margin: 8px 0 0; font-size: 13px; color: var(--tx2); }
+.mach-liga-rek { width: 100%; margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-rows: auto auto; column-gap: 10px; align-items: center; text-align: left; padding: 12px 14px; border-radius: var(--r2); border: 1px solid var(--line); background: rgba(15, 46, 32, .4); color: var(--tx); cursor: pointer; font: inherit; }
+.mach-liga-rek span { font-size: 12.5px; color: var(--tx2); }
+.mach-liga-rek b { grid-row: 1 / span 2; grid-column: 2; font-size: 22px; color: var(--em2); font-weight: 800; }
+.mach-liga-rek small { grid-row: 2; grid-column: 1; font-size: 11.5px; color: var(--tx3); }
+.mach-liga-rek .ico { grid-row: 1 / span 2; grid-column: 3; width: 16px; height: 16px; color: var(--zlato); }
+
+/* ── новините: резюмета ── */
+.nov-art small { color: var(--tx3); font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nf-sum { margin: 6px 0 8px; font-size: 13.5px; color: var(--tx2); line-height: 1.5; }
+.nf-meta .ik { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+.sp-telo { margin-top: 14px; }
+
+/* ── менюто „Още" (телефон) ── */
+.oshte { position: fixed; inset: 0; z-index: 140; display: flex; align-items: flex-end; justify-content: center; background: rgba(2, 8, 5, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: gr-enter .2s ease both; }
+.osh-k { width: min(620px, 100%); max-height: 86vh; overflow-y: auto; padding: 16px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; border: 1px solid var(--line2); border-bottom: 0; background: linear-gradient(180deg, #0f2e20, #06150e); box-shadow: 0 -18px 48px rgba(0, 0, 0, .5); }
+.osh-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.osh-h b { font-family: var(--f-disp); font-weight: 400; font-size: 21px; }
+.osh-x { width: 34px; height: 34px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, .07); color: var(--tx2); font-size: 20px; cursor: pointer; }
+.osh-gr { margin: 14px 2px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--zlato); font-weight: 700; }
+.osh-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.osh-it { position: relative; display: grid; gap: 3px; justify-items: start; text-align: left; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: rgba(15, 46, 32, .45); color: var(--tx); cursor: pointer; font: inherit; }
+.osh-it .ico { width: 22px; height: 22px; color: var(--em2); }
+.osh-it b { font-size: 14px; }
+.osh-it span { font-size: 11.5px; color: var(--tx3); line-height: 1.3; }
+.osh-it.on { border-color: var(--em2); background: rgba(31, 193, 126, .12); }
+.osh-n { position: absolute; top: 10px; right: 10px; font-style: normal; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; color: #05130c; background: linear-gradient(180deg, var(--sin2), var(--sin)); }
+
+/* ── страничното меню на групи ── */
+.nav-gr { display: none; }
+@media (min-width: 1024px) {
+  .side { overflow-y: auto; }
+  .side nav { gap: 2px; }
+  .side nav button { padding: 9px 12px; font-size: 14px; }
+  .nav-gr { display: block; margin: 14px 12px 4px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .16em; color: var(--zlato); font-weight: 700; opacity: .8; }
+  .nav-gr:first-child { margin-top: 0; }
+}
+.dvoino.dolni > * { margin-top: 26px; }
+.hk.dylg b { font-size: 14px !important; white-space: normal; line-height: 1.2; }
+
+/* ═══ живото поле (КИБЕР СЦЕНА „ПОЛЕТО") — зад всичко, над фона на body ═══ */
+body { isolation: isolate; }
+#zhivo-pole { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+#zhivo-pole canvas { display: block; }
+@media (prefers-reduced-motion: reduce) { #zhivo-pole { opacity: .5; } }
+@media print { #zhivo-pole { display: none; } }
+
+/* ═══ телефон ≤520: фигурата стои ЗАД заглавието горе вдясно, данните ползват цялата ширина ═══ */
+@media (max-width: 520px) {
+  .hb { grid-template-columns: minmax(0, 1fr); }
+  .hb-art:not(.cover) { grid-column: 1; grid-row: 1; justify-self: end; align-self: start; width: 44%; height: 214px; margin: 8px 6px 0 0;
+    background-position: right top; -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 100%); mask-image: linear-gradient(180deg, #000 62%, transparent 100%); }
+  .hb:not(.hb-cover) .hb-copy { padding: 16px 14px 14px; justify-content: flex-start; }
+  .hb:not(.hb-cover) .hb-eye, .hb:not(.hb-cover) .hb-h, .hb:not(.hb-cover) .hb-sub { max-width: 60%; }
+  .hb:not(.hb-cover) .hb-kpi { margin-top: 10px; }
+}
+/* горната лента на тесен телефон: свежестта е само точка, марката не се застъпва */
+@media (max-width: 400px) {
+  .svezhо { font-size: 0; gap: 0; padding: 9px; }
+  .marka .ime { font-size: 13px; }
+}
+
+/* кръгът на увереността: .pk-izbor small (по-късно) надвиваше етикета → „УВЕРЕНОСТ“ излизаше от кръга */
+.pk-izbor .pk-ring small { display: block; font-size: 6px; letter-spacing: 0; color: var(--tx3); }
+/* телефон: корицата отстъпва назад, за да се чете текстът върху нея */
+@media (max-width: 520px) {
+  .hb-art.cover { opacity: .42; -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.5) 70%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.5) 70%, transparent 100%); }
+}

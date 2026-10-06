@@ -256,11 +256,22 @@
     spodeliik: '<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.7 7.4-4.3M8.3 13.3l7.4 4.3"/>',
     tg: '<path d="M21.5 4.3 2.9 11.4c-.9.3-.9 1.6.1 1.9l4.6 1.4 1.8 5.4c.2.7 1.1.9 1.6.3l2.4-2.6 4.6 3.4c.6.4 1.4.1 1.6-.6L22.7 5.4c.2-.8-.5-1.4-1.2-1.1z"/><path d="m7.6 14.7 9-6.2-6.9 6.7"/>',
     obshtnost: '<circle cx="9" cy="9" r="3"/><path d="M3.5 19c.6-3 3-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="8" r="2.2"/><path d="M15.5 13.6c2.2.2 3.9 1.7 4.5 4"/>',
+    signali: '<path d="M3 17l5.5-5.5 4 4L20 8"/><path d="M14.5 8H20v5.5"/><path d="M3 21h18" opacity=".5"/>',
+    analiz: '<path d="M5 20V12M10.5 20V5M16 20v-9M21 20H3"/><circle cx="16" cy="7.5" r="1.2"/>',
+    oshte: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><circle cx="16.75" cy="16.75" r="3.25"/>',
+    turnir: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4.5M16 6h3a3 3 0 0 1-3 4.5M12 13v4M8.5 20h7M10 17h4"/>',
+    scenario: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/>',
   };
   const ico = (n, cls = "ico") => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICO[n] || ""}</svg>`;
   const TOPKA = '<svg viewBox="0 0 24 24" aria-hidden="true">' + SVG.football + "</svg>";
 
-  const NAV = [["nachalo", "Начало"], ["sport", "Спорт"], ["live", "На живо"], ["prognozi", "Прогнози"], ["novini", "Новини"], ["profil", "Профил"]];
+  // Навигацията: отстрани — всички стаи на групи; долу (телефон) — петте най-ползвани + „Още".
+  const NAV_GRUPI = [
+    ["Основно", [["nachalo", "Начало"], ["prognozi", "Прогнози"], ["signali", "Сигнали"], ["live", "На живо"]]],
+    ["Знание", [["analiz", "Анализ"], ["rezultati", "Резултати"], ["sport", "Арена"], ["novini", "Новини"]]],
+    ["Игра", [["turnir", "Турнир"], ["fishove", "Фишове"], ["scenario", "Сценарии"], ["profil", "Профил"]]],
+  ];
+  const NAV_DOLU = [["nachalo", "Начало"], ["prognozi", "Прогнози"], ["live", "На живо"], ["analiz", "Анализ"], ["oshte", "Още"]];
   // Спортната библиотека — образователно съдържание по спорт (по макетите).
   const LIB_HERO = { football: "lib-futbol", basketball: "lib-basket", tennis: "lib-tenis", mma: "lib-mma", boxing: "lib-boks", hockey: "lib-hokey", volleyball: "lib-voleybol", tabletennis: "lib-tenis-masa", baseball: "lib-beysbol", esports: "lib-esport", rugby: "lib-ragbi", amfootball: "lib-am-futbol" };
   const SPORT_LIB = {
@@ -389,19 +400,23 @@
     const pr = k.procent;
     const ev = (pr && k.koef) ? (pr / 100) * k.koef - 1 : null;
     const evChip = ev != null && ev >= 0.02 ? `<span class="ev-chip" title="Коефициентът е над реалната ни вероятност">Стойност +${(ev * 100).toFixed(0)}%</span>` : "";
-    return `<article class="pk${evChip ? " ima-stoynost" : ""}">
+    const sg = signalBadge(k);
+    return `<article class="pk${evChip ? " ima-stoynost" : ""}${k.signal && k.signal !== "anti" ? " ima-signal" : ""}">
       <div class="pk-h">${ik(k.sport, "ik s")}<span class="liga">${esc(k.sport_bg)}${k.liga ? " · " + esc(k.liga) : ""}</span>
         <span class="den">${esc(denEt(k.den))}</span>
         <button class="pk-zv" data-zvezda="${esc(k.id)}" aria-pressed="${vLyubim(k.id)}" aria-label="${vLyubim(k.id) ? "Премахни от любими" : "Добави в любими"}" title="Любими">${ico("zvezda", "zv-ik")}</button></div>
-      <div class="pk-mach"><div class="pk-tim">${ekip(k.dom)}<span>${esc(k.dom)}</span></div><div class="pk-vs">VS</div>
-        <div class="pk-tim d">${ekip(k.gost)}<span>${esc(k.gost)}</span></div></div>
+      ${sg ? `<div class="pk-sg">${sg}</div>` : ""}
+      <div class="pk-mach"><button class="pk-tim" data-otbor="${esc(k.dom)}" title="Отбор: ${esc(k.dom)}">${ekip(k.dom)}<span>${esc(k.dom)}</span></button><div class="pk-vs">VS</div>
+        <button class="pk-tim d" data-otbor="${esc(k.gost)}" title="Отбор: ${esc(k.gost)}">${ekip(k.gost)}<span>${esc(k.gost)}</span></button></div>
       <div class="pk-izbor"><div class="pk-izb"><small>Нашата прогноза</small><b>${esc(izborTxt(k.izbor))}</b></div>
         ${k.koef ? `<div class="pk-koef"><small>Коеф.</small><b>${esc(fmtKoef(k.koef))}</b></div>`
           : '<div class="pk-koef bez"><small>Коеф.</small><b>—</b></div>'}
         ${pr ? `<div class="pk-ring" style="--p:${esc(pr)}"><b>${esc(pr)}%</b><small>увереност</small></div>` : ""}</div>
+      ${dvRed(k)}
       ${pr || k.zvezdi || evChip ? `<div class="pk-dolen">${pr ? `<div class="risk-dots ${riskNiv(k).c}"><i></i><i></i><i></i></div><small class="risk-lab">${riskNiv(k).t}</small>` : ""}${evChip}${k.zvezdi ? `<span class="zv" aria-label="${esc(k.zvezdi)} звезди">${zvezdi(k.zvezdi)}</span>` : ""}</div>` : ""}
       ${k.zashto ? `<p class="pk-zashto"><b>Защо?</b> ${esc(k.zashto)}</p>` : ""}
-      ${k.koef ? `<button class="pk-dob" data-slip="${esc(k.id)}" aria-pressed="${vFisha(k.id)}">${vFisha(k.id) ? "✓ Във фиша" : "+ Добави във фиша"}</button>` : ""}
+      <div class="pk-akcii"><button class="pk-staya" data-mach="${esc(k.id)}">Стая на мача ${ico("str")}</button>
+        ${k.koef ? `<button class="pk-dob" data-slip="${esc(k.id)}" aria-pressed="${vFisha(k.id)}">${vFisha(k.id) ? "✓ Във фиша" : "+ Във фиша"}</button>` : ""}</div>
     </article>`;
   }
   // Голямата „мач на деня" карта с GAME PULSE (напрежение), изведено от увереност+звезди.
@@ -469,10 +484,15 @@
   /* ── рамката ── */
   function ramka(glava, telo) {
     const m = S.me || {};
-    const nav = (cls) => NAV.map(([k, t]) => `<button data-tab="${k}" ${S.tab === k && !S.adminRejim ? 'aria-current="page"' : ""}>${ico(k)}<span>${t}</span>${k === "prognozi" && S.novi > 0 ? `<span class="nav-nov" aria-label="${S.novi} нови прогнози">${S.novi > 9 ? "9+" : S.novi}</span>` : ""}</button>`).join("");
+    const dolKl = NAV_DOLU.map(([k]) => k);
+    const tekushta = S.adminRejim ? "" : (S.tab === "mach" || S.tab === "otbor" || S.tab === "liga" ? "" : S.tab);
+    const bS = brSig();
+    const btn = ([k, t]) => `<button data-tab="${k}" ${tekushta === k || (k === "oshte" && tekushta && !dolKl.includes(tekushta)) ? 'aria-current="page"' : ""}>${ico(ICO[k] ? k : "multi")}<span>${t}</span>${k === "prognozi" && S.novi > 0 ? `<span class="nav-nov" aria-label="${S.novi} нови прогнози">${S.novi > 9 ? "9+" : S.novi}</span>` : ""}${(k === "signali" || k === "oshte") && bS ? `<span class="nav-nov sg" aria-label="${bS} сигнала">${bS}</span>` : ""}</button>`;
+    const navStr = NAV_GRUPI.map(([g, arr]) => `<div class="nav-gr">${esc(g)}</div>${arr.map(btn).join("")}`).join("");
+    const nav = () => NAV_DOLU.map(btn).join("");
     return `<div class="app">
       <aside class="side"><div class="marka"><img src="/logo.svg" alt=""><div class="ime"><small>THE</small>GREEN ROOM</div></div>
-        <nav aria-label="Основно меню">${nav()}</nav>
+        <nav aria-label="Основно меню">${navStr}</nav>
         <div class="az"><span class="av">${esc(inicial(m.email))}</span><div><b>${esc(m.email || "")}</b><span>${esc(statusTxt(m))}</span></div></div></aside>
       <div>
         <div class="glaven">
@@ -525,75 +545,271 @@
     </article>`;
   }
 
-  /* ── НАЧАЛО ── */
+  /* ══════════ УЛТРА СТАИТЕ · общите парчета ══════════ */
+  // Геройска лента: компактна (не 66vh), фигурата се вижда цяла вдясно, а отляво —
+  // заглавие + живи числа. Стаята почва с информация, не с празна снимка.
+  function heroBand(o) {
+    const art = o.img ? `<div class="hb-art${o.cover ? " cover" : ""}" style="background-image:url('/img/${esc(o.img)}')" aria-hidden="true"></div>` : "";
+    return `<section class="hb${o.cover ? " hb-cover" : ""}">${art}
+      <div class="hb-copy">
+        ${o.eyebrow ? `<p class="hb-eye">${esc(o.eyebrow)}</p>` : ""}
+        <h1 class="hb-h">${esc(o.title)}</h1>
+        ${o.sub ? `<p class="hb-sub">${o.sub}</p>` : ""}
+        ${(o.kpi || []).length ? `<div class="hb-kpi">${o.kpi.map(([v, l, c]) => `<div class="hk${c ? " " + c : ""}${String(v).replace(/<[^>]+>/g, "").length > 7 ? " dylg" : ""}"><b>${v}</b><span>${esc(l)}</span></div>`).join("")}</div>` : ""}
+        ${o.cta ? `<div class="hb-cta">${o.cta}</div>` : ""}
+      </div></section>`;
+  }
+  const sekH = (t, extra) => `<header><h2>${esc(t)}</h2>${extra || ""}</header>`;
+  const vij = (idi, t) => `<button class="vsichki" data-idi="${idi}">${esc(t || "Виж всички")}</button>`;
+  const pctF = (x) => (x == null ? "—" : x + "%");
+  const edF = (x) => (x == null ? "—" : (x > 0 ? "+" : "") + x);
+  const tonU = (u) => (u == null ? "" : u >= 70 ? " top" : u >= 60 ? " dobre" : u < 50 ? " nisko" : "");
+  const brSig = () => ((S.data && S.data.prognozi) || []).filter((k) => k.signal === "silno" || k.signal === "da").length;
+  function sportUspeh(sport) { return ((S.data && S.data.statistika) || []).find((x) => x.sport === sport) || null; }
+  const spImeOf = (s) => (((S.data && S.data.sportove) || []).find((x) => x.sport === s) || {}).sport_bg || "Спорт";
+  // 📈 Сигналът на пазара — фактът (цената на НАШИЯ избор се мести), без обещания.
+  function signalBadge(k) {
+    if (!k || !k.signal) return "";
+    const pct = Math.round(Math.abs(k.dv || 0) * 1000) / 10;
+    if (k.signal === "anti") return `<span class="sg sg-anti" title="Цената на нашия избор се вдига — пазарът залага на другата страна">↘ Пазарът бяга · −${pct}%</span>`;
+    return `<span class="sg sg-${k.signal}" title="Цената на нашия избор пада — пазарът залага с нас">↗ ${k.signal === "silno" ? "Силно движение към нас" : "Пазарът идва при нас"} · +${pct}%</span>`;
+  }
+  const dvRed = (k) => (k && k.signal && k.dv_ot && k.dv_sega && Math.abs(k.dv_ot - k.dv_sega) >= 0.01)
+    ? `<div class="dv-red">${k.dv_sega < k.dv_ot ? "📉" : "📈"} коеф. <b>${esc(fmtKoef(k.dv_ot))}</b> → <b>${esc(fmtKoef(k.dv_sega))}</b><small>видян ${k.dv_n} пъти</small></div>` : "";
+  // Ред от честна таблица: етикет · лента · успех · брой · доход (юнити при равен залог)
+  function tRed(et, x, pred) {
+    const u = x.uspeh;
+    return `<span class="t-red"><span class="t-et">${pred || ""}<span class="t-ime">${esc(et)}</span></span>
+      <span class="t-bar"><i class="${tonU(u).trim()}" style="width:${Math.max(4, Math.min(100, u || 0))}%"></i></span>
+      <span class="t-u${tonU(u)}">${pctF(u)}</span><span class="t-n">${x.n}</span>
+      <span class="t-d ${x.dohod == null ? "" : x.dohod >= 0 ? "poz" : "neg"}">${x.dohod == null ? "—" : edF(x.dohod) + "%"}</span></span>`;
+  }
+  const tGlava = (a) => `<div class="t-red t-glava"><span class="t-et">${esc(a || "")}</span><span class="t-bar"></span><span class="t-u">Успех</span><span class="t-n">Брой</span><span class="t-d">Доход</span></div>`;
+  function poLiga(arr, kartaF) {
+    const po = new Map();
+    for (const k of arr) { const kl = k.liga || k.sport_bg || "Друго"; if (!po.has(kl)) po.set(kl, { s: k.sport, ks: [] }); po.get(kl).ks.push(k); }
+    return [...po.entries()].map(([kl, g]) => `<div class="liga-glava">${ik(g.s, "ik s")}${esc(kl)}<span class="lg-n">${g.ks.length}</span></div><div class="karti kol">${g.ks.map(kartaF).join("")}</div>`).join("");
+  }
+  const novKarti = (arr) => arr.map((x) => `<a class="nov-art" href="${esc(x.link || "#")}" target="_blank" rel="noopener">
+      ${x.image ? `<span class="na-img" style="background-image:url('${esc(x.image)}')"></span>` : `<span class="na-img na-ik">${ik(x.sport, "ik")}</span>`}
+      <span class="na-txt"><span class="na-meta">${esc(spImeOf(x.sport))}${x.source ? " · " + esc(x.source) : ""}</span><b>${esc(x.title)}</b>${x.summary ? `<small>${esc(x.summary.slice(0, 120))}${x.summary.length > 120 ? "…" : ""}</small>` : ""}</span></a>`).join("");
+  // Плочки „днес по спортове" — брой + честният ни успех в спорта за 30 дни
+  function sportPlochki(d, samoDnes) {
+    const brD = {};
+    for (const k of d.prognozi || []) if (!samoDnes || k.den === d.dnes) brD[k.sport] = (brD[k.sport] || 0) + 1;
+    const sp = (d.sportove || []).filter((s) => brD[s.sport]).sort((a, b) => brD[b.sport] - brD[a.sport]);
+    if (!sp.length) return "";
+    return `<div class="sp-tiles">${sp.map((s) => { const u = sportUspeh(s.sport); return `<button class="spt" data-sport="${esc(s.sport)}">
+      <span class="spt-ik">${ik(s.sport, "ik")}</span><b>${esc(s.sport_bg)}</b>
+      <span class="spt-n">${brD[s.sport]} ${brD[s.sport] === 1 ? "прогноза" : "прогнози"}</span>
+      ${u && u.n >= 10 ? `<span class="spt-u${tonU(u.uspeh)}"><i style="width:${u.uspeh}%"></i><em>${u.uspeh}% · 30 дни</em></span>` : `<span class="spt-u"><em>малко история</em></span>`}</button>`; }).join("")}</div>`;
+  }
+  // „Казваме ли истината?" — калибрацията като доказателство
+  function kakStoim(d) {
+    const o = d.obshto || {}, a = d.analiz || {};
+    if (!o.n) return "";
+    const b = (a.kalibraciya || []).slice().sort((x, y) => y.n - x.n)[0];
+    return `<section class="kak-st"><div class="ks-krug" style="--p:${o.uspeh || 0}"><b>${pctF(o.uspeh)}</b><span>30 дни</span></div>
+      <div class="ks-txt"><b>Казваме ли истината?</b><p>${b ? `Когато обявим около <b>${b.obyaveno}%</b>, сбъдва се <b>${b.uspeh}%</b> (${b.n} прогнози). ` : ""}Всеки процент е сверен с резултата — и загубите стоят на видно място.</p>
+        <div class="ks-akcii"><button class="btn m" data-tab="analiz">Пълният анализ ${ico("str")}</button><button class="btn m v2" data-idi="rezultati">Резултати</button></div></div></section>`;
+  }
+  // 🧠 Умният фиш — сглобен от най-сигурните ни избори с коефициент, по един на мач
+  function umenFish() {
+    const d = S.data || {};
+    const pool = (d.prognozi || []).filter((k) => k.den >= d.dnes && k.koef > 1.15 && k.procent && k.signal !== "anti")
+      .sort((a, b) => (b.procent || 0) - (a.procent || 0));
+    const vidyani = new Set(), kr = [];
+    for (const k of pool) { const m = k.dom + "|" + k.gost; if (vidyani.has(m)) continue; vidyani.add(m); kr.push(k); if (kr.length >= 4) break; }
+    if (kr.length < 2) return "";
+    const varianti = [2, 3, 4].filter((n) => kr.length >= n).map((n) => {
+      const ks = kr.slice(0, n);
+      return { n, ks, p: Math.round(ks.reduce((a, k) => a * (k.procent / 100), 1) * 100), ko: Math.round(ks.reduce((a, k) => a * k.koef, 1) * 100) / 100 };
+    });
+    return `<section class="sekcia umen">${sekH("Умен фиш", `<span class="scen-min">най-сигурните днес</span>`)}
+      <div class="um-grid">${varianti.map((v) => `<article class="um-k">
+        <header><b>${v.n} събития</b><span class="um-ko">${v.ko.toFixed(2)}</span></header>
+        <ol>${v.ks.map((k) => `<li>${ik(k.sport, "ik s")}<span>${esc(k.dom)} — ${esc(k.gost)}<small>${esc(izborTxt(k.izbor))}</small></span><b>${esc(fmtKoef(k.koef))}</b></li>`).join("")}</ol>
+        <div class="um-p"><span>Шанс всичко да мине</span><b>${v.p}%</b></div>
+        <button class="btn m full" data-umen="${v.ks.map((k) => esc(k.id)).join("~")}">Сложи във фиша</button></article>`).join("")}</div>
+      <p class="sek-pod">Шансът е произведението на процентите — с всеки крак коефициентът расте, а шансът пада.</p></section>`;
+  }
+  // ⏱️ „Нашият ден" — всяка днешна прогноза: ✓ позната, ✗ загубена, ⏳ предстои
+  function nashiyatDen() {
+    const d = S.data || {};
+    const rz = (d.rezultati || []).filter((k) => k.den === d.dnes);
+    const pr = (d.prognozi || []).filter((k) => k.den === d.dnes);
+    if (!rz.length && !pr.length) return "";
+    const p = rz.filter((k) => k.poznata === true).length, n = rz.filter((k) => k.poznata === true || k.poznata === false).length;
+    const red = (k, st) => `<${st === "chaka" ? `button data-mach="${esc(k.id)}"` : "div"} class="nd-red ${st}">
+      <span class="nd-st">${st === "p" ? "✓" : st === "n" ? "✗" : "⏳"}</span>${ik(k.sport, "ik s")}
+      <span class="nd-m"><b>${esc(k.dom)} — ${esc(k.gost)}</b><small>${esc(izborTxt(k.izbor))}${k.koef ? " · " + esc(fmtKoef(k.koef)) : ""}${k.signal && k.signal !== "anti" ? ` · <em class="zl">↗ сигнал</em>` : ""}</small></span>
+      <span class="nd-r">${st === "chaka" ? (k.procent ? k.procent + "%" : "") : esc(k.rezultat || "")}</span></${st === "chaka" ? "button" : "div"}>`;
+    return `<section class="sekcia nash-den">${sekH("Нашият ден", `<span class="den-badge">${n ? p + " от " + n + " познати" : pr.length + " предстоят"}</span>`)}
+      <div class="nd">${rz.map((k) => red(k, k.poznata === true ? "p" : k.poznata === false ? "n" : "chaka")).join("")}${pr.map((k) => red(k, "chaka")).join("")}</div></section>`;
+  }
+
+  /* ══════════ СИГНАЛИ — радарът на парите ══════════ */
+  function ekranSignali() {
+    const d = S.data || {};
+    const pr = d.prognozi || [];
+    const silni = pr.filter((k) => k.signal === "silno").sort((a, b) => (b.dv || 0) - (a.dv || 0));
+    const sig = pr.filter((k) => k.signal === "da").sort((a, b) => (b.dv || 0) - (a.dv || 0));
+    const anti = pr.filter((k) => k.signal === "anti").sort((a, b) => (a.dv || 0) - (b.dv || 0));
+    const sledeniC = pr.filter((k) => (k.dv_n || 0) >= 2).length;
+    const an = ((d.analiz && d.analiz.signal) || []).filter((x) => x.n);
+    const grupa = (t, sub, arr, cls) => arr.length ? `<section class="sekcia ${cls || ""}">${sekH(t, `<span class="den-badge">${arr.length}</span>`)}<p class="sek-pod">${sub}</p><div class="karti kol">${arr.map(kartaPrognoza).join("")}</div></section>` : "";
+    return ramka(null, `
+      ${heroBand({ img: "signali.jpg", cover: true, eyebrow: "Радарът на парите", title: "Сигнали", sub: "Къде пазарът тръгва към нашия избор — единственият сигнал, който сме измерили като ръб.",
+        kpi: [[silni.length, "силни", "zl"], [sig.length, "умерени"], [anti.length, "срещу нас"], [sledeniC, "следени цени"]] })}
+      ${grupa("Силно движение към нас", "Цената на нашия избор е паднала с поне 5% (в имплицитна вероятност) между две наши проверки.", silni, "sg-sek")}
+      ${grupa("Пазарът идва при нас", "Движение 3–5% в посока на нашия избор.", sig, "sg-sek")}
+      ${!silni.length && !sig.length ? `<div class="prazno-kart">${ico("signali", "ico big")}<b>В момента няма потвърдено движение</b><p>Сигналите са редки — обикновено от 0 до няколко на ден. Цената трябва да е видяна поне два пъти, за да е движение, а не моментна снимка.</p><button class="btn v2" data-idi="prognozi">Към всички прогнози</button></div>` : ""}
+      ${grupa("Внимание: пазарът бяга", "Цената на нашия избор се вдига — големите залози са на другата страна. Тук бъди предпазлив.", anti, "sg-anti-sek")}
+      <section class="sg-kak"><b>Как да го четеш</b>
+        <p>При всяко пускане сверяваме и цените. Ако коефициентът на <b>нашия</b> избор падне, значи парите на пазара вървят в същата посока. Измерихме го на <b>22 333 мача</b>: при движение от 5% нагоре сигналът държи дори при средна цена. Печели обаче само ако се хване <b>рано</b> — затова сигналите излизат най-горе и веднага.</p></section>
+      ${an.length ? `<section class="sekcia">${sekH("Как се представят при нас", `<span class="scen-min">30 дни</span>`)}<div class="t-tabl">${tGlava("")}${an.map((x) => tRed(x.et, x)).join("")}</div>
+        <p class="sek-pod">Под 50 оценени числото е шум — ориентир, не присъда.</p></section>` : ""}`);
+  }
+
+  /* ══════════ АНАЛИЗ — записът ни, разрязан честно ══════════ */
+  function ekranAnaliz() {
+    const d = S.data || {};
+    const a = d.analiz || {};
+    const o = d.obshto || {};
+    const st = (d.statistika || []).filter((s) => s.n >= 10).sort((x, y) => (y.uspeh || 0) - (x.uspeh || 0));
+    const ligi = (d.ligi || []).filter((l) => l.n >= 10);
+    const top = ligi.slice().sort((x, y) => (y.uspeh || 0) - (x.uspeh || 0) || y.n - x.n).slice(0, 8);
+    const dolu = ligi.slice().sort((x, y) => (x.uspeh || 0) - (y.uspeh || 0) || y.n - x.n).slice(0, 5);
+    const kal = a.kalibraciya || [];
+    const kalOk = kal.length ? kal.every((b) => Math.abs((b.uspeh || 0) - (b.obyaveno || 0)) <= 5) : false;
+    const tl = (arr, et) => `<div class="t-tabl">${tGlava(et)}${arr.join("")}</div>`;
+    return ramka(null, `
+      ${heroBand({ img: "analiz.jpg", eyebrow: "Аналитичната стая", title: "Анализ", sub: "Нашият запис, разрязан честно — по спорт, лига, увереност и коефициент.",
+        kpi: [[a.n || o.n || 0, "оценени · 30 дни"], [pctF(o.uspeh), "успех", "zl"], [kalOk ? "точна" : "под око", "калибрация"], (() => { const s = st.find((x) => x.n >= 50); return s ? [esc(s.sport_bg) + " " + s.uspeh + "%", "най-силен спорт (50+)"] : ["—", "най-силен спорт"]; })()] })}
+      ${kal.length ? `<section class="sekcia">${sekH("Казваме X% — става ли X%?")}
+        <p class="sek-pod">Най-важната честност: обявената увереност срещу сбъднатото. Лентата е казаното, чертичката — истината.</p>
+        <div class="kb">${kal.map((b) => `<div class="kb-red"><span class="kb-et">Казваме <b>${b.obyaveno}%</b></span>
+          <span class="kb-track"><i class="kb-obq" style="width:${b.obyaveno}%"></i><i class="kb-akt" style="left:${Math.min(99, b.uspeh)}%"></i></span>
+          <span class="kb-val">става <b>${b.uspeh}%</b><small>${b.n}</small></span></div>`).join("")}</div></section>` : ""}
+      ${st.length ? `<section class="sekcia">${sekH("По спорт", `<button class="vsichki" data-tab="sport">Арената</button>`)}${tl(st.map((s) => `<button class="t-link" data-sport="${esc(s.sport)}">${tRed(s.sport_bg, s, ik(s.sport, "ik s"))}</button>`), "Спорт")}</section>` : ""}
+      ${top.length ? `<section class="sekcia">${sekH("Най-силните лиги")}${tl(top.map((l) => `<button class="t-link" data-liga="${esc(l.sport + "|" + l.liga)}">${tRed(l.liga, l, ik(l.sport, "ik s"))}</button>`), "Лига")}</section>` : ""}
+      ${dolu.length ? `<section class="sekcia">${sekH("Където ни е най-трудно")}${tl(dolu.map((l) => `<button class="t-link" data-liga="${esc(l.sport + "|" + l.liga)}">${tRed(l.liga, l, ik(l.sport, "ik s"))}</button>`), "Лига")}</section>` : ""}
+      <div class="dvoino-an">
+        ${(a.zvezdi || []).some((z) => z.n) ? `<section class="sekcia">${sekH("По звезди")}${tl(a.zvezdi.filter((z) => z.n).map((z) => tRed(zvezdi(z.zvezdi), z)), "")}</section>` : ""}
+        ${(a.koef || []).length ? `<section class="sekcia">${sekH("По коефициент")}${tl(a.koef.map((k) => tRed(k.et, k)), "")}</section>` : ""}
+      </div>
+      ${(a.strana || []).length ? `<section class="sekcia">${sekH("По вид избор")}${tl(a.strana.map((x) => tRed(x.et, x)), "")}</section>` : ""}
+      ${((a.signal || []).filter((x) => x.n)).length ? `<section class="sekcia">${sekH("Сигнал от пазара", `<button class="vsichki" data-tab="signali">Радарът</button>`)}${tl(a.signal.filter((x) => x.n).map((x) => tRed(x.et, x)), "")}</section>` : ""}
+      <p class="an-note">„Доход" = печалба на заложен юнит при равен залог за 30 дни; в него е и маржът на букмейкъра, затова е по-строг от процента. Под 10 оценени — числото е шум.</p>`);
+  }
+
+  /* ══════════ ОТБОР ══════════ */
+  function ekranOtbor() {
+    const d = S.data || {};
+    const t = S.otbor || "";
+    const f = (d.forma || {})[t] || [];
+    const pr = (d.prognozi || []).filter((k) => k.dom === t || k.gost === t);
+    const rz = (d.rezultati || []).filter((k) => k.dom === t || k.gost === t);
+    const ref = pr[0] || rz[0] || {};
+    const w = f.filter((x) => x.r === "W").length, dr = f.filter((x) => x.r === "D").length, l = f.filter((x) => x.r === "L").length;
+    return ramka(null, `
+      <section class="ot-hero">${ekip(t)}<div class="ot-copy"><p class="hb-eye">${esc(ref.sport_bg || "Отбор")}${ref.liga ? " · " + esc(ref.liga) : ""}</p><h1 class="hb-h">${esc(t)}</h1>
+        <div class="hb-kpi"><div class="hk zl"><b>${w}-${dr}-${l}</b><span>П-Р-З · форма</span></div><div class="hk"><b>${f.length ? Math.round((100 * w) / f.length) + "%" : "—"}</b><span>победи</span></div><div class="hk"><b>${pr.length}</b><span>предстоящи</span></div></div>
+        <button class="btn m v2" data-sledi="${esc(t)}">${ico("zvezda", "btn-ik")}${sledeni().has(t) ? "Следваш отбора" : "Следи отбора"}</button></div></section>
+      ${f.length ? `<section class="sekcia">${sekH("Форма", `<span class="scen-min">последни ${f.length} в нашия архив</span>`)}
+        <div class="ot-forma">${f.map((x) => `<div class="of-red"><i class="of-r fd-${x.r.toLowerCase()}">${x.r === "W" ? "П" : x.r === "D" ? "Р" : "З"}</i><span class="of-vs">${x.d ? "срещу" : "при"} <b>${esc(x.vs)}</b></span><b class="of-s">${esc(x.s)}</b><small>${esc(denEt(x.den))}</small></div>`).join("")}</div></section>`
+        : `<p class="prazno">Нямаме оценени мачове на ${esc(t)} в последните 60 дни.</p>`}
+      ${pr.length ? `<section class="sekcia">${sekH("Нашите прогнози")}<div class="karti kol">${pr.map(kartaPrognoza).join("")}</div></section>` : ""}
+      ${rz.length ? `<section class="sekcia">${sekH("Последни резултати")}<div class="karti kol">${rz.map(kartaRezultat).join("")}</div></section>` : ""}
+      ${ref.sport ? `<button class="scen-entry" data-sport="${esc(ref.sport)}"><span class="scen-entry-ik">${ik(ref.sport, "ik s")}</span><div><b>${esc(ref.sport_bg)}</b><span>Обратно към спорта</span></div><span class="str">${ico("str")}</span></button>` : ""}`);
+  }
+
+  /* ══════════ ЛИГА ══════════ */
+  function ekranLiga() {
+    const d = S.data || {};
+    const raw = String(S.liga || ""), i = raw.indexOf("|");
+    const sport = raw.slice(0, i), liga = raw.slice(i + 1);
+    const L = (d.ligi || []).find((x) => x.sport === sport && x.liga === liga);
+    const pr = (d.prognozi || []).filter((k) => k.sport === sport && k.liga === liga);
+    const rz = (d.rezultati || []).filter((k) => k.sport === sport && k.liga === liga);
+    const spBg = spImeOf(sport);
+    return ramka(null, `
+      <section class="ot-hero"><span class="ot-ik">${ik(sport, "ik")}</span><div class="ot-copy"><p class="hb-eye">${esc(spBg)} · лига</p><h1 class="hb-h">${esc(liga)}</h1>
+        <div class="hb-kpi"><div class="hk zl"><b>${L ? pctF(L.uspeh) : "—"}</b><span>успех · 30 дни</span></div><div class="hk"><b>${L ? L.n : 0}</b><span>оценени</span></div><div class="hk"><b>${pr.length}</b><span>предстоящи</span></div><div class="hk"><b>${L && L.dohod != null ? edF(L.dohod) + "%" : "—"}</b><span>доход</span></div></div></div></section>
+      ${pr.length ? `<section class="sekcia">${sekH("Предстоящи прогнози")}<div class="karti kol">${pr.map(kartaPrognoza).join("")}</div></section>` : `<p class="prazno">В момента няма прогнози в тази лига.</p>`}
+      ${rz.length ? `<section class="sekcia">${sekH("Последни резултати", `<span class="scen-min">7 дни</span>`)}<div class="karti kol">${rz.map(kartaRezultat).join("")}</div></section>` : ""}
+      <button class="scen-entry" data-sport="${esc(sport)}"><span class="scen-entry-ik">${ik(sport, "ik s")}</span><div><b>${esc(spBg)}</b><span>Всички лиги в спорта</span></div><span class="str">${ico("str")}</span></button>`);
+  }
+
+  /* ══════════ „ОЩЕ" — всички стаи на един допир (телефон) ══════════ */
+  const NAV_OPIS = { nachalo: "Командният център", prognozi: "Всички избори с обяснение", signali: "Къде пазарът идва при нас", live: "На живо и нашият ден",
+    analiz: "Записът ни, разрязан честно", rezultati: "Как завършиха прогнозите", sport: "Спортове, лиги, класирания", novini: "Историите зад играта",
+    turnir: "Мери се с модела и тълпата", fishove: "Твоят фиш и портфейл", scenario: "Симулирай мача", profil: "Настройки и постижения" };
+  function otvoriOshte() {
+    if (document.getElementById("oshte")) return;
+    const div = document.createElement("div"); div.id = "oshte"; div.className = "oshte";
+    div.innerHTML = `<div class="osh-k" role="dialog" aria-label="Всички стаи"><div class="osh-h"><b>Всички стаи</b><button class="osh-x" data-osh-x="1" aria-label="Затвори">×</button></div>
+      ${NAV_GRUPI.map(([g, arr]) => `<div class="osh-gr">${esc(g)}</div><div class="osh-grid">${arr.map(([k, t]) => `<button class="osh-it${S.tab === k ? " on" : ""}" data-osh="${k}">${ico(ICO[k] ? k : "multi")}<b>${esc(t)}</b><span>${esc(NAV_OPIS[k] || "")}</span>${k === "signali" && brSig() ? `<i class="osh-n">${brSig()}</i>` : ""}</button>`).join("")}</div>`).join("")}</div>`;
+    const zatvori = () => { div.remove(); document.removeEventListener("keydown", onK); };
+    function onK(e) { if (e.key === "Escape") zatvori(); }
+    document.addEventListener("keydown", onK);
+    div.addEventListener("click", (e) => {
+      if (e.target === div || e.target.closest("[data-osh-x]")) return zatvori();
+      const b = e.target.closest("[data-osh]"); if (!b) return;
+      zatvori(); otidi(b.dataset.osh);
+    });
+    document.body.appendChild(div);
+  }
+
+  /* ── НАЧАЛО — командният център ── */
   function ekranNachalo() {
     const d = S.data || {};
     const pr = d.prognozi || [];
     const dnes = pr.filter((k) => k.den === d.dnes);
-    const topSorted = (dnes.length ? dnes : pr).slice().sort((a, b) => (b.procent || 0) - (a.procent || 0));
-    const geroiPk = (dnes.length && topSorted[0] && eTop(topSorted[0])) ? topSorted[0] : null;
-    const top = topSorted.filter((k) => !geroiPk || k.id !== geroiPk.id).slice(0, 4);
-    const br = brSport();
-    const sp = (d.sportove || []).filter((s) => br[s.sport]);
     const o = d.obshto || {};
+    const zh = d.zhivo || [];
+    const sig = pr.filter((k) => k.signal === "silno" || k.signal === "da").sort((a, b) => (b.dv || 0) - (a.dv || 0));
+    const top = (dnes.length ? dnes : pr).slice().sort((a, b) => (b.procent || 0) - (a.procent || 0)).slice(0, 8);
     const fDnes = (d.fishove || []).filter((f) => f.den === d.dnes);
-    const rez = (d.rezultati || []).slice(0, 4);
-    const nov = (d.novini || []).slice(0, 4);
-    const visoki = dnes.filter((k) => (k.procent || 0) >= 72 || (k.zvezdi || 0) >= 3).length;
+    const nf = (d.novini_full || []).filter((x) => x && x.title).slice(0, 4);
     const sportaDnes = new Set(dnes.map((k) => k.sport)).size;
-    const brief = dnes.length
-      ? `Днес имаме <b>${dnes.length}</b> ${dnes.length === 1 ? "прогноза" : "прогнози"} в <b>${sportaDnes}</b> ${sportaDnes === 1 ? "спорт" : "спорта"}${visoki ? `, ${visoki} с висока увереност` : ""}${fDnes.length ? ` и <b>${fDnes.length}</b> ${fDnes.length === 1 ? "фиш" : "фиша"} на деня` : ""}.`
-      : "Новите прогнози за деня излизат през целия ден — върни се по-късно или разгледай утрешните.";
-    const pwa = !flag("gr_pwa_skrit") && !(matchMedia("(display-mode: standalone)").matches) ? `
-      <div class="pwa-lenta"><span class="ik">${ico("prognozi", "ico")}</span>
-        <p><b>Сложи The Green Room на телефона</b>Отваря се като приложение, на един допир.</p>
-        <button class="btn m" data-pwa="1">Добави</button><button class="x" data-pwa-x="1" aria-label="Скрий">×</button></div>` : "";
-    const meMail = (d.me && d.me.email) || "";
+    const meMail = (d.me && d.me.email) || (S.me && S.me.email) || "";
     const nm0 = meMail.split("@")[0].split(/[._\-0-9]/)[0];
     const imeGost = nm0 ? nm0.charAt(0).toUpperCase() + nm0.slice(1) : "";
     const hr = new Date().getHours();
     const pozdrav = (hr < 5 ? "Добра нощ" : hr < 12 ? "Добро утро" : hr < 18 ? "Добър ден" : "Добър вечер") + (imeGost ? ", " + imeGost : "");
+    const brief = dnes.length
+      ? `Днес: <b>${dnes.length}</b> ${dnes.length === 1 ? "прогноза" : "прогнози"} в <b>${sportaDnes}</b> ${sportaDnes === 1 ? "спорт" : "спорта"}${sig.length ? ` · <b class="zl">${sig.length}</b> ${sig.length === 1 ? "сигнал" : "сигнала"} от пазара` : ""}.`
+      : "Новите прогнози излизат през целия ден — разгледай утрешните.";
+    const pwa = !flag("gr_pwa_skrit") && !(matchMedia("(display-mode: standalone)").matches) ? `
+      <div class="pwa-lenta"><span class="ik">${ico("prognozi", "ico")}</span>
+        <p><b>Сложи The Green Room на телефона</b>Отваря се като приложение, на един допир.</p>
+        <button class="btn m" data-pwa="1">Добави</button><button class="x" data-pwa-x="1" aria-label="Скрий">×</button></div>` : "";
     return ramka(null, `
+      ${heroBand({ img: "home-joker.png", eyebrow: denDylag(d.dnes) || "Днес", title: pozdrav, sub: brief,
+        kpi: [[dnes.length, "прогнози днес", "zl"], [sig.length, "сигнала"], [zh.length, "на живо"], [pctF(o.uspeh), "успех · 30 дни"]],
+        cta: `<button class="btn" data-idi="prognozi">Прогнозите ${ico("str")}</button><button class="btn v2" data-tab="signali">${ico("signali", "btn-ik")}Сигналите</button>` })}
       ${vcheraKart(d)}
-      <div class="hero">
-        <div class="hero-fig" style="background-image:url('/img/home-joker.png')"></div>
-        <div class="hero-copy"><h1>${esc(pozdrav)}</h1><p class="pod">Твоята Green Room е готова.</p>
-          <button class="btn full" data-idi="prognozi">Виж прогнозите ${ico("str")}</button></div>
+      ${sig.length ? `<section class="sekcia">${sekH("Сигналите на деня", `<button class="vsichki" data-tab="signali">Радарът</button>`)}<p class="sek-pod">Пазарът тръгна към нашия избор — единственият сигнал, измерен като ръб.</p><div class="lenta">${sig.slice(0, 6).map(kartaPrognoza).join("")}</div></section>` : ""}
+      ${pr.length ? `<section class="sekcia">${sekH(dnes.length ? "Днес по спортове" : "Спортовете", `<button class="vsichki" data-tab="sport">Арената</button>`)}${sportPlochki(d, !!dnes.length)}</section>` : ""}
+      <section class="sekcia">${sekH(dnes.length ? "Най-сигурните днес" : "Най-сигурните", vij("prognozi"))}${top.length ? `<div class="lenta">${top.map(kartaPrognoza).join("")}</div>` : '<p class="prazno">Новите прогнози излизат през целия ден.</p>'}</section>
+      ${zh.length || (d.stoynost || []).length ? `<div class="dvoino">
+        ${zh.length ? `<section class="sekcia zhivo-sek">${sekH("На живо сега", `<button class="vsichki" data-tab="live">Центърът</button>`)}<div class="karti">${zh.slice(0, 3).map(kartaZhivo).join("")}</div></section>` : ""}
+        ${(d.stoynost || []).length ? `<section class="sekcia stoynost-sek">${sekH("Стойност днес", `<span class="den-badge val">${ico("diamant", "badge-ik")}Betano</span>`)}<div class="karti">${d.stoynost.slice(0, 3).map(kartaStoynost).join("")}</div></section>` : ""}
+      </div>` : ""}
+      ${umenFish()}
+      ${kakStoim(d)}
+      ${fDnes.length ? `<section class="sekcia">${sekH("Фишове на деня", vij("fishove"))}<div class="karti kol">${fDnes.slice(0, 2).map(kartaFish).join("")}</div></section>` : ""}
+      ${nf.length ? `<section class="sekcia">${sekH("Новини", vij("novini"))}<div class="karti kol nov-grid">${novKarti(nf)}</div></section>` : ""}
+      <div class="dvoino dolni">
+        ${dnevniMisii()}
+        <button class="scen-entry tur-entry" data-idi="turnir"><span class="scen-entry-ik">🏆</span><div><b>Турнир „Зелен фиш"</b><span>Предскажи · мери се с модела и тълпата</span></div><span class="str">${ico("str")}</span></button>
       </div>
-      ${dnevniMisii()}
-      <button class="scen-entry tur-entry" data-idi="turnir"><span class="scen-entry-ik">🏆</span><div><b>Турнир „Зелен фиш"</b><span>Предскажи · мери се с модела и тълпата</span></div><span class="str">${ico("str")}</span></button>
       ${moiteOtboriSekcia(d)}
-      ${geroiPk ? kartaGeroiMach(geroiPk) : ""}
-      ${(d.zhivo || []).length ? `<section class="sekcia zhivo-sek"><header><h2>На живо сега</h2><span class="den-badge zh"><i class="tochka"></i>${(d.zhivo || []).length}</span></header>
-        <div class="karti kol">${(d.zhivo || []).slice(0, 4).map(kartaZhivo).join("")}</div></section>` : ""}
-      <section class="brief"><div class="brief-h">${ico("prognozi", "ico")}<b>Дневен фокус</b><span class="brief-den">Днес</span></div>
-        <p>${brief}</p></section>
-      ${geroiPk ? `<section class="sekcia izbor-den"><header><h2>Най-силната прогноза днес</h2><span class="den-badge">Днес</span></header>${kartaPrognoza(geroiPk)}</section>` : ""}
-      ${(d.stoynost || []).length ? `<section class="sekcia stoynost-sek"><header><h2>Стойност днес</h2><span class="den-badge val">${ico("diamant", "badge-ik")}Betano</span></header>
-        <p class="stoynost-pod">Изходи, където коефициентът на Betano е над честната пазарна цена — с препоръчан залог.</p>
-        <div class="karti kol">${(d.stoynost || []).slice(0, 4).map(kartaStoynost).join("")}</div></section>` : ""}
       ${pwa}
-      <div class="plochki" style="margin-top:14px">
-        <div class="plochka"><b>${esc(dnes.length)}</b><span>прогнози днес</span></div>
-        <div class="plochka"><b>${esc(pr.filter(eTop).length)}</b><span>топ избора</span></div>
-        <div class="plochka"><b class="em">${o.uspeh != null ? esc(o.uspeh) + "%" : "—"}</b><span>успеваемост · ${esc(o.n || 0)} прогнози / 30 дни</span></div></div>
-      ${sp.length ? `<section class="sekcia"><header><h2>Спортове</h2><button class="vsichki" data-idi="sport">Всички</button></header>
-        <div class="sp-red">${sp.map((s) => `<button class="sp-it" data-sport="${esc(s.sport)}">${ik(s.sport)}<span>${esc(s.sport_bg)}</span></button>`).join("")}</div></section>` : ""}
-      <div class="dvoino">
-        <section class="sekcia"><header><h2>${dnes.length ? "Топ прогнози за днес" : "Топ прогнози"}</h2><button class="vsichki" data-idi="prognozi">Виж всички</button></header>
-          ${top.length ? `<div class="karti">${top.map(kartaPrognoza).join("")}</div>` : '<p class="prazno">Новите прогнози излизат през целия ден.</p>'}</section>
-        <div>
-          ${fDnes.length ? `<section class="sekcia"><header><h2>Фишове днес</h2><button class="vsichki" data-idi="fishove">Всички</button></header>
-            <div class="karti">${fDnes.slice(0, 2).map(kartaFish).join("")}</div></section>` : ""}
-          ${rez.length ? `<section class="sekcia"><header><h2>Последни резултати</h2><button class="vsichki" data-idi="rezultati">Всички</button></header>
-            <div class="karti">${rez.map(kartaRezultat).join("")}</div></section>` : ""}
-          ${nov.length ? `<section class="sekcia"><header><h2>Новини</h2><button class="vsichki" data-idi="novini">Всички</button></header>
-            <div class="spisyk">${nov.map((t) => `<div class="novina">${ik(sportOtZaglavie(t), "ik")}<p>${esc(t)}</p></div>`).join("")}</div></section>` : ""}
-        </div>
-      </div>
       <a class="tg-banner" href="${TGRUPA}" target="_blank" rel="noopener">
         <span class="ik">${ico("tg", "ico")}</span>
-        <div><b>Вземи апа само за една салата</b><span>Влез в общността в Telegram — ежедневни прогнози, разбор и въпроси на живо.</span></div>
+        <div><b>Общността в Telegram</b><span>Ежедневни прогнози, разбор и въпроси на живо.</span></div>
         <span class="str">${ico("str")}</span></a>`);
   }
 
@@ -616,73 +832,75 @@
   }
   function ekranSport() {
     const d = S.data || {};
+    if (S.sport) return ekranSportEdin(S.sport);
     const br = brSport();
-    if (S.sport) {
-      const s = S.sport;
-      const ime = ((d.sportove || []).find((x) => x.sport === s) || {}).sport_bg || s;
-      const lib = SPORT_LIB[s];
-      const hero = (lib && LIB_HERO[s]) ? LIB_HERO[s] : "sport-trofei";
-      const pr = (d.prognozi || []).filter((k) => k.sport === s);
-      const rz = (d.rezultati || []).filter((k) => k.sport === s);
-      const lista = S.sportTab === "rez"
-        ? (rz.length ? `<div class="karti kol">${rz.slice(0, 60).map(kartaRezultat).join("")}</div>` : '<p class="prazno">Още няма резултати за този спорт.</p>')
-        : (pr.length ? `<div class="karti kol">${pr.map(kartaPrognoza).join("")}</div>` : '<p class="prazno">В момента няма прогнози за този спорт.</p>');
-      const libTabs = ["Правила", "История", "Легенди", "Постижения"];
-      const libBlok = lib ? `
-        <div class="tabs">${libTabs.map((t, i) => `<button aria-pressed="${i === 0}">${esc(t)}</button>`).join("")}</div>
-        <section class="sekcia"><header><h2>Как се играе</h2></header>
-          <div class="lib-card"><b class="lib-lead">${esc(lib.kak)}</b><p>${esc(lib.kakP)}</p></div></section>
-        <div class="dvoino2" style="margin-top:16px">
-          <div class="lib-card"><span class="lib-et">История</span><b>${esc(lib.ist[0])} · ${esc(lib.ist[1])}</b><p>${esc(lib.ist[2])}</p></div>
-          <div class="lib-card zlat"><span class="lib-et">Велик момент</span><b>${esc(lib.mom[0])}</b><p>${esc(lib.mom[1])}</p></div></div>
-        <div class="lib-links">
-          <a class="lib-link" href="#sport-mach">${ico("prognozi", "ico")}<span>Виж мачовете</span></a>
-          <button class="lib-link" data-idi="novini">${ico("novini", "ico")}<span>Новини</span></button>
-          <button class="lib-link" data-sport="">${ico("multi", "ico")}<span>Всички</span></button></div>
-        <p class="demo-note">Източник: ${esc(lib.izt)} · съдържанието е с образователна цел.</p>` : "";
-      return ramka(null, `
-        <div class="hero">
-          <div class="hero-fig" style="background-image:url('/img/${hero}.png')"></div>
-          <div class="hero-copy"><p class="eyebrow">Библиотека · ${esc(ime)}</p><h1>${esc(ime)}</h1>${lib ? `<p class="pod">${esc(lib.pod)}</p>` : ""}</div>
-        </div>
-        ${libBlok}
-        <section class="sekcia" id="sport-mach"><header><h2>Мачове и прогнози</h2><button class="vsichki" data-sport="">Всички спортове</button></header>
-          <div class="tabs"><button data-stab="prog" aria-pressed="${S.sportTab !== "rez"}">Прогнози</button>
-            <button data-stab="rez" aria-pressed="${S.sportTab === "rez"}">Резултати</button></div>
-          <div style="margin-top:14px">${lista}</div></section>`);
-    }
+    const st = (d.statistika || []).filter((s) => s.n >= 5);
+    const ligi = d.ligi || [];
+    const o = d.obshto || {};
+    const aktivni = (d.sportove || []).filter((s) => br[s.sport]).length;
     return ramka(null, `
-      <div class="hero">
-        <div class="hero-fig" style="background-image:url('/img/sport-trofei.png')"></div>
-        <div class="hero-copy"><p class="eyebrow">Всеки спорт · Една стая</p><h1>Твоята Арена</h1></div>
-      </div>
-      <div class="tabs">${[["vsichki", "Всички"], ["populyarni", "Популярни"], ["az", "А-Я"]].map(([v, t]) =>
+      ${heroBand({ img: "sport-trofei.png", eyebrow: "Всеки спорт · Една стая", title: "Арена", sub: "Спортовете и лигите, в които играем — с честния ни запис във всяка.",
+        kpi: [[aktivni, "активни спорта", "zl"], [(d.prognozi || []).length, "прогнози"], [ligi.length, "лиги с история"], [pctF(o.uspeh), "успех · 30 дни"]] })}
+      <div class="tabs">${[["vsichki", "Всички"], ["populyarni", "С прогнози"], ["az", "А-Я"]].map(([v, t]) =>
         `<button data-sptab="${v}" aria-pressed="${S.spTab === v}">${t}</button>`).join("")}</div>
       <label class="tarsene">${ico("tarsi")}<input id="sp-q" type="search" placeholder="Търси спорт…" value="${esc(S.spQ)}" aria-label="Търси спорт"></label>
       <div class="sp-grid" id="sp-lista" style="margin-top:12px">${listaSportove()}</div>
-      ${(() => {
-        const ligi = {};
-        for (const k of (d.prognozi || [])) if (k.liga) ligi[k.liga] = (ligi[k.liga] || 0) + 1;
-        const t = Object.entries(ligi).sort((a, b) => b[1] - a[1]).slice(0, 8);
-        return t.length ? `<section class="sekcia"><header><h2>Активни лиги</h2></header><div class="chipove">${t.map(([l, n]) => `<span class="chip">${esc(l)} · ${n}</span>`).join("")}</div></section>` : "";
-      })()}
+      ${st.length ? `<section class="sekcia">${sekH("Спортовете в цифри", `<span class="scen-min">30 дни</span>`)}<div class="t-tabl">${tGlava("Спорт")}${st.map((s) => `<button class="t-link" data-sport="${esc(s.sport)}">${tRed(s.sport_bg, s, ik(s.sport, "ik s"))}</button>`).join("")}</div></section>` : ""}
+      ${ligi.length ? `<section class="sekcia">${sekH("Лигите", `<span class="scen-min">най-играните · 30 дни</span>`)}<div class="t-tabl">${tGlava("Лига")}${ligi.slice(0, 15).map((l) => `<button class="t-link" data-liga="${esc(l.sport + "|" + l.liga)}">${tRed(l.liga, l, ik(l.sport, "ik s"))}</button>`).join("")}</div></section>` : ""}
       ${klasiraneSekcia(d)}`);
+  }
+  function ekranSportEdin(s) {
+    const d = S.data || {};
+    const ime = spImeOf(s);
+    const lib = SPORT_LIB[s];
+    const hero = LIB_HERO[s] || "sport-trofei";
+    const pr = (d.prognozi || []).filter((k) => k.sport === s);
+    const rz = (d.rezultati || []).filter((k) => k.sport === s);
+    const u = sportUspeh(s);
+    const ligi = (d.ligi || []).filter((l) => l.sport === s);
+    const dnesN = pr.filter((k) => k.den === d.dnes).length;
+    const sc = rz.filter((k) => k.poznata === true || k.poznata === false);
+    const forma = sc.slice(0, 14).reverse();
+    const tabs = [["prog", "Прогнози · " + pr.length], ["rez", "Резултати · " + rz.length], ["ligi", "Лиги · " + ligi.length]].concat(lib ? [["za", "За спорта"]] : []);
+    const tab = tabs.some(([v]) => v === S.sportTab) ? S.sportTab : "prog";
+    let telo;
+    if (tab === "rez") {
+      telo = rz.length ? `${forma.length >= 4 ? `<div class="forma"><div class="forma-h"><b>Форма</b><span>последни ${forma.length}</span></div>
+          <div class="forma-dots">${forma.map((k) => `<i class="${k.poznata ? "w" : "l"}"></i>`).join("")}</div>
+          <div class="forma-sum"><b>${forma.filter((k) => k.poznata).length}</b><span>/${forma.length}</span></div></div>` : ""}
+        ${poLiga(rz.slice(0, 60), kartaRezultat)}` : '<p class="prazno">Още няма резултати за този спорт.</p>';
+    } else if (tab === "ligi") {
+      telo = ligi.length ? `<div class="t-tabl">${tGlava("Лига")}${ligi.map((l) => `<button class="t-link" data-liga="${esc(l.sport + "|" + l.liga)}">${tRed(l.liga, l)}</button>`).join("")}</div>
+        <p class="sek-pod">Само лиги с поне 5 оценени прогнози за 30 дни. Докосни лига за прогнозите и резултатите в нея.</p>` : '<p class="prazno">Още няма лиги с поне 5 оценени прогнози в този спорт.</p>';
+    } else if (tab === "za" && lib) {
+      telo = `<div class="lib-card"><span class="lib-et">Как се играе</span><b class="lib-lead">${esc(lib.kak)}</b><p>${esc(lib.kakP)}</p></div>
+        <div class="dvoino2" style="margin-top:12px">
+          <div class="lib-card"><span class="lib-et">История · ${esc(lib.ist[0])}</span><b>${esc(lib.ist[1])}</b><p>${esc(lib.ist[2])}</p></div>
+          <div class="lib-card zlat"><span class="lib-et">Велик момент</span><b>${esc(lib.mom[0])}</b><p>${esc(lib.mom[1])}</p></div></div>
+        <p class="demo-note">Източник: ${esc(lib.izt)} · образователно съдържание.</p>`;
+    } else {
+      telo = pr.length ? poLiga(pr, kartaPrognoza) : '<p class="prazno">В момента няма прогнози за този спорт — виж резултатите и лигите.</p>';
+    }
+    return ramka(null, `
+      ${heroBand({ img: hero + ".png", eyebrow: "Арена · " + ime, title: ime, sub: lib ? esc(lib.kak) : "Нашите прогнози и записът ни в този спорт.",
+        kpi: [[pr.length, "прогнози", "zl"], [dnesN, "днес"], [u ? pctF(u.uspeh) : "—", "успех · 30 дни"], [u && u.dohod != null ? edF(u.dohod) + "%" : (u ? u.n : 0), u && u.dohod != null ? "доход" : "оценени"]] })}
+      <div class="tabs">${tabs.map(([v, t]) => `<button data-stab="${v}" aria-pressed="${tab === v}">${esc(t)}</button>`).join("")}</div>
+      <div class="sp-telo">${telo}</div>
+      <button class="scen-entry" data-sport=""><span class="scen-entry-ik">${ico("sport", "ico")}</span><div><b>Всички спортове</b><span>Обратно към Арената</span></div><span class="str">${ico("str")}</span></button>`);
   }
   function listaSportove() {
     const d = S.data || {};
     const br = brSport();
-    const rz = {};
-    for (const k of d.rezultati || []) rz[k.sport] = (rz[k.sport] || 0) + 1;
     const q = S.spQ.trim().toLowerCase();
     let sp = (d.sportove || []).filter((s) => !q || s.sport_bg.toLowerCase().includes(q));
     if (S.spTab === "populyarni") sp = sp.filter((s) => br[s.sport]);
     sp = S.spTab === "az" ? sp.sort((a, b) => a.sport_bg.localeCompare(b.sport_bg, "bg"))
-      : sp.sort((a, b) => (br[b.sport] || 0) - (br[a.sport] || 0));
+      : sp.sort((a, b) => (br[b.sport] || 0) - (br[a.sport] || 0) || ((sportUspeh(b.sport) || {}).n || 0) - ((sportUspeh(a.sport) || {}).n || 0));
     return sp.length ? sp.map((s) => {
-      const bp = br[s.sport] || 0, br_ = rz[s.sport] || 0;
-      const meta = bp ? bp + (bp === 1 ? " прогноза" : " прогнози") : (br_ ? br_ + " резултата" : "скоро");
+      const bp = br[s.sport] || 0, u = sportUspeh(s.sport);
       return `<button class="sp-plocha${bp ? " ima" : ""}" data-sport="${esc(s.sport)}">${ik(s.sport, "ik")}
-        <b>${esc(s.sport_bg)}</b><span class="pod">${meta}</span></button>`;
+        <b>${esc(s.sport_bg)}</b><span class="pod">${bp ? bp + (bp === 1 ? " прогноза" : " прогнози") : "без прогнози днес"}</span>
+        ${u && u.n >= 10 ? `<span class="spp-u${tonU(u.uspeh)}">${u.uspeh}% · ${u.n}</span>` : ""}</button>`;
     }).join("") : '<p class="prazno">Няма такъв спорт.</p>';
   }
 
@@ -696,6 +914,7 @@
     if (S.calDen) x = x.filter((k) => k.den === S.calDen);
     if (S.progSport) x = x.filter((k) => k.sport === S.progSport);
     if (S.samoStoynost) x = x.filter((k) => (evNa(k) == null ? -1 : evNa(k)) > 0); // положителна очаквана стойност (коеф. над честната ни цена)
+    if (S.samoSignal) x = x.filter((k) => k.signal === "silno" || k.signal === "da");
     if (S.samoLyubimi) x = x.filter((k) => S.lyubimi.has(k.id));
     const q = S.q.trim().toLowerCase();
     if (q) x = x.filter((k) => (k.dom + " " + k.gost + " " + k.liga + " " + k.sport_bg).toLowerCase().includes(q));
@@ -716,6 +935,7 @@
   function listaPrognozi() {
     const x = filtriraniPrognozi();
     if (!x.length) {
+      if (S.samoSignal) return '<p class="prazno">В момента няма прогнози с потвърдено движение на пазара към нас. Сигналите са редки — виж Радара за подробности.</p>';
       if (S.samoStoynost) return '<p class="prazno">В момента няма прогнози с положителна стойност (коефициент над честната ни цена). Това е честно — реалната стойност е рядка. Махни филтъра, за да видиш всички.</p>';
       if (S.samoLyubimi) return brLyubimi()
         ? '<p class="prazno">Няма любими за този избор — смени спорта/деня или махни търсенето.</p>'
@@ -725,8 +945,9 @@
     const po = new Map();
     for (const k of x) { if (!po.has(k.den)) po.set(k.den, []); po.get(k.den).push(k); }
     const sf = podrF();
+    // По подразбиране: ден → лига (подредено); при друга подредба — плосък списък в деня
     return [...po.entries()].map(([den, ks]) => `<div class="den-glava" role="heading" aria-level="3">${esc(denDylag(den))} · ${ks.length}</div>
-      <div class="karti kol">${ks.slice().sort(sf).map(kartaPrognoza).join("")}</div>`).join("");
+      ${S.progSort === "red" ? poLiga(ks.slice().sort(sf), kartaPrognoza) : `<div class="karti kol">${ks.slice().sort(sf).map(kartaPrognoza).join("")}</div>`}`).join("");
   }
   function bankRoll() { const b = Number(flag("gr_bank")); return b > 0 ? b : 100; }
   function kellyFrac() { const f = Number(flag("gr_kfrac")); return [0.25, 0.5, 1].indexOf(f) >= 0 ? f : 0.25; }
@@ -772,16 +993,18 @@
     const tb = [["vsichki", "Всички"], ["dnes", "Днес"], ["utre", "Утре"], ["top", "Топ"]];
     const podr = [["red", "Ред"], ["uv", "Увереност"], ["ev", "Стойност"], ["koef", "Коеф."]];
     const nl = brLyubimi();
+    const vsi = d.prognozi || [];
+    const bS = brSig();
+    const srU = vsi.filter((k) => k.procent).length ? Math.round(vsi.reduce((a, k) => a + (k.procent || 0), 0) / vsi.filter((k) => k.procent).length) : null;
     return ramka(null, `
-      <div class="hero">
-        <div class="hero-fig" style="background-image:url('/img/picks-asa.png')"></div>
-        <div class="hero-copy"><p class="eyebrow">Анализ · Селекция · Перспектива</p><h1>Green Room Прогнози</h1></div>
-      </div>
-      <button class="scen-entry" data-idi="scenario"><span class="scen-entry-ik">🎲</span><div><b>Сценарии</b><span>Симулирай мача · виж вероятностите</span></div><span class="str">${ico("str")}</span></button>
+      ${heroBand({ img: "picks-asa.png", eyebrow: "Анализ · Селекция · Перспектива", title: "Прогнози",
+        sub: "Всеки избор с увереност, коефициент и кратко „защо“ — подредени по ден и лига.",
+        kpi: [[vsi.length, "прогнози", "zl"], [vsi.filter((k) => k.den === d.dnes).length, "днес"], [bS, "със сигнал"], [srU != null ? srU + "%" : "—", "средна увереност"]] })}
       ${valueSekcia(d)}
       <div class="tabs" style="margin-top:14px">${tb.map(([v, t]) => `<button data-ptab="${v}" aria-pressed="${S.progTab === v}">${t}</button>`).join("")}</div>
       ${kalendarLenta()}
       <div class="chipove"><button class="chip lfav" data-lfav="1" aria-pressed="${S.samoLyubimi}">${ico("zvezda", "zv-ik")}Любими<b class="lfav-c">${nl ? " · " + nl : ""}</b></button>
+        <button class="chip sgchip" data-samosig="1" aria-pressed="${!!S.samoSignal}">↗ Със сигнал${bS ? " · " + bS : ""}</button>
         <button class="chip stoynost" data-stoynost="1" aria-pressed="${!!S.samoStoynost}">💎 Само стойност</button>
         <button class="chip" data-psport="" aria-pressed="${!S.progSport}">Всички спортове</button>
         ${sp.map((s) => `<button class="chip" data-psport="${esc(s.sport)}" aria-pressed="${S.progSport === s.sport}">${ik(s.sport, "ik s")}${esc(s.sport_bg)} · ${br[s.sport]}</button>`).join("")}</div>
@@ -944,7 +1167,7 @@
   function obnoviDob(b, id) {
     const inn = vFisha(id);
     b.setAttribute("aria-pressed", inn ? "true" : "false");
-    b.textContent = inn ? "✓ Във фиша" : "+ Добави във фиша";
+    b.textContent = inn ? "✓ Във фиша" : "+ Във фиша";
   }
   /* звездата НА МЯСТО — сменя състоянието, обновява името и подскача САМО при клик */
   function obnoviZvezda(b) {
@@ -1095,7 +1318,12 @@
         <p>${esc(denDylag(S.rezDen))}<br><b>${p}</b> спечелени от ${n}</p></div>` : ""}
       ${[...po.entries()].map(([kl, g]) => `<div class="liga-glava">${ik(g.s, "ik s")}${esc(kl)}</div><div class="karti kol">${g.ks.map(kartaRezultat).join("")}</div>`).join("")}`
       : (rekordHtml ? "" : '<p class="prazno">Още няма оценени прогнози.</p>');
-    return ramka(["Резултати", "Как завършиха нашите прогнози."], rekordHtml + chestnostBlok(scored) + daily);
+    const p7 = scored.filter((k) => k.poznata === true).length;
+    return ramka(null, heroBand({ img: "og-banner.jpg", cover: true, eyebrow: "Без скрити загуби", title: "Резултати",
+      sub: "Как завърши всяка наша прогноза — с резултата, коефициента и честния процент.",
+      kpi: [[pctF(ob.uspeh), "успех · 30 дни", "zl"], [ob.n || 0, "оценени · 30 дни"], [scored.length ? Math.round((100 * p7) / scored.length) + "%" : "—", "последните 7 дни"], [seria >= 2 ? (seriaW ? "🔥 " : "❄️ ") + seria : "—", seriaW ? "поредни познати" : "серия"]],
+      cta: `<button class="btn m v2" data-tab="analiz">${ico("analiz", "btn-ik")}Пълният анализ</button>` })
+      + rekordHtml + chestnostBlok(scored) + daily);
   }
 
   /* ── НОВИНИ ── */
@@ -1113,66 +1341,58 @@
   function ekranNovini() {
     const d = S.data || {};
     const nf = (d.novini_full || []).filter((x) => x && x.title);
-    const tit = d.novini || [];
+    const nfT = new Set(nf.map((x) => x.title));
+    const tit = (d.novini || []).filter((t) => !nfT.has(t));
     if (!nf.length && !tit.length) return ramka(["Новини"], '<p class="prazno">Няма нови новини в момента.</p>');
-    const hero = `
-      <div class="hero">
-        <div class="hero-fig" style="background-image:url('/img/news-vestnik.png')"></div>
-        <div class="hero-copy"><p class="eyebrow">Историите зад играта</p><h1>Новинарска стая</h1></div>
-      </div>`;
-    if (!nf.length) {
-      const [g, ...ost] = tit;
-      return ramka(null, hero + `
-        <article class="nov-glavna">${ik(sportOtZaglavie(g), "ik")}<div class="etiket">Водеща новина</div><h3>${esc(g)}</h3></article>
-        <div class="spisyk kol" style="margin-top:12px">${ost.map((t) => `<div class="novina">${ik(sportOtZaglavie(t), "ik")}<p>${esc(t)}</p></div>`).join("")}</div>`);
-    }
-    const spIme = (s) => ((d.sportove || []).find((x) => x.sport === s) || {}).sport_bg || (s || "Спорт");
     const spSet = [...new Set(nf.map((x) => x.sport).filter(Boolean))];
-    const flt = S.novSport || "";
+    const flt = spSet.includes(S.novSport) ? S.novSport : "";
     const spisak = flt ? nf.filter((x) => x.sport === flt) : nf;
-    const chips = `<div class="chipove"><button class="chip" data-nsport="" aria-pressed="${!flt}">Всички</button>${spSet.map((s) => `<button class="chip" data-nsport="${esc(s)}" aria-pressed="${flt === s}">${ik(s, "ik s")}${esc(spIme(s))}</button>`).join("")}</div>`;
     const [g, ...ost] = spisak;
-    const artikul = (x) => `<a class="nov-art" href="${esc(x.link || "#")}" target="_blank" rel="noopener">
-      ${x.image ? `<span class="na-img" style="background-image:url('${esc(x.image)}')"></span>` : `<span class="na-img na-ik">${ik(x.sport, "ik")}</span>`}
-      <span class="na-txt"><span class="na-meta">${esc(spIme(x.sport))}${x.source ? " · " + esc(x.source) : ""}</span><b>${esc(x.title)}</b></span></a>`;
-    return ramka(null, hero + chips + `
+    const chips = spSet.length > 1 ? `<div class="chipove"><button class="chip" data-nsport="" aria-pressed="${!flt}">Всички · ${nf.length}</button>${spSet.map((s) => `<button class="chip" data-nsport="${esc(s)}" aria-pressed="${flt === s}">${ik(s, "ik s")}${esc(spImeOf(s))} · ${nf.filter((x) => x.sport === s).length}</button>`).join("")}</div>` : "";
+    return ramka(null, `
+      ${heroBand({ img: "news-vestnik.png", eyebrow: "Историите зад играта", title: "Новинарска стая", sub: "Подбрани новини по спорт — със снимка, кратко резюме и източник.",
+        kpi: [[nf.length, "статии", "zl"], [spSet.length, "спорта"], [tit.length, "още заглавия"]] })}
+      ${chips}
       ${g ? `<a class="nov-feat" href="${esc(g.link || "#")}" target="_blank" rel="noopener">
         ${g.image ? `<span class="nf-img" style="background-image:url('${esc(g.image)}')"></span>` : ""}
-        <span class="nf-body"><span class="nf-meta">${esc(spIme(g.sport))} · водеща</span><h3>${esc(g.title)}</h3><span class="na-src">${esc(g.source)}</span></span></a>` : ""}
-      ${ost.length ? `<div class="karti kol" style="margin-top:12px">${ost.map(artikul).join("")}</div>` : ""}
-      <button class="scen-entry" data-idi="sport" style="margin-top:16px"><span class="scen-entry-ik">📚</span><div><b>Библиотека на спорта</b><span>Правила · История · Легенди</span></div><span class="str">${ico("str")}</span></button>`);
+        <span class="nf-body"><span class="nf-meta">${ik(g.sport, "ik s")}${esc(spImeOf(g.sport))} · водеща</span><h3>${esc(g.title)}</h3>${g.summary ? `<p class="nf-sum">${esc(g.summary)}</p>` : ""}<span class="na-src">${esc(g.source)} ${ico("str")}</span></span></a>` : ""}
+      ${ost.length ? `<div class="karti kol nov-grid" style="margin-top:12px">${novKarti(ost)}</div>` : ""}
+      ${tit.length ? `<section class="sekcia">${sekH("Още заглавия", `<span class="scen-min">${tit.length}</span>`)}<div class="spisyk kol">${tit.slice(0, 24).map((t) => `<div class="novina">${ik(sportOtZaglavie(t), "ik")}<p>${esc(t)}</p></div>`).join("")}</div></section>` : ""}
+      <button class="scen-entry" data-tab="sport" style="margin-top:16px"><span class="scen-entry-ik">📚</span><div><b>Спортна библиотека</b><span>Правила, история и велики моменти — в Арената</span></div><span class="str">${ico("str")}</span></button>`);
   }
 
   /* ── LIVE CENTER ── */
   function ekranLive() {
     const d = S.data || {};
     const zh = d.zhivo || [];
+    const rzD = (d.rezultati || []).filter((k) => k.den === d.dnes);
+    const prD = (d.prognozi || []).filter((k) => k.den === d.dnes);
+    const utre = (d.prognozi || []).filter((k) => k.den > d.dnes);
+    const p = rzD.filter((k) => k.poznata === true).length, n = rzD.filter((k) => k.poznata === true || k.poznata === false).length;
     // Реален индикатор за хода на мача (минута/90 от истинската minuta) — не декор.
     const napredak = (min, status) => {
       const pct = status === "HT" ? 50 : Math.max(2, Math.min(100, Math.round(((min || 0) / 90) * 100)));
       return `<div class="live-progres"><span class="lp-track"><i style="width:${pct}%"></i><span class="lp-ht"></span></span>
         <div class="lp-meta"><span>Ход на мача</span><b>${status === "HT" ? "Полувреме" : (min != null ? min + "′" : "На живо")}</b></div></div>`;
     };
-    const liveKarta = (lg, dm, gs, rz, min, status) => `<article class="live-k">
-      <div class="live-top"><span class="live-badge"><i></i>НА ЖИВО</span><span class="live-liga">${esc(lg)}</span></div>
-      <div class="live-mach"><div class="live-tim">${ekip(dm)}<b>${esc(dm)}</b></div>
-        <div class="live-rez">${esc(rz)}</div>
-        <div class="live-tim d">${ekip(gs)}<b>${esc(gs)}</b></div></div>
-      ${napredak(min, status)}</article>`;
-    const realni = zh.map((z) => liveKarta(z.liga || "Футбол", z.dom, z.gost,
-      (z.gol_dom != null ? z.gol_dom : "") + " : " + (z.gol_gost != null ? z.gol_gost : ""),
-      z.minuta, z.status)).join("");
-    const broy = zh.length;
+    const liveKarta = (z) => `<article class="live-k">
+      <div class="live-top"><span class="live-badge"><i></i>НА ЖИВО</span><span class="live-liga">${esc(z.liga || "Футбол")}</span></div>
+      <div class="live-mach"><div class="live-tim">${ekip(z.dom)}<b>${esc(z.dom)}</b></div>
+        <div class="live-rez">${esc(z.gol_dom != null ? z.gol_dom : "")} : ${esc(z.gol_gost != null ? z.gol_gost : "")}</div>
+        <div class="live-tim d">${ekip(z.gost)}<b>${esc(z.gost)}</b></div></div>
+      ${napredak(z.minuta, z.status)}</article>`;
+    const po = new Map();
+    for (const z of zh) { const l = z.liga || "Футбол"; if (!po.has(l)) po.set(l, []); po.get(l).push(z); }
+    const zhivoHtml = zh.length
+      ? [...po.entries()].map(([l, arr]) => `<div class="liga-glava">${ik("football", "ik s")}${esc(l)}<span class="lg-n">${arr.length}</span></div><div class="karti kol">${arr.map(liveKarta).join("")}</div>`).join("")
+      : `<div class="prazno-kart sm">${ico("live", "ico big")}<b>В момента няма мачове на живо</b><p>Футболът на живо идва тук сам, с минутата и резултата. Междувременно — нашият ден по-долу.</p></div>`;
     return ramka(null, `
-      <div class="hero">
-        <div class="hero-fig" style="background-image:url('/img/live-stadion.png')"></div>
-        <div class="hero-copy"><p class="eyebrow">Усети всеки момент</p><h1>Център на живо</h1></div>
-      </div>
-      ${broy ? `<div class="chipove"><span class="chip on"><span class="tochka"></span>${broy} ${broy === 1 ? "мач" : "мача"} на живо сега</span></div>
-      <div class="karti kol" style="margin-top:14px">${realni}</div>
-      <button class="multiview">${ico("multi", "ico")}<div><b>Мултиизглед</b><span>Следи няколко мача едновременно</span></div><span class="str">${ico("str")}</span></button>`
-      : `<div class="prazno-live">${ico("live", "ico big")}<b>В момента няма мачове на живо</b><p>Върни се по-късно — тук ще виждаш резултата и моментума на течащите мачове в реално време.</p>
-        <button class="btn v2 shir" data-idi="prognozi">Виж днешните прогнози</button></div>`}`);
+      ${heroBand({ img: "live-stadion.png", eyebrow: "Усети всеки момент", title: "Център на живо",
+        sub: zh.length ? `<b class="zl">${zh.length}</b> ${zh.length === 1 ? "мач тече" : "мача текат"} в момента.` : "Резултатите на живо и нашият ден — на едно място.",
+        kpi: [[zh.length, "на живо", "zl"], [n ? p + "/" + n : "—", "познати днес"], [prD.length, "предстоят днес"], [utre.length, "утре и после"]] })}
+      <section class="sekcia">${sekH("На живо", zh.length ? `<span class="den-badge zh"><i class="tochka"></i>${zh.length}</span>` : "")}${zhivoHtml}</section>
+      ${nashiyatDen()}
+      ${utre.length ? `<section class="sekcia">${sekH("Утре и после", vij("prognozi"))}<div class="lenta">${utre.slice().sort((a, b) => (b.procent || 0) - (a.procent || 0)).slice(0, 6).map(kartaPrognoza).join("")}</div></section>` : ""}`);
   }
 
   /* ── SCENARIO LAB ── */
@@ -1281,10 +1501,7 @@
       ["red-dom", "🟥", "Червен " + kratkoIme(m.dom), sc.red === "dom"], ["red-gost", "🟥", "Червен " + kratkoIme(m.gost), sc.red === "gost"]];
     const mins = [0, 15, 30, 45, 60, 75, 85];
     return ramka(null, `
-      <div class="hero">
-        <div class="hero-fig" style="background-image:url('/img/scenario-zar.png')"></div>
-        <div class="hero-copy"><p class="eyebrow">Симулация · реален разчет</p><h1>Сценарии</h1><p class="pod">Промени случките и виж как моделът мени вероятностите.</p></div>
-      </div>
+      ${heroBand({ img: "scenario-zar.png", eyebrow: "Симулация · реален разчет", title: "Сценарии", sub: "Промени случките в мача и виж как се местят вероятностите — Поасон + Dixon-Coles, не илюстрация." })}
       <article class="pk"><div class="pk-h">${ik("football", "ik s")}<span class="liga">${esc(m.sport_bg || "Футбол")}${m.liga ? " · " + esc(m.liga) : ""}</span></div>
         <div class="pk-mach"><div class="pk-tim">${ekip(m.dom)}<span>${esc(kratkoIme(m.dom))}</span></div>
           <div class="scen-tablo"><b>${sc.gh} : ${sc.gg}</b><span>${sc.minute}′${sc.red ? " · 🟥" : ""}</span></div>
@@ -1310,6 +1527,8 @@
     return mine > opp ? "W" : mine < opp ? "L" : "D";
   }
   function otborForma(ime, n) {
+    const f60 = S.data && S.data.forma && S.data.forma[ime];
+    if (f60 && f60.length) return f60.slice(0, n || 5).map((x) => x.r); // 60 дни от сървъра, най-новите първи
     const rez = ((S.data && S.data.rezultati) || []).filter((k) => k.dom === ime || k.gost === ime)
       .sort((a, b) => String(b.den || "").localeCompare(String(a.den || "")));
     const out = [];
@@ -1355,9 +1574,9 @@
         <div class="mach-atmos" style="background-image:url('/img/mach-atmos.jpg')"></div>
         <div class="mach-liga">${ik(k.sport, "ik s")}<span>${esc(k.sport_bg)}${k.liga ? " · " + esc(k.liga) : ""}</span></div>
         <div class="mach-vs">
-          <div class="mach-tim">${ekip(k.dom)}<b>${esc(k.dom)}</b></div>
+          <button class="mach-tim" data-otbor="${esc(k.dom)}">${ekip(k.dom)}<b>${esc(k.dom)}</b></button>
           <div class="mach-ball">${ico("sport", "ico")}</div>
-          <div class="mach-tim">${ekip(k.gost)}<b>${esc(k.gost)}</b></div>
+          <button class="mach-tim" data-otbor="${esc(k.gost)}">${ekip(k.gost)}<b>${esc(k.gost)}</b></button>
         </div>
         <div class="mach-kpast">${esc(denEt(k.den))}${k.pusnata ? " · пусната " + esc(k.pusnata) : ""}</div>
       </div>
@@ -1366,6 +1585,8 @@
         <div class="koef-b"><span>Коефициент</span><b>${k.koef ? esc(fmtKoef(k.koef)) : "—"}</b></div>
         <div class="koef-b"><span>Увереност</span><b>${pr ? esc(pr) + "%" : "—"}</b></div>
       </div>
+      ${k.signal ? `<div class="mach-sg ${k.signal === "anti" ? "anti" : ""}">${signalBadge(k)}${dvRed(k)}<p>${k.signal === "anti" ? "Големите залози са на другата страна — тук бъди предпазлив." : "Пазарът тръгна към нашия избор — най-силният сигнал, който сме измерили."}</p></div>` : ""}
+      ${(() => { const L = ((S.data && S.data.ligi) || []).find((x) => x.sport === k.sport && x.liga === k.liga); return L ? `<button class="mach-liga-rek" data-liga="${esc(k.sport + "|" + k.liga)}"><span>В тази лига (30 дни)</span><b>${L.uspeh}%</b><small>от ${L.n} прогнози${L.dohod != null ? " · доход " + edF(L.dohod) + "%" : ""}</small>${ico("str")}</button>` : ""; })()}
       ${k.zashto ? `<div class="lib-card" style="margin-top:16px"><span class="lib-et">Green Room View</span><p>${esc(k.zashto)}</p></div>` : ""}
       <div class="dvoino2" style="margin-top:12px">
         <div class="view-c">${ico("puls", "ico")}<div><b>Напрежение ${puls}</b><span>${esc(napr)}</span></div></div>
@@ -1411,9 +1632,8 @@
         ${zaklyuchen ? `<div class="tur-rez">${m.moi.points > 0 ? "✓ Позна · +" + m.moi.points : "✗ Не позна"}</div>` : ""}</article>`;
     };
     return ramka(null, `
-      <div class="hero"><div class="hero-fig" style="background-image:url('/img/tur-shampion.jpg')"></div>
-        <div class="hero-copy"><p class="eyebrow">Играй · Предскажи · Изкачвай се</p><h1>Турнир</h1><p class="pod">Мери инстинкта си срещу модела и тълпата.</p></div></div>
-      <div class="tur-az"><div><b>${az.rank ? "#" + az.rank : "—"}</b><span>място</span></div><div><b data-count="${az.points || 0}">${az.points || 0}</b><span>точки</span></div><div><b>${az.tochni || 0}/${az.obshto || 0}</b><span>познати</span></div></div>
+      ${heroBand({ img: "tur-shampion.jpg", eyebrow: "Играй · Предскажи · Изкачвай се", title: "Турнир „Зелен фиш“", sub: "Мери инстинкта си срещу модела и тълпата. 3 точки за всеки познат изход.",
+        kpi: [[az.rank ? "#" + az.rank : "—", "място", "zl"], [`<span data-count="${az.points || 0}">${az.points || 0}</span>`, "точки"], [(az.tochni || 0) + "/" + (az.obshto || 0), "познати"], [(d.mach || []).length, "мача за прогноза"]] })}
       <section class="sekcia"><header><h2>Предскажи днешните</h2><span class="den-badge">3 точки за познат</span></header>
         ${d.mach && d.mach.length ? d.mach.map(machKarta).join("") : '<p class="prazno">Няма мачове за прогноза в момента.</p>'}</section>
       ${d.tabla && d.tabla.length ? `<section class="sekcia"><header><h2>Класация</h2></header>
@@ -1487,10 +1707,8 @@
     const d = S.data || {};
     const o = d.obshto || {};
     return ramka(null, `
-      <div class="hero">
-        <div class="hero-fig" style="background-image:url('/img/profil-karta.png')"></div>
-        <div class="hero-copy"><p class="eyebrow">Член · The Green Room</p><h1>Твоята Green Room</h1></div>
-      </div>
+      ${heroBand({ img: "profil-karta.png", eyebrow: "Член · The Green Room", title: "Твоята Green Room", sub: esc(statusTxt(m)),
+        kpi: [[S.streak || 0, "серия дни", "zl"], [portfeil().length, "записани залога"], [sledeni().size, "следени отбора"], [S.slip.length, "във фиша"]] })}
       <section class="prof"><span class="av">${esc(inicial(m.email))}</span><h2>${esc(m.email)}</h2>
         <span class="znachka ${esc(m.admin ? "admin" : m.status)}">${esc(statusTxt(m))}</span></section>
       ${!m.admin && m.status === "active" && m.days_left != null && m.days_left <= 3 ? `<div class="preduprezhdenie">${ico("kalendar")}<span>Достъпът ти изтича след <b>${esc(m.days_left)} ${m.days_left === 1 ? "ден" : "дни"}</b>. Пиши на <a href="${TG}" target="_blank" rel="noopener">съпорта</a>, за да го продължиш.</span></div>` : ""}
@@ -1732,7 +1950,8 @@
   function render() {
     if (!S.me) return ekranVhod("vhod");
     const f = S.adminRejim ? ekranAdmin : ({ nachalo: ekranNachalo, sport: ekranSport, live: ekranLive, prognozi: ekranPrognozi, scenario: ekranScenario, mach: ekranMach, fishove: ekranFishove,
-      rezultati: ekranRezultati, novini: ekranNovini, profil: ekranProfil, turnir: ekranTurnir }[S.tab] || ekranNachalo);
+      rezultati: ekranRezultati, novini: ekranNovini, profil: ekranProfil, turnir: ekranTurnir,
+      signali: ekranSignali, analiz: ekranAnaliz, otbor: ekranOtbor, liga: ekranLiga }[S.tab] || ekranNachalo);
     $app.innerHTML = f();
     animCount();
     proveriMisii();
@@ -1753,6 +1972,13 @@
     fn();
   }
   const idi = (tab) => { S.tab = tab; S.adminRejim = false; prehod(render); window.scrollTo(0, 0); };
+  // Една врата за всяка стая от менюто (турнирът зарежда своите данни, „Още" отваря листа)
+  function otidi(k) {
+    if (k === "oshte") return otvoriOshte();
+    if (k !== "sport") S.sport = null;
+    if (k === "turnir") { S.tab = "turnir"; S.adminRejim = false; if (!S.turnir) zarediTurnir().then((ok) => { if (ok && S.tab === "turnir") render(); }); prehod(render); window.scrollTo(0, 0); return; }
+    return idi(k);
+  }
 
   $app.addEventListener("click", (e) => {
     const t = e.target.closest("button");
@@ -1761,7 +1987,16 @@
     if (ds.gost) return ekranVhod(ds.gost);
     if (ds.cmdk) return otvoriPaletka();
     if (ds.vcheraX) { flag("gr_vchera", (S.data && S.data.dnes) || "1"); const el = t.closest(".vchera"); if (el) el.remove(); return; }
-    if (ds.tab) { if (ds.tab !== "sport") S.sport = null; return idi(ds.tab); }
+    if (ds.tab) return otidi(ds.tab);
+    if (ds.otbor) { S.otbor = ds.otbor; return idi("otbor"); }
+    if (ds.liga) { S.liga = ds.liga; return idi("liga"); }
+    if (ds.umen) {
+      const ids = String(ds.umen).split("~"), pool = (S.data && S.data.prognozi) || [];
+      S.slip = ids.map((id) => pool.find((p) => p.id === id)).filter(Boolean)
+        .map((k) => ({ id: k.id, sport: k.sport, dom: k.dom, gost: k.gost, izbor: k.izbor, koef: k.koef, den: k.den }));
+      pazi(); toast("Умният фиш е в „Моят фиш“ · " + S.slip.length + " събития");
+      S.fishTab = "moi"; return idi("fishove");
+    }
     if (ds.predskazhi) {
       const parts = String(ds.predskazhi).split("~");
       const iz = parts[0], den = parts[1], sp = parts[2], mk = parts.slice(3).join("~");
@@ -1801,6 +2036,7 @@
     if (ds.psort) { S.progSort = ds.psort; return render(); }
     if (ds.lfav) { S.samoLyubimi = !S.samoLyubimi; return render(); }
     if (ds.stoynost) { S.samoStoynost = !S.samoStoynost; return render(); }
+    if (ds.samosig) { S.samoSignal = !S.samoSignal; return render(); }
     if (ds.zvezda) { toggleLyubim(ds.zvezda); if (S.samoLyubimi) return render(); obnoviZvezda(t); obnoviLfav(); return; }
     if (ds.psport !== undefined) { S.progSport = ds.psport; return render(); }
     if (ds.ftab) { S.fishTab = ds.ftab; return render(); }
@@ -2003,7 +2239,7 @@
   // Cmd+K / „/" командна палитра — глобално търсене на мач/отбор/лига + бърза навигация
   function otvoriPaletka() {
     if (!S.me || !S.me.active || document.getElementById("cmdk")) return;
-    const NAV = [["nachalo", "Начало"], ["prognozi", "Прогнози"], ["sport", "Спорт"], ["live", "На живо"], ["rezultati", "Резултати"], ["novini", "Новини"], ["turnir", "Турнир"], ["scenario", "Сценарии"], ["fishove", "Моят фиш"], ["profil", "Профил"]];
+    const NAV = NAV_GRUPI.flatMap(([, arr]) => arr);
     const div = document.createElement("div"); div.id = "cmdk"; div.className = "cmdk";
     div.innerHTML = `<div class="cmdk-box" role="dialog" aria-label="Търсене"><div class="cmdk-inp">${ico("tarsi", "ico")}<input id="cmdk-in" type="text" placeholder="Търси мач, отбор, лига или екран…" autocomplete="off" spellcheck="false"></div><div class="cmdk-res" id="cmdk-res"></div><div class="cmdk-hint">↑↓ навигация · ↵ отвори · Esc затвори</div></div>`;
     document.body.appendChild(div);
@@ -2072,7 +2308,7 @@
       let raf = 0, cur = null, lx = 0, ly = 0;
       const apply = () => { raf = 0; if (cur) cur.style.transform = `perspective(1000px) rotateY(${(lx * 5).toFixed(2)}deg) rotateX(${(-ly * 4).toFixed(2)}deg)`; };
       document.addEventListener("pointermove", (e) => {
-        const h = e.target.closest && e.target.closest(".hero, .gost-hero");
+        const h = e.target.closest && e.target.closest(".hb-art, .gost-hero");
         if (!h) { if (cur) { cur.style.transform = ""; cur = null; } return; }
         const rect = h.getBoundingClientRect(); if (!rect.width) return;
         lx = (e.clientX - (rect.left + rect.width / 2)) / rect.width;
