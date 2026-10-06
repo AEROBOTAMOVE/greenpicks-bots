@@ -292,11 +292,14 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
   for (const r of ots30) {
     const L = String(r.league || "").trim(); if (!L) continue;
     const k = (r.bucket || "") + "|" + L;
-    if (!lg[k]) lg[k] = { liga: L, sport: String(r.bucket || ""), sport_bg: SPORT_BG[r.bucket] || String(r.bucket || ""), o: kofa() };
-    dobavi(lg[k].o, r);
+    if (!lg[k]) lg[k] = { liga: L, sport: String(r.bucket || ""), sport_bg: SPORT_BG[r.bucket] || String(r.bucket || ""), o: kofa(), rs: [] };
+    dobavi(lg[k].o, r); lg[k].rs.push(r);
   }
   const ligi = Object.values(lg).filter((x) => x.o.n >= 5)
-    .map((x) => ({ liga: x.liga, sport: x.sport, sport_bg: x.sport_bg, ...zatvori(x.o) }))
+    .map((x) => ({ liga: x.liga, sport: x.sport, sport_bg: x.sport_bg, ...zatvori(x.o),
+      // последните 8 отсъдени в лигата за 30 дни — стаята на лигата да не е празна
+      posl: x.rs.slice().sort((a, b) => String(b.day || "").localeCompare(String(a.day || ""))).slice(0, 6)
+        .map((r) => { const k = kartaZaKlient(r); return { id: k.id, dom: k.dom, gost: k.gost, izbor: k.izbor, koef: k.koef, den: k.den, procent: pokazanProcent(r, kalibr), poznata: r.hit === true, rezultat: String(r.score || "") }; }) }))
     .sort((a, b) => b.n - a.n).slice(0, 80);
 
   // 📋 ФОРМАТА — последните до 6 резултата на всеки отбор от ПРЕДСТОЯЩИТЕ мачове
