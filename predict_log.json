@@ -148776,7 +148776,7 @@
   "pazar_close": 1.52,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-06|tennis|melisaercan|simonawaltert",
@@ -148999,7 +148999,7 @@
   "pazar_close": 1.59,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0039,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-09|hockey|stlouisblues|sanjosesharks",
@@ -154662,7 +154662,9 @@
   "p": 0.7288,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-06|tabletennis|benediktduda|ruibowen",
@@ -155008,7 +155010,9 @@
   "p": 0.6379,
   "stars": 1,
   "sample": "гледани 10 мача на единия и 11 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1"
  },
  {
   "key": "2026-10-06|tabletennis|1635|dariuszszlubowski|kubagolaszewski",
