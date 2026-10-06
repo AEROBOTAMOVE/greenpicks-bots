@@ -454,7 +454,7 @@ img, svg { max-width: 100%; }
 }
 .pk-mach { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; margin: 12px 0; }
 .pk-tim { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 700; font-size: 14.5px; }
-.pk-tim span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-tim > span:not(.ekip) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pk-tim.d { flex-direction: row-reverse; text-align: right; }
 .pk-vs { font-size: 10px; font-weight: 800; color: var(--tx2); letter-spacing: .08em; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #1a382b, #0a1a14); border: 1px solid var(--line2); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
@@ -694,7 +694,7 @@ img, svg { max-width: 100%; }
 
 /* ── компютър: странично меню + колони ── */
 @media (min-width: 1024px) {
-  .app { display: grid; grid-template-columns: 250px 1fr; }
+  .app { display: grid; grid-template-columns: 250px minmax(0, 1fr); }
   .side { display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; padding: 22px 16px; border-right: 1px solid var(--line); background: rgba(6, 14, 11, .72); backdrop-filter: blur(8px); }
   .side .marka { margin: 0 6px 26px; }
   .side .marka img { width: 42px; height: 42px; }
@@ -1160,8 +1160,8 @@ body.dostap .vchera-dots i.l { outline: 1px solid rgba(255,255,255,.5); outline-
 .nastr-toggle.on .sw { background: var(--em2); border-color: var(--em2); }
 .nastr-toggle.on .sw::after { transform: translateX(18px); background: #04130d; }
 /* спойлер режим: замъгли резултатите до докосване */
-body.spoiler .live-rez, body.spoiler .scen-tablo > b, body.spoiler .k, body.spoiler .rz-rez { filter: blur(7px); cursor: pointer; transition: filter .12s; }
-body.spoiler .live-rez:hover, body.spoiler .live-rez:active, body.spoiler .k:hover, body.spoiler .k:active, body.spoiler .rz-rez:hover, body.spoiler .rz-rez:active { filter: none; }
+body.spoiler .live-rez, body.spoiler .scen-tablo > b, body.spoiler .rz-sk, body.spoiler .znak, body.spoiler .nd-r, body.spoiler .of-s { filter: blur(7px); cursor: pointer; transition: filter .12s; }
+body.spoiler .live-rez:hover, body.spoiler .live-rez:active, body.spoiler .rz:hover .rz-sk, body.spoiler .rz:hover .znak, body.spoiler .rz:active .rz-sk, body.spoiler .nd-r:hover, body.spoiler .of-s:hover { filter: none; }
 /* достъпен режим: по-силни граници, не само цвят */
 body.dostap { --line2: rgba(214, 180, 90, .5); }
 body.dostap .fd-l, body.dostap .forma-dots .l, body.dostap .risk-dots i { outline: 1px solid rgba(255, 255, 255, .45); outline-offset: 1px; }
@@ -1494,3 +1494,127 @@ body { isolation: isolate; }
 @media (max-width: 520px) {
   .hb-art.cover { opacity: .42; -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.5) 70%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.5) 70%, transparent 100%); }
 }
+
+/* ═══ ⚖ честният коефициент: ред в картата + калкулатор в стаята на мача ═══ */
+.pk-ch { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 8px 0 0; padding: 7px 10px; border-radius: 10px;
+  background: rgba(214, 180, 90, .07); border: 1px dashed rgba(214, 180, 90, .32); color: var(--tx2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.pk-ch b { color: var(--zlato); font-size: 13.5px; }
+.pk-ch span { color: var(--tx3); font-size: 11.5px; }
+.t-inline { background: none; border: 0; padding: 0; color: var(--em2); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.ch-kalk .sek-pod b { color: var(--zlato); }
+.ck-red { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 12px; padding: 14px; border-radius: var(--r2, 14px);
+  background: var(--s1); border: 1px solid var(--line2); }
+.ck-red label { font-size: 13px; color: var(--tx2); font-weight: 600; }
+.ck-red input { width: 100%; max-width: 140px; justify-self: end; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line2); background: rgba(0, 0, 0, .25);
+  color: var(--tx); font-size: 18px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.ck-red input:focus-visible { outline: 2px solid var(--em2); outline-offset: 1px; }
+.ck-izhod { grid-column: 1 / -1; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; color: var(--tx2); background: rgba(255, 255, 255, .03); border-left: 3px solid var(--line2); }
+.ck-izhod.dobre { border-left-color: var(--em2); color: var(--tx); }
+.ck-izhod.dobre b { color: var(--em2); }
+.ck-izhod.rab { border-left-color: var(--zlato); }
+.ck-izhod.pod { border-left-color: #c96a5a; }
+.ck-izhod.pod b { color: #e08a78; }
+
+/* Анализ: чертичка „казваме“ в лентата + отметки на лигите */
+.t-bar { position: relative; }
+.t-kaz { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--zlato); border-radius: 1px; opacity: .9; }
+.t-u small { display: block; font-size: 10px; color: var(--tx3); font-weight: 600; }
+.lg-otm { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; vertical-align: middle; white-space: nowrap; }
+.lg-otm.ok { background: rgba(31, 193, 126, .12); color: var(--em2); }
+.lg-otm.nad { background: rgba(214, 180, 90, .14); color: var(--zlato); }
+.lg-otm.pod { background: rgba(201, 106, 90, .14); color: #e08a78; }
+
+/* ═══ отговорна игра: лимит + пауза ═══ */
+.rg-instr { display: grid; gap: 10px; margin: 14px 0; padding: 14px; border-radius: var(--r2); background: var(--s1); border: 1px solid var(--line2); }
+.rg-red { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.rg-red label { font-weight: 700; font-size: 14px; }
+.rg-in { display: inline-flex; align-items: center; gap: 6px; }
+.rg-in input { width: 110px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line2); background: rgba(0, 0, 0, .25); color: var(--tx); font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.rg-in span { color: var(--tx2); font-weight: 700; }
+.rg-bar { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+.rg-bar i { display: block; height: 100%; border-radius: inherit; background: var(--em2); }
+.rg-bar.blizo i { background: var(--zlato); }
+.rg-bar.stop i { background: #c96a5a; }
+.rg-st { margin: 6px 0 0; font-size: 13px; color: var(--tx2); }
+.rg-st b { color: var(--tx); }
+.rg-st.on { color: var(--zlato); margin: 0; }
+.rg-pauza { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rg-pauza > span { font-size: 13px; color: var(--tx2); margin-right: auto; }
+.rg-mal { margin: 0; font-size: 11.5px; color: var(--tx3); }
+.rg-baner { margin: 0 0 10px; padding: 9px 12px; border-radius: 10px; font-size: 13px; background: rgba(214, 180, 90, .1); border: 1px solid rgba(214, 180, 90, .35); }
+.rg-baner.stop { background: rgba(201, 106, 90, .12); border-color: rgba(201, 106, 90, .45); }
+
+/* значката на резултата не излиза от рамката; имената на отборите — на два реда вместо отрязани */
+.znak { white-space: nowrap; align-self: center; height: auto; line-height: 1.3; }
+.pk-tim > span:not(.ekip) { white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; text-overflow: clip; }
+
+/* ═══ Днешният списък (Начало) + „Твоите избори“ ═══ */
+.dl { display: grid; border-radius: var(--r2); border: 1px solid var(--line2); background: var(--s1); overflow: hidden; }
+.dl-red { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 11px 12px; background: none; border: 0; border-top: 1px solid var(--line); text-align: left; color: var(--tx); }
+.dl-red:first-child { border-top: 0; }
+.dl-red:hover { background: rgba(255, 255, 255, .03); }
+.dl-red.sg { box-shadow: inset 3px 0 0 var(--zlato); }
+.dl-ik { display: grid; place-items: center; }
+.dl-m { min-width: 0; display: grid; gap: 2px; }
+.dl-m b { font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-m small { font-size: 11.5px; color: var(--tx3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dl-p, .dl-k { display: grid; justify-items: end; gap: 1px; font-variant-numeric: tabular-nums; }
+.dl-p b { font-size: 15px; color: var(--em2); }
+.dl-k b { font-size: 14px; }
+.dl-p small, .dl-k small { font-size: 10.5px; color: var(--tx3); white-space: nowrap; }
+.dl-k { min-width: 52px; }
+.moi-baner { display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 0; padding: 12px 14px; border-radius: var(--r2); border: 1px solid rgba(214, 180, 90, .35);
+  background: rgba(214, 180, 90, .08); color: var(--tx); text-align: left; }
+.moi-baner span { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13.5px; margin-right: auto; }
+.moi-baner b { color: var(--zlato); font-variant-numeric: tabular-nums; }
+.moi-baner .ico { width: 18px; height: 18px; }
+
+/* дизайнерски одит: решетката не прелива; значките на отборите цели; полето — фон, не шум под текста */
+.glaven { min-width: 0; }
+.pk-tim .ekip { flex: 0 0 auto; overflow: visible; display: inline-grid; place-items: center; }
+#zhivo-pole { -webkit-mask-image: linear-gradient(180deg, #000 0, #000 240px, rgba(0, 0, 0, .3) 560px); mask-image: linear-gradient(180deg, #000 0, #000 240px, rgba(0, 0, 0, .3) 560px); }
+.tabs-fish button { white-space: nowrap; }
+.risk-lab { font-size: 11.5px; font-weight: 700; }
+.risk-lab.nis { color: var(--em2); } .risk-lab.sred { color: var(--zlato); } .risk-lab.vis { color: var(--tx3); }
+.pk-ring b { font-size: 17px; }
+
+/* Прогнози: един ред контроли + сгъваем панел */
+.pfiltri { margin: 10px 0 12px; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--s1); }
+.pfiltri > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 11px 14px; font-weight: 700; font-size: 13.5px; }
+.pfiltri > summary::-webkit-details-marker { display: none; }
+.pfiltri > summary .ico { width: 18px; height: 18px; }
+.pfiltri > summary b { margin-left: 4px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--em2); color: #04140d; font-size: 11.5px; display: inline-grid; place-items: center; }
+.pfiltri > summary::after { content: "▾"; margin-left: auto; color: var(--tx3); transition: transform .2s; }
+.pfiltri[open] > summary::after { transform: rotate(180deg); }
+.pfiltri[open] { padding-bottom: 10px; }
+.pfiltri > *:not(summary) { margin-inline: 12px; }
+.pk-simple .dl { margin-bottom: 8px; }
+
+/* резултатът отваря стаята на мача; числото в героя на турнира в пълен размер */
+.rz { position: relative; }
+.rz-otvori { position: absolute; inset: 0; background: none; border: 0; border-radius: inherit; cursor: pointer; }
+.rz-otvori:focus-visible { outline: 2px solid var(--em2); outline-offset: 2px; }
+.hk b span { font: inherit; color: inherit; display: inline; margin: 0; }
+.mach-rez { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 12px; border-radius: 999px; font-weight: 800; font-variant-numeric: tabular-nums; background: rgba(0, 0, 0, .35); border: 1px solid var(--line2); }
+.mach-rez.p { color: var(--em2); border-color: rgba(55, 212, 148, .4); }
+.mach-rez.n { color: var(--cherv); border-color: rgba(226, 102, 91, .4); }
+/* Още заглавия — обикновен списък, не карти (не са линкове) */
+.zaglavia-sp { display: grid; border-top: 1px solid var(--line); }
+.zaglavia-sp .novina { display: flex; align-items: flex-start; gap: 10px; padding: 10px 2px; border: 0; border-bottom: 1px solid var(--line); background: none; box-shadow: none; border-radius: 0; }
+.zaglavia-sp .novina p { margin: 0; font-size: 13.5px; line-height: 1.4; color: var(--tx2); }
+.zaglavia-sp .novina .ik { flex: 0 0 auto; width: 18px; height: 18px; opacity: .7; }
+/* в стаята на мача — само успех и брой (доходът живее в Анализ) */
+.bez-d .t-d { display: none; }
+.bez-d .t-red { grid-template-columns: minmax(0, 1.5fr) minmax(48px, 1fr) 52px 46px; }
+.dv-prag { margin: 6px 0 0; padding: 7px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.4; color: var(--tx2); background: rgba(214, 180, 90, .08); border: 1px solid rgba(214, 180, 90, .3); }
+.dv-prag b { color: var(--zlato); }
+.sg-nov { margin-right: 6px; padding: 1px 6px; border-radius: 999px; background: var(--em2); color: #04140d; font-size: 10px; font-weight: 900; letter-spacing: .04em; }
+.ck-zap { grid-column: 1 / -1; }
+.banka { display: grid; gap: 10px; margin: 14px 0; padding: 14px; border-radius: var(--r2); background: var(--s1); border: 1px solid var(--line2); }
+.banka-red { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.banka-red div { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: rgba(0, 0, 0, .2); }
+.banka-red b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.banka-red span { font-size: 11.5px; color: var(--tx3); }
+.seria-ch { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(0, 0, 0, .35); border: 1px solid var(--line2); color: var(--tx2); }
+.seria-ch.w { color: var(--em2); border-color: rgba(55, 212, 148, .4); }
+.seria-ch.l { color: var(--cherv); border-color: rgba(226, 102, 91, .4); }

@@ -305,10 +305,13 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
   };
   const izborKod = (s) => { const t = String(s || "").trim(); if (/^1([·.\s]|$)/.test(t)) return "1"; if (/^2([·.\s]|$)/.test(t)) return "2"; if (/^[XХ]([·.\s]|$)/.test(t)) return "X"; return null; };
   const tournirMachove = (bundle) => {
-    const pool = (bundle.prognozi || []).concat(bundle.dnes || []);
+    // Само предстоящи: от днес нататък и без вече излязъл резултат.
+    const pool = bundle.prognozi || [], dnes = String(bundle.dnes || "");
+    const igrani = new Set((bundle.rezultati || []).filter((r) => r && r.id && r.rezultat).map((r) => r.id));
     const vid = new Set(); const out = [];
     for (const p of pool) {
       if (!p || !p.id || !p.dom || !p.gost || vid.has(p.id)) continue;
+      if ((dnes && String(p.den || "") < dnes) || igrani.has(p.id)) continue;
       vid.add(p.id);
       out.push({ match_key: p.id, den: p.den || "", sport: p.sport || "", sport_bg: p.sport_bg || "", dom: p.dom, gost: p.gost, liga: p.liga || "", nash: izborKod(p.izbor) });
       if (out.length >= 12) break;
@@ -354,6 +357,7 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
     const b = await readJsonBody(req); if (b.error) return b.error;
     const v = b.value || {};
     if (!v.match_key || !v.den || !["1", "X", "2"].includes(v.izbor)) return json(400, { error: "Липсва мач или избор." });
+    if (v.izbor === "X" && !["football", "hockey"].includes(String(v.sport || ""))) return json(400, { error: "В този спорт няма равен." });
     await repo.zapishiPredskazanie(user.id, String(v.match_key).slice(0, 200), String(v.den).slice(0, 10), String(v.sport || "").slice(0, 40), v.izbor);
     return json(200, { ok: true });
   });

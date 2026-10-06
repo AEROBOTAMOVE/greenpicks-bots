@@ -53,9 +53,17 @@ export function koef(r) {
 }
 
 /** Една карта, както я вижда клиентът — само тези полета. */
+// Часът на срещата по българско (ботът пише „start“ от 06.10.2026; старите записи са без него).
+const CHAS_FMT = (() => { try { return new Intl.DateTimeFormat("bg-BG", { timeZone: "Europe/Sofia", hour: "2-digit", minute: "2-digit", hour12: false }); } catch (e) { return null; } })();
+export function chasOt(iso) {
+  const t = Date.parse(String(iso || ""));
+  if (!Number.isFinite(t) || !CHAS_FMT) return { chas: null, start_ms: null };
+  return { chas: CHAS_FMT.format(new Date(t)), start_ms: t };
+}
 export function kartaZaKlient(r) {
   const p = num(r.p);
   return {
+    ...chasOt(r.start),
     id: String(r.key || "") + "|" + String(r.combo || 0),
     sport: String(r.bucket || ""),
     sport_bg: SPORT_BG[r.bucket] || String(r.bucket || ""),
@@ -249,13 +257,17 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
   const svog = stoynostLog && typeof stoynostLog === "object" ? stoynostLog : {};
   const stoynost = Object.entries(svog)
     .filter(([k, z]) => !String(k).startsWith("_") && z && typeof z === "object"
-      && Number(z.start_ms) > sega && Number(z.ev) > 0 && Number(z.bet) > 1)
+      && Number(z.start_ms) > sega && Number(z.ev) > 0 && Number(z.bet) > 1
+      // цената трябва да е видяна скоро: 14-дневна цена на Betano не е „стойност днес“
+      && sega - Number(z.t_last_ms || 0) < 6 * 3600e3)
     .map(([, z]) => stoynostKlient(z))
     .sort((a, b) => b.ev - a.ev)
     .slice(0, 12);
 
   // НА ЖИВО: живите мачове от sportni_danni.py (API-Football) — вече безопасни.
-  const zhivo = (zhivoLog && Array.isArray(zhivoLog.zhivo))
+  // „На живо“ е на живо само ако файлът е обновен скоро (до 30 мин) — иначе е снимка от миналото.
+  const zhObn = zhivoLog && zhivoLog.obnoveno_utc ? Date.parse(String(zhivoLog.obnoveno_utc).trim().replace(" ", "T") + ":00Z") : NaN;
+  const zhivo = (zhivoLog && Array.isArray(zhivoLog.zhivo) && Number.isFinite(zhObn) && sega - zhObn < 30 * 60e3)
     ? zhivoLog.zhivo.filter((z) => z && z.dom && z.gost).slice(0, 30) : [];
 
   // ── ОТСЪДЕНИТЕ ЗА 30 ДНИ (една фиш-нога = една прогноза; дубликатите по key се махат) ──
@@ -268,10 +280,12 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
     vidyan.add(k); ots30.push(r);
   }
   const ed = (r) => { const k = koef(r); return k ? (r.hit === true ? k - 1 : -1) : null; }; // юнити при равен залог
-  const kofa = () => ({ n: 0, poznati: 0, ed: 0, ed_n: 0 });
-  const dobavi = (o, r) => { o.n += 1; if (r.hit === true) o.poznati += 1; const e = ed(r); if (e != null) { o.ed += e; o.ed_n += 1; } };
+  const kofa = () => ({ n: 0, poznati: 0, ed: 0, ed_n: 0, sp: 0, sp_n: 0 });
+  const dobavi = (o, r) => { o.n += 1; if (r.hit === true) o.poznati += 1; const e = ed(r); if (e != null) { o.ed += e; o.ed_n += 1; }
+    const q = pokazanProcent(r, kalibr); if (q != null) { o.sp += q; o.sp_n += 1; } };
   const zatvori = (o) => ({ n: o.n, poznati: o.poznati, uspeh: o.n ? Math.round((100 * o.poznati) / o.n) : null,
-    edinici: o.ed_n ? Math.round(o.ed * 10) / 10 : null, dohod: o.ed_n >= 10 ? Math.round((1000 * o.ed) / o.ed_n) / 10 : null });
+    edinici: o.ed_n ? Math.round(o.ed * 10) / 10 : null, dohod: o.ed_n >= 10 ? Math.round((1000 * o.ed) / o.ed_n) / 10 : null,
+    s_koef: o.ed_n, kazvame: o.sp_n >= 5 ? Math.round(o.sp / o.sp_n) : null });
 
   // 🏟️ ЛИГИТЕ — успех по лига за 30 дни (само лиги с ≥5 отсъдени, за да не гони шум)
   const lg = {};
@@ -312,20 +326,22 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
   const pBand = [[50, 60], [60, 70], [70, 80], [80, 90], [90, 101]];
   const kBand = [[1.0, 1.5, "до 1.50"], [1.5, 2.0, "1.50–1.99"], [2.0, 3.0, "2.00–2.99"], [3.0, 1000, "3.00+"]];
   const zv = { 1: kofa(), 2: kofa(), 3: kofa() };
-  const pb = pBand.map(() => ({ ...kofa(), sp: 0 }));
+  const pb = pBand.map(() => kofa()); // казаното се трупа в dobavi (sp/sp_n)
   const kb = kBand.map(() => kofa());
   const sg = { silno: kofa(), da: kofa(), anti: kofa(), "": kofa() };
   const strana = { "1": kofa(), "X": kofa(), "2": kofa(), drugo: kofa() };
-  let clvN = 0, clvBie = 0, clvSum = 0;
+  let clvN = 0, clvBie = 0, clvSum = 0, mN = 0, mSum = 0;
   for (const r of ots30) {
     if (zv[r.stars]) dobavi(zv[r.stars], r);
     const pp = pokazanProcent(r, kalibr);
-    if (pp != null) { const i = pBand.findIndex(([lo, hi]) => pp >= lo && pp < hi); if (i >= 0) { dobavi(pb[i], r); pb[i].sp += pp; } }
+    if (pp != null) { const i = pBand.findIndex(([lo, hi]) => pp >= lo && pp < hi); if (i >= 0) dobavi(pb[i], r); }
     const kk = koef(r);
     if (kk) { const j = kBand.findIndex(([lo, hi]) => kk >= lo && kk < hi); if (j >= 0) dobavi(kb[j], r); }
     dobavi(sg[signalOt(r)] || sg[""], r);
     const s0 = String(r.pick || "").trim().split(/[\s·]/)[0];
     dobavi(s0 === "1" ? strana["1"] : s0 === "2" ? strana["2"] : /^[XХ]$/.test(s0) ? strana["X"] : strana.drugo, r);
+    const pa = num(r.pazar_cena), pd = num(r.pazar_cena_drug);
+    if (pa > 1 && pd > 1) { const m = 1 / pa + 1 / pd - 1; if (m > -0.02 && m < 0.2) { mN += 1; mSum += m; } }
     const c = num(r.pazar_clv);
     if (c != null) { clvN += 1; clvSum += c; if (c > 0) clvBie += 1; }
   }
@@ -333,12 +349,13 @@ export function napraviPaket(log, zaglavia, sega = Date.now(), stoynostLog = nul
     n: ots30.length,
     zvezdi: [1, 2, 3].map((z) => ({ zvezdi: z, ...zatvori(zv[z]) })),
     kalibraciya: pBand.map(([lo, hi], i) => ({ et: lo + "–" + (hi > 100 ? 99 : hi - 1) + "%", ...zatvori(pb[i]),
-      obyaveno: pb[i].n ? Math.round(pb[i].sp / pb[i].n) : null })).filter((x) => x.n >= 5),
+      obyaveno: pb[i].sp_n ? Math.round(pb[i].sp / pb[i].sp_n) : null })).filter((x) => x.n >= 5),
     koef: kBand.map(([, , et], i) => ({ et, ...zatvori(kb[i]) })).filter((x) => x.n >= 5),
     signal: [["silno", "Силно движение към нас (≥5%)"], ["da", "Движение към нас (3–5%)"], ["", "Без движение"], ["anti", "Пазарът бяга от нас"]]
       .map(([k, et]) => ({ k, et, ...zatvori(sg[k]) })),
     strana: [["1", "Победа домакин"], ["X", "Равен"], ["2", "Победа гост"], ["drugo", "Голове / други"]]
       .map(([k, et]) => ({ k, et, ...zatvori(strana[k]) })).filter((x) => x.n >= 3),
+    marzh: mN >= 50 ? { n: mN, sredno: Math.round((1000 * mSum) / mN) / 10 } : null,
     clv: clvN >= 20 ? { n: clvN, bie: Math.round((100 * clvBie) / clvN), sredno: Math.round((1000 * clvSum) / clvN) / 10 } : null,
   };
   // доходност (юнити при равен залог) към статистиката по спорт
