@@ -358,6 +358,9 @@ export function makeApi({ repo, adminEmails, data, now = () => new Date() }) {
     const v = b.value || {};
     if (!v.match_key || !v.den || !["1", "X", "2"].includes(v.izbor)) return json(400, { error: "Липсва мач или избор." });
     if (v.izbor === "X" && !["football", "hockey"].includes(String(v.sport || ""))) return json(400, { error: "В този спорт няма равен." });
+    // F14: прогноза само за предстоящ мач (не за вече изигран)
+    { let b = null; try { b = await data.get(); } catch (e) { b = null; }
+      if (b && ((b.dnes && String(v.den) < String(b.dnes)) || (b.rezultati || []).some((r) => r && r.id === v.match_key && r.rezultat))) return json(400, { error: "Мачът вече е изигран." }); }
     await repo.zapishiPredskazanie(user.id, String(v.match_key).slice(0, 200), String(v.den).slice(0, 10), String(v.sport || "").slice(0, 40), v.izbor);
     return json(200, { ok: true });
   });
