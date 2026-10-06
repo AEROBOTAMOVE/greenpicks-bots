@@ -76,6 +76,10 @@ export function kartaZaKlient(r) {
     zvezdi: Number.isInteger(r.stars) ? r.stars : null,
     den: String(r.day || ""),
     pusnata: String(r.posted || ""),
+    // информация за мача, която ботът вече записва: питчърите (бейзбол) и цената на другата страна
+    pit_dom: r.pit_home ? String(r.pit_home).slice(0, 40) : null,
+    pit_gost: r.pit_away ? String(r.pit_away).slice(0, 40) : null,
+    koef_drug: (() => { const c = num(r.pazar_cena_drug); return c && c > 1 && c < 1000 ? Math.round(c * 100) / 100 : null; })(),
     fish: Number(r.combo) > 0 ? Number(r.combo) : 0,
   };
 }

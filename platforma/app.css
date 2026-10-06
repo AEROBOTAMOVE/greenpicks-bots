@@ -1659,3 +1659,30 @@ body { isolation: isolate; }
   .glaven { max-width: 1000px; }
   .slip-pill { display: none; }
 }
+
+/* ═══ информация за мача: на живо, питчъри, класиране, пазар ═══ */
+.pk-zhivo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .28); border: 1px solid var(--line2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.pk-zhivo b { font-size: 16px; }
+.pk-zhivo span:not(.live-badge) { color: var(--tx2); }
+.pk-zhivo em { font-style: normal; font-weight: 800; margin-left: auto; }
+.pk-zhivo.vodi { border-color: rgba(55, 212, 148, .45); } .pk-zhivo.vodi em { color: var(--em2); }
+.pk-zhivo.gubi { border-color: rgba(226, 102, 91, .4); } .pk-zhivo.gubi em { color: #e08a78; }
+.pk-zhivo.ravno em { color: var(--zlato); }
+.dl-live { font-style: normal; font-weight: 800; color: var(--em2); }
+.pk-pitch { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; font-size: 12.5px; color: var(--tx2); }
+.pk-pitch .ico { width: 16px; height: 16px; color: var(--zlato); }
+.pk-pitch b { color: var(--tx); }
+.kl-kart { display: grid; border: 1px solid var(--line2); border-radius: var(--r2); background: var(--s1); overflow: hidden; }
+.kl-red2 { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 11px 12px; border-top: 1px solid var(--line); font-size: 13.5px; }
+.kl-red2:first-child { border-top: 0; }
+.kl-poz { color: var(--zlato); font-variant-numeric: tabular-nums; }
+.kl-im { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.kl-t { color: var(--tx2); font-variant-numeric: tabular-nums; }
+.kl-f { display: inline-flex; gap: 3px; }
+.kl-f i { width: 18px; height: 18px; border-radius: 5px; display: inline-grid; place-items: center; font-style: normal; font-size: 10.5px; font-weight: 800; background: rgba(255, 255, 255, .06); }
+.kl-f i.fd-w { background: rgba(55, 212, 148, .2); color: var(--em2); } .kl-f i.fd-l { background: rgba(226, 102, 91, .18); color: #e08a78; } .kl-f i.fd-d { color: var(--zlato); }
+.pazar-red { display: grid; gap: 6px; margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--s1); border: 1px solid var(--line2); }
+.pazar-red > span { font-size: 11.5px; color: var(--tx3); text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.pazar-red div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pazar-red b { font-size: 13.5px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .22); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pazar-red b.nash { outline: 1px solid rgba(55, 212, 148, .5); color: var(--em2); }
