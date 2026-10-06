@@ -7,11 +7,11 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-10-06 15:51 UTC",
+"koga": "2026-10-06 16:43 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 1010
+"pinnacle": 1002
 }
 }
 },
@@ -77,39 +77,6 @@
 ],
 "sport": "football",
 "start_ms": 1792337400000,
-"t0": "2026-09-22 03:37",
-"t0_ms": 1790048240557,
-"t_last_ms": 1790048691724
-},
-"football|1637095197|1": {
-"bet": 3.55,
-"bet_liga": "Испания / Сегунда Дивисион",
-"dom": "Celta Vigo II",
-"ev": 0.0269,
-"gost": "Sabadell",
-"i": 0,
-"izhod": "1",
-"kely": 0.0026,
-"klyuch": "football|1637095197|1",
-"kotva": false,
-"liga": "Spain - Segunda Division",
-"mid": "1637095197",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.2893,
-"p_prop": 0.2914,
-"pin": [
-3.27,
-2.22,
-3.41
-],
-"pin_last": [
-3.27,
-2.22,
-3.41
-],
-"sport": "football",
-"start_ms": 1790440200000,
 "t0": "2026-09-22 03:37",
 "t0_ms": 1790048240557,
 "t_last_ms": 1790048691724
