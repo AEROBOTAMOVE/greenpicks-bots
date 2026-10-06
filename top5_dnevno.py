@@ -134,7 +134,7 @@ def teaser(top, den, proc, poz, ocen):
     ik = SPORT_IK.get(best.get("bucket"), "•")
     p = int(round(float(best.get("p") or 0) * 100))
     dok = (f"📊 Последни {ocen} отсъдени: <b>{proc}%</b> успеваемост."
-           if proc is not None else "📊 Всеки ден — с извадка и причина, без разкрасяване.")
+           if proc is not None else "📊 Всеки ден — с извадка и причина.")
     return (
         f"🔥 <b>ТОП 5 НА ДЕНЯ</b> · {den}{NL}"
         f"{dok}{NL}{NL}"

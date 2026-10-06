@@ -1963,6 +1963,9 @@ def log_pick(an, now, combo=0):
         "combo": int(combo or 0),
         "posted": now.strftime("%Y-%m-%d %H:%M"),
         "day": (when.astimezone(SOFIA) if when is not None else now).strftime("%Y-%m-%d"),
+        # 06.10.2026: часът на срещата за клиента (платформата показва „21:00“ и
+        # подрежда по час). ДОБАВЪЧНО: нищо в бота не го чете; старите записи са без него.
+        "start": when.isoformat() if when is not None else None,
         "bucket": an.get("bucket"),
         "home": fx.get("home"), "away": fx.get("away"),
         "home_id": fx.get("home_id"), "away_id": fx.get("away_id"),
