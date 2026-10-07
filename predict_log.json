@@ -120062,8 +120062,9 @@
   "p": 0.5445,
   "stars": 1,
   "sample": "гледани по 82 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-27|esports|nemiga|color",
@@ -120152,8 +120153,9 @@
   "p": 0.5304,
   "stars": 1,
   "sample": "гледани по 82 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-02|hockey|newyorkrangers|tampabaylightning",
@@ -120195,8 +120197,9 @@
   "p": 0.6954,
   "stars": 3,
   "sample": "гледани по 82 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-27|baseball|lottegiants|hanwhaeagles",
@@ -120332,8 +120335,9 @@
   "p": 0.5823,
   "stars": 3,
   "sample": "гледани по 82 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-27|tabletennis|1630|jancernik|martinhuk",
@@ -120736,8 +120740,9 @@
   "p": 0.6751,
   "stars": 3,
   "sample": "гледани по 82 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-27|tennis|huberthurkacz|lloydharris",
@@ -121689,8 +121694,9 @@
   "p": 0.571,
   "stars": 2,
   "sample": "гледани по 82 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-09-27|tabletennis|nataliabajor|misuzutakeya",
@@ -123635,8 +123641,9 @@
   "p": 0.7472,
   "stars": 3,
   "sample": "гледани по 82 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-03|hockey|carolinahurricanes|washingtoncapitals",
@@ -127708,8 +127715,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-04|hockey|philadelphiaflyers|carolinahurricanes",
@@ -137103,8 +137111,9 @@
   "p": 0.5722,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-04|hockey|torontomapleleafs|ottawasenators",
@@ -139098,8 +139107,9 @@
   "p": 0.6836,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-02|esports|xept|havu",
@@ -139141,8 +139151,9 @@
   "p": 0.7308,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-02|esports|fokus|9ine",
@@ -139360,8 +139371,9 @@
   "p": 0.7836,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-02|esports|bcgame|voca",
@@ -139846,8 +139858,9 @@
   "p": 0.6651,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-02|esports|havu|sangal",
