@@ -157976,7 +157976,7 @@
   "pazar_close": 1.33,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0057,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-09|baseball|newyorkyankees|tampabayrays",
@@ -158068,7 +158068,7 @@
   "pazar_close": 1.57,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0124,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-08|tabletennis|sabinewinter|hitomisato",
@@ -158306,7 +158306,7 @@
   "pazar_close": 1.27,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-09|football|atléticonacional|deportestolima|total",
@@ -158445,7 +158445,7 @@
   "pazar_close": 1.28,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-08|tennis|arakawah|russellt",
@@ -161729,7 +161729,13 @@
   "p": 0.6807,
   "stars": 3,
   "sample": "гледани 28 мача на единия и 26 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:3",
+  "pazar_close": 1.35,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0111,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-09|football|suttonunited|borehamwood",
@@ -161946,7 +161952,8 @@
   "sample": "гледани 64 мача на единия и 93 на другия",
   "scored": true,
   "hit": true,
-  "score": "1:4"
+  "score": "1:4",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-09|tabletennis|miwaharimoto|yidiwang",
@@ -161991,7 +161998,8 @@
   "sample": "гледани 122 мача на единия и 77 на другия",
   "scored": true,
   "hit": true,
-  "score": "4:2"
+  "score": "4:2",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-09|tabletennis|hitomisato|sibingzhu",
@@ -162036,7 +162044,8 @@
   "sample": "гледани 95 мача на единия и 30 на другия",
   "scored": true,
   "hit": true,
-  "score": "4:1"
+  "score": "4:1",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-09|tabletennis|xingtongchen|honokahashimoto",
