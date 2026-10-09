@@ -158233,7 +158233,12 @@
   "p": 0.5633,
   "stars": 3,
   "sample": "гледани 87 мача на единия и 89 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:0",
+  "pazar_close": 1.71,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0325
  },
  {
   "key": "2026-10-08|tabletennis|yubinshin|hinahayata",
@@ -158324,7 +158329,9 @@
   "p": 0.4711,
   "stars": 3,
   "sample": "гледани 87 мача на единия и 89 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:0"
  },
  {
   "key": "2026-10-09|football|palmeiras|bahia|total",
@@ -161076,7 +161083,12 @@
   "p": 0.6177,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.47,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.018
  },
  {
   "key": "2026-10-08|tennis|hernandeza|clarkm",
@@ -162311,7 +162323,9 @@
   "p": 0.6724,
   "stars": 1,
   "sample": "гледани 8 мача на единия и 13 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-10-10|tennis|carlosalcaraz|juanmanuelcerundolo",
