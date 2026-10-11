@@ -1,836 +1,5 @@
 [
  {
-  "key": "2026-08-12|volleyball|wyou|чили|бразилия",
-  "combo": 1,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-12",
-  "bucket": "volleyball",
-  "home": "Чили",
-  "away": "Бразилия",
-  "home_id": "CHI",
-  "away_id": "BRA",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "2 · победа Бразилия",
-  "p": 0.92,
-  "stars": 3,
-  "sample": "гледани 55 мача на единия и 60 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "1:3",
-  "combo_done": true
- },
- {
-  "key": "2026-08-12|tennis|dusanlajovic|lucavanassche",
-  "combo": 1,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-12",
-  "bucket": "tennis",
-  "home": "Dusan Lajovic",
-  "away": "Luca Van Assche",
-  "home_id": "1769",
-  "away_id": "8814",
-  "league": "Cincinnati Open · ATP",
-  "slug": null,
-  "pick": "2 · Luca Van Assche",
-  "p": 0.7571,
-  "stars": 3,
-  "sample": "ранглиста и 15 скорошни мача",
-  "scored": true,
-  "hit": true,
-  "score": "1:2",
-  "combo_done": true
- },
- {
-  "key": "2026-08-13|basketball|goldenstatevalkyries|chicagosky",
-  "combo": 1,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-13",
-  "bucket": "basketball",
-  "home": "Golden State Valkyries",
-  "away": "Chicago Sky",
-  "home_id": "129689",
-  "away_id": "19",
-  "league": "WNBA",
-  "slug": "wnba",
-  "pick": "1 · победа Golden State Valkyries",
-  "p": 0.7397,
-  "stars": 3,
-  "sample": "гледани 78 мача на единия и 77 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "91:71",
-  "combo_done": true
- },
- {
-  "key": "2026-08-12|football|rapidvienna|paidelinnameeskond",
-  "combo": 0,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-12",
-  "bucket": "football",
-  "home": "Rapid Vienna",
-  "away": "Paide Linnameeskond",
-  "home_id": "519",
-  "away_id": "20718",
-  "league": "Квалификации за Лига на конференциите",
-  "slug": "uefa.europa.conf_qual",
-  "pick": "1 · победа Rapid Vienna",
-  "p": 0.5224,
-  "stars": 3,
-  "sample": "гледани 45 мача на единия и 15 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "2:0"
- },
- {
-  "key": "2026-08-12|baseball|arizonadiamondbacks|coloradorockies",
-  "combo": 0,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-12",
-  "bucket": "baseball",
-  "home": "Arizona Diamondbacks",
-  "away": "Colorado Rockies",
-  "home_id": 109,
-  "away_id": 115,
-  "league": "МЛБ",
-  "slug": null,
-  "pick": "1 · Arizona Diamondbacks",
-  "p": 0.5731,
-  "stars": 2,
-  "sample": "гледани 144 мача на единия и 142 на другия",
-  "scored": true,
-  "hit": false,
-  "score": "2:3"
- },
- {
-  "key": "2026-08-12|volleyball|wyou|мексико|алжир",
-  "combo": 1,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-12",
-  "bucket": "volleyball",
-  "home": "Мексико",
-  "away": "Алжир",
-  "home_id": "MEX",
-  "away_id": "ALG",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Мексико",
-  "p": 0.92,
-  "stars": 3,
-  "sample": "гледани 106 мача на единия и 26 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:0",
-  "combo_done": true
- },
- {
-  "key": "2026-08-12|volleyball|wyou|испания|египет",
-  "combo": 2,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-12",
-  "bucket": "volleyball",
-  "home": "Испания",
-  "away": "Египет",
-  "home_id": "ESP",
-  "away_id": "EGY",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Испания",
-  "p": 0.8553,
-  "stars": 2,
-  "sample": "гледани 12 мача на единия и 52 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:1",
-  "combo_done": true
- },
- {
-  "key": "2026-08-13|volleyball|wyou|пуерторико|тунис",
-  "combo": 2,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "Пуерто Рико",
-  "away": "Тунис",
-  "home_id": "PUR",
-  "away_id": "TUN",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Пуерто Рико",
-  "p": 0.8274,
-  "stars": 3,
-  "sample": "гледани 69 мача на единия и 42 на другия",
-  "scored": true,
-  "hit": false,
-  "score": "2:3",
-  "combo_done": true
- },
- {
-  "key": "2026-08-13|basketball|dallaswings|torontotempo",
-  "combo": 2,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-13",
-  "bucket": "basketball",
-  "home": "Dallas Wings",
-  "away": "Toronto Tempo",
-  "home_id": "3",
-  "away_id": "131935",
-  "league": "WNBA",
-  "slug": "wnba",
-  "pick": "1 · победа Dallas Wings",
-  "p": 0.7016,
-  "stars": 3,
-  "sample": "гледани 77 мача на единия и 32 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "94:88",
-  "combo_done": true
- },
- {
-  "key": "2026-08-12|tennis|henriquerocha|marcosgiron",
-  "combo": 2,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-12",
-  "bucket": "tennis",
-  "home": "Henrique Rocha",
-  "away": "Marcos Giron",
-  "home_id": "10248",
-  "away_id": "1993",
-  "league": "Cincinnati Open · ATP",
-  "slug": null,
-  "pick": "2 · Marcos Giron",
-  "p": 0.702,
-  "stars": 2,
-  "sample": "ранглиста и 12 скорошни мача",
-  "scored": true,
-  "hit": false,
-  "score": "2:0",
-  "combo_done": true
- },
- {
-  "key": "2026-08-13|volleyball|wyou|хърватия|чехия",
-  "combo": 3,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "Хърватия",
-  "away": "Чехия",
-  "home_id": "CRO",
-  "away_id": "CZE",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Хърватия",
-  "p": 0.6967,
-  "stars": 2,
-  "sample": "гледани 28 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:0",
-  "combo_done": true
- },
- {
-  "key": "2026-08-13|basketball|portlandfire|minnesotalynx",
-  "combo": 3,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-13",
-  "bucket": "basketball",
-  "home": "Portland Fire",
-  "away": "Minnesota Lynx",
-  "home_id": "132052",
-  "away_id": "8",
-  "league": "WNBA",
-  "slug": "wnba",
-  "pick": "2 · победа Minnesota Lynx",
-  "p": 0.6477,
-  "stars": 3,
-  "sample": "гледани 32 мача на единия и 85 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "81:85",
-  "combo_done": true
- },
- {
-  "key": "2026-08-13|tennis|brandonnakashima|rafaeljodar",
-  "combo": 3,
-  "posted": "2026-08-12 09:02",
-  "day": "2026-08-13",
-  "bucket": "tennis",
-  "home": "Brandon Nakashima",
-  "away": "Rafael Jodar",
-  "home_id": "3774",
-  "away_id": "12657",
-  "league": "National Bank Open presented by Rogers · ATP",
-  "slug": null,
-  "pick": "2 · Rafael Jodar",
-  "p": 0.6082,
-  "stars": 3,
-  "sample": "ранглиста и 22 скорошни мача",
-  "scored": true,
-  "hit": false,
-  "score": "2:0",
-  "combo_done": true
- },
- {
-  "key": "2026-08-12|baseball|athletics|tampabayrays",
-  "combo": 0,
-  "posted": "2026-08-12 09:08",
-  "day": "2026-08-12",
-  "bucket": "baseball",
-  "home": "Athletics",
-  "away": "Tampa Bay Rays",
-  "home_id": 133,
-  "away_id": 139,
-  "league": "МЛБ",
-  "slug": null,
-  "pick": "2 · Tampa Bay Rays",
-  "p": 0.5539,
-  "stars": 2,
-  "sample": "гледани 144 мача на единия и 140 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "4:12"
- },
- {
-  "key": "2026-08-12|football|fckøbenhavn|debrecen",
-  "combo": 0,
-  "posted": "2026-08-12 09:08",
-  "day": "2026-08-12",
-  "bucket": "football",
-  "home": "F.C. København",
-  "away": "Debrecen",
-  "home_id": "909",
-  "away_id": "532",
-  "league": "Квалификации за Лига на конференциите",
-  "slug": "uefa.europa.conf_qual",
-  "pick": "1 · победа F.C. København",
-  "p": 0.45,
-  "stars": 1,
-  "sample": "без история",
-  "scored": true,
-  "hit": true,
-  "score": "5:1"
- },
- {
-  "key": "2026-08-12|baseball|stlouiscardinals|philadelphiaphillies",
-  "combo": 0,
-  "posted": "2026-08-12 10:43",
-  "day": "2026-08-12",
-  "bucket": "baseball",
-  "home": "St. Louis Cardinals",
-  "away": "Philadelphia Phillies",
-  "home_id": 138,
-  "away_id": 143,
-  "league": "МЛБ",
-  "slug": null,
-  "pick": "1 · St. Louis Cardinals",
-  "p": 0.5328,
-  "stars": 1,
-  "sample": "гледани 141 мача на единия и 140 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "2:0"
- },
- {
-  "key": "2026-08-12|football|gkskatowice|hapoeltelaviv",
-  "combo": 0,
-  "posted": "2026-08-12 10:43",
-  "day": "2026-08-12",
-  "bucket": "football",
-  "home": "GKS Katowice",
-  "away": "Hapoel Tel Aviv",
-  "home_id": "132427",
-  "away_id": "1037",
-  "league": "Квалификации за Лига на конференциите",
-  "slug": "uefa.europa.conf_qual",
-  "pick": "1 · победа GKS Katowice",
-  "p": 0.45,
-  "stars": 1,
-  "sample": "без история",
-  "scored": true,
-  "hit": true,
-  "score": "2:1"
- },
- {
-  "key": "2026-08-12|tennis|christopheroconnell|aleksandrshevchenko",
-  "combo": 0,
-  "posted": "2026-08-12 10:43",
-  "day": "2026-08-12",
-  "bucket": "tennis",
-  "home": "Christopher O'Connell",
-  "away": "Aleksandr Shevchenko",
-  "home_id": "3301",
-  "away_id": "8710",
-  "league": "Cincinnati Open · ATP",
-  "slug": null,
-  "pick": "2 · Aleksandr Shevchenko",
-  "p": 0.5683,
-  "stars": 2,
-  "sample": "ранглиста и 13 скорошни мача",
-  "scored": true,
-  "hit": false,
-  "score": "2:0"
- },
- {
-  "key": "2026-08-13|tennis|benshelton|learnertien",
-  "combo": 0,
-  "posted": "2026-08-12 10:43",
-  "day": "2026-08-13",
-  "bucket": "tennis",
-  "home": "Ben Shelton",
-  "away": "Learner Tien",
-  "home_id": "9250",
-  "away_id": "10386",
-  "league": "National Bank Open presented by Rogers · ATP",
-  "slug": null,
-  "pick": "1 · Ben Shelton",
-  "p": 0.5641,
-  "stars": 2,
-  "sample": "ранглиста и 15 скорошни мача",
-  "scored": true,
-  "hit": true,
-  "score": "2:0"
- },
- {
-  "key": "2026-08-13|tabletennis|csabaandras|omarassar",
-  "combo": 0,
-  "posted": "2026-08-12 14:44",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Csaba ANDRAS",
-  "away": "Omar ASSAR",
-  "home_id": "123019",
-  "away_id": "100696",
-  "league": "Europe Smash - Sweden 2026 · Men's Singles",
-  "slug": null,
-  "pick": "1 · Csaba ANDRAS",
-  "p": 0.65,
-  "stars": 2,
-  "sample": "гледани 51 мача на единия и 41 на другия",
-  "scored": true,
-  "hit": false,
-  "score": "0:3"
- },
- {
-  "key": "2026-08-13|tabletennis|maharuyoshimura|hugocalderano",
-  "combo": 0,
-  "posted": "2026-08-12 14:44",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Maharu YOSHIMURA",
-  "away": "Hugo CALDERANO",
-  "home_id": "117113",
-  "away_id": "115641",
-  "league": "Europe Smash - Sweden 2026 · Men's Singles",
-  "slug": null,
-  "pick": "2 · Hugo CALDERANO",
-  "p": 0.5811,
-  "stars": 2,
-  "sample": "гледани 44 мача на единия и 89 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "1:3"
- },
- {
-  "key": "2026-08-13|tabletennis|pengxiang|alexislebrun",
-  "combo": 0,
-  "posted": "2026-08-12 14:44",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Peng XIANG",
-  "away": "Alexis LEBRUN",
-  "home_id": "135888",
-  "away_id": "132992",
-  "league": "Europe Smash - Sweden 2026 · Men's Singles",
-  "slug": null,
-  "pick": "2 · Alexis LEBRUN",
-  "p": 0.5334,
-  "stars": 1,
-  "sample": "гледани 49 мача на единия и 57 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "1:3"
- },
- {
-  "key": "2026-08-13|tabletennis|lilyzhang|satsukiodo",
-  "combo": 0,
-  "posted": "2026-08-12 15:49",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Lily ZHANG",
-  "away": "Satsuki ODO",
-  "home_id": "112221",
-  "away_id": "133405",
-  "league": "Europe Smash - Sweden 2026 · Women's Singles",
-  "slug": null,
-  "pick": "2 · Satsuki ODO",
-  "p": 0.7027,
-  "stars": 2,
-  "sample": "гледани 31 мача на единия и 116 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "0:3"
- },
- {
-  "key": "2026-08-13|tabletennis|shidonglin|kanakjha",
-  "combo": 0,
-  "posted": "2026-08-12 15:49",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Shidong LIN",
-  "away": "Kanak JHA",
-  "home_id": "137237",
-  "away_id": "116021",
-  "league": "Europe Smash - Sweden 2026 · Men's Singles",
-  "slug": null,
-  "pick": "1 · Shidong LIN",
-  "p": 0.6332,
-  "stars": 2,
-  "sample": "гледани 68 мача на единия и 45 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:0"
- },
- {
-  "key": "2026-08-12|tabletennis|manavthakkar|tomokazuharimoto",
-  "combo": 0,
-  "posted": "2026-08-12 17:11",
-  "day": "2026-08-12",
-  "bucket": "tabletennis",
-  "home": "Manav THAKKAR",
-  "away": "Tomokazu HARIMOTO",
-  "home_id": "123682",
-  "away_id": "123980",
-  "league": "Europe Smash - Sweden 2026 · Men's Singles",
-  "slug": null,
-  "pick": "2 · Tomokazu HARIMOTO",
-  "p": 0.6584,
-  "stars": 2,
-  "sample": "гледани 61 мача на единия и 90 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "0:3"
- },
- {
-  "key": "2026-08-12|tabletennis|hanagoda|xingtongchen",
-  "combo": 0,
-  "posted": "2026-08-12 17:11",
-  "day": "2026-08-12",
-  "bucket": "tabletennis",
-  "home": "Hana GODA",
-  "away": "Xingtong CHEN",
-  "home_id": "131335",
-  "away_id": "121403",
-  "league": "Europe Smash - Sweden 2026 · Women's Singles",
-  "slug": null,
-  "pick": "2 · Xingtong CHEN",
-  "p": 0.653,
-  "stars": 2,
-  "sample": "гледани 50 мача на единия и 72 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "2:3"
- },
- {
-  "key": "2026-08-12|tabletennis|annahursey|miwaharimoto",
-  "combo": 0,
-  "posted": "2026-08-12 17:11",
-  "day": "2026-08-12",
-  "bucket": "tabletennis",
-  "home": "Anna HURSEY",
-  "away": "Miwa HARIMOTO",
-  "home_id": "131480",
-  "away_id": "136711",
-  "league": "Europe Smash - Sweden 2026 · Women's Singles",
-  "slug": null,
-  "pick": "2 · Miwa HARIMOTO",
-  "p": 0.5727,
-  "stars": 2,
-  "sample": "гледани 107 мача на единия и 113 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "1:3"
- },
- {
-  "key": "2026-08-12|volleyball|wyou|италия|перу",
-  "combo": 0,
-  "posted": "2026-08-12 18:04",
-  "day": "2026-08-12",
-  "bucket": "volleyball",
-  "home": "Италия",
-  "away": "Перу",
-  "home_id": "ITA",
-  "away_id": "PER",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Италия",
-  "p": 0.92,
-  "stars": 3,
-  "sample": "гледани 36 мача на единия и 49 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:0"
- },
- {
-  "key": "2026-08-13|volleyball|wyou|chinapeoplesrepof|доминиканскарепублика",
-  "combo": 0,
-  "posted": "2026-08-12 18:04",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "China, People's Rep. of",
-  "away": "Доминиканска република",
-  "home_id": "CHN",
-  "away_id": "DOM",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "1 · победа China, People's Rep. of",
-  "p": 0.92,
-  "stars": 3,
-  "sample": "гледани 50 мача на единия и 99 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:1"
- },
- {
-  "key": "2026-08-13|volleyball|wyou|сащ|аржентина",
-  "combo": 0,
-  "posted": "2026-08-12 18:55",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "САЩ",
-  "away": "Аржентина",
-  "home_id": "USA",
-  "away_id": "ARG",
-  "league": "FIVB Volleyball Girls' U17 World Championship 2026",
-  "slug": null,
-  "pick": "1 · победа САЩ",
-  "p": 0.904,
-  "stars": 3,
-  "sample": "гледани 38 мача на единия и 60 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:0"
- },
- {
-  "key": "2026-08-13|volleyball|msen|antiguaandbarbuda|saintlucia",
-  "combo": 0,
-  "posted": "2026-08-12 19:57",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "Antigua and Barbuda",
-  "away": "Saint Lucia",
-  "home_id": "ANT",
-  "away_id": "LCA",
-  "league": "ECVA Senior Men’s Volleyball Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Antigua and Barbuda",
-  "p": 0.5448,
-  "stars": 1,
-  "sample": "гледани 20 мача на единия и 16 на другия",
-  "scored": true,
-  "hit": false,
-  "score": "2:3"
- },
- {
-  "key": "2026-08-13|volleyball|wsen|grenada|antiguaandbarbuda",
-  "combo": 0,
-  "posted": "2026-08-12 19:57",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "Grenada",
-  "away": "Antigua and Barbuda",
-  "home_id": "GRN",
-  "away_id": "ANT",
-  "league": "ECVA Senior Women’s Volleyball Championship 2026",
-  "slug": null,
-  "pick": "2 · победа Antigua and Barbuda",
-  "p": 0.8976,
-  "stars": 2,
-  "sample": "гледани по 10 мача на всеки",
-  "scored": true,
-  "hit": true,
-  "score": "0:3"
- },
- {
-  "key": "2026-08-13|volleyball|msen|britishvirginislands|anguilla",
-  "combo": 0,
-  "posted": "2026-08-12 19:57",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "British Virgin Islands",
-  "away": "Anguilla",
-  "home_id": "IVB",
-  "away_id": "AGU",
-  "league": "ECVA Senior Men’s Volleyball Championship 2026",
-  "slug": null,
-  "pick": "1 · победа British Virgin Islands",
-  "p": 0.55,
-  "stars": 1,
-  "sample": "без история",
-  "scored": true,
-  "hit": false,
-  "score": "2:3"
- },
- {
-  "key": "2026-08-13|volleyball|wsen|saintlucia|bermuda",
-  "combo": 0,
-  "posted": "2026-08-12 19:57",
-  "day": "2026-08-13",
-  "bucket": "volleyball",
-  "home": "Saint Lucia",
-  "away": "Bermuda",
-  "home_id": "LCA",
-  "away_id": "BER",
-  "league": "ECVA Senior Women’s Volleyball Championship 2026",
-  "slug": null,
-  "pick": "1 · победа Saint Lucia",
-  "p": 0.6752,
-  "stars": 2,
-  "sample": "гледани по 10 мача на всеки",
-  "scored": true,
-  "hit": false,
-  "score": "2:3"
- },
- {
-  "key": "2026-08-13|tabletennis|yukiyauda|tomokazuharimoto",
-  "combo": 0,
-  "posted": "2026-08-12 20:55",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Yukiya UDA",
-  "away": "Tomokazu HARIMOTO",
-  "home_id": "122777",
-  "away_id": "123980",
-  "league": "Europe Smash - Sweden 2026 · Men's Singles",
-  "slug": null,
-  "pick": "2 · Tomokazu HARIMOTO",
-  "p": 0.6189,
-  "stars": 2,
-  "sample": "гледани 68 мача на единия и 90 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "0:3"
- },
- {
-  "key": "2026-08-13|tabletennis|yihsinfeng|soramatsushima",
-  "combo": 0,
-  "posted": "2026-08-12 20:55",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Yi-Hsin FENG",
-  "away": "Sora MATSUSHIMA",
-  "home_id": "122727",
-  "away_id": "135996",
-  "league": "Europe Smash - Sweden 2026 · Men's Singles",
-  "slug": null,
-  "pick": "2 · Sora MATSUSHIMA",
-  "p": 0.5903,
-  "stars": 2,
-  "sample": "гледани 56 мача на единия и 80 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "2:3"
- },
- {
-  "key": "2026-08-13|tennis|christopheroconnell|aleksandrshevchenko",
-  "combo": 0,
-  "posted": "2026-08-12 21:57",
-  "day": "2026-08-13",
-  "bucket": "tennis",
-  "home": "Christopher O'Connell",
-  "away": "Aleksandr Shevchenko",
-  "home_id": "3301",
-  "away_id": "8710",
-  "league": "Cincinnati Open · ATP",
-  "slug": null,
-  "pick": "2 · Aleksandr Shevchenko",
-  "p": 0.5683,
-  "stars": 2,
-  "sample": "ранглиста и 13 скорошни мача",
-  "scored": true,
-  "hit": false,
-  "score": "2:0"
- },
- {
-  "key": "2026-08-13|tennis|dusanlajovic|lucavanassche",
-  "combo": 0,
-  "posted": "2026-08-12 21:57",
-  "day": "2026-08-13",
-  "bucket": "tennis",
-  "home": "Dusan Lajovic",
-  "away": "Luca Van Assche",
-  "home_id": "1769",
-  "away_id": "8814",
-  "league": "Cincinnati Open · ATP",
-  "slug": null,
-  "pick": "2 · Luca Van Assche",
-  "p": 0.7571,
-  "stars": 3,
-  "sample": "ранглиста и 15 скорошни мача",
-  "scored": true,
-  "hit": true,
-  "score": "1:2"
- },
- {
-  "key": "2026-08-13|baseball|detroittigers|clevelandguardians",
-  "combo": 0,
-  "posted": "2026-08-12 21:57",
-  "day": "2026-08-13",
-  "bucket": "baseball",
-  "home": "Detroit Tigers",
-  "away": "Cleveland Guardians",
-  "home_id": 116,
-  "away_id": 114,
-  "league": "МЛБ",
-  "slug": null,
-  "pick": "1 · Detroit Tigers",
-  "p": 0.5763,
-  "stars": 2,
-  "sample": "гледани 140 мача на единия и 142 на другия",
-  "scored": true,
-  "hit": false,
-  "score": "4:6"
- },
- {
-  "key": "2026-08-13|tabletennis|yidiwang|diyachitale",
-  "combo": 0,
-  "posted": "2026-08-12 21:57",
-  "day": "2026-08-13",
-  "bucket": "tabletennis",
-  "home": "Yidi WANG",
-  "away": "Diya CHITALE",
-  "home_id": "124110",
-  "away_id": "131395",
-  "league": "Europe Smash - Sweden 2026 · Women's Singles",
-  "slug": null,
-  "pick": "1 · Yidi WANG",
-  "p": 0.5798,
-  "stars": 2,
-  "sample": "гледани 70 мача на единия и 53 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "3:0"
- },
- {
-  "key": "2026-08-13|baseball|miamimarlins|pittsburghpirates",
-  "combo": 0,
-  "posted": "2026-08-12 21:57",
-  "day": "2026-08-13",
-  "bucket": "baseball",
-  "home": "Miami Marlins",
-  "away": "Pittsburgh Pirates",
-  "home_id": 146,
-  "away_id": 134,
-  "league": "МЛБ",
-  "slug": null,
-  "pick": "1 · Miami Marlins",
-  "p": 0.5324,
-  "stars": 1,
-  "sample": "гледани 138 мача на единия и 143 на другия",
-  "scored": true,
-  "hit": true,
-  "score": "8:2"
- },
- {
   "key": "2026-08-13|volleyball|wsen|тайван|япония",
   "combo": 1,
   "posted": "2026-08-13 08:14",
@@ -134308,7 +133477,8 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-10-01|esports|nicetry|sinqu",
@@ -134438,7 +133608,8 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-10-02|tennis|uemuram|simesa",
@@ -139526,7 +138697,8 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-10-03|tabletennis|cedricnuytinck|liampitchford",
@@ -143050,7 +142222,8 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-10-04|tabletennis|tsztungsu|yujhunli",
@@ -149101,7 +148274,8 @@
   "score": "0:1",
   "pazar_close": 1.11,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0313
+  "pazar_clv": 0.0313,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-06|basketball|bclietuvosrytas|bksabah",
@@ -149143,7 +148317,9 @@
   "p": 0.8257,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-06|tabletennis|yichen|jiananyuan",
@@ -149187,7 +148363,8 @@
   "sample": "гледани 71 мача на единия и 51 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:0"
+  "score": "3:0",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-06|football|doncasterrovers|liverpoolu21",
@@ -149276,7 +148453,8 @@
   "p": 0.578,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-10-06|tabletennis|miwaharimoto|tsztungsu",
@@ -149323,7 +148501,8 @@
   "score": "3:1",
   "pazar_close": 1.03,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0363
+  "pazar_clv": 0.0363,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-06|football|shrewsburytown|stockportcounty",
@@ -151259,7 +150438,8 @@
   "p": 0.5744,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": null
  },
  {
   "key": "2026-10-06|tabletennis|1430|tadeaszika|janszotkowski",
@@ -152730,7 +151910,7 @@
   "pazar_close": 1.43,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0457,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-11|mma|brendsonribeiro|felipefranco",
@@ -152779,7 +151959,7 @@
   "pazar_close": 1.26,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0062,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-07|basketball|adelaide36ers|melbourneunited",
@@ -152828,7 +152008,7 @@
   "pazar_close": 1.53,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-07|esports|falconsforce|sinqu",
@@ -152877,7 +152057,7 @@
   "pazar_close": 1.21,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0328,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-08|baseball|newyorkyankees|tampabayrays",
@@ -152926,7 +152106,7 @@
   "pazar_close": 1.57,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0158,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-11|mma|ketlensouza|loopygodínez",
@@ -152975,7 +152155,7 @@
   "pazar_close": 1.42,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0098,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-11|mma|nikoprice|leonshahbazyan",
@@ -153024,7 +152204,7 @@
   "pazar_close": 1.69,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0218,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-07|tabletennis|2235|konradstaszczyk|adamlinek",
@@ -160268,7 +159448,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-09|tabletennis|2230|martinvizek|martinsychra",
@@ -160513,7 +159694,8 @@
   "pazar_close": 1.54,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0042,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-09|football|montpellier|grenoble",
@@ -160612,7 +159794,8 @@
   "pazar_close": 1.57,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0253,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-09|tabletennis|yihsinfeng|soramatsushima",
@@ -164068,7 +163251,8 @@
   "pazar_close": 1.46,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0294,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-10|basketball|southeastmelbournephoeni|melbourneunited",
@@ -164114,7 +163298,8 @@
   "scored": true,
   "hit": false,
   "score": "99:104",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-10|tennis|annablinkova|lucreziastefanini",
@@ -164163,7 +163348,8 @@
   "pazar_close": 1.48,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0046,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-10|esports|vitality|aurora",
@@ -164212,7 +163398,7 @@
   "pazar_close": 1.25,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0063,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-10|volleyball|wsen|sagahisamitsusprings|aleezaaichi",
@@ -164349,7 +163535,7 @@
   "pazar_close": 1.33,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0115,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-10|basketball|perthwildcats|newzealandbreakers",
@@ -164443,7 +163629,7 @@
   "scored": true,
   "hit": false,
   "score": "0:4",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-10|tabletennis|manyuwang|miwaharimoto",
@@ -164492,7 +163678,7 @@
   "pazar_close": 1.25,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-11|tennis|arthurgea|benshelton",
@@ -167877,7 +167063,7 @@
   "scored": true,
   "hit": false,
   "score": "3:0",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-11|tabletennis|2200|jakubskorupa|cezarypawlik",
@@ -168111,7 +167297,8 @@
   "score": "3:1",
   "pazar_close": 1.52,
   "pazar_close_izt": "kniga",
-  "pazar_clv": -0.0088
+  "pazar_clv": -0.0088,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-13|hockey|frölundagothenburg|bordeauxboxers",
@@ -168203,7 +167390,7 @@
   "pazar_close": 1.38,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0444,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-11|basketball|illawarrahawks|cairnstaipans",
@@ -168249,7 +167436,7 @@
   "scored": true,
   "hit": false,
   "score": "100:110",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-11|football|anzoáteguifc|carabobo",
@@ -168292,7 +167479,12 @@
   "p": 0.5638,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 72 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.6,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0077
  },
  {
   "key": "2026-10-11|football|juventude|sãobernardo",
@@ -168335,7 +167527,13 @@
   "p": 0.6178,
   "stars": 3,
   "sample": "гледани по 32 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2",
+  "pazar_close": 1.57,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.021,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-14|hockey|montréalcanadiens|buffalosabres",
@@ -168421,7 +167619,9 @@
   "p": 0.544,
   "stars": 3,
   "sample": "гледани по 32 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2"
  },
  {
   "key": "2026-10-11|football|anzoáteguifc|carabobo|total",
@@ -168464,7 +167664,9 @@
   "p": 0.5,
   "stars": 3,
   "sample": "гледани 55 мача на единия и 72 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-11|football|fcutrecht|willemii|total",
@@ -168690,7 +167892,12 @@
   "p": 0.6906,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.49,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0535
  },
  {
   "key": "2026-10-12|tennis|boticvandezandschulp|arthurfils",
@@ -169633,7 +168840,12 @@
   "p": 0.6362,
   "stars": 3,
   "sample": "гледани по 67 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.55,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0305
  },
  {
   "key": "2026-10-11|tabletennis|0920|grzegorzadamiak|tiborspanik",
@@ -170208,7 +169420,12 @@
   "p": 0.5742,
   "stars": 3,
   "sample": "гледани по 67 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:1",
+  "pazar_close": 1.6,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0152
  },
  {
   "key": "2026-10-11|football|trujillanos|academiapuertocabello",
@@ -170251,7 +169468,12 @@
   "p": 0.5449,
   "stars": 3,
   "sample": "гледани 24 мача на единия и 69 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.74,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0277
  },
  {
   "key": "2026-10-12|tennis|shihan|alexandraeala",
@@ -170427,7 +169649,12 @@
   "p": 0.5676,
   "stars": 2,
   "sample": "гледани 21 мача на единия и 8 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:3",
+  "pazar_close": 1.52,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0329
  },
  {
   "key": "2026-10-12|tennis|elizarayaneva|jenniferruggeri",
@@ -170642,7 +169869,9 @@
   "p": 0.7011,
   "stars": 1,
   "sample": "гледани 10 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-10-12|tennis|nomanohaakugue|rebekamasarova",
@@ -170771,7 +170000,12 @@
   "p": 0.7756,
   "stars": 3,
   "sample": "гледани по 40 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.15,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0499
  },
  {
   "key": "2026-10-11|tabletennis|yunjulin|soramatsushima",
@@ -170859,7 +170093,12 @@
   "p": 0.5952,
   "stars": 2,
   "sample": "гледани 10 мача на единия и 13 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3",
+  "pazar_close": 1.53,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-12|esports|yawara|galorys",
@@ -170902,7 +170141,12 @@
   "p": 0.7227,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.28,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0062
  },
  {
   "key": "2026-10-12|tennis|fionaferro|aurorazantedeschi",
@@ -170988,7 +170232,12 @@
   "p": 0.7624,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.2,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-11|football|бетис|osasuna",
@@ -171031,7 +170280,12 @@
   "p": 0.6393,
   "stars": 3,
   "sample": "гледани по 45 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "5:2",
+  "pazar_close": 1.46,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0183
  },
  {
   "key": "2026-10-12|baseball|samsunglions|ktwiz",
@@ -171074,7 +170328,12 @@
   "p": 0.5754,
   "stars": 2,
   "sample": "гледани по 25 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:12",
+  "pazar_close": 1.6,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0226
  },
  {
   "key": "2026-10-11|tabletennis|1900|martinsobisek|matejvolf",
@@ -171117,7 +170376,12 @@
   "p": 0.5931,
   "stars": 1,
   "sample": "гледани 8 мача на единия и 7 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3",
+  "pazar_close": 1.53,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-14|hockey|herningbluefox|fribourggottéron",
@@ -171289,7 +170553,9 @@
   "p": 0.7705,
   "stars": 2,
   "sample": "гледани 16 мача на единия и 5 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-10-11|football|patronato|güemes",
@@ -171332,7 +170598,12 @@
   "p": 0.6321,
   "stars": 3,
   "sample": "гледани 67 мача на единия и 65 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.28,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.101
  },
  {
   "key": "2026-10-12|football|bolívar|blooming",
@@ -171547,7 +170818,9 @@
   "p": 0.7464,
   "stars": 2,
   "sample": "гледани 5 мача на единия и 16 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-10-12|tabletennis|2215|maciejkolek|kamilrudomina",
@@ -171590,7 +170863,9 @@
   "p": 0.6724,
   "stars": 2,
   "sample": "гледани 17 мача на единия и 18 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:3"
  },
  {
   "key": "2026-10-12|tabletennis|2230|viktorvejvoda|martinsychra",
@@ -171633,7 +170908,9 @@
   "p": 0.5571,
   "stars": 2,
   "sample": "гледани по 13 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-10-12|tabletennis|2230|vaclavkosar|frantisekbriza",
@@ -171676,7 +170953,9 @@
   "p": 0.6439,
   "stars": 1,
   "sample": "гледани 9 мача на единия и 10 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-10-12|tabletennis|2300|milansmrcek|adamsvoboda",
