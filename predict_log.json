@@ -134681,8 +134681,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-02|tabletennis|iulianchirita|guanhongzhou",
@@ -136467,8 +136468,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-03|tabletennis|dariusmovileanu|joeseyfried",
@@ -137929,8 +137931,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-06|hockey|tampabaylightning|philadelphiaflyers",
@@ -138333,8 +138336,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-04|baseball|ncdinos|ssglanders",
@@ -139973,8 +139977,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-03|esports|astralis|fnatic",
@@ -141679,8 +141684,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-08|hockey|anaheimducks|edmontonoilers",
@@ -148329,8 +148335,9 @@
   "p": 0.5789,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-06|tabletennis|yubinshin|eunhyelee",
@@ -148461,8 +148468,9 @@
   "p": 0.6078,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-06|tabletennis|manyuwang|manikabatra",
@@ -148773,8 +148781,9 @@
   "p": 0.5815,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-06|tabletennis|0230|kyryldarin|jiridedek",
@@ -154008,8 +154017,9 @@
   "p": 0.6643,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-07|esports|spirit|m80",
