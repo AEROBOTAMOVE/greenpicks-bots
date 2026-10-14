@@ -165692,7 +165692,7 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-11|tabletennis|2330|jirilouda|tomasfranek",
@@ -165786,7 +165786,7 @@
   "scored": true,
   "hit": false,
   "score": "78:84",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-11|tennis|matsuokah|sunqian",
@@ -165835,7 +165835,7 @@
   "pazar_close": 1.08,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-11|football|fcutrecht|willemii",
@@ -165931,7 +165931,7 @@
   "scored": true,
   "hit": true,
   "score": "11:1",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-11|esports|aurora|spirit",
@@ -173251,7 +173251,7 @@
   "scored": true,
   "hit": true,
   "score": "3:1",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-13|tennis|munkmesab|dellienh",
@@ -173297,7 +173297,7 @@
   "scored": true,
   "hit": true,
   "score": "0:1",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-13|football|alsadd|alhilal",
@@ -173346,7 +173346,7 @@
   "pazar_close": 1.52,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.025,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-13|volleyball|wsen|moyaradomkaradom|volleywrocław",
@@ -173392,7 +173392,7 @@
   "scored": true,
   "hit": true,
   "score": "3:2",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-14|baseball|tampabayrays|clevelandguardians",
@@ -173529,7 +173529,7 @@
   "pazar_close": 1.46,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0599,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-13|football|berwickrangers|queenofthesouth",
@@ -173578,7 +173578,7 @@
   "pazar_close": 1.34,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0056,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-14|baseball|tampabayrays|clevelandguardians|total",
@@ -177299,7 +177299,9 @@
   "p": 0.8299,
   "stars": 3,
   "sample": "ранглиста и 16 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-10-18|hockey|utahmammoth|edmontonoilers",
