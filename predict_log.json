@@ -179050,7 +179050,9 @@
   "p": 0.6068,
   "stars": 3,
   "sample": "ранглиста и 15 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-10-14|tennis|nardil|carbonil",
