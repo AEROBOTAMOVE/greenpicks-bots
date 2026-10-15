@@ -172666,7 +172666,8 @@
   "pazar_close": 1.52,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.025,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-13|volleyball|wsen|moyaradomkaradom|volleywrocław",
@@ -172850,7 +172851,8 @@
   "pazar_close": 1.46,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0599,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-13|football|berwickrangers|queenofthesouth",
@@ -173619,7 +173621,12 @@
   "p": 0.5744,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "93:65",
+  "pazar_close": 1.47,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0668
  },
  {
   "key": "2026-10-18|hockey|montréalcanadiens|buffalosabres",
@@ -173748,7 +173755,12 @@
   "p": 0.6834,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "82:85",
+  "pazar_close": 1.45,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0298
  },
  {
   "key": "2026-10-13|basketball|albaberlin|kkigokea",
@@ -173791,7 +173803,12 @@
   "p": 0.8003,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "90:79",
+  "pazar_close": 1.2,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.007
  },
  {
   "key": "2026-10-13|tabletennis|0120|jacekzelezik|miroslawlewczuk",
@@ -178474,7 +178491,12 @@
   "p": 0.6935,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "84:86",
+  "pazar_close": 1.38,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0053
  },
  {
   "key": "2026-10-15|baseball|fukuokasoftbankhawks|hokkaidonipponhamfighter",
@@ -179575,7 +179597,12 @@
   "p": 0.7014,
   "stars": 3,
   "sample": "гледани 91 мача на единия и 71 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.32,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0058
  },
  {
   "key": "2026-10-15|tennis|nuriabrancaccio|andrealazarogarcia",
@@ -179878,7 +179905,12 @@
   "p": 0.6444,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.47,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0091
  },
  {
   "key": "2026-10-15|tennis|frodint|berlangabanderam",
