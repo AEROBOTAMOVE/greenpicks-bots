@@ -180151,7 +180151,9 @@
   "p": 0.8615,
   "stars": 2,
   "sample": "ранглиста и 15 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-10-16|tennis|elizarayaneva|francescacurmi",
@@ -180194,7 +180196,9 @@
   "p": 0.7963,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2"
  },
  {
   "key": "2026-10-15|tennis|kupareva|mdlulwaw",
@@ -181560,7 +181564,9 @@
   "p": 0.67,
   "stars": 3,
   "sample": "ранглиста и 19 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-10-20|hockey|utahmammoth|pittsburghpenguins",
@@ -181820,7 +181826,9 @@
   "p": 0.7772,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-10-15|tennis|slavicn|thiesc",
@@ -182001,7 +182009,9 @@
   "p": 0.7737,
   "stars": 3,
   "sample": "ранглиста и 28 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:2"
  },
  {
   "key": "2026-10-15|football|fctwente|fcthun|total",
@@ -183506,7 +183516,9 @@
   "p": 0.6293,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-16|tennis|tua|wuertht",
