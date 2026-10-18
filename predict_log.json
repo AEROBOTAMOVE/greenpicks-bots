@@ -175121,7 +175121,8 @@
   "sample": "гледани 9 мача на единия и 22 на другия",
   "scored": true,
   "hit": true,
-  "score": "0:3"
+  "score": "0:3",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-14|tabletennis|2155|jerzymichalik|miroslawwarzecha",
@@ -175170,7 +175171,7 @@
   "pazar_close": 1.5105,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0115,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-14|tabletennis|2155|mateusztrela|mikolajlukaszewski",
@@ -175360,7 +175361,7 @@
   "pazar_close": 1.52,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0044,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-18|hockey|floridapanthers|seattlekraken",
@@ -175446,7 +175447,13 @@
   "p": 0.7576,
   "stars": 2,
   "sample": "следени 6 техни боя",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.31,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.024,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-14|tennis|ireneburillo|jessicabouzasmaneiro",
@@ -175491,7 +175498,8 @@
   "sample": "ранглиста и 16 скорошни мача",
   "scored": true,
   "hit": true,
-  "score": "1:2"
+  "score": "1:2",
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-18|hockey|utahmammoth|edmontonoilers",
@@ -175627,7 +175635,8 @@
   "score": "1:2",
   "pazar_close": 1.21,
   "pazar_close_izt": "redica",
-  "pazar_clv": 0.0134
+  "pazar_clv": 0.0134,
+  "combo_opiti": 1
  },
  {
   "key": "2026-10-15|football|rhodeislandfc|loudoununitedfc|total",
@@ -175721,7 +175730,7 @@
   "pazar_close": 1.45,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0246,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-14|tabletennis|2200|michalregner|tomasfranek",
@@ -182039,7 +182048,8 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-16|basketball|tasmaniajackjumpers|adelaide36ers",
@@ -182184,7 +182194,8 @@
   "pazar_close": 1.11,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-16|volleyball|msen|gkskatowice|aluroncmcwartazawiercie",
@@ -182233,7 +182244,8 @@
   "pazar_close": 1.08,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0085,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-16|tennis|wolffv|bulatovaa",
@@ -184986,7 +184998,12 @@
   "p": 0.5967,
   "stars": 3,
   "sample": "гледани 40 мача на единия и 41 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "98:92",
+  "pazar_close": 1.4,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0854
  },
  {
   "key": "2026-10-18|volleyball|wsen|osakamarvelous|okayamaseagulls",
@@ -185160,7 +185177,12 @@
   "p": 0.7223,
   "stars": 2,
   "sample": "ранглиста и 10 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.36,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0166
  },
  {
   "key": "2026-10-18|esports|falconsforce|maybe",
@@ -185289,7 +185311,12 @@
   "p": 0.8023,
   "stars": 3,
   "sample": "гледани 41 мача на единия и 40 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "89:91",
+  "pazar_close": 1.16,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0146
  },
  {
   "key": "2026-10-18|football|cerroporteño|sportivoameliano",
@@ -185461,7 +185488,9 @@
   "p": 0.496,
   "stars": 3,
   "sample": "гледани 41 мача на единия и 40 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "89:91"
  },
  {
   "key": "2026-10-18|football|cerroporteño|sportivoameliano|total",
@@ -185852,7 +185881,12 @@
   "p": 0.5751,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.68,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0036
  },
  {
   "key": "2026-10-19|tennis|cameronnorrie|benjaminbonzi",
@@ -186196,7 +186230,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-10-19|tennis|kimberlybirrell|sonaykartal",
@@ -186540,7 +186576,9 @@
   "p": 0.7155,
   "stars": 2,
   "sample": "гледани 17 мача на единия и 50 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-18|football|crb|botafogosp",
@@ -186626,7 +186664,9 @@
   "p": 0.6842,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-18|esports|upgrade|lavked",
@@ -186884,7 +186924,9 @@
   "p": 0.6751,
   "stars": 2,
   "sample": "гледани 29 мача на единия и 50 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-19|tennis|aleksandarvukic|adrianmannarino",
