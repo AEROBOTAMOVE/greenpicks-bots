@@ -173997,7 +173997,7 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-14|tabletennis|2155|jerzymichalik|miroslawwarzecha",
@@ -174046,7 +174046,8 @@
   "pazar_close": 1.5105,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0115,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-14|tabletennis|2155|mateusztrela|mikolajlukaszewski",
@@ -174236,7 +174237,8 @@
   "pazar_close": 1.52,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0044,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-18|hockey|floridapanthers|seattlekraken",
@@ -174328,7 +174330,7 @@
   "pazar_close": 1.31,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.024,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-14|tennis|ireneburillo|jessicabouzasmaneiro",
@@ -174374,7 +174376,7 @@
   "scored": true,
   "hit": true,
   "score": "1:2",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-18|hockey|utahmammoth|edmontonoilers",
@@ -174511,7 +174513,7 @@
   "pazar_close": 1.21,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0134,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-15|football|rhodeislandfc|loudoununitedfc|total",
@@ -174605,7 +174607,8 @@
   "pazar_close": 1.45,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0246,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-14|tabletennis|2200|michalregner|tomasfranek",
@@ -183924,7 +183927,7 @@
   "scored": true,
   "hit": true,
   "score": "3:1",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-20|hockey|saipa|kärpät",
@@ -184064,7 +184067,7 @@
   "pazar_close": 1.36,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0166,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-18|esports|falconsforce|maybe",
@@ -184199,7 +184202,7 @@
   "pazar_close": 1.16,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0146,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-18|football|cerroporteño|sportivoameliano",
@@ -184242,7 +184245,12 @@
   "p": 0.579,
   "stars": 3,
   "sample": "гледани по 80 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2",
+  "pazar_close": 1.6,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0119
  },
  {
   "key": "2026-10-22|hockey|ottawasenators|floridapanthers",
@@ -184421,7 +184429,9 @@
   "p": 0.4948,
   "stars": 3,
   "sample": "гледани по 80 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:2"
  },
  {
   "key": "2026-10-18|volleyball|msen|zaksakędzierzynkoźle|bogdankaluklublin",
@@ -184470,7 +184480,7 @@
   "pazar_close": 1.22,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0197,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-18|volleyball|wsen|necredrocketskawasaki|victorinahimeji",
