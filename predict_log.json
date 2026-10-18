@@ -154957,8 +154957,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-09|tabletennis|2145|arturkubiak|arturzmijewski",
@@ -156268,8 +156269,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-14|hockey|newyorkrangers|tampabaylightning",
@@ -169957,8 +169959,9 @@
   "p": 0.8471,
   "stars": 3,
   "sample": "ранглиста и 18 скорошни мача",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-14|hockey|saipalappeenranta|hcpilsen",
