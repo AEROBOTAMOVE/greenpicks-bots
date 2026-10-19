@@ -173997,7 +173997,8 @@
   "scored": true,
   "hit": true,
   "score": "0:3",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-14|tabletennis|2155|jerzymichalik|miroslawwarzecha",
@@ -174330,7 +174331,8 @@
   "pazar_close": 1.31,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.024,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-14|tennis|ireneburillo|jessicabouzasmaneiro",
@@ -174376,7 +174378,8 @@
   "scored": true,
   "hit": true,
   "score": "1:2",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-18|hockey|utahmammoth|edmontonoilers",
@@ -174513,7 +174516,8 @@
   "pazar_close": 1.21,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0134,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-15|football|rhodeislandfc|loudoununitedfc|total",
@@ -183927,7 +183931,7 @@
   "scored": true,
   "hit": true,
   "score": "3:1",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-20|hockey|saipa|kärpät",
@@ -184067,7 +184071,7 @@
   "pazar_close": 1.36,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0166,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-18|esports|falconsforce|maybe",
@@ -184202,7 +184206,7 @@
   "pazar_close": 1.16,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0146,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-18|football|cerroporteño|sportivoameliano",
@@ -184480,7 +184484,7 @@
   "pazar_close": 1.22,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0197,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-18|volleyball|wsen|necredrocketskawasaki|victorinahimeji",
@@ -185437,7 +185441,9 @@
   "p": 0.5558,
   "stars": 1,
   "sample": "ранглиста и 4 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-10-18|tennis|nannellim|sakellaridisd",
@@ -185878,7 +185884,9 @@
   "p": 0.6203,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-10-18|football|leonesnegros|alebrijesdeoaxaca",
@@ -186012,7 +186020,9 @@
   "p": 0.5825,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-10-18|football|leonesnegros|alebrijesdeoaxaca|total",
@@ -186191,7 +186201,12 @@
   "p": 0.7323,
   "stars": 2,
   "sample": "ранглиста и 5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "pazar_close": 1.33,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0057
  },
  {
   "key": "2026-10-18|football|londoncitylionesses|евертън|total",
@@ -186372,7 +186387,12 @@
   "p": 0.7226,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "pazar_close": 1.32,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0113
  },
  {
   "key": "2026-10-19|tennis|lorenzomusetti|matteoarnaldi",
@@ -186415,7 +186435,12 @@
   "p": 0.6896,
   "stars": 1,
   "sample": "ранглиста и 5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0",
+  "pazar_close": 1.46,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0294
  },
  {
   "key": "2026-10-18|football|панатинайкос|asterastripoli",
@@ -186645,7 +186670,12 @@
   "p": 0.6204,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "pazar_close": 1.52,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0169
  },
  {
   "key": "2026-10-18|football|mvvmaastricht|heraclesalmelo",
@@ -186970,7 +187000,9 @@
   "p": 0.5965,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-10-18|football|atléticomadrid|madridcff|total",
@@ -187460,7 +187492,9 @@
   "p": 0.6744,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-10-19|football|alhilal|alhazem",
@@ -188234,7 +188268,9 @@
   "p": 0.632,
   "stars": 1,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-20|tennis|romansafiullin|shoshimabukuro",
