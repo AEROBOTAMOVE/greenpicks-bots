@@ -183753,7 +183753,12 @@
   "p": 0.6849,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1",
+  "pazar_close": 1.38,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-18|tennis|kamillarakhimova|tatianaprozorova",
@@ -184233,7 +184238,9 @@
   "p": 0.7138,
   "stars": 2,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-10-18|volleyball|msen|pallavolopadova|gassalesbluenergypiacenz",
@@ -184362,7 +184369,9 @@
   "p": 0.88,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "мачът е отложен или отменен"
  },
  {
   "key": "2026-10-18|volleyball|msen|valsagroupmodena|itastrentino",
@@ -186680,7 +186689,9 @@
   "p": 0.5385,
   "stars": 1,
   "sample": "гледани 190 мача на единия и 193 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "7:3"
  },
  {
   "key": "2026-10-19|football|тотнъм|coventrycity",
@@ -186729,7 +186740,7 @@
   "pazar_close": 1.55,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0215,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-19|volleyball|wsen|sokółhagricmogilno|bkszgobielskobiała",
@@ -186778,7 +186789,7 @@
   "pazar_close": 1.5,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-19|football|alhilal|alhazem|total",
@@ -187081,7 +187092,12 @@
   "p": 0.6958,
   "stars": 1,
   "sample": "ранглиста и 1 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2",
+  "pazar_close": 3.05,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.3916
  },
  {
   "key": "2026-10-19|esports|liquid|fnatic",
@@ -187341,7 +187357,9 @@
   "p": 0.7042,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2"
  },
  {
   "key": "2026-10-20|tennis|dariasnigur|katarzynakawa",
@@ -187945,7 +187963,9 @@
   "p": 0.6024,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-10-20|tennis|magdalinette|claireliu",
@@ -187988,7 +188008,12 @@
   "p": 0.5931,
   "stars": 1,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0",
+  "pazar_close": 1.54,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0396
  },
  {
   "key": "2026-10-20|tennis|alyciaparks|sarabejlek",
@@ -188031,7 +188056,12 @@
   "p": 0.8209,
   "stars": 2,
   "sample": "ранглиста и 13 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2",
+  "pazar_close": 1.22,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0278
  },
  {
   "key": "2026-10-21|tennis|jaumemunar|arthurfils",
@@ -188504,7 +188534,12 @@
   "p": 0.6651,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "pazar_close": 1.46,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-20|tennis|bornagojo|arthurfery",
@@ -188719,7 +188754,9 @@
   "p": 0.9173,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 25 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|tennis|anastasiazakharova|mariebouzkova",
