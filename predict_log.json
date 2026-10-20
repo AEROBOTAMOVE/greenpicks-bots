@@ -184995,7 +184995,9 @@
   "p": 0.6318,
   "stars": 2,
   "sample": "ранглиста и 6 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-10-19|tennis|harrietdart|taliagibson",
@@ -186740,7 +186742,7 @@
   "pazar_close": 1.55,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0215,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-19|volleyball|wsen|sokółhagricmogilno|bkszgobielskobiała",
@@ -186789,7 +186791,7 @@
   "pazar_close": 1.5,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-19|football|alhilal|alhazem|total",
@@ -186920,7 +186922,9 @@
   "p": 0.7881,
   "stars": 3,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": null,
+  "why": "мачът е отложен или отменен"
  },
  {
   "key": "2026-10-20|tennis|clementchidekh|boticvandezandschulp",
@@ -186963,7 +186967,9 @@
   "p": 0.7551,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0"
  },
  {
   "key": "2026-10-22|hockey|buffalosabres|philadelphiaflyers",
@@ -188582,7 +188588,12 @@
   "p": 0.6171,
   "stars": 2,
   "sample": "ранглиста и 3 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0",
+  "pazar_close": 1.52,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.021
  },
  {
   "key": "2026-10-21|tennis|martinlandaluce|stanwawrinka",
