@@ -7,46 +7,13 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-10-20 13:09 UTC",
+"koga": "2026-10-20 14:12 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 963
+"pinnacle": 957
 }
 }
-},
-"football|1636486480|1": {
-"bet": 2.62,
-"bet_liga": "Англия / Висша Лига",
-"dom": "Aston Villa",
-"ev": 0.0319,
-"gost": "Brentford",
-"i": 0,
-"izhod": "1",
-"kely": 0.0049,
-"klyuch": "football|1636486480|1",
-"kotva": false,
-"liga": "England - Premier League",
-"mid": "1636486480",
-"n": 4,
-"obarnato": false,
-"p_pow": 0.3967,
-"p_prop": 0.3939,
-"pin": [
-2.42,
-2.78,
-3.62
-],
-"pin_last": [
-2.71,
-2.54,
-3.49
-],
-"sport": "football",
-"start_ms": 1791640800000,
-"t0": "2026-09-16 04:51",
-"t0_ms": 1789534316615,
-"t_last_ms": 1790048691724
 },
 "football|1637086549|Х": {
 "bet": 4.15,
