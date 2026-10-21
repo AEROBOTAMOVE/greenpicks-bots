@@ -7,11 +7,11 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-10-21 16:26 UTC",
+"koga": "2026-10-21 17:46 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 963
+"pinnacle": 948
 }
 }
 },
@@ -44,39 +44,6 @@
 ],
 "sport": "football",
 "start_ms": 1792337400000,
-"t0": "2026-09-22 03:37",
-"t0_ms": 1790048240557,
-"t_last_ms": 1790048691724
-},
-"football|1637165022|2": {
-"bet": 4.05,
-"bet_liga": "Италия / Серия Б",
-"dom": "Modena",
-"ev": 0.0658,
-"gost": "Hellas Verona",
-"i": 1,
-"izhod": "2",
-"kely": 0.0054,
-"klyuch": "football|1637165022|2",
-"kotva": false,
-"liga": "Italy - Serie B",
-"mid": "1637165022",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.2631,
-"p_prop": 0.2664,
-"pin": [
-2.14,
-3.57,
-3.29
-],
-"pin_last": [
-2.14,
-3.57,
-3.29
-],
-"sport": "football",
-"start_ms": 1791739800000,
 "t0": "2026-09-22 03:37",
 "t0_ms": 1790048240557,
 "t_last_ms": 1790048691724
