@@ -184386,7 +184386,9 @@
   "p": 0.729,
   "stars": 3,
   "sample": "гледани 104 мача на единия и 106 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-10-23|hockey|calgaryflames|minnesotawild",
@@ -186535,7 +186537,9 @@
   "p": 0.6296,
   "stars": 3,
   "sample": "гледани 91 мача на единия и 102 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "4:2"
  },
  {
   "key": "2026-10-25|hockey|ottawasenators|newyorkrangers",
@@ -188476,7 +188480,9 @@
   "p": 0.7691,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-21|football|internazionale|shakhtardonetsk",
@@ -188739,7 +188745,12 @@
   "p": 0.8126,
   "stars": 3,
   "sample": "гледани 38 мача на единия и 27 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0",
+  "pazar_close": 1.14,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0078
  },
  {
   "key": "2026-10-22|basketball|neworleanspelicans|indianapacers",
@@ -190949,7 +190960,9 @@
   "p": 0.5635,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|esports|saw|nexus",
@@ -191121,7 +191134,9 @@
   "p": 0.6025,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|tennis|rodrigueztavernas|buenog",
@@ -191336,7 +191351,9 @@
   "p": 0.781,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|tennis|trungellitim|caniatoca",
@@ -191379,7 +191396,9 @@
   "p": 0.6015,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|tennis|rottgeringm|rollandderavelc",
@@ -191422,7 +191441,9 @@
   "p": 0.6758,
   "stars": 1,
   "sample": "гледани 50 мача на единия и 32 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|tennis|saitos|ngounouec",
@@ -191465,7 +191486,9 @@
   "p": 0.6659,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0"
  },
  {
   "key": "2026-10-22|football|fccincinnati|dcunited",
