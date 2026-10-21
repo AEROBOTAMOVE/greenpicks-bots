@@ -181012,7 +181012,7 @@
   "pazar_close": 1.4,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0854,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-18|volleyball|wsen|osakamarvelous|okayamaseagulls",
@@ -181105,7 +181105,7 @@
   "scored": true,
   "hit": true,
   "score": "2:1",
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-18|football|fctwente|fcutrecht",
@@ -185637,7 +185637,12 @@
   "p": 0.6173,
   "stars": 3,
   "sample": "гледани 83 мача на единия и 82 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "100:106",
+  "pazar_close": 1.57,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0082
  },
  {
   "key": "2026-10-20|football|huddersfieldtown|peterboroughunited",
@@ -186079,7 +186084,9 @@
   "p": 0.5065,
   "stars": 3,
   "sample": "гледани 83 мача на единия и 82 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "100:106"
  },
  {
   "key": "2026-10-20|tennis|jarryn|barriosverat",
@@ -186837,7 +186844,9 @@
   "p": 0.7267,
   "stars": 3,
   "sample": "ранглиста и 16 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2"
  },
  {
   "key": "2026-10-21|tennis|dianashnaider|alexandraeala",
@@ -186968,7 +186977,9 @@
   "p": 0.7053,
   "stars": 2,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-10-21|tennis|sarabejlek|soranacirstea",
@@ -187097,7 +187108,12 @@
   "p": 0.634,
   "stars": 3,
   "sample": "ранглиста и 22 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2",
+  "pazar_close": 1.46,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0313
  },
  {
   "key": "2026-10-21|tennis|franciscocerundolo|martindamm",
@@ -187140,7 +187156,9 @@
   "p": 0.8183,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-10-20|tennis|pereiraj|pucinellidealmeidam",
@@ -188166,7 +188184,12 @@
   "p": 0.6816,
   "stars": 3,
   "sample": "гледани 52 мача на единия и 46 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0",
+  "pazar_close": 1.34,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0163
  },
  {
   "key": "2026-10-21|football|millonarios|oncecaldas",
@@ -188209,7 +188232,12 @@
   "p": 0.5526,
   "stars": 3,
   "sample": "гледани по 80 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:1",
+  "pazar_close": 1.83,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.056
  },
  {
   "key": "2026-10-21|football|millonarios|oncecaldas|total",
@@ -188252,7 +188280,9 @@
   "p": 0.5,
   "stars": 3,
   "sample": "гледани по 80 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:1"
  },
  {
   "key": "2026-10-21|tennis|wolfjj|zinkt",
@@ -188340,7 +188370,12 @@
   "p": 0.5722,
   "stars": 1,
   "sample": "ранглиста и 22 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "pazar_close": 1.66,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0107
  },
  {
   "key": "2026-10-20|tennis|ficovichjp|meligenialvesf",
@@ -189467,7 +189502,9 @@
   "p": 0.6548,
   "stars": 2,
   "sample": "гледани 49 мача на единия и 34 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-25|hockey|washingtoncapitals|buffalosabres",
@@ -189553,7 +189590,9 @@
   "p": 0.7837,
   "stars": 2,
   "sample": "гледани 13 мача на единия и 50 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-22|basketball|orlandomagic|atlantahawks",
@@ -190327,6 +190366,178 @@
   "p": 0.6053,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-10-21|tennis|baselv|sakamotop",
+  "combo": 0,
+  "posted": "2026-10-21 15:21",
+  "day": "2026-10-21",
+  "start": "2026-10-21T13:00:00+00:00",
+  "bucket": "tennis",
+  "home": "Basel V.",
+  "away": "Sakamoto P.",
+  "home_id": "",
+  "away_id": "",
+  "league": "M15 Maceio (Brazil) · ITF",
+  "slug": null,
+  "src": "itf",
+  "itf_id": "EJFnl3Uq",
+  "igra": null,
+  "pick": "2 · Sakamoto P.",
+  "pazar_cena": 1.16,
+  "pazar_cena_drug": 5.38,
+  "pazar_p": 0.8226,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.16,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-10-21 15:23",
+  "p_model": 0.7504348681159643,
+  "obarnata": false,
+  "strength": 0.5008697362319285,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1638854520",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": false,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.8226,
+  "stars": 2,
+  "sample": "гледани по 50 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-10-22|football|independientesantafe|jaguaresdecórdoba",
+  "combo": 0,
+  "posted": "2026-10-21 15:21",
+  "day": "2026-10-22",
+  "start": "2026-10-22T01:20:00+00:00",
+  "bucket": "football",
+  "home": "Independiente Santa Fe",
+  "away": "Jaguares de Córdoba",
+  "home_id": "5488",
+  "away_id": "10309",
+  "league": "Примера А, Колумбия",
+  "slug": "col.1",
+  "src": "espn",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · победа Independiente Santa Fe",
+  "pazar_cena": 1.3,
+  "pazar_cena_drug": 8.0,
+  "pazar_p": 0.703,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.3,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-10-21 15:23",
+  "p_model": 0.6072358552225683,
+  "obarnata": false,
+  "strength": 0.41085378283385243,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "401877844",
+  "pazar_izt": "espn",
+  "pazar_sport": "soccer",
+  "pazar_liga": "col.1",
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.703,
+  "stars": 3,
+  "sample": "гледани 90 мача на единия и 32 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-10-22|tennis|fabianmarozsan|alexanderbublik",
+  "combo": 0,
+  "posted": "2026-10-21 15:21",
+  "day": "2026-10-22",
+  "start": "2026-10-22T14:30:00+00:00",
+  "bucket": "tennis",
+  "home": "Fabian Marozsan",
+  "away": "Alexander Bublik",
+  "home_id": "9213",
+  "away_id": "2865",
+  "league": "Almaty Open · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Alexander Bublik",
+  "pazar_cena": 1.35,
+  "pazar_cena_drug": 3.45,
+  "pazar_p": 0.7188,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.35,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-10-21 15:23",
+  "p_model": 0.6920897088934724,
+  "obarnata": false,
+  "strength": 0.38417941778694487,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1638825310",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.7188,
+  "stars": 2,
+  "sample": "ранглиста и 9 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-10-22|football|independientesantafe|jaguaresdecórdoba|total",
+  "combo": 0,
+  "posted": "2026-10-21 15:21",
+  "day": "2026-10-22",
+  "start": "2026-10-22T01:20:00+00:00",
+  "bucket": "football",
+  "home": "Independiente Santa Fe",
+  "away": "Jaguares de Córdoba",
+  "home_id": "5488",
+  "away_id": "10309",
+  "league": "Примера А, Колумбия",
+  "slug": "col.1",
+  "src": "espn",
+  "itf_id": null,
+  "igra": null,
+  "pick": "Под 2.5 гола",
+  "pazar_cena": 2.3,
+  "pazar_cena_drug": null,
+  "pazar_p": 0.4133,
+  "dvizhenie": null,
+  "dvizhenie_ot": null,
+  "dvizhenie_n": null,
+  "dvizhenie_koga": null,
+  "p_model": 0.5387339066970473,
+  "obarnata": false,
+  "strength": 0.0774678133940947,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": null,
+  "pazar_izt": "pinnacle",
+  "pazar_sport": null,
+  "pazar_liga": null,
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.4133,
+  "stars": 3,
+  "sample": "гледани 90 мача на единия и 32 на другия",
   "scored": false
  }
 ]
