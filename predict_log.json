@@ -157062,8 +157062,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-10|tabletennis|0210|oskarjadach|rafaladach",
@@ -174755,9 +174756,10 @@
   "p": 0.6618,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_opiti": 1
+  "combo_opiti": 1,
+  "opit": 1
  },
  {
   "key": "2026-10-15|tennis|comesanaf|meligenialvesf",
@@ -175174,8 +175176,9 @@
   "p": 0.5861,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-15|football|sinttruidense|iberia1999",
@@ -175311,8 +175314,9 @@
   "p": 0.7031,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-15|tennis|okalovam|herrerolinanaa",
@@ -176034,8 +176038,9 @@
   "p": 0.653,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-15|tennis|ralukaserban|leyreromerogormaz",
@@ -176171,8 +176176,9 @@
   "p": 0.718,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-15|tennis|kostovict|kubkam",
@@ -176356,8 +176362,9 @@
   "p": 0.7424,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-15|esports|wbt|ence",
@@ -176400,8 +176407,9 @@
   "p": 0.6051,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-15|football|панатинайкос|boracbanjaluka",
@@ -176678,8 +176686,9 @@
   "p": 0.5754,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-15|esports|eac|ence",
@@ -176722,8 +176731,9 @@
   "p": 0.5861,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|tennis|fionaferro|leyreromerogormaz",
@@ -181002,7 +181012,7 @@
   "pazar_close": 1.4,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0854,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-18|volleyball|wsen|osakamarvelous|okayamaseagulls",
@@ -181095,7 +181105,7 @@
   "scored": true,
   "hit": true,
   "score": "2:1",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-10-18|football|fctwente|fcutrecht",
@@ -182802,7 +182812,9 @@
   "p": 0.7438,
   "stars": 2,
   "sample": "ранглиста и 4 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1"
  },
  {
   "key": "2026-10-19|tennis|zizoubergs|tobysamuel",
@@ -187928,7 +187940,12 @@
   "p": 0.574,
   "stars": 3,
   "sample": "гледани 32 мача на единия и 89 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:0",
+  "pazar_close": 1.76,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0568
  },
  {
   "key": "2026-10-21|esports|metizport|genone",
@@ -188278,7 +188295,9 @@
   "p": 0.791,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|tennis|sinjakraus|taliagibson",
@@ -189054,7 +189073,9 @@
   "p": 0.6572,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-25|hockey|utahmammoth|tampabaylightning",
@@ -189312,7 +189333,12 @@
   "p": 0.7331,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.3,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-21|esports|sinners|heroic",
