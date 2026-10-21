@@ -181012,7 +181012,8 @@
   "pazar_close": 1.4,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0854,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-18|volleyball|wsen|osakamarvelous|okayamaseagulls",
@@ -181105,7 +181106,8 @@
   "scored": true,
   "hit": true,
   "score": "2:1",
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-18|football|fctwente|fcutrecht",
@@ -186801,7 +186803,12 @@
   "p": 0.5823,
   "stars": 1,
   "sample": "ранглиста и 2 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2",
+  "pazar_close": 1.57,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0197
  },
  {
   "key": "2026-10-21|tennis|andreyrublev|adrianmannarino",
@@ -187022,7 +187029,9 @@
   "p": 0.5686,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0"
  },
  {
   "key": "2026-10-20|esports|luminosity|nexus",
@@ -187378,7 +187387,9 @@
   "p": 0.6176,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1"
  },
  {
   "key": "2026-10-24|mma|azamatmurzakanov|dominickreyes",
@@ -187774,7 +187785,9 @@
   "p": 0.579,
   "stars": 2,
   "sample": "ранглиста и 5 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0"
  },
  {
   "key": "2026-10-20|football|lutontown|barnsley|total",
@@ -188635,7 +188648,12 @@
   "p": 0.5747,
   "stars": 3,
   "sample": "гледани 68 мача на единия и 30 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:2",
+  "pazar_close": 1.47,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0779
  },
  {
   "key": "2026-10-22|basketball|brooklynnets|charlottehornets",
@@ -189979,7 +189997,9 @@
   "p": 0.8491,
   "stars": 2,
   "sample": "гледани 43 мача на единия и 50 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-22|basketball|laclippers|sacramentokings",
@@ -190409,7 +190429,9 @@
   "p": 0.8226,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-22|football|independientesantafe|jaguaresdecórdoba",
@@ -190581,7 +190603,9 @@
   "p": 0.7881,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 48 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-21|esports|privateer|falconsforce",
