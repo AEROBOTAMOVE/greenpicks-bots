@@ -186584,7 +186584,7 @@
   "scored": true,
   "hit": true,
   "score": "0:1",
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-21|football|internazionale|shakhtardonetsk",
@@ -186633,7 +186633,7 @@
   "pazar_close": 1.27,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.039,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-21|volleyball|msen|aluroncmcwartazawiercie|zaksakędzierzynkoźle",
@@ -186682,7 +186682,7 @@
   "pazar_close": 1.13,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-22|basketball|torontoraptors|чикагобулс",
@@ -186731,7 +186731,7 @@
   "pazar_close": 1.21,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0134,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-21|football|urawareddiamonds|jefunitedichiharachiba",
@@ -186828,7 +186828,7 @@
   "pazar_close": 2.0,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.1098,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-21|volleyball|msen|bogdankaluklublin|energatreflgdańsk",
@@ -186877,7 +186877,7 @@
   "pazar_close": 1.14,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0078,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-22|basketball|neworleanspelicans|indianapacers",
@@ -186926,7 +186926,7 @@
   "pazar_close": 1.7,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0329,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-22|basketball|лалейкърс|голдънстейт",
@@ -186975,7 +186975,7 @@
   "pazar_close": 1.43,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0049,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-22|basketball|atlantadream|goldenstatevalkyries",
@@ -187024,7 +187024,7 @@
   "pazar_close": 1.54,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0282,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-22|basketball|atlantadream|goldenstatevalkyries|total",
@@ -187253,7 +187253,7 @@
   "pazar_close": 1.64,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0152,
-  "combo_opiti": 1
+  "combo_opiti": 2
  },
  {
   "key": "2026-10-21|tennis|becrofti|fergusonc",
@@ -187384,7 +187384,12 @@
   "p": 0.88,
   "stars": 2,
   "sample": "ранглиста и 17 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "pazar_close": 1.06,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0088
  },
  {
   "key": "2026-10-22|tennis|belindabencic|katarzynakawa",
@@ -187475,7 +187480,9 @@
   "p": 0.6522,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1"
  },
  {
   "key": "2026-10-22|basketball|portlandtrailblazers|финикссънс|total",
@@ -188095,7 +188102,9 @@
   "p": 0.6944,
   "stars": 2,
   "sample": "ранглиста и 8 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:0"
  },
  {
   "key": "2026-10-22|tennis|jasminepaolini|ivajovic",
@@ -188746,7 +188755,12 @@
   "p": 0.7188,
   "stars": 2,
   "sample": "ранглиста и 9 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1",
+  "pazar_close": 1.35,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-22|football|independientesantafe|jaguaresdecórdoba|total",
