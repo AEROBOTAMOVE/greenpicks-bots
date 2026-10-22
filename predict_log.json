@@ -158817,8 +158817,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-11|tabletennis|hugocalderano|yunjulin",
@@ -159047,8 +159048,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|hockey|nashvillepredators|sanjosesharks",
@@ -159091,8 +159093,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-11|tabletennis|0110|mateuszkarpiuk|cezarypawlik",
@@ -159501,8 +159504,9 @@
   "p": 0.8937,
   "stars": 2,
   "sample": "гледани по 5 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-11|football|flamengo|fluminense",
@@ -159818,8 +159822,9 @@
   "p": 0.6188,
   "stars": 2,
   "sample": "гледани по 5 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-12|tennis|taylorfritz|stefanostsitsipas",
@@ -161536,8 +161541,9 @@
   "p": 0.7513,
   "stars": 2,
   "sample": "гледани 5 мача на единия и 6 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-12|tabletennis|2200|michalguzik|grzegorzsawicki",
@@ -162481,8 +162487,9 @@
   "p": 0.7335,
   "stars": 2,
   "sample": "гледани 6 мача на единия и 5 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-12|tabletennis|2345|konradstaszczyk|jakubchmielowski",
@@ -162891,8 +162898,9 @@
   "p": 0.8231,
   "stars": 2,
   "sample": "гледани 6 мача на единия и 5 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-14|hockey|nashvillepredators|vegasgoldenknights",
@@ -164741,8 +164749,9 @@
   "p": 0.9446,
   "stars": 2,
   "sample": "гледани 6 мача на единия и 5 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-13|tennis|dianashnaider|katieboulter",
@@ -165340,8 +165349,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-13|tabletennis|2200|michalvedmoch|kyryldarin",
@@ -166530,8 +166540,9 @@
   "p": 0.5367,
   "stars": 1,
   "sample": "гледани 5 мача на единия и 6 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-13|basketball|pallacanestrovarese|peristeribc",
@@ -175345,8 +175356,9 @@
   "p": 0.784,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-17|hockey|jukurit|tappara",
@@ -175479,8 +175491,9 @@
   "p": 0.6406,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|tennis|leaboskovic|dominikasalkova",
@@ -175844,8 +175857,9 @@
   "p": 0.7579,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|football|clubdeportivomarathón|olanchofc|total",
@@ -175981,8 +175995,9 @@
   "p": 0.6234,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|volleyball|wsen|nicaragua|belize",
@@ -176539,8 +176554,9 @@
   "p": 0.6489,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-21|hockey|columbusbluejackets|torontomapleleafs",
@@ -176719,8 +176735,9 @@
   "p": 0.5614,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-21|hockey|newyorkislanders|anaheimducks",
@@ -177529,8 +177546,9 @@
   "p": 0.5594,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|tennis|rebekamasarova|tamarazidansek",
@@ -177804,8 +177822,9 @@
   "p": 0.658,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-17|tennis|tatianaprozorova|mayarsherif",
@@ -177938,8 +177957,9 @@
   "p": 0.849,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-17|football|clubatléticolapaz|tlaxcalafc",
@@ -178126,8 +178146,9 @@
   "p": 0.6785,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|tennis|havlickoval|teichmannj",
@@ -178215,8 +178236,9 @@
   "p": 0.6714,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-16|esports|bbteam|legacy",
@@ -178259,8 +178281,9 @@
   "p": 0.6154,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-17|tennis|kyokaokamura|mayajoint",
@@ -187750,7 +187773,12 @@
   "p": 0.5531,
   "stars": 2,
   "sample": "гледани по 82 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "125:132",
+  "pazar_close": 1.74,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": -0.0241
  },
  {
   "key": "2026-10-22|basketball|orlandomagic|atlantahawks|total",
@@ -187793,7 +187821,9 @@
   "p": 0.5065,
   "stars": 2,
   "sample": "гледани по 82 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "125:132"
  },
  {
   "key": "2026-10-23|hockey|lukko|tps",
@@ -188354,7 +188384,12 @@
   "p": 0.6673,
   "stars": 3,
   "sample": "гледани 28 мача на единия и 59 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2",
+  "pazar_close": 1.27,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0521
  },
  {
   "key": "2026-10-22|tennis|karenkhachanov|tomasmachac",
@@ -188965,7 +189000,12 @@
   "p": 0.591,
   "stars": 2,
   "sample": "гледани 8 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:1",
+  "pazar_close": 1.76,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.1263
  },
  {
   "key": "2026-10-22|football|realpotosí|bolívar|total",
@@ -189008,7 +189048,9 @@
   "p": 0.5417,
   "stars": 2,
   "sample": "гледани 8 мача на единия и 28 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:1"
  },
  {
   "key": "2026-10-21|tennis|lasernajm|torresjb",
@@ -189629,7 +189671,12 @@
   "p": 0.5976,
   "stars": 3,
   "sample": "гледани 67 мача на единия и 63 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1",
+  "pazar_close": 1.51,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0171
  },
  {
   "key": "2026-10-22|esports|imperial|turmadopagode",
@@ -189940,7 +189987,12 @@
   "p": 0.8896,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 18 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "0:1",
+  "pazar_close": 1.08,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-22|esports|forzereload|justplayers",
@@ -190284,7 +190336,9 @@
   "p": 0.9197,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 23 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-23|tennis|franciscocerundolo|clementchidekh",
