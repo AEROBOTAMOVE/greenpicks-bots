@@ -186818,7 +186818,7 @@
   "pazar_close": 1.29,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0233,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-22|football|oficrete|байерлеверкузен",
@@ -186867,7 +186867,7 @@
   "pazar_close": 1.2,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0203,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-22|basketball|illawarrahawks|sydneykings",
@@ -186916,7 +186916,7 @@
   "pazar_close": 1.33,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0056,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-23|basketball|оклахомасити|денвърнъгетс|total",
@@ -189735,7 +189735,9 @@
   "p": 0.7638,
   "stars": 3,
   "sample": "гледани 44 мача на единия и 51 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3"
  },
  {
   "key": "2026-10-24|football|уестхем|southampton",
@@ -189950,7 +189952,12 @@
   "p": 0.6791,
   "stars": 3,
   "sample": "гледани 46 мача на единия и 45 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:3",
+  "pazar_close": 1.38,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-24|tennis|stefanostsitsipas|nikolozbasilashvili",
@@ -190122,7 +190129,12 @@
   "p": 0.8515,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3",
+  "pazar_close": 1.12,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-24|esports|fut|tyloo",
@@ -190423,7 +190435,12 @@
   "p": 0.6175,
   "stars": 3,
   "sample": "гледани 42 мача на единия и 40 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "81:98",
+  "pazar_close": 1.54,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0042
  },
  {
   "key": "2026-10-24|tennis|ellisb|hoeyeraalh",
@@ -190771,7 +190788,9 @@
   "p": 0.5106,
   "stars": 3,
   "sample": "гледани 42 мача на единия и 40 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "81:98"
  },
  {
   "key": "2026-10-24|tennis|wongc|zhouy",
@@ -190814,7 +190833,9 @@
   "p": 0.6461,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-24|tennis|ekaterinegorgodze|tatianaprozorova",
@@ -190857,7 +190878,9 @@
   "p": 0.8,
   "stars": 2,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:2"
  },
  {
   "key": "2026-10-24|volleyball|msen|nipponsteelsakaiblazers|fragoladkagoshima",
@@ -191029,7 +191052,9 @@
   "p": 0.88,
   "stars": 3,
   "sample": "ранглиста и 16 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:2"
  },
  {
   "key": "2026-10-24|tennis|hipfln|biletici",
@@ -191072,7 +191097,9 @@
   "p": 0.727,
   "stars": 2,
   "sample": "гледани 50 мача на единия и 27 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "1:0"
  },
  {
   "key": "2026-10-24|volleyball|wsen|densoairybees|sagahisamitsusprings",
@@ -191115,7 +191142,9 @@
   "p": 0.5669,
   "stars": 3,
   "sample": "гледани 47 мача на единия и 53 на другия",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:3"
  },
  {
   "key": "2026-10-28|hockey|dallasstars|newjerseydevils",
@@ -191287,7 +191316,12 @@
   "p": 0.5848,
   "stars": 1,
   "sample": "ранглиста и 11 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0",
+  "pazar_close": 1.6,
+  "pazar_close_izt": "redica",
+  "pazar_clv": 0.0152
  },
  {
   "key": "2026-10-24|esports|spirit|bbteam",
@@ -191373,7 +191407,12 @@
   "p": 0.7942,
   "stars": 3,
   "sample": "ранглиста и 14 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:0",
+  "pazar_close": 4.25,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.5912
  },
  {
   "key": "2026-10-24|tennis|livetnovkirichkaf|rahmanik",
@@ -191416,7 +191455,9 @@
   "p": 0.7467,
   "stars": 2,
   "sample": "гледани по 50 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "0:1"
  },
  {
   "key": "2026-10-24|esports|mouz|liquid",
@@ -191889,6 +191930,178 @@
   "p": 0.6186,
   "stars": 1,
   "sample": "гледани 26 мача на единия и 29 на другия",
+  "scored": false
+ },
+ {
+  "key": "2026-10-24|tennis|teodorakostovic|quyihan",
+  "combo": 0,
+  "posted": "2026-10-24 14:35",
+  "day": "2026-10-24",
+  "start": "2026-10-24T11:50:00+00:00",
+  "bucket": "tennis",
+  "home": "Teodora Kostovic",
+  "away": "Qu Yihan",
+  "home_id": "16002",
+  "away_id": "15421",
+  "league": "Guangzhou Open · WTA",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Qu Yihan",
+  "pazar_cena": 1.15,
+  "pazar_cena_drug": 5.81,
+  "pazar_p": 0.8348,
+  "dvizhenie": -0.0028,
+  "dvizhenie_ot": 1.14,
+  "dvizhenie_n": 6,
+  "dvizhenie_koga": "2026-10-24 09:34",
+  "p_model": 0.8547943774899163,
+  "obarnata": true,
+  "strength": 0.7095887549798325,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1639034751",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": false,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.8348,
+  "stars": 2,
+  "sample": "ранглиста и 13 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-10-24|tennis|jamesduckworth|aleksandarkovacevic",
+  "combo": 0,
+  "posted": "2026-10-24 14:35",
+  "day": "2026-10-24",
+  "start": "2026-10-24T13:30:00+00:00",
+  "bucket": "tennis",
+  "home": "James Duckworth",
+  "away": "Aleksandar Kovacevic",
+  "home_id": "1857",
+  "away_id": "3849",
+  "league": "Swiss Indoors Basel · ATP",
+  "slug": null,
+  "src": "espn_tennis",
+  "itf_id": null,
+  "igra": null,
+  "pick": "2 · Aleksandar Kovacevic",
+  "pazar_cena": 1.62,
+  "pazar_cena_drug": 2.34,
+  "pazar_p": 0.5909,
+  "dvizhenie": -0.0046,
+  "dvizhenie_ot": 1.61,
+  "dvizhenie_n": 5,
+  "dvizhenie_koga": "2026-10-24 10:55",
+  "p_model": 0.5608285625560843,
+  "obarnata": true,
+  "strength": 0.12165712511216853,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1639127326",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "tennis",
+  "pazar_liga": null,
+  "pazar_obarnat": true,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.5909,
+  "stars": 2,
+  "sample": "ранглиста и 10 скорошни мача",
+  "scored": false
+ },
+ {
+  "key": "2026-10-24|football|арсенал|евертън",
+  "combo": 0,
+  "posted": "2026-10-24 14:35",
+  "day": "2026-10-24",
+  "start": "2026-10-24T14:00:00+00:00",
+  "bucket": "football",
+  "home": "Арсенал",
+  "away": "Евертън",
+  "home_id": "359",
+  "away_id": "368",
+  "league": "Висша лига",
+  "slug": "eng.1",
+  "src": "espn",
+  "itf_id": null,
+  "igra": null,
+  "pick": "1 · победа Арсенал",
+  "pazar_cena": 1.43,
+  "pazar_cena_drug": 7.5,
+  "pazar_p": 0.6629,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.43,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-10-24 14:38",
+  "p_model": 0.629116810390362,
+  "obarnata": false,
+  "strength": 0.44367521558554307,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "401878768",
+  "pazar_izt": "espn",
+  "pazar_sport": "soccer",
+  "pazar_liga": "eng.1",
+  "pazar_obarnat": null,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.6629,
+  "stars": 3,
+  "sample": "гледани по 45 мача на всеки",
+  "scored": false
+ },
+ {
+  "key": "2026-10-24|esports|nucleartigeres|forzereload",
+  "combo": 0,
+  "posted": "2026-10-24 14:35",
+  "day": "2026-10-24",
+  "start": "2026-10-24T14:00:00+00:00",
+  "bucket": "esports",
+  "home": "Nuclear TigeRES",
+  "away": "FORZE Reload",
+  "home_id": "",
+  "away_id": "",
+  "league": "CS2 · NODWIN Clutch Series",
+  "slug": null,
+  "src": "esport",
+  "itf_id": null,
+  "igra": "cs2",
+  "pick": "1 · победа Nuclear TigeRES",
+  "pazar_cena": 1.45,
+  "pazar_cena_drug": 2.58,
+  "pazar_p": 0.6402,
+  "dvizhenie": 0.0,
+  "dvizhenie_ot": 1.45,
+  "dvizhenie_n": 1,
+  "dvizhenie_koga": "2026-10-24 14:38",
+  "p_model": null,
+  "obarnata": false,
+  "strength": 0.2804,
+  "pazar_v": 2,
+  "pit_home": null,
+  "pit_away": null,
+  "pazar_ev": "1639037738",
+  "pazar_izt": "pinnacle",
+  "pazar_sport": "esports_pin",
+  "pazar_liga": null,
+  "pazar_obarnat": false,
+  "betano_cena": null,
+  "betano_ev": null,
+  "stoynost": null,
+  "p": 0.6402,
+  "stars": 1,
+  "sample": "цената на пазара, без надценката",
   "scored": false
  }
 ]
