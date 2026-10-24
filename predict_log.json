@@ -186818,7 +186818,8 @@
   "pazar_close": 1.29,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0233,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-22|football|oficrete|байерлеверкузен",
@@ -186867,7 +186868,8 @@
   "pazar_close": 1.2,
   "pazar_close_izt": "kniga",
   "pazar_clv": 0.0203,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-22|basketball|illawarrahawks|sydneykings",
@@ -186916,7 +186918,8 @@
   "pazar_close": 1.33,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0056,
-  "combo_opiti": 4
+  "combo_opiti": 5,
+  "combo_done": true
  },
  {
   "key": "2026-10-23|basketball|оклахомасити|денвърнъгетс|total",
@@ -190000,7 +190003,12 @@
   "p": 0.698,
   "stars": 3,
   "sample": "ранглиста и 25 скорошни мача",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "1:2",
+  "pazar_close": 1.41,
+  "pazar_close_izt": "redica",
+  "pazar_clv": -0.0051
  },
  {
   "key": "2026-10-24|football|уестхем|southampton|total",
@@ -190573,7 +190581,12 @@
   "p": 0.5887,
   "stars": 3,
   "sample": "гледани по 45 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "2:1",
+  "pazar_close": 1.62,
+  "pazar_close_izt": "kniga",
+  "pazar_clv": 0.0
  },
  {
   "key": "2026-10-28|hockey|stlouisblues|montréalcanadiens",
@@ -190702,7 +190715,9 @@
   "p": 0.5966,
   "stars": 3,
   "sample": "гледани по 45 мача на всеки",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "2:1"
  },
  {
   "key": "2026-10-24|basketball|atlantadream|goldenstatevalkyries|total",
@@ -190923,7 +190938,9 @@
   "p": 0.55,
   "stars": 1,
   "sample": "без история",
-  "scored": false
+  "scored": true,
+  "hit": true,
+  "score": "3:0"
  },
  {
   "key": "2026-10-28|hockey|jukurit|lukko",
@@ -191273,7 +191290,9 @@
   "p": 0.77,
   "stars": 3,
   "sample": "гледани 42 мача на единия и 44 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "3:2"
  },
  {
   "key": "2026-10-24|tennis|rinkyhijikata|miomirkecmanovic",
