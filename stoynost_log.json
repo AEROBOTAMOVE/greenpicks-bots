@@ -7,45 +7,12 @@
 "zabrana": 403,
 "zayavki": 1
 },
-"koga": "2026-10-28 14:40 UTC",
+"koga": "2026-10-28 15:50 UTC",
 "sportove": {
 "football": {
 "betano": "отказ",
-"pinnacle": 1046
+"pinnacle": 1038
 }
 }
-},
-"football|1637086549|Х": {
-"bet": 4.15,
-"bet_liga": "Англия / Висша Лига",
-"dom": "Nottingham Forest",
-"ev": 0.0336,
-"gost": "Arsenal",
-"i": 2,
-"izhod": "Х",
-"kely": 0.0027,
-"klyuch": "football|1637086549|Х",
-"kotva": false,
-"liga": "England - Premier League",
-"mid": "1637086549",
-"n": 2,
-"obarnato": false,
-"p_pow": 0.2491,
-"p_prop": 0.2556,
-"pin": [
-5.89,
-1.62,
-3.7
-],
-"pin_last": [
-5.89,
-1.62,
-3.7
-],
-"sport": "football",
-"start_ms": 1792337400000,
-"t0": "2026-09-22 03:37",
-"t0_ms": 1790048240557,
-"t_last_ms": 1790048691724
 }
 }
