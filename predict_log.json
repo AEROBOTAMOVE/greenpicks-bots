@@ -170160,8 +170160,9 @@
   "p": 0.8515,
   "stars": 2,
   "sample": "гледани 8 мача на единия и 6 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-25|hockey|edmontonoilers|torontomapleleafs",
@@ -171528,8 +171529,9 @@
   "p": 0.843,
   "stars": 2,
   "sample": "гледани 11 мача на единия и 8 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-25|hockey|stlouisblues|carolinahurricanes",
@@ -178790,9 +178792,10 @@
   "p": 0.748,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_opiti": 1
+  "combo_opiti": 1,
+  "opit": 1
  },
  {
   "key": "2026-10-25|basketball|clevelandcavaliers|brooklynnets",
@@ -179398,9 +179401,10 @@
   "p": 0.7635,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_opiti": 1
+  "combo_opiti": 1,
+  "opit": 1
  },
  {
   "key": "2026-10-24|esports|aurora|themongolz",
@@ -179443,9 +179447,10 @@
   "p": 0.7124,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
+  "scored": false,
   "hit": null,
-  "combo_opiti": 1
+  "combo_opiti": 1,
+  "opit": 1
  },
  {
   "key": "2026-10-25|basketball|филаделфия|милуокибъкс",
@@ -180632,8 +180637,9 @@
   "p": 0.7708,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-24|tennis|dariakasatkina|mayexin",
@@ -180769,8 +180775,9 @@
   "p": 0.8197,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-24|football|neomsc|abha",
@@ -181045,8 +181052,9 @@
   "p": 0.654,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-24|esports|vitality|9z",
@@ -181089,8 +181097,9 @@
   "p": 0.8495,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-24|tennis|tallongriekspoor|franciscocerundolo",
@@ -181413,8 +181422,9 @@
   "p": 0.6402,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-24|football|bkhäcken|degerforsif",
@@ -181922,8 +181932,9 @@
   "p": 0.8059,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-29|hockey|edmontonoilers|calgaryflames",
