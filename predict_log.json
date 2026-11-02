@@ -179893,7 +179893,7 @@
   "pazar_close": 1.37,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0108,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-28|esports|liquid|furia",
@@ -180224,7 +180224,7 @@
   "pazar_close": 1.24,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0489,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-31|mma|jeanpaullebosnoyani|farmanhasanov",
@@ -180273,7 +180273,7 @@
   "pazar_close": 1.34,
   "pazar_close_izt": "redica",
   "pazar_clv": -0.0056,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-28|tennis|sinjakraus|paulabadosa",
@@ -180322,7 +180322,7 @@
   "pazar_close": 1.37,
   "pazar_close_izt": "redica",
   "pazar_clv": 0.0,
-  "combo_opiti": 3
+  "combo_opiti": 4
  },
  {
   "key": "2026-10-28|tabletennis|shihanpalkhivala|jungmoklee",
@@ -188475,7 +188475,7 @@
   "scored": true,
   "hit": false,
   "score": "89:98",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-11-01|volleyball|wsen|aleezaaichi|pfubluecatsishikawakahok",
@@ -188566,7 +188566,7 @@
   "scored": true,
   "hit": true,
   "score": "1:3",
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-11-01|volleyball|msen|torayarrowsshizuoka|vcnaganotridents",
@@ -188611,7 +188611,8 @@
   "sample": "гледани 43 мача на единия и 45 на другия",
   "scored": true,
   "hit": true,
-  "score": "3:1"
+  "score": "3:1",
+  "combo_opiti": 1
  },
  {
   "key": "2026-11-01|football|brightonhovealbion|кристълпалас",
@@ -188660,7 +188661,7 @@
   "pazar_close": 1.27,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0256,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-11-01|tennis|carlosalcaraz|alexdeminaur",
@@ -188938,7 +188939,10 @@
   "p": 0.6478,
   "stars": 3,
   "sample": "гледани 88 мача на единия и 87 на другия",
-  "scored": false
+  "scored": true,
+  "hit": false,
+  "score": "90:98",
+  "combo_opiti": 1
  },
  {
   "key": "2026-11-01|football|viborgff|achorsens",
@@ -188986,7 +188990,8 @@
   "score": "1:0",
   "pazar_close": 1.54,
   "pazar_close_izt": "kniga",
-  "pazar_clv": 0.0
+  "pazar_clv": 0.0,
+  "combo_opiti": 1
  },
  {
   "key": "2026-11-01|football|malmöff|hammarbyif",
@@ -189264,7 +189269,7 @@
   "pazar_close": 1.33,
   "pazar_close_izt": "kniga",
   "pazar_clv": -0.0057,
-  "combo_opiti": 2
+  "combo_opiti": 3
  },
  {
   "key": "2026-11-01|tennis|imamuram|staehelil",
