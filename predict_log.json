@@ -167033,8 +167033,9 @@
   "p": 0.7781,
   "stars": 3,
   "sample": "гледани 9 мача на единия и 12 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-24|volleyball|msen|pgegiekskrabełchatów|pgeprojektwarszawa",
@@ -168145,8 +168146,9 @@
   "p": 0.8598,
   "stars": 2,
   "sample": "гледани 10 мача на единия и 9 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-25|football|crb|londrina",
@@ -169720,8 +169722,9 @@
   "p": 0.8676,
   "stars": 3,
   "sample": "гледани по 11 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-27|basketball|clevelandcavaliers|minnesotatimberwolves",
@@ -170028,8 +170031,9 @@
   "p": 0.7209,
   "stars": 3,
   "sample": "гледани 12 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-28|hockey|chicagoblackhawks|losangeleskings",
@@ -174683,8 +174687,9 @@
   "p": 0.7154,
   "stars": 2,
   "sample": "гледани 25 мача на единия и 41 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-29|basketball|neworleanspelicans|денвърнъгетс",
@@ -175094,8 +175099,9 @@
   "p": 0.7004,
   "stars": 2,
   "sample": "гледани 46 мача на единия и 59 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-28|tennis|kotliary|andreevae",
@@ -176098,8 +176104,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 69 мача на единия и 95 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-29|tennis|yuliaputintseva|elenarybakina",
@@ -176280,8 +176287,9 @@
   "p": 0.5723,
   "stars": 2,
   "sample": "гледани 37 мача на единия и 24 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-28|tennis|shimanovo|rozins",
