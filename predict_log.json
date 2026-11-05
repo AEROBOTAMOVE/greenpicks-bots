@@ -165833,8 +165833,9 @@
   "p": 0.8718,
   "stars": 3,
   "sample": "гледани по 11 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-27|tennis|dalmagalfi|annablinkova",
@@ -166159,8 +166160,9 @@
   "p": 0.794,
   "stars": 3,
   "sample": "гледани 9 мача на единия и 12 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-27|basketball|бостънселтикс|чикагобулс",
@@ -166946,8 +166948,9 @@
   "p": 0.716,
   "stars": 3,
   "sample": "гледани по 12 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-28|hockey|utahmammoth|minnesotawild",
@@ -167035,8 +167038,9 @@
   "p": 0.5581,
   "stars": 2,
   "sample": "гледани 11 мача на единия и 12 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-27|basketball|utahjazz|memphisgrizzlies",
@@ -167350,8 +167354,9 @@
   "p": 0.602,
   "stars": 2,
   "sample": "гледани 11 мача на единия и 10 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-26|football|alain|tractor",
@@ -168276,8 +168281,9 @@
   "p": 0.674,
   "stars": 3,
   "sample": "гледани по 12 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|hockey|anaheimducks|buffalosabres",
@@ -168320,8 +168326,9 @@
   "p": 0.6291,
   "stars": 2,
   "sample": "гледани по 11 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-27|tennis|zizoubergs|huberthurkacz",
@@ -168412,8 +168419,9 @@
   "p": 0.8106,
   "stars": 3,
   "sample": "гледани 13 мача на единия и 9 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-27|esports|mibr|eternalfire",
@@ -169834,8 +169842,9 @@
   "p": 0.8543,
   "stars": 3,
   "sample": "гледани 13 мача на единия и 11 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|hockey|vancouvercanucks|torontomapleleafs",
@@ -170054,8 +170063,9 @@
   "p": 0.7693,
   "stars": 3,
   "sample": "гледани по 11 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-28|tennis|gorznys|blanchdar",
@@ -173841,8 +173851,9 @@
   "p": 0.7321,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|tennis|alyciaparks|miapohankova",
@@ -174320,8 +174331,9 @@
   "p": 0.8304,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|football|виляреал|espanyol|total",
@@ -174605,8 +174617,9 @@
   "p": 0.6158,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|tennis|kumasakat|yamanakat",
@@ -174878,8 +174891,9 @@
   "p": 0.594,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|football|unionomaha|chattanoogaredwolves|total",
@@ -175012,8 +175026,9 @@
   "p": 0.8126,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-04|hockey|washingtoncapitals|dallasstars",
@@ -175099,8 +175114,9 @@
   "p": 0.5633,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-04|hockey|torontomapleleafs|utahmammoth",
