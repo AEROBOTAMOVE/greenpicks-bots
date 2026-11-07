@@ -163018,8 +163018,9 @@
   "p": 0.5415,
   "stars": 1,
   "sample": "гледани 11 мача на единия и 12 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-28|basketball|нюйоркникс|detroitpistons",
@@ -163242,8 +163243,9 @@
   "p": 0.7538,
   "stars": 3,
   "sample": "гледани по 13 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-27|esports|prestige|breadeaters",
@@ -163376,8 +163378,9 @@
   "p": 0.8168,
   "stars": 3,
   "sample": "гледани 11 мача на единия и 9 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|hockey|tampabaylightning|winnipegjets",
@@ -163708,8 +163711,9 @@
   "p": 0.638,
   "stars": 3,
   "sample": "гледани 13 мача на единия и 11 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-28|tabletennis|manyuwang|hanagoda",
@@ -165154,8 +165158,9 @@
   "p": 0.8972,
   "stars": 3,
   "sample": "гледани 12 мача на единия и 11 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-29|tabletennis|harkunwarsingh|sahilrawat",
@@ -169285,8 +169290,9 @@
   "p": 0.7442,
   "stars": 3,
   "sample": "гледани 15 мача на единия и 14 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|basketball|cairnstaipans|melbourneunited",
@@ -171982,8 +171988,9 @@
   "p": 0.685,
   "stars": 2,
   "sample": "гледани 66 мача на единия и 65 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|tennis|miomirkecmanovic|juanmanuelcerundolo",
@@ -172071,8 +172078,9 @@
   "p": 0.5781,
   "stars": 2,
   "sample": "гледани 54 мача на единия и 44 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-03|hockey|chicagoblackhawks|coloradoavalanche",
@@ -173220,8 +173228,9 @@
   "p": 0.885,
   "stars": 1,
   "sample": "без история",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|volleyball|wsen|ksdevelopresrzeszów|bkszgobielskobiała",
@@ -173675,8 +173684,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 74 мача на единия и 55 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-02|basketball|highpointpanthers|libertyflames",
@@ -173810,8 +173820,9 @@
   "p": 0.85,
   "stars": 2,
   "sample": "гледани 79 мача на единия и 70 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-06|hockey|detroitredwings|vegasgoldenknights",
@@ -173897,8 +173908,9 @@
   "p": 0.7471,
   "stars": 2,
   "sample": "гледани 98 мача на единия и 62 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|tabletennis|swarakarmarkar|yerinyoo",
@@ -173941,7 +173953,8 @@
   "p": 0.5658,
   "stars": 2,
   "sample": "гледани 33 мача на единия и 120 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  }
 ]
