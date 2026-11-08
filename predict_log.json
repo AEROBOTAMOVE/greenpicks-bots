@@ -165234,8 +165234,9 @@
   "p": 0.684,
   "stars": 3,
   "sample": "гледани 12 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|tennis|shihan|lillitagger",
@@ -169428,8 +169429,9 @@
   "p": 0.601,
   "stars": 1,
   "sample": "цената на пазара, без надценката",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|basketball|adelaide36ers|brisbanebullets",
@@ -170398,8 +170400,9 @@
   "p": 0.7263,
   "stars": 2,
   "sample": "ранглиста и 12 скорошни мача",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|tabletennis|yidiwang|yingshasun",
