@@ -160719,8 +160719,9 @@
   "p": 0.8579,
   "stars": 3,
   "sample": "гледани 13 мача на единия и 14 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|basketball|бостънселтикс|чикагобулс",
@@ -161484,8 +161485,9 @@
   "p": 0.6671,
   "stars": 3,
   "sample": "гледани 13 мача на единия и 12 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|volleyball|wsen|osakamarvelous|aranmareakitashonai",
@@ -162973,8 +162975,9 @@
   "p": 0.806,
   "stars": 3,
   "sample": "гледани 14 мача на единия и 12 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|tabletennis|yashanshmalik|akashpal",
@@ -165533,8 +165536,9 @@
   "p": 0.5579,
   "stars": 2,
   "sample": "гледани по 13 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|football|deportivomorón|ciudaddebolívar",
