@@ -158535,8 +158535,9 @@
   "p": 0.704,
   "stars": 3,
   "sample": "гледани 11 мача на единия и 12 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|esports|genone|baks",
@@ -158624,8 +158625,9 @@
   "p": 0.5416,
   "stars": 1,
   "sample": "гледани 15 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-30|tennis|tomiday|okiy",
@@ -158803,8 +158805,9 @@
   "p": 0.5327,
   "stars": 1,
   "sample": "гледани по 12 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|hockey|floridapanthers|winnipegjets",
@@ -159168,8 +159171,9 @@
   "p": 0.8482,
   "stars": 3,
   "sample": "гледани 14 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|basketball|sanantoniospurs|minnesotatimberwolves",
@@ -159578,8 +159582,9 @@
   "p": 0.6265,
   "stars": 3,
   "sample": "гледани по 13 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|tabletennis|subhankritadatta|sutirthamukherjee",
@@ -159985,8 +159990,9 @@
   "p": 0.6995,
   "stars": 3,
   "sample": "гледани 15 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|tabletennis|suhanasaini|nithyamani",
@@ -160074,8 +160080,9 @@
   "p": 0.6066,
   "stars": 3,
   "sample": "гледани 13 мача на единия и 14 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-10-31|tennis|martinlandaluce|tomasmachac",
@@ -161961,8 +161968,9 @@
   "p": 0.774,
   "stars": 3,
   "sample": "гледани 12 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|tennis|carolemonnet|biancaandreescu",
@@ -162053,8 +162061,9 @@
   "p": 0.5695,
   "stars": 2,
   "sample": "гледани 11 мача на единия и 13 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|tabletennis|manavthakkar|sathiyangnanasekaran",
@@ -162596,8 +162605,9 @@
   "p": 0.7723,
   "stars": 3,
   "sample": "гледани по 15 мача на всеки",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|basketball|southeastmelbournephoeni|tasmaniajackjumpers",
@@ -163532,8 +163542,9 @@
   "p": 0.7204,
   "stars": 3,
   "sample": "гледани 14 мача на единия и 15 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-02|basketball|голдънстейт|laclippers",
