@@ -157719,8 +157719,9 @@
   "p": 0.9024,
   "stars": 3,
   "sample": "гледани 14 мача на единия и 15 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|tabletennis|trulsmoregard|patrickfranziska",
@@ -157946,8 +157947,9 @@
   "p": 0.543,
   "stars": 1,
   "sample": "гледани 14 мача на единия и 15 на другия",
-  "scored": true,
-  "hit": null
+  "scored": false,
+  "hit": null,
+  "opit": 1
  },
  {
   "key": "2026-11-01|tabletennis|hugocalderano|woojinjang",
