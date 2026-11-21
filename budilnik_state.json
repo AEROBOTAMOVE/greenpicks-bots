@@ -1,9 +1,5 @@
 {
  "ocenitel": {
-  "2026-11-13|vecher": {
-   "opiti": 1,
-   "posleden": "2026-11-14 01:55"
-  },
   "2026-11-14|obed": {
    "opiti": 1,
    "posleden": "2026-11-14 19:19"
@@ -23,8 +19,12 @@
   "2026-11-20|vecher": {
    "opiti": 1,
    "posleden": "2026-11-21 01:07"
+  },
+  "2026-11-21|vecher": {
+   "opiti": 1,
+   "posleden": "2026-11-22 01:36"
   }
  },
- "posleden_opit": "2026-11-21 13:58",
+ "posleden_opit": "2026-11-22 01:36",
  "ravnosmetki": {}
 }
